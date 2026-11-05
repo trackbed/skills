@@ -7,6 +7,7 @@ sources:
     upstream_commit: 14bb52d543f577b3e1a34336cedcb104ed1446a2
     license: "MIT"
     last_reviewed_at: 2026-06-21
+    baseline_commit: "8792394ff1b655e0af451b8fabb68ef0cfcbd208"
     baseline_hash: "sha256:f5ae0fee833dcb8b7ebd82a5774073f96967ceefd9ea739364406616b39105e3"
   - id: d3-v7-minified
     url: https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js
@@ -25,5 +26,6 @@ sources:
     title: "nicobailon/visual-explainer"
     rationale: "The report style's visual diff flow, explanatory diagram patterns, and artifact rendering conventions are adapted from this project."
     usage: inspiration
-    last_reviewed_at: 2026-05-28
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "9d5f880b7e8e0a9a80c890b8e1bb6918b68481ad"
     baseline_hash: "8f1d0e38ab0f265632a31d2fd032f7b730c98c15"
