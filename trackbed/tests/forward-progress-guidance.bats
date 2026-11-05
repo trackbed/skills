@@ -47,7 +47,7 @@ CONSUMERS=(
   for consumer in "${CONSUMERS[@]}"; do
     sources="$consumer/references/sources.yaml"
     grep -qF "id: vuk97-forward-implementation-first" "$sources"
-    grep -qF "baseline_commit: 91fa46a0108ecfc612a55cf587a2086621a31161" "$sources"
+    grep -qF "baseline_commit: 2d4dd7eacb4c41a31d85501f6f44d33fef21017a" "$sources"
     grep -qF "The shared forward-progress reference's context-recovery paragraph retains its idea" "$sources"
     test ! -e "$consumer/references/sources-snapshot"
   done
