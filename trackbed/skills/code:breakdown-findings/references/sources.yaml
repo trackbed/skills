@@ -5,8 +5,8 @@ sources:
     rationale: "The end-of-turn triplet convention is adapted for plan-generation output from Addy's git workflow conventions."
     usage: inspiration
     upstream_path: "skills/git-workflow-and-versioning"
-    last_reviewed_at: 2026-08-20
-    baseline_commit: "70b7506ce90e200cb47645ddb3f6b8e84fecc047"
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
     license: "MIT license verified from upstream LICENSE on 2026-07-08; this skill adapts the output convention only and does not copy upstream files."
     baseline_hash: "sha256:51677cf03845dd29d08ea4d3125665057b720aea3dccc572f25d8b172409ece6"
   - id: shadcn-improve
@@ -16,7 +16,7 @@ sources:
     usage: inspiration
     upstream_path: "skills/improve"
     last_reviewed_at: 2026-08-20
-    baseline_commit: "03369ee6d7cafbfcecc4346539b05b3dc0a603bb"
+    baseline_commit: "cac56e1ebd3c279aa9153616cfeac7b174ab90f9"
     license: "MIT declared in the upstream skill metadata; this skill adapts workflow concepts only and does not copy upstream files."
     baseline_hash: "sha256:1599aa29e9b16424cb767779efac53fa56e3f38be92dff4ac587393a1ad5070a"
   - id: github-stacked-prs-docs
@@ -24,12 +24,14 @@ sources:
     title: "GitHub Docs — Stacked pull requests CLI commands"
     rationale: "The gh-stack single-working-tree recipe in the Stack strategy (init/add/submit --auto, sync after merges, link for adopting manual chains) is derived from the official documentation."
     usage: inspiration
-    last_reviewed_at: 2026-08-16
-    baseline_hash: "sha256:7f04046d01470e31b396cab32611d999dda4abc9a7b3251d1366859feef9ff97"
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:4bf0074e6438670d67081791bedeae3342e8ba1bc26d3ea7b037fbc190298ed9"
   - id: github-gh-stack-v0.1.0-submit
     url: https://raw.githubusercontent.com/github/gh-stack/v0.1.0/cmd/submit.go
     title: "gh-stack v0.1.0 submit implementation"
     rationale: "The Stack strategy's description of submit --auto title and body generation follows the tagged defaultPRTitleBody and generatePRBody behavior."
     usage: inspiration
-    last_reviewed_at: 2026-08-16
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "bd0a32504f9ae9f795875a9e6bb90ff7408fda08"
     baseline_hash: "sha256:502f315e21ccd987fa9315fbdfc27ab4111ac214f4c1cc38ebacd31156deac2b"
