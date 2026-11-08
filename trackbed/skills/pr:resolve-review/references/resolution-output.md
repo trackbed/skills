@@ -125,7 +125,8 @@ When the user explicitly reopens a deletion, also reset each fallback dependent 
 
 At the end, include:
 
-- Summary of changes made.
+- Summary of changes made, with each fix commit SHA, or the reason no commit was made.
+- Each validation command and its outcome: passed, failed with the new failure that blocked the commit, or pre-existing failure with the failing files.
 - Count of findings: N addressed, M deferred as out-of-scope, R open selected-resolution retries or blocked implementations, A manual findings awaiting a user decision, P accepted process handoffs awaiting completion, and X manual findings waiting on an external owner, approval, or access.
 - Any breaking changes to API contracts or config behavior.
 - Areas that need manual verification due to potential edge cases or risk.
