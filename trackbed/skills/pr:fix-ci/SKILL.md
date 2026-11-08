@@ -67,7 +67,7 @@ STACK_RESOLVED=$("${CLAUDE_PLUGIN_ROOT}/scripts/resolve-stack-membership.sh") ||
 eval "$STACK_RESOLVED"
 ```
 
-Set `IN_STACK=true` only for `STACK_MEMBERSHIP=local`; set it false for `none`. If membership is `remote`, stop: the PR is stacked on GitHub but not tracked locally. Install the extension if needed, run `gh stack checkout "$STACK_PR_NUMBER"` from a clean working tree, then retry. Authentication, API, parsing, and unexpected CLI failures must not fall through to the single-branch push flow.
+Set `IN_STACK=true` only for `STACK_MEMBERSHIP=local`; set it false for `none`. If membership is `remote`, stop: the PR is stacked on GitHub but not tracked locally. Follow `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-checkout.md`: require a positive `STACK_NUMBER`, import from a clean working tree, restore the recorded entry branch, and revalidate membership before retrying on that branch. Authentication, API, parsing, and unexpected CLI failures must not fall through to the single-branch push flow.
 
 ### Step 2: Confirm the branch is in sync with the base
 

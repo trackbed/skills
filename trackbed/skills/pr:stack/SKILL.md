@@ -40,9 +40,10 @@ Treat every user-supplied branch, PR number, and PR URL as data:
 
 - Parse argument tokens directly into `STACK_BRANCHES` or `STACK_ITEMS` arrays. Never build a command string, use `eval`/`sh -c`, or re-split a joined string.
 - For `init` or local `adopt`, accept at most one `--base <trunk>` before collecting branch operands. Reject a missing value or a use of `--base` with another action. Validate it with `git check-ref-format --branch`, store it as `BASE_BRANCH_OVERRIDE`, and pass it to the shared base resolver; it is a trunk choice, not a stack layer.
-- Before passing a branch to `init`, `add`, or `checkout`, require `git check-ref-format --branch "$branch"` to succeed.
-- Before passing an item to `link` or remote `checkout`, accept only a valid branch, a positive integer PR/stack number, or a current-repository PR URL matching `https://github.com/<owner>/<repo>/pull/<positive-integer>`.
-- Invoke commands with quoted array expansion: `gh stack init --base "$BASE_BRANCH" "${STACK_BRANCHES[@]}"` after validating the trunk, and `gh stack link "${STACK_ITEMS[@]}"`.
+- Before passing a branch to `init`, `add`, or `checkout`, require `git check-ref-format --branch "$branch"` to succeed. For branch `checkout`, also reject integer-like names (including a leading `+`); use a validated nonnumeric branch or `up`/`down` navigation.
+- Before passing an item to `link`, accept only a valid branch, a positive integer PR number, or a current-repository PR URL matching `https://github.com/<owner>/<repo>/pull/<positive-integer>`. For remote `checkout`, use the resolved positive `STACK_NUMBER`; PR numbers and PR URLs both enter gh-stack's stack-first lookup.
+- For `link`, preserve supplied PR numbers and URLs. A leading bare number can select an existing stack or push an identically named local branch, so reject both collisions. Explicit PR URLs bypass numeric target selection. Use a validated nonnumeric branch first only when the user supplied that branch; never replace a selected PR with its head branch.
+- Invoke commands with quoted array expansion: `gh stack init --base "$BASE_BRANCH" "${STACK_BRANCHES[@]}"` after validating the trunk, and the guarded `gh stack link "${STACK_ITEMS[@]}"` procedure in Adopt.
 
 If an operand fails validation, stop and name it. Do not “repair” or normalize user input.
 
@@ -78,7 +79,7 @@ eval "$STACK_RESOLVED"
 | --- | --- |
 | `STACK_MEMBERSHIP=local` and the user wants status | **Status report** |
 | `STACK_MEMBERSHIP=local` | **Maintain** — mid-stack edits, sync, submit new layers |
-| `STACK_MEMBERSHIP=remote` | Do not create or adopt a duplicate. For native maintenance, require a clean working tree and establish local tracking with `gh stack checkout "$STACK_PR_NUMBER"`; otherwise report/manage the existing server-side stack. |
+| `STACK_MEMBERSHIP=remote` | Do not create or adopt a duplicate. For native maintenance, follow `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-checkout.md` to import by `STACK_NUMBER`, restore the entry branch, and revalidate membership before retrying; otherwise report/manage the existing server-side stack. |
 | `STACK_MEMBERSHIP=none`, user wants a new stack | **Create** |
 | `STACK_MEMBERSHIP=none`, ordered branches already exist | **Adopt** |
 
@@ -132,7 +133,7 @@ Re-running `submit --auto` is safe: it pushes changed branches, creates PRs only
 **Respond to review feedback on a lower layer:**
 
 ```bash
-gh stack checkout <branch-or-pr-number>   # or: gh stack down / bottom
+gh stack checkout <validated-nonnumeric-branch> # or: gh stack down / bottom
 # edit, git add <files>, git commit
 gh stack rebase --upstack                 # rebase everything above onto the new commits
 env -u GH_STACK_NO_ATOMIC gh stack push                             # all branches, --force-with-lease --atomic
@@ -176,7 +177,7 @@ gh stack submit --auto
 ## Adopt an existing chain
 
 - **Local ordered branches** (e.g. built from a `trackbed:code:breakdown-findings --split` Stack plan): validate every member with `git check-ref-format --branch`, store them in `STACK_BRANCHES`, resolve `BASE_BRANCH` through the Create step's `${CLAUDE_PLUGIN_ROOT}/scripts/resolve-base.sh` JSON procedure (including `BASE_BRANCH_OVERRIDE` when supplied), then run `gh stack init --base "$BASE_BRANCH" "${STACK_BRANCHES[@]}"` (bottom to top — existing branches are adopted), followed by `gh stack submit --auto`. Stop if the resolved trunk is unclear or conflicts with the chain's known parent.
-- **PRs or branches already on GitHub, or branches managed by external tools** (jj, Sapling, git-town, worktree chains): validate each branch/PR operand from Step 0, store them in `STACK_ITEMS`, then run `gh stack link "${STACK_ITEMS[@]}"` bottom to top. It pushes branches, creates missing PRs with correct chained bases, repairs wrong bases, and links the stack — no local tracking required.
+- **PRs or branches already on GitHub, or branches managed by external tools** (jj, Sapling, git-town, worktree chains): validate each branch/PR operand from Step 0 and store them in `STACK_ITEMS` bottom to top. Read `references/link-target.md` and run its guarded link procedure with the original array. Bare PR leaders require collision checks; explicit URLs pass through unchanged. Branch-led input uses the supplied branch. It pushes branch operands, creates missing PRs, repairs bases, and links the stack — no local tracking required.
 
 ## Status report
 
@@ -186,7 +187,9 @@ Summarize `gh stack view --json` for the user: trunk, branch order bottom-to-top
 
 Select the **highest PR the user intends to land**: use the top PR to land the entire stack, or a lower PR to land only that PR and every unmerged PR below it. Validate the target as a positive integer under Step 0. Choose one merge method allowed by the repository (`merge`, `squash`, or `rebase`); if the user did not specify one and more than one is allowed, ask rather than guessing.
 
-Run the merge headlessly with an explicit target, confirmation flag, and validated method:
+Read `references/merge-target.md` and run its target resolution before merging. It resolves the selected PR's stack number, uses that number for a whole-stack merge, and allows a partial PR target only after proving that no stack has the same number. If the PR is in no stack or its stack number cannot be determined, report that and stop. On a partial-target collision, stop and ask the user how to proceed; never substitute the whole stack or a PR URL.
+
+Run the merge headlessly with the resolved `MERGE_TARGET`, confirmation flag, and validated method:
 
 ```bash
 MERGE_ARGS=(--yes)
@@ -199,7 +202,7 @@ case "$MERGE_METHOD" in
     exit 1
     ;;
 esac
-gh stack merge "$TARGET_PR_NUMBER" "${MERGE_ARGS[@]}"
+gh stack merge "$MERGE_TARGET" "${MERGE_ARGS[@]}"
 ```
 
 `gh stack merge` atomically lands every eligible PR through the target; if any cannot merge, none do. A repository merge queue controls its own method, so gh-stack ignores the supplied method there. GitHub re-targets and rebases PRs above a partial merge. After completion, repeat the routine-sync preflight and run `env -u GH_STACK_NO_ATOMIC gh stack sync --remote "$STACK_REMOTE" --prune`.

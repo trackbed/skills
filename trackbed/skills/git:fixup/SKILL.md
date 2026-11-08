@@ -162,7 +162,7 @@ Before proceeding with the workflow, check if the user provided additional instr
    Route the result explicitly:
    - `STACK_MEMBERSHIP=local`: set `IN_STACK=true`. The autosquash in Step 5 rewrites this branch's history, so Step 7 must restack the branches above it.
    - `STACK_MEMBERSHIP=none`: set `IN_STACK=false`.
-   - `STACK_MEMBERSHIP=remote`: stop before creating commits. The PR is stacked on GitHub but not tracked locally; install the extension if needed, run `gh stack checkout "$STACK_PR_NUMBER"` from a clean working tree, then retry.
+   - `STACK_MEMBERSHIP=remote`: stop before creating commits. The PR is stacked on GitHub but not tracked locally. Follow `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-checkout.md`: require a positive `STACK_NUMBER`, import from a clean working tree, restore the recorded entry branch, and revalidate membership before retrying on that branch.
 
    Authentication, API, parsing, and unexpected `gh stack view` failures stop the workflow. Never interpret them as “not stacked.”
 

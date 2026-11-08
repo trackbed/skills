@@ -118,7 +118,7 @@ Route the result explicitly:
 
 - `STACK_MEMBERSHIP=local`: set `IN_STACK=true` and use the stack replacements below.
 - `STACK_MEMBERSHIP=none`: set `IN_STACK=false` and use the single-branch flow.
-- `STACK_MEMBERSHIP=remote`: stop before rewriting. The PR is stacked on GitHub but not tracked locally. Install the extension if needed, run `gh stack checkout "$STACK_PR_NUMBER"` from a clean working tree, then retry.
+- `STACK_MEMBERSHIP=remote`: stop before rewriting. The PR is stacked on GitHub but not tracked locally. Follow `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-checkout.md`: require a positive `STACK_NUMBER`, import from a clean working tree, restore the recorded entry branch, and revalidate membership before retrying on that branch.
 
 Any resolver failure is an operational failure, not evidence that the branch is unstacked. Stop rather than falling through to a single-branch rebase.
 

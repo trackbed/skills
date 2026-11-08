@@ -78,7 +78,7 @@ Auto mode is the default: skip the granularity question, automatically choose th
 
    If `REQUIRE_UNSTACKED=true` without `--no-push`, require `STACK_MEMBERSHIP=none` immediately after this resolution.
 
-   Set `IN_STACK=true` only for `STACK_MEMBERSHIP=local`; set it false for `none`. If membership is `remote`, stop before the reset: the PR is stacked on GitHub but not tracked locally. Install the extension if needed, run `gh stack checkout "$STACK_PR_NUMBER"` from a clean working tree, then retry. Authentication, API, parsing, and unexpected CLI failures also stop rather than falling through to the single-branch flow.
+   Set `IN_STACK=true` only for `STACK_MEMBERSHIP=local`; set it false for `none`. If membership is `remote`, stop before the reset: the PR is stacked on GitHub but not tracked locally. Follow `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-checkout.md`: require a positive `STACK_NUMBER`, import from a clean working tree, restore the recorded entry branch, and revalidate membership before retrying on that branch. Authentication, API, parsing, and unexpected CLI failures also stop rather than falling through to the single-branch flow.
 
    If `IN_STACK=true` and neither `--manual` nor `--authorize-history-rewrite` was passed, stop before the reset and name both flags. Auto mode alone authorizes only the current unstacked branch; the additional flag is the explicit approval for restacking and publishing every affected branch. A `--manual` stack invocation may instead obtain the explicit stack-wide confirmations below.
 
