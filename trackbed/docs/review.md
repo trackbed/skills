@@ -198,6 +198,8 @@ To review one of them, run `/trackbed:pr:github-review` with its URL.
 
 `/trackbed:pr:github-review` reviews a GitHub Pull Request as the assigned reviewer.
 
+Both `trackbed:pr:github-review` and `trackbed:pr:github-review-reply` inspect deleted lines at the merge base, full multi-line ranges, and whole files for file-level comments. They relocate outdated anchors before judging the current code and exclude unsubmitted feedback. The reply skill skips dismissed review summaries unless `--all` is set.
+
 ### Linked Linear Issues
 
 `pr:github-review` also checks linked Linear issues discovered in the PR title, description, branch, and linking comments, including integration comments. It runs `linear:review-pr` for each in-scope issue and merges requirement findings into the normal review, deduplicating existing conversations.

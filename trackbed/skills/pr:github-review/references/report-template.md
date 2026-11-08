@@ -16,7 +16,7 @@ The report is written for the reviewer to act on. Findings are framed for the PR
 - Files changed: <n> (+<additions> / -<deletions>)
 - Dimensions run: code<, ux/visual/a11y/product> | code only | none — no code changed since your last review
 - Current GitHub review decision: <reviewDecision or "none">
-- Your last review: <APPROVED | CHANGES_REQUESTED | COMMENTED | none>
+- Your last review: <APPROVED | CHANGES_REQUESTED | COMMENTED | DISMISSED | none; submitted reviews only, never PENDING>
 - Conversation: <N open threads, M awaiting you> | none yet (first pass)
 - Linked Linear issues: <reviewed identifiers and verdicts | none found | incomplete — reason>
 - Draft review: <exact DRAFT_REVIEW_STATUS; include review ID/counts when available>
@@ -96,9 +96,11 @@ For each in-scope issue:
 
 _Existing threads on this PR. Reply where it moves the review forward; the rest are surfaced for awareness. Omit this section on a clean first pass with no activity._
 
-- @<latest-commenter> on `path/to/file.ts:123` — **<awaiting-you | author-responded | peer-comment | your-open | new-from-others>**
+- @<latest-submitted-commenter> on `<path:range and side(s) | path (file-level)>` — **<awaiting-you | author-responded | peer-comment | your-open | new-from-others>**
   - Thread: <url>
   - Root comment ID: <id, for the reply command>
+  - Original anchor: <path, LINE/FILE subject, start/end sides and full range, outdated state, revision>
+  - Current location: <verified path:range | whole file | cant-tell — missing evidence>
   - Latest: @<who>: "<short quote or paraphrase>"
   - Verified (live tree): addressed | still-open | cant-tell — <what you saw in the current code>
   - Cross-ref: <`path:line` of the related fresh finding, or "—">
@@ -201,7 +203,7 @@ gh api -X POST "repos/<owner>/<repo>/pulls/<number>/comments/<root-comment-id>/r
 - **Clarity** — the readers' 1–5 scores for the comment: author and teammate on the first reading, then the final confirmation score, such as `3/4, then 5`. Use `—` for a reading the comment missed because a split created it, and `not checked` when the clarity check did not run.
 - **Location** — always a concrete `path:line` from the PR diff so the comment can be anchored. Use the line in the PR's head version. If a finding is PR-wide, say `review-scope` and explain in the body.
 - **Open Conversation** — only for ongoing reviews; omit on a clean first pass. List threads in priority order: `awaiting-you` and `author-responded` first (these need your input), then `peer-comment` / `new-from-others` / `your-open` (awareness). The root comment ID for each thread feeds the reply command in Manual posting.
-- **Verified (live tree)** — the result of reading the current file at the thread's location in the worktree, not an inference from finding overlap: `addressed`, `still-open`, or `cant-tell`. Name what you actually saw (the guard now present, the unchanged branch, etc.). This is what lets a reply say "looks handled now" with confidence.
+- **Verified (live tree)** — apply the shared review-thread locating rules to the historical anchor and current implementation, not finding overlap: `addressed`, `still-open`, or `cant-tell`. Name what you actually saw and preserve full ranges, file subjects, and relocation evidence. An outdated flag or deleted file alone never proves resolution.
 - **Draft reply** — same voice as a draft comment, grounded in the live verification and leading with your decision (addressed → say what you saw; still-open → the open question; or a direct answer). Don't draft acknowledgement-only replies — use "(surfaced for awareness — no reply needed)" when none moves the review forward.
 - **Draft Review** — distinguish eligible proposed comments from comments actually included. Before the offer or write, use `not created — awaiting authorization` or `not created — authorized; creation not attempted yet`, with zero included comments and no payload. Existing-thread replies and non-diff anchors cannot be bundled into the pending review and must be listed as omissions rather than silently dropped; identify them by thread, scope, or another concrete descriptor when no `path:line` exists. `PENDING` means the skill created the review but did not submit it. Exact included counts require a confirmed pending-review response; ambiguous outcomes report the attempted count separately.
 - **Already Raised in the Conversation** — fresh findings you suppressed because someone already raised them. Naming who raised it and linking the thread keeps you from re-posting and shows the concern is tracked. If your finding materially extends the existing thread, draft it as a reply under Open Conversation instead of listing it here.

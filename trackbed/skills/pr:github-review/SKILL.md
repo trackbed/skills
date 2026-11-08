@@ -272,15 +272,15 @@ Save each pass's result as soon as it finishes, per `references/resume.md`.
 
 If `SKIP_THREADS=true`, skip this step entirely and continue to cleanup.
 
-Do this step **while you are still inside the worktree** — the PR head checkout is what makes per-thread verification possible, and the next step removes it. Read `references/conversation-fetch.md` and follow it to pull the PR's existing review activity: inline review threads, general comments, and prior review verdicts. Build a thread map, filter it (human-only and unresolved by default, widened by `--include-bots` and `--all-threads`), and classify each thread from the reviewer's seat as `awaiting-you`, `author-responded`, `peer-comment`, `your-open`, `new-from-others`, or `resolved`.
+Do this step **while you are still inside the worktree** — the PR head checkout is what makes per-thread verification possible, and the next step removes it. Set `PR_HEAD="$HEAD_OID"`, then read `${CLAUDE_PLUGIN_ROOT}/shared/pr-review/references/review-thread-location.md` for anchor fields, submission filtering, and code location, then `references/conversation-fetch.md` to pull the existing review activity. Build a thread map from submitted feedback only, filter it (human-only and unresolved by default, widened by `--include-bots` and `--all-threads`), and classify each thread from the reviewer's seat as `awaiting-you`, `author-responded`, `peer-comment`, `your-open`, `new-from-others`, or `resolved`.
 
-**Re-check every anchored thread against the live tree.** For each thread tied to a `path:line`, read the actual file at that location in the worktree (e.g. `git show HEAD:<path>`, or open the file directly) and judge whether the concern still holds in the current code — do not infer it only from whether a fresh finding overlaps. Record a per-thread verification:
+**Re-check every anchored thread against the live tree.** Follow the shared reference to read deleted lines from the merge base, full multi-line ranges, and whole files for file-level subjects; recover outdated anchors before judging the current implementation. Do not infer the outcome only from whether a fresh finding overlaps. Record a per-thread verification:
 
 - `addressed` — the current code resolves the concern (for example, the guard the author says they added is present at that line).
 - `still-open` — the concern still holds; capture the specific line or behavior that shows it.
-- `cant-tell` — the thread is not anchored to a line (a general comment), or the current code is genuinely ambiguous. Say so rather than guessing.
+- `cant-tell` — the relevant evidence or current location cannot be established, or the current code is genuinely ambiguous. File-level comments still require a whole-file read; general comments need whatever evidence their concern identifies.
 
-Threads whose anchor is outdated (the line moved or the hunk changed) are exactly why this is a live read and not a line-number lookup — find the concern's current location in the file and verify there.
+Keep the historical anchor and verified current location/evidence separately. An outdated flag is never proof that feedback was addressed.
 
 Also record the matching fresh finding's location (`path:line`, or none). The verification and the cross-reference drive the next step: drafting informed replies and suppressing fresh findings the conversation already raises.
 

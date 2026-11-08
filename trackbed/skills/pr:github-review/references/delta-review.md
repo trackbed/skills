@@ -2,7 +2,7 @@
 
 Load this reference from Step 4a. It decides whether this run reviews the whole Pull Request, only the commits that changed since your last review, or no code at all because nothing in this Pull Request changed. The helper reads your reviews from GitHub and may fetch your last reviewed commit by object ID. It writes nothing to GitHub.
 
-Your last review is the newest review you submitted that looked at code: an approval, a change request, a dismissed review, or a comment review with a summary body. GitHub records every single comment and thread reply as a comment review with no body, so those never count. A commit is unchanged when its whitespace-preserving patch matches a commit in the version of this Pull Request you last reviewed, which is how a rebase or restack is told apart from new work. Removed or replaced reviewed patches require a full review.
+Your last review is the newest review you submitted that looked at code: an approval, a change request, a dismissed review, or a comment review with a summary body. Never select a `PENDING` review, even your own. GitHub records every single comment and thread reply as a comment review with no body, so those never count. A commit is unchanged when its whitespace-preserving patch matches a commit in the version of this Pull Request you last reviewed, which is how a rebase or restack is told apart from new work. Removed or replaced reviewed patches require a full review.
 
 ## 1. Compare with your last review
 
