@@ -127,9 +127,9 @@ exit_if_hook_disabled "hook-name" "json" # PostToolUse or Stop
 
 ## External Sources and Rights
 
-- **ALWAYS** declare every external inspiration or copied source in `<skill>/references/sources.yaml` with `id`, `url` or `context7_library`, `title`, `rationale`, `usage`, `last_reviewed_at`, and `baseline_hash`.
+- **ALWAYS** declare every external inspiration or copied source in `<skill>/references/sources.yaml`, or beside plugin-level scripts no single skill owns in `trackbed/scripts/<dir>/sources.yaml`, with `id`, `url` or `context7_library`, `title`, `rationale`, `usage`, `last_reviewed_at`, and `baseline_hash`.
 - **ALWAYS** use `usage: inspiration` only when the local skill retains ideas, facts, methods, or workflow influence expressed in original local language.
-- **ALWAYS** use `usage: copied` when source prose, code, templates, or substantial assets remain, and include a verified compatible `license`, skill-relative `notice`, exact `upstream_path`, and one immutable `upstream_commit`, `baseline_commit`, `upstream_revision`, `upstream_release`, or `version`.
+- **ALWAYS** use `usage: copied` when source prose, code, templates, or substantial assets remain, and include a verified compatible `license`, a `notice` relative to the skill directory or the plugin-level manifest's directory, exact `upstream_path`, and one immutable `upstream_commit`, `baseline_commit`, `upstream_revision`, `upstream_release`, or `version`.
 - **ALWAYS** ship the complete required notice with copied material and repeat the source, license, path, and immutable revision pointer in copied-file headers where the format permits it.
 - **NEVER** treat public availability, attribution, or this repository's MIT license as permission to retain third-party expression.
 - **NEVER** copy material whose license is absent, unclear, incompatible, or forbids reproduction; link to it and write an original summary instead.
