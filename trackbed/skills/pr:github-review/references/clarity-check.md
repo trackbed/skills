@@ -9,7 +9,7 @@ The flow:
 1. Freshness gate: confirm the PR head is still the reviewed head.
 2. Reader's view: extract the lines GitHub shows above each comment, and confirm each anchor can take a comment.
 3. Self-read and fact check, giving v2.
-4. Two cold readers in parallel, one as the author and one as a teammate.
+4. Two clarity readers in parallel, one as the author and one as a teammate.
 5. Triage and rewrite, giving v3.
 6. Constrained humanize of the changed bodies.
 7. Anchor re-check.
@@ -67,7 +67,7 @@ Every "this", "here", "it", or "the field" in a body must point at something in 
 
 Reread each body against its view and apply every rule in Section 1 of `references/comment-drafting.md` again, including the first-line test and the fact cut. Then re-verify each factual claim in the code at `HEAD_OID` and cite the `path:line` that supports it in `Evidence`. Fix or drop a claim the code does not support. The result is v2.
 
-## 4. Two cold readers in parallel
+## 4. Two clarity readers in parallel
 
 Build one reader pack from v2, as `references/clarity-check-prompts.md` describes, and launch the author and teammate readers in the same message so they run in parallel.
 

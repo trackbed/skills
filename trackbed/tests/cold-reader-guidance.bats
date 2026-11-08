@@ -83,9 +83,16 @@ setup() {
 
 @test "github-review clarity readers keep project instructions" {
   local check="skills/pr:github-review/references/clarity-check.md"
+  local skill="skills/pr:github-review/SKILL.md"
 
   grep -qF 'launch them as ordinary agents that keep the project'"'"'s instructions, not as the `trackbed:cold-reader` agent' "$check"
   grep -qF 'or `fork_context: false` when the spawn tool exposes that field instead' "$check"
+  grep -qF '## Step 10a: Check the Draft Comments With Clarity Readers' "$skill"
+  grep -qF '## 4. Two clarity readers in parallel' "$check"
+  if grep -niF 'cold reader' "$skill" "$check"; then
+    echo "these readers keep project instructions, so call them clarity readers, not cold readers"
+    return 1
+  fi
 }
 
 @test "reviewers that check project rules do not drop project instructions" {
