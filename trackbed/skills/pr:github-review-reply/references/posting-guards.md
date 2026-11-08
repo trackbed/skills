@@ -51,12 +51,20 @@ The same check covers an answered-unresolved thread whose earlier reply cited a 
 
 ## 3. Re-check each item just before writing it
 
-The plan is a snapshot; GitHub is the source of truth. Immediately before posting or resolving each item, re-read it:
+The plan is a snapshot; GitHub is the source of truth. Immediately before posting or resolving each item, re-read it and compare against the item's drafting snapshot (`Thread state` and `Latest comment at drafting`), never against the thread's shape alone: under `--all`, a thread can already be resolved, or already end in an earlier reply from `SELF`, when it is drafted.
 
-- **Inline thread** — fetch the thread with `node(id: $THREAD_ID) { ... on PullRequestReviewThread { isResolved comments(last: 100) { nodes { author { login } createdAt body } } } }`.
-  - If it is now resolved, set `Post status: skipped — resolved since drafting` and move on; an item this run already posted keeps `posted`.
-  - If the item has a reply to post (`Reply target` is not `none`) and a comment from `SELF` already follows the latest comment from anyone else, the reply was posted earlier. Set `Post status: posted` without posting again, then continue to the resolve step for it.
-- **Review-summary or general comment** — re-fetch every page of the PR's issue comments with `gh api --paginate "repos/$OWNER/$REPO/issues/$PR_NUMBER/comments"`. If a `SELF` comment created after the item's latest non-author comment links that comment's URL or matches the draft body, set `Post status: posted` without posting again.
+- **Inline thread with a GraphQL thread ID** — fetch the thread with `node(id: $THREAD_ID) { ... on PullRequestReviewThread { isResolved comments(last: 100) { nodes { author { login } createdAt body } } } }`.
+  - If it is now resolved and its `Thread state` was not `resolved` at drafting, set `Post status: skipped — resolved since drafting` and move on; an item this run already posted keeps `posted`. A thread that was already resolved at drafting, kept by `--all`, still gets its reply.
+  - If the item has a reply to post (`Reply target` is not `none`) and a comment from `SELF` was created after `Latest comment at drafting`, the reply was posted after drafting. Set `Post status: posted` without posting again, then continue to the resolve step for it. A `SELF` comment from before drafting never counts, so an `--all` reply to an already-answered thread is still posted.
+- **REST-only inline thread** (`Thread ID: unavailable`) — the GraphQL query above needs a thread ID, so re-read the thread over REST instead: the root comment and every reply to it.
+
+  ```bash
+  gh api --paginate --slurp "repos/$OWNER/$REPO/pulls/$PR_NUMBER/comments" \
+    | jq --argjson root "$ROOT_COMMENT_ID" '[.[][] | select(.id == $root or .in_reply_to_id == $root) | {login: .user.login, created_at}]'
+  ```
+
+  REST reports no resolution state, so skip the resolved check; Step 8 already required explicit confirmation for this post. If a `SELF` comment in the result was created after `Latest comment at drafting`, set `Post status: posted` without posting again. If the root comment is missing from the result, treat it as a failed re-read. REST-only threads are never resolved.
+- **Review-summary or general comment** — re-fetch every page of the PR's issue comments with `gh api --paginate "repos/$OWNER/$REPO/issues/$PR_NUMBER/comments"`. If a `SELF` comment created after both the item's latest non-author comment and its `Latest comment at drafting` links that comment's URL or matches the draft body, set `Post status: posted` without posting again.
 
 If the re-read fails, stop posting and report the item, like any other failed write.
 

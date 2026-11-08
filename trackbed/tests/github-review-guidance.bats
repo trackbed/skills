@@ -1655,8 +1655,8 @@ for term in [
     "List every `answered-unresolved` thread planned for resolution and ask for explicit confirmation before resolving it, even under `--post` or `--auto`",
 ]:
     assert term in step8, f"Step 8 lost {term}"
-for term in ["Post one item at a time and never in parallel", "skip a thread resolved since drafting",
-             "record the item as `posted` instead of posting again", "On a rate-limit response, stop at once"]:
+for term in ["Post one item at a time and never in parallel", "over REST for a thread with `Thread ID: unavailable`", "skip a thread resolved since drafting",
+             "when a reply from you is newer than the item's `Latest comment at drafting`, record the item as `posted` instead of posting again", "On a rate-limit response, stop at once"]:
     assert term in step9, f"Step 9 lost {term}"
 assert "Never resolve a held item." in step10
 assert "plus `answered-unresolved` threads the user confirmed in Step 8" in step10
@@ -1680,8 +1680,16 @@ for term in [
     "If the re-read fails, stop posting and report the item",
     'gh api --paginate "repos/$OWNER/$REPO/issues/$PR_NUMBER/comments"',
     "Any other exit status: set `Post status: held — fix not on PR head`",
-    "If it is now resolved, set `Post status: skipped — resolved since drafting`",
-    "a comment from `SELF` already follows the latest comment from anyone else",
+    "If it is now resolved and its `Thread state` was not `resolved` at drafting, set `Post status: skipped — resolved since drafting`",
+    "A thread that was already resolved at drafting, kept by `--all`, still gets its reply.",
+    "a comment from `SELF` was created after `Latest comment at drafting`",
+    "A `SELF` comment from before drafting never counts, so an `--all` reply to an already-answered thread is still posted.",
+    "created after both the item's latest non-author comment and its `Latest comment at drafting`",
+    "**REST-only inline thread** (`Thread ID: unavailable`)",
+    'select(.id == $root or .in_reply_to_id == $root)',
+    "REST reports no resolution state, so skip the resolved check",
+    "If the root comment is missing from the result, treat it as a failed re-read.",
+    "REST-only threads are never resolved.",
     "links that comment's URL or matches the draft body",
     "HTTP 429, or HTTP 403 whose message mentions a rate limit",
     "Do not retry or wait it out.",
@@ -1712,11 +1720,13 @@ assert "Judge by content, not by author type" in step3
 assert "`answered-unresolved` when it is unresolved and a later reply from `PR_AUTHOR` follows its latest non-author comment" in step3
 assert "exclude `answered-unresolved` threads unless `RESOLVE=true`" in step3
 assert "a kept `answered-unresolved` thread gets no new reply (`Reply target: none`)" in step3
+assert "also record `Latest comment at drafting`" in step3
+assert "The Step 9 re-check counts only `SELF` comments newer than this as already posted." in step3
 step4 = skill[skill.index("## Step 4:"):skill.index("## Step 5:")]
 assert "as its title and description (`PR_TITLE`, `PR_BODY`) state it" in step4
 assert "Record `Changed paths`" in step4
 assert "for every `answered-unresolved` thread whose existing PR-author reply says it changed" in step4
-for field in ["| Thread state |", "| Changed paths |", "`held — fix not on PR head`", "`skipped — resolved since drafting`", "`not posted — rate limited`"]:
+for field in ["| Thread state |", "| Latest comment at drafting |", "| Changed paths |", "`held — fix not on PR head`", "`skipped — resolved since drafting`", "`not posted — rate limited`"]:
     assert field in skill, f"plan template lost {field}"
 assert "id: compound-ce-resolve-pr-feedback" in sources
 entry = sources[sources.index("id: compound-ce-resolve-pr-feedback"):].split("\n  - id:")[0]
