@@ -41,6 +41,8 @@
 
 1. **ALWAYS** check whether the repository has a GitHub pull request template before drafting. GitHub supports a single `pull_request_template.md` or `pull_request_template.txt` file in the repository root, `docs/`, or `.github/`, plus multiple templates in a `PULL_REQUEST_TEMPLATE/` directory under those same locations.
 
+   GitHub treats template file names as case-insensitive, so `.github/PULL_REQUEST_TEMPLATE.md` counts the same as `.github/pull_request_template.md`. The lookup below applies the same rule to the `PULL_REQUEST_TEMPLATE/` directory name.
+
    GitHub applies PR templates from the repository default branch, not from unmerged files in the current worktree. Resolve the default branch and inspect that tree. Run this network lookup block with the shell tool's bounded timeout; credential or timeout failures must return control without asking for terminal input:
 
    ```bash
@@ -57,21 +59,26 @@
      echo "MISSING REQUIREMENT: unable to resolve default branch for GitHub PR template lookup"
      DIRECT_UPDATE=false
    else
+     TEMPLATE_ENTRIES=$({
+       git ls-tree --full-tree "$DEFAULT_TEMPLATE_REF"
+       git ls-tree --full-tree "$DEFAULT_TEMPLATE_REF" docs/ .github/
+     } 2> /dev/null)
      {
-       for template_path in pull_request_template.md pull_request_template.txt .github/pull_request_template.md .github/pull_request_template.txt docs/pull_request_template.md docs/pull_request_template.txt; do
-         git cat-file -e "$DEFAULT_TEMPLATE_REF:$template_path" 2> /dev/null && printf '%s\n' "$template_path"
-       done
-       for dir in PULL_REQUEST_TEMPLATE .github/PULL_REQUEST_TEMPLATE docs/PULL_REQUEST_TEMPLATE; do
-         git ls-tree -r --name-only "$DEFAULT_TEMPLATE_REF" "$dir" 2> /dev/null \
-           | awk -v dir="$dir/" 'index($0, dir) == 1 { name = substr($0, length(dir) + 1); if (name !~ /\// && tolower(name) ~ /\.(md|txt)$/) print $0 }'
-       done
-     } | sort -u
+       printf '%s\n' "$TEMPLATE_ENTRIES" \
+         | awk -F '\t' '{ split($1, meta, " "); name = tolower($2); sub(/^(docs|\.github)\//, "", name); if (meta[2] == "blob" && name ~ /^pull_request_template\.(md|txt)$/) print $2 }'
+       printf '%s\n' "$TEMPLATE_ENTRIES" \
+         | awk -F '\t' '{ split($1, meta, " "); name = tolower($2); sub(/^(docs|\.github)\//, "", name); if (meta[2] == "tree" && name == "pull_request_template") print $2 }' \
+         | while IFS= read -r template_dir; do
+           git ls-tree --full-tree "$DEFAULT_TEMPLATE_REF" "$template_dir/" 2> /dev/null \
+             | awk -F '\t' '{ split($1, meta, " "); if (meta[2] == "blob" && tolower($2) ~ /\.(md|txt)$/) print $2 }'
+         done
+     } | LC_ALL=C sort -u
    fi
    ```
 
 2. Classify discovered templates before selecting one:
-   - **Default templates** are `pull_request_template.md` or `pull_request_template.txt` files in the repository root, `docs/`, or `.github/`. They are the templates GitHub applies automatically to a new PR body when present on the default branch.
-   - **Selectable templates** are files in a `PULL_REQUEST_TEMPLATE/` directory under the repository root, `docs/`, or `.github/`. They require explicit selection through user intent, an existing PR body, branch/change-type evidence, or GitHub's `template` query parameter.
+   - **Default templates** are `pull_request_template.md` or `pull_request_template.txt` files, in any letter case, in the repository root, `docs/`, or `.github/`. They are the templates GitHub applies automatically to a new PR body when present on the default branch.
+   - **Selectable templates** are `.md` or `.txt` files directly inside a `PULL_REQUEST_TEMPLATE/` directory, in any letter case, under the repository root, `docs/`, or `.github/`. They require explicit selection through user intent, an existing PR body, branch/change-type evidence, or GitHub's `template` query parameter.
 
 3. **ALWAYS** read the selected template when one unambiguous template is found. Prefer the default template when exactly one default template exists, even if selectable templates are also present. Capture:
    - Required heading order
@@ -166,6 +173,16 @@
    - Public interface/contract changes
    - Configuration schema changes
    - Environment variable additions/removals
+
+4. **ALWAYS** list each new runtime dependency the diff adds, such as a package in a production dependency manifest or a new external service the code calls. `## Review notes` names each one. Dependencies used only to develop, build, or test the project are not runtime dependencies.
+
+5. **ALWAYS** ask whether reverting the PR would fully undo it. A revert restores the code but not what the code already did, so look for one-way effects:
+   - Data written in a new stored format that the old code can't read, or a migration that drops or rewrites data
+   - Records, files, or other state the change deletes
+   - Messages, emails, webhooks, or events already sent to other systems
+   - Artifacts published outside the repository, such as a released package version
+
+   When the diff has a one-way effect, `## Rollout` says what a revert leaves behind and what cleans it up, if anything does. When it has none, add nothing.
 
 ### 2.5 Conversation History and Specification Files Analysis
 

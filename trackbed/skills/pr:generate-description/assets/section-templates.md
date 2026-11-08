@@ -64,7 +64,8 @@ Fixes WAN-521
 
 1. **What breaks**, and who is affected.
 2. **What they must do**, with a short before/after when it helps.
-3. **Release impact**: the SemVer level when the repository publishes a versioned artifact, and the changelog or release-note entry when one is expected.
+3. **Deprecation period**: whether the old behavior keeps working for a while after the change ships, and until when, as a date, a release, or a condition. When it stops working as soon as the change deploys, say so. When the gathered context gives no end, write that the end is not set yet instead of inventing one.
+4. **Release impact**: the SemVer level when the repository publishes a versioned artifact, and the changelog or release-note entry when one is expected.
 
 **EXAMPLE:**
 
@@ -78,7 +79,7 @@ GET /api/platforms              # before
 GET /api/platforms?userId=42    # after
 ```
 
-This is a major version change for the public API, listed under Breaking in the changelog.
+There is no deprecation period: requests without the parameter fail with `400 Bad Request` as soon as this deploys. This is a major version change for the public API, listed under Breaking in the changelog.
 ````
 
 ## How it works
@@ -87,7 +88,7 @@ This is a major version change for the public API, listed under Breaking in the 
 
 - Explain the key decisions and why, and name the alternatives you rejected and why.
 - Explain any divergence from the Linear issue with its reason. Linear is the only source reviewers can see, so **NEVER** cite spec files (SPEC.md, LOG.md, etc.) or conversation history.
-  - **RIGHT**: "The Linear issue asked only for the redirect; the fallback was added after slow responses left users on a blank screen during testing."
+  - **RIGHT**: "The Linear issue asked only for the redirect; the fallback was added after slow responses left users on a blank page during testing."
   - **WRONG**: "As discussed in SPEC.md, we changed the approach..."
   - **WRONG**: "Based on our conversation, we decided..."
 - Don't narrate the code file by file; reviewers read the diff.
@@ -99,15 +100,16 @@ This is a major version change for the public API, listed under Breaking in the 
 
 A route guard checks the user's platform count before the picker renders, so single-platform users never see it flash on screen. Doing the check inside the picker component was rejected because the picker would render first and then navigate away.
 
-If the count takes longer than 2 seconds or fails, the guard lets the picker load. The picker was the only behavior before this change, so it is the safest fallback. The Linear issue asked only for the redirect; the fallback was added after slow responses left users on a blank screen during testing.
+If the count takes longer than 2 seconds or fails, the guard lets the picker load. The picker was the only behavior before this change, so it is the safest fallback. The Linear issue asked only for the redirect; the fallback was added after slow responses left users on a blank page during testing.
 ```
 
 ## Rollout
 
-**Include when:** deploying takes more than a merge: a migration that must run in a set order, a feature-flag default, a config or environment change, a backfill, or a rollback that is more than a revert.
+**Include when:** deploying takes more than a merge, such as a migration that must run in a set order, a feature-flag default, a config or environment change, a backfill, or a rollback that is more than a revert; or when a revert would not fully undo the change.
 
-- Number the steps in the order they must happen, and say who does each one when it isn't the person deploying.
+- Number the steps in the order they must happen, and say who does each one when it isn't the person deploying. When deploying is only a merge, skip the steps and write only the rollback note.
 - End with how to roll back.
+- When a revert would not fully undo the change, say what it leaves behind, such as data already written in a new format, deleted records or files, or messages already sent to another system, and what cleans it up, if anything does.
 - If the migration rationale, rollback plan, or flag rollout plan is unknown, emit the matching `MISSING REQUIREMENT` from SKILL.md Phase 3 instead of inventing one.
 
 **EXAMPLE:**
@@ -123,13 +125,14 @@ Rollback: revert the app deploy. The table can stay, because nothing reads it wi
 
 ## Review notes
 
-**Include when:** something non-obvious remains that a reviewer should know. Order the bullets:
+**Include when:** something non-obvious remains that a reviewer should know, or the change adds a runtime dependency. Order the bullets:
 
 1. **Risks and side effects**: what could go wrong, how it would show up, and what limits it.
-2. **Scope boundaries** a reviewer would otherwise expect in this PR, stated as facts ("The multi-platform picker is unchanged"), with follow-up issues when they exist.
-3. **Evidence**, when a reviewer would ask how the change was checked: one sentence on what the automated tests or measurements cover and what they leave to the Test plan.
-4. **Release impact** that isn't breaking, such as a minor or patch version note, when the repository publishes a versioned artifact.
-5. **Where to start**, only when the entry point isn't obvious, including files that must be reviewed together.
+2. **New runtime dependencies**: each package, service, or other system the change needs at run time, and what it is for. Leave out dependencies used only to develop, build, or test the project unless one needs review attention.
+3. **Scope boundaries** a reviewer would otherwise expect in this PR, stated as facts ("The multi-platform picker is unchanged"), with follow-up issues when they exist.
+4. **Evidence**, when a reviewer would ask how the change was checked: one sentence on what the automated tests or measurements cover and what they leave to the Test plan.
+5. **Release impact** that isn't breaking, such as a minor or patch version note, when the repository publishes a versioned artifact.
+6. **Where to start**, only when the entry point isn't obvious, including files that must be reviewed together.
 
 Keep each bullet to three sentences at most. When a risk needs more, put the mechanism in `## How it works` and keep the consequence here. Don't list areas nobody expected to change, and don't describe your own diligence ("I made sure...", "carefully preserved").
 

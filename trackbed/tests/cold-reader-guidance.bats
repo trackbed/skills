@@ -38,6 +38,7 @@ setup() {
   grep -qF 'never fork the conversation or resume an earlier reader' "$CONTRACT"
   grep -qF 'spawn a new agent with `fork_turns="none"`, or with `fork_context: false` when the spawn tool exposes that field instead' "$CONTRACT"
   grep -qF 'Record that as reduced isolation wherever the adopting skill reports isolation.' "$CONTRACT"
+  grep -qF 'and user-level ones such as `~/.codex/AGENTS.md`' "$CONTRACT"
   grep -qF 'Never simulate a cold reader in your own context.' "$CONTRACT"
   grep -qF 'no conversation history, no notes about what the author meant, no prior reports, and no expected findings' "$CONTRACT"
   grep -qF 'Apart from that Codex skill reference' "$CONTRACT"

@@ -15,9 +15,10 @@ Classify each potential drift point against this rubric. Severity drives the ver
 | Body contradicts diff (flag default flipped, "no migration" claim refuted, "no breaking changes" claim with a rename in the diff) | Critical | Yes |
 | Undisclosed migration, breaking API rename, missing required migration note, or new required env var | Critical | Yes |
 | Undisclosed SemVer-major implication, or body claims no breaking changes when a versioned artifact surface or durable public contract breaks | Critical | Yes |
-| Undisclosed new endpoint, dependency, feature flag, or removed code path | Important | Yes |
+| Undisclosed new endpoint, runtime dependency, feature flag, or removed code path | Important | Yes |
 | Versioned artifact or durable public contract change lacks release impact, SemVer, changelog, or migration story needed for release-note accuracy | Important | Yes |
 | Risk notes (`## Review notes`, `## Rollout`, legacy `Potential concerns`, or a template's risk prompt) omit or deny a migration, flag flip, partial coverage, or known follow-up | Important | Yes |
+| The diff has a one-way effect a revert would not undo (see `references/context-gathering.md` §2.4 step 5), and the body does not say what a revert leaves behind in `## Rollout`, `## Review notes`, legacy `Potential concerns`, or the template section that holds rollout or risk content | Important | Yes |
 | Stale claim — body describes work that was removed or refactored away | Important | Yes |
 | A scope statement (`## Review notes` or legacy `Things I didn't touch`) puts adjacent work out of scope that the diff did touch | Important | Yes |
 | Title Conventional Commit type wrong for the dominant change (`fix:` for a feature addition) | Important | Yes |
@@ -168,7 +169,7 @@ Classify each potential drift point against this rubric. Severity drives the ver
 
    If local changes exist, **ALWAYS** note this in the report header (`Local uncommitted changes included in scope: <N> files`). If they're substantial and the user is checking "after pushing", warn them that the comparison includes work not yet on the remote.
 
-3. Categorize changed files for the rubric: migrations and schema changes; new or removed endpoints and routes; new or removed dependencies (`package.json`, `requirements.txt`, `go.mod`, and so on); feature-flag definitions or default flips; public API surface changes; versioned artifact surfaces (package, CLI, API, SDK, schema, or integration contracts) and their SemVer implications; changelog, release-note, tag/version, or migration-guide files; env var additions; test additions and removals; documentation changes.
+3. Categorize changed files for the rubric: migrations and schema changes; new or removed endpoints and routes; new or removed dependencies (`package.json`, `requirements.txt`, `go.mod`, and so on), separating runtime dependencies from ones used only to develop, build, or test; feature-flag definitions or default flips; public API surface changes; versioned artifact surfaces (package, CLI, API, SDK, schema, or integration contracts) and their SemVer implications; changelog, release-note, tag/version, or migration-guide files; env var additions; one-way effects a revert would not undo, as listed in `references/context-gathering.md` §2.4 step 5; test additions and removals; documentation changes.
 
 ## Phase C3: Drift Analysis
 

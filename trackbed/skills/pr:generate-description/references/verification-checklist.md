@@ -14,10 +14,13 @@ An item labeled **Regenerate** means the draft is wrong at its root: when it fai
 - [ ] GitHub PR template lookup completed against the repository default branch; if a template exists, the body follows its heading order, required prompts, and checklists without duplicating default sections.
 - [ ] **Regenerate:** The Summary says what changes in plain words, with concrete nouns rather than "various changes" or "multiple improvements", then why in user or business terms, and adds the pointer sentence when the PR breaks something, needs rollout steps, or departs from the linked issue.
 - [ ] When a Linear (or GitHub) issue exists, it is linked with the correct magic word (`Fixes`, `Closes`, `Resolves`, `Related to`, `Refs`, `References`). When none exists, the body has no issue line.
-- [ ] Each default section carries information for this PR: `## Changes` only for two or more separately reviewable changes, `## Breaking changes` only when something breaks, `## How it works` only for an approach that isn't obvious, `## Rollout` only when deploying takes more than a merge, and `## Review notes` only when something non-obvious remains.
+- [ ] Each default section carries information for this PR: `## Changes` only for two or more separately reviewable changes, `## Breaking changes` only when something breaks, `## How it works` only for an approach that isn't obvious, `## Rollout` only when deploying takes more than a merge or a revert would not fully undo the change, and `## Review notes` only when something non-obvious remains or the change adds a runtime dependency.
 - [ ] `## Changes` bullets start with an imperative verb and use no vague verbs (`update`, `improve`) without an object.
 - [ ] **Regenerate:** A migration, feature-flag default change, or breaking change in the diff appears in `## Breaking changes`, `## Rollout`, or `## Review notes`.
 - [ ] Partial coverage and rollout risk appear in `## Rollout` or `## Review notes`.
+- [ ] Each new runtime dependency in the diff is named in `## Review notes`.
+- [ ] When reverting the PR would not fully undo it, `## Rollout` says what a revert leaves behind.
+- [ ] When the body has `## Breaking changes`, it says whether the old behavior keeps working through a deprecation period, and until when.
 
 ## Readability
 
