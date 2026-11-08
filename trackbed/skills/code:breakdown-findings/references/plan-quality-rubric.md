@@ -32,6 +32,14 @@ Every plan must pass this gate before it is written. If a draft fails, revise it
 - Dependencies are readable from the plan title, index row, dependency map, and Dependencies section without cross-reading every plan.
 - Each blocked plan embeds enough required-base-state evidence to decide prerequisite readiness from repository code, tests, and configuration without opening the index or a sibling plan.
 
+### Plan-set merge safety
+
+Check these across the complete draft set, not one plan at a time. A fix that adds or reverses a dependency changes execution labels, so route it like a scope-closure boundary change in `references/scope-closure.md`: return to Phase 2 in findings mode, or stop for a corrected handoff.
+
+- For every merge order the dependencies allow, including either order for same-wave plans, the base branch stays safe as each plan lands: no capability, such as an endpoint, command, tool, or job, reaches users before its limiting control, such as an authorization check, a rate or spending limit, input validation, or an audit record. Either the control's plan blocks the capability's plan, or the capability's plan keeps it disabled, or, for an authorization check, limited to callers that check would admit, and proves that in its Completion Criteria; the capability's plan then blocks the control's plan, which lifts the restriction.
+- The same applies to a deferred control: when a control-type finding is excluded, deferred, or recorded in `PR_PLAN_REJECTIONS.md`, every plan that widens access to the same surface keeps it restricted as above, or, when that would defeat its purpose, carries a `MISSING REQUIREMENT:` naming the deferred control and a STOP condition that blocks widening access.
+- Each new shared artifact, such as a type, endpoint, schema migration, config key, or feature flag, that two or more plans use is introduced by exactly one plan. Every other plan that uses it names the introducer as a blocker.
+
 ### Validation quality
 
 - Verification targets the risk, not only the easiest command to run.
@@ -63,7 +71,7 @@ Do not use discovery for questions the codebase can answer, for implementation d
 
 ## Stop Conditions
 
-Stop and revise before writing final artifacts if any draft has:
+Stop and revise before writing final artifacts if any draft, or the draft set as a whole, has:
 
 - No clear beneficiary or quality outcome.
 - Product claims with no source, repo evidence, or `UNVERIFIED:` marker.
@@ -75,3 +83,5 @@ Stop and revise before writing final artifacts if any draft has:
 - An **In Scope** entry that resolves to an existing directory or otherwise grants directory containment instead of naming one file.
 - A required edit appears in **Out of Scope**, an acceptance criterion lacks an implementation or proof path, or any repository reference to a changed contract remains unclassified.
 - A dependency whose readiness cannot be decided from concrete evidence embedded in that plan alone.
+- A plan set where some allowed merge order lets a capability reach users before its limiting control, including a control deferred to `PR_PLAN_REJECTIONS.md`.
+- A new shared artifact that no plan or more than one plan introduces, or that a plan uses without depending on its introducer.

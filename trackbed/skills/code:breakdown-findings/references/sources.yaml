@@ -19,6 +19,15 @@ sources:
     baseline_commit: "cac56e1ebd3c279aa9153616cfeac7b174ab90f9"
     license: "MIT declared in the upstream skill metadata; this skill adapts workflow concepts only and does not copy upstream files."
     baseline_hash: "sha256:1599aa29e9b16424cb767779efac53fa56e3f38be92dff4ac587393a1ad5070a"
+  - id: compound-ce-plan-structure
+    url: https://github.com/EveryInc/compound-engineering-plugin/blob/main/skills/ce-plan/references/structure.md
+    title: "EveryInc compound-engineering-plugin - ce-plan structure reference"
+    rationale: "The multi-PR merge-safety checks in clustering, split coupling detection, and the plan-set quality gate (limiting controls land with or before the capabilities they limit, including when the control is deferred, and each new shared artifact has exactly one introducing plan) adapt the delivery-shape merge conditions from this reference. No upstream prose is copied."
+    usage: inspiration
+    upstream_path: "skills/ce-plan/references/structure.md"
+    last_reviewed_at: 2026-11-08
+    baseline_commit: "315bfde626f821e118bd612c86a27e92f9980edb"
+    baseline_hash: "sha256:b3c7b1ee80e7816bc2456268177878cc8c2a9427aa3dd9d106558c7ec9113142"
   - id: github-stacked-prs-docs
     url: https://docs.github.com/en/pull-requests/reference/stacked-prs-cli-commands
     title: "GitHub Docs — Stacked pull requests CLI commands"

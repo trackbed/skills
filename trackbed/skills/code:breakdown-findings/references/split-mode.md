@@ -131,9 +131,10 @@ For each candidate seam, ask:
 - Can the slice ship alone without breaking the build, type checks, or existing tests?
 - Does any other slice import or call into this one?
 - Does the slice exercise its layer end-to-end, or stop mid-stack (an API route with no caller, a UI component with no backend)?
-- Are there shared types, schema migrations, or config flags that force ordering?
+- Which slice introduces each new shared artifact, such as a type, endpoint, schema migration, config key, or feature flag, that more than one slice uses? Exactly one slice introduces it, and every other slice that uses it depends on that slice. Shared files alone do not settle this.
+- Would the slice's capability, such as an endpoint, command, tool, or job, reach users before the control that limits it lands, such as an authorization check, a rate or spending limit, input validation, or an audit record? Then make the control a hard dependency of this slice, so the control's slice merges first, or move the control into this slice. Otherwise this slice ships the capability disabled, or, for an authorization check, limited to callers that check would admit, and its test plan proves the restriction. That restriction is new code the reference branch does not contain, so the control's slice depends on this slice and also carries the file that holds the restriction, even when step 4 would carry that file with the earlier slice, and removes the restriction when it lands. When the control is left out of the split, the restriction stays, and this slice's test plan names the missing control so a later change can lift it.
 
-Flag tight coupling explicitly when proposing slices: _"Slice B depends on Slice A because B imports the new `UserSession` type defined in A."_
+Flag tight coupling explicitly when proposing slices: _"Slice B depends on Slice A because B imports the new `UserSession` type defined in A."_ or _"Slice C depends on Slice A because C's export endpoint must not reach users before A's permission check."_
 
 ### 6. Choose Seams
 
