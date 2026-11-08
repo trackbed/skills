@@ -65,13 +65,15 @@ Browse without a browser is meaningless — do not continue.
 Read `references/dev-server-detection.md`, then run the shared detector:
 
 ```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/dev-server/detect-url.sh auto
+${CLAUDE_PLUGIN_ROOT}/scripts/dev-server/detect-url.sh auto --check-owner
 ```
 
 Use the detector output as follows:
 
 - `http://...` or `https://...` — set `TARGET_URL` to that value and continue to the explicit URL health check below.
 - `__MULTIPLE_URLS__` — list the candidate URLs and ask the user to pick one; if the runtime cannot ask, hard stop with the candidate list.
+- `__FOREIGN_SERVER__` — another Git checkout, such as a sibling worktree or the main checkout, serves every server found. List each URL with the directory that serves it and ask the user whether to use one; if the runtime cannot ask, hard stop with that list.
+- `__UNCONFIRMED_OWNER__` — set `TARGET_URL` to the URL on the next line, report `UNVERIFIED: could not confirm which checkout serves {TARGET_URL}`, and continue to the health check.
 - `__NO_RUNNING_SERVER__` — hard stop with the message below.
 
 If no dev server found:
@@ -277,6 +279,7 @@ Do not paraphrase content inside the markers. Do not strip the markers when forw
 | Network capture failure | Warn and continue |
 | Interaction failure | Warn and continue with remaining interactions |
 | Dev server not found (auto mode) | Hard stop — server must be running |
+| Dev server served from another checkout (auto mode) | Ask before using it; hard stop with the list if the runtime cannot ask |
 
 ## Usage Examples
 

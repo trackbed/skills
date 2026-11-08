@@ -187,7 +187,7 @@ If `app_url` was provided:
 0. If `app_url` is `auto`, resolve it with the shared dev-server detector before checking browser automation:
 
    ```bash
-   if ${CLAUDE_PLUGIN_ROOT}/scripts/dev-server/detect-url.sh auto; then
+   if ${CLAUDE_PLUGIN_ROOT}/scripts/dev-server/detect-url.sh auto --check-owner; then
      :
    else
      printf '%s\n' "__DETECTOR_UNAVAILABLE__"
@@ -197,6 +197,8 @@ If `app_url` was provided:
    - `http://...` or `https://...` — replace `app_url` with the resolved URL.
    - `__MULTIPLE_URLS__` — list candidates and ask the user to choose one; if non-interactive, clear `app_url`, warn, and continue in code-only mode.
    - `__NO_RUNNING_SERVER__` — clear `app_url`, warn, and continue in code-only mode.
+   - `__FOREIGN_SERVER__` — another Git checkout serves every server found, so screenshots would show code that is not on this branch. List each URL with the directory that serves it and ask the user whether to use one; if non-interactive, clear `app_url`, warn, and continue in code-only mode.
+   - `__UNCONFIRMED_OWNER__` — replace `app_url` with the URL on the next line, and note in the review that the serving checkout could not be confirmed.
    - `__DETECTOR_UNAVAILABLE__` — ask the user for the dev-server URL; if non-interactive, clear `app_url`, warn that the shared detector is unavailable, and continue in code-only mode.
 
 1. Check for available browser MCP tools (in priority order):

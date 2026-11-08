@@ -60,11 +60,13 @@ If `CONDUCTOR_IS_LOCAL` is `0`, emit `Warning: Conductor cloud workspace detecte
 **If URL is `auto`:** Resolve it with the shared dev-server detector:
 
 ```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/dev-server/detect-url.sh auto
+${CLAUDE_PLUGIN_ROOT}/scripts/dev-server/detect-url.sh auto --check-owner
 ```
 
 - `http://...` or `https://...` — set `TARGET_URL` to that value and continue.
 - `__MULTIPLE_URLS__` — list the candidate URLs and ask the user to pick one; if the runtime cannot ask, hard stop with the candidate list.
+- `__FOREIGN_SERVER__` — another Git checkout, such as a sibling worktree or the main checkout, serves every server found. Testing it would check code that is not on this branch, which matters most in diff-aware mode. List each URL with the directory that serves it and ask the user for this checkout's URL; if the runtime cannot ask, hard stop with: `Error: The running dev server belongs to another checkout ({directory}). Start this checkout's dev server, then re-run the command.`
+- `__UNCONFIRMED_OWNER__` — set `TARGET_URL` to the URL on the next line and continue. Record `UNVERIFIED: could not confirm which checkout serves {TARGET_URL}` in `STACK DETECTED` and in the report header.
 - `__NO_RUNNING_SERVER__` — hard stop with: `Error: No running dev server detected. Start your dev server first, then re-run the command.`
 
 **Validate explicit or resolved URL format.** If `TARGET_URL` does not begin with `http://` or `https://`, stop with: `Error: TARGET_URL must be an http:// or https:// URL, or auto. Got: $TARGET_URL`.
