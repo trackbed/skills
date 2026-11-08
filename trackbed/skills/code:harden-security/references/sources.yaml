@@ -10,7 +10,7 @@ sources:
   - id: addy-security-and-hardening
     url: https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/security-and-hardening/SKILL.md
     title: "Addy Osmani agent-skills - security and hardening"
-    rationale: "The Three-Tier Boundary System, ASK FIRST gating, marker vocabulary, supply-chain install boundary, and privacy-lifecycle engineering concepts are adapted from this source."
+    rationale: "The Three-Tier Boundary System, ASK FIRST gating, marker vocabulary, supply-chain install boundary, privacy-lifecycle engineering concepts, and filename-only staged-secret check are adapted from this source."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
@@ -18,7 +18,7 @@ sources:
   - id: fetch-cors-protocol
     url: https://fetch.spec.whatwg.org/
     title: "WHATWG Fetch Standard"
-    rationale: "The wildcard-CORS boundary distinguishes cross-origin response sharing from request execution and credential behavior using the Fetch CORS protocol."
+    rationale: "The wildcard-CORS boundary distinguishes cross-origin response sharing from request execution and credential behavior, and excludes network-protected resources from the anonymous public-read exception. Credential-protected endpoints retain the skill's stricter prohibition."
     usage: inspiration
     last_reviewed_at: 2026-08-27
     baseline_hash: "sha256:51113f3354341d83062d0cb41b29626318ab6ab56042b13da7d99eac6c9feea6"

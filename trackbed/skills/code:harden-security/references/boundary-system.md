@@ -32,7 +32,7 @@ Changes where the default answer is unknown without context. Do not invent the p
 
 **New authentication flows** — auth is where subtle mistakes turn into account takeover. "New flow" includes adding a new IdP, a passwordless option, a device-trust mechanism, an API-key-based alternative, a service-to-service mTLS path. Confirm the threat model, who issues and rotates credentials, how revocation works, what happens on MFA bypass.
 
-**CORS configuration changes** — CORS is the gate between a browser's same-origin assumption and your API. A wrong `Access-Control-Allow-Origin` or `Access-Control-Allow-Credentials` setting is an exfiltration channel. Confirm the exact origins needed, whether credentials are required, whether wildcards are on the table (they should not be).
+**CORS configuration changes** — confirm which origins need response access and whether credentials or network access protect the resource. Wildcards are permitted only for anonymous, credential-free public reads available to any client on the internet. Never use them for intranet, VPN-only, IP-allow-listed, or credential-protected resources. Even the permitted public-read case requires confirmation before changing the policy.
 
 **Changes to an existing CSP policy** — setting an initial strict CSP is reflexive, but changing an existing policy can trade away XSS protection or break required content. Confirm the exact directives being added, removed, or widened and the application behavior that requires the change. Do not weaken the policy merely to silence a violation report.
 
@@ -66,7 +66,7 @@ No legitimate version. If the temptation arises, emit a `NOTICED BUT NOT TOUCHIN
 
 **Expose stack traces to end users** — stack traces leak framework versions, paths, line numbers, library names — all of which accelerate targeted exploitation. Return a generic message + a correlation ID. Log the full trace server-side and surface the correlation ID in the response so support can still debug.
 
-**Use wildcard CORS on an endpoint that reads or mutates user data** — wildcard CORS lets any origin's script read an intentionally non-credentialed response; it does not enable credentialed CORS and is not a CSRF defense for state-changing requests. Keep user-specific responses on an explicit origin allow-list. Protect cookie-authenticated mutations independently with the project's CSRF control, such as a token, Origin or Fetch Metadata validation, and appropriate `SameSite` cookies. A genuinely public, credential-free read endpoint is outside this rule, but changing its CORS policy still remains Tier 2 and requires confirmation.
+**Use wildcard CORS beyond anonymous, credential-free public reads available to any client on the internet** — wildcard CORS lets any origin's script read a non-credentialed response; it does not enable credentialed CORS and is not a CSRF defense for state-changing requests. Never use it for intranet, VPN-only, IP-allow-listed, or credential-protected resources; absence of cookies or tokens does not make a network-protected response public. Keep these and user-specific responses on an explicit origin allow-list. Protect cookie-authenticated mutations independently with the project's CSRF control, such as a token, Origin or Fetch Metadata validation, and appropriate `SameSite` cookies. Only anonymous, credential-free public reads available to any client on the internet are outside this rule, but changing its CORS policy still remains Tier 2 and requires confirmation.
 
 ---
 

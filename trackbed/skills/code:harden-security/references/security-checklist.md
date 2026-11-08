@@ -12,7 +12,7 @@ Review every relevant concern area before marking the slice done. Complete each 
 - [ ] No internal function re-validates data that crossed the boundary — if the urge is there, the boundary is in the wrong place.
 - [ ] Third-party API responses treated as untrusted even when the integration has been stable. Schema-validated on entry.
 - [ ] Environment-variable loading is validated: missing / malformed variables fail fast at startup with a clear message.
-- [ ] Validation errors return a generic message to callers, not library-internal error shapes (leaks library version, leaks schema detail).
+- [ ] Invalid input returns field-level errors in the project's own error shape, with application-owned messages and field identifiers. No library error objects, raw issues or messages, or flattened/formatted library output reaches callers.
 - [ ] Deletes, moves, and overwrites whose target path comes from a request, config value, or another process resolve symlinks, then check for an allowlisted root, a minimum depth, and the expected owner immediately before acting, then act on that resolved path without following symlinks.
 
 **Why grouped together**: the failure mode is the same — unknown-shape data reaches code that assumes a known shape.
@@ -51,6 +51,7 @@ Review every relevant concern area before marking the slice done. Complete each 
 - [ ] Object references from the client (IDs in URL, body, headers) are validated against an ownership or permission predicate before use.
 - [ ] Admin endpoints guarded by an explicit admin predicate, not "happens to be logged in".
 - [ ] Default-deny on new endpoints: if the authorization requirement hasn't been stated, do not expose the route.
+- [ ] Wildcard CORS is limited to anonymous, credential-free public reads available to any client on the internet; never use it for intranet, VPN-only, IP-allow-listed, or credential-protected resources. Every CORS configuration change was confirmed through `ASK FIRST`.
 - [ ] Role / permission changes logged with the principal who made them.
 
 **Why grouped together**: IDOR and privilege escalation are one family. The fix shape is the same — verify ownership at the right layer.
@@ -112,7 +113,7 @@ Review every relevant concern area before marking the slice done. Complete each 
 
 ## Secrets & configuration
 
-- [ ] No secrets in the diff. `git diff --cached | grep -i "password\|secret\|api_key\|token"` returns no real credentials.
+- [ ] Before every commit, run `git diff --cached -i -G 'password|secret|api_key|token' --name-only`. It reports matching staged filenames only, never matched content. Resolve flagged files without echoing credentials into terminal or agent logs; treat a nonzero exit as a failed check, not a clean scan.
 - [ ] All secrets sourced from a secret manager, environment variables injected at runtime, or encrypted config.
 - [ ] Secrets never transmitted in URLs (GET query strings end up in server logs, proxy logs, browser history).
 - [ ] Secrets generated with a CSPRNG. No `Math.random()` for anything security-relevant.

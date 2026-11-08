@@ -22,7 +22,7 @@ Downstream review: `trackbed:security-reviewer`, access lens.
 
 **Pattern at author time**: secure defaults, no verbose errors in prod, least-privileged service accounts.
 
-- Error responses in production expose only a generic message and a correlation ID; stack traces, library versions, and internal paths stay server-side.
+- Unexpected production failures expose only a generic message and a correlation ID. Validation failures use the project's own field-level error shape with application-owned messages and field identifiers; stack traces, library versions, and internal paths stay server-side.
 - Debug and verbose modes are off by default. Separate dev and prod config instead of one file with a branch that can be forgotten.
 - Default credentials are changed before launch. Admin interfaces are firewalled.
 - Unused features are disabled. Every exposed endpoint is justified.

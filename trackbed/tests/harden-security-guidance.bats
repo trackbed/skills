@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+load 'test_helper/common'
+
 setup() {
   cd "$BATS_TEST_DIRNAME/.."
 }
@@ -59,7 +61,7 @@ BOUNDARY_SYSTEM="skills/code:harden-security/references/boundary-system.md"
   grep -qF "Trust client-side validation alone." "$SKILL"
   grep -qF "Changes to an existing CSP policy." <<<"$ask_first"
   grep -qF "Session-cookie attribute changes." <<<"$ask_first"
-  grep -qF "Use wildcard CORS on an endpoint that reads or mutates user data." <<<"$never_do"
+  grep -qF "Use wildcard CORS beyond anonymous, credential-free public reads available to any client on the internet." <<<"$never_do"
   grep -qF "Changes to an existing CSP policy" <<<"$tier_two"
   grep -qF "setting an initial strict CSP is reflexive" <<<"$tier_two"
   grep -qF "Do not weaken the policy merely to silence a violation report." <<<"$tier_two"
@@ -72,5 +74,75 @@ BOUNDARY_SYSTEM="skills/code:harden-security/references/boundary-system.md"
   grep -qF "Run the ecosystem's authoritative vulnerability scanner before the slice lands" "$SKILL"
   grep -qF "A new provider remains \`ASK FIRST\` territory." "$SKILL"
   grep -qF "This checklist is the authoritative per-item completion gate" "$CHECKLIST"
-  grep -qF "Use wildcard CORS on an endpoint that reads or mutates user data" "$BOUNDARY_SYSTEM"
+  grep -qF "Use wildcard CORS beyond anonymous, credential-free public reads available to any client on the internet" "$BOUNDARY_SYSTEM"
+}
+
+@test "wildcard CORS excludes credential and network protected resources everywhere" {
+  local file
+  for file in "$SKILL" "$BOUNDARY_SYSTEM" "$CHECKLIST"; do
+    grep -qF "anonymous, credential-free public reads available to any client on the internet" "$file"
+    grep -qF "intranet, VPN-only, IP-allow-listed, or credential-protected resources" "$file"
+  done
+  ! grep -qF "wildcards are on the table (they should not be)" "$BOUNDARY_SYSTEM"
+  grep -qF "changing its CORS policy still remains Tier 2 and requires confirmation" "$BOUNDARY_SYSTEM"
+}
+
+@test "validation examples and checklist require application owned field errors" {
+  grep -qF 'field: issue.path.join(".")' "$SKILL"
+  grep -qF 'message: "Invalid value"' "$SKILL"
+  grep -qF 'return { error: { code: "INVALID_INPUT", fields } };' "$SKILL"
+  grep -qF "Use the project's existing error envelope and field identifiers" "$SKILL"
+  grep -qF "field-level errors in the project's own error shape" "$CHECKLIST"
+  grep -qF "application-owned messages" "$CHECKLIST"
+  grep -qF "Unexpected production failures expose only a generic message and a correlation ID" "$OWASP"
+  grep -qF "Validation failures use the project's own field-level error shape" "$OWASP"
+  ! grep -qF "Error responses in production expose only" "$OWASP"
+  ! grep -qF "result.error.flatten()" "$SKILL"
+  ! grep -qF "Validation errors return a generic message" "$CHECKLIST"
+}
+
+@test "documented secret scans name staged matches without leaking their contents" {
+  local docs=("$PWD/$SKILL" "$PWD/$CHECKLIST")
+  local doc command
+
+  init_test_git_repo "$BATS_TEST_TMPDIR/repo" --file unchanged.txt
+  cd "$BATS_TEST_TMPDIR/repo"
+  printf 'token=unchanged-synthetic-value\n' >unchanged.txt
+  git add -- unchanged.txt
+  git -c core.hooksPath=/dev/null commit -qm fixture
+  printf 'Api_KeY=STAGED_SYNTHETIC_SENTINEL\n' >'config with spaces.env'
+  printf 'password=SECOND_SYNTHETIC_SENTINEL\n' >second.txt
+  printf 'ordinary staged change\n' >clean.txt
+  git add -- 'config with spaces.env' second.txt clean.txt
+  printf 'sanitized working copy\n' >'config with spaces.env'
+  printf 'secret=UNSTAGED_SYNTHETIC_SENTINEL\n' >clean.txt
+  printf 'token=UNTRACKED_SYNTHETIC_SENTINEL\n' >untracked.txt
+
+  for doc in "${docs[@]}"; do
+    command="$(sed -n '/^git diff --cached/p; s/.*`\(git diff --cached[^`]*\)`.*/\1/p' "$doc")"
+    [ -n "$command" ]
+    run bash -c "$command"
+    [ "$status" -eq 0 ]
+    [ "$output" = $'config with spaces.env\nsecond.txt' ]
+  done
+}
+
+@test "documented secret scans stay empty on a clean index and surface Git failures" {
+  local docs=("$PWD/$SKILL" "$PWD/$CHECKLIST")
+  local doc command
+
+  init_test_git_repo "$BATS_TEST_TMPDIR/repo"
+  cd "$BATS_TEST_TMPDIR/repo"
+  for doc in "${docs[@]}"; do
+    command="$(sed -n '/^git diff --cached/p; s/.*`\(git diff --cached[^`]*\)`.*/\1/p' "$doc")"
+    [ -n "$command" ]
+    run bash -c "$command"
+    [ "$status" -eq 0 ]
+    [ -z "$output" ]
+    printf 'invalid index\n' >"$BATS_TEST_TMPDIR/broken-index"
+    run env GIT_INDEX_FILE="$BATS_TEST_TMPDIR/broken-index" bash -c "$command"
+    [ "$status" -ne 0 ]
+  done
+  grep -qF "Run before every commit" "${docs[0]}"
+  ! grep -qF "Run before every push" "${docs[0]}"
 }
