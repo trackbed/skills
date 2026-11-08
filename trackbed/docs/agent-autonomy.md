@@ -62,7 +62,7 @@ Separation also needs the checkers to leave the artifact alone. Reviewers share 
 
 The principle predates the rule. `skills/pr:code-review/references/team-mode.md:5` already gives each reviewer "its own context window" so reviewers "can cross-validate findings with other reviewers," and `skills/pr:code-review/references/review-discipline.md:173` lets a finding's confidence rise "only on new evidence", not on agreement between reviewers that share a model. Two agents exist purely to check other agents' output: `agents/pr-relevance-validator.md` validates findings against the actual review scope to filter out pre-existing issues, and `agents/deslop-reviewer.md:27` defines a meta-review mode that reviews review findings for the same patterns it flags in code.
 
-Withholding the conversation does not withhold the project's framing, because a subagent loads the project's instruction files at startup. A reader that must stand outside that frame launches as `trackbed:cold-reader`, whose frontmatter excludes them (`agents/cold-reader.md:7`); reviewers that check project rules keep them, because those rules are their input. The [decision record](decisions/2026-11-02-cold-reader-isolation.md) records the live check behind this.
+Withholding the conversation does not withhold the project's framing, because a subagent loads the project's instruction files at startup. A reader that must stand outside that frame launches as `trackbed:cold-reader`, whose frontmatter excludes them (`agents/cold-reader.md:8`); reviewers that check project rules keep them, because those rules are their input. The [decision record](decisions/2026-11-02-cold-reader-isolation.md) records the live check behind this.
 
 ## Roster Composition
 
