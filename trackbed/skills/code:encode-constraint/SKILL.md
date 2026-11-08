@@ -53,7 +53,7 @@ Search the whole repository for the mistake with text search, structural search,
 - **Few, and safe to fix:** fix them in this change so the check lands with no exceptions.
 - **Many, or fixes that change behavior:** land the check as a ratchet that rejects new violations and records existing ones in the tool's baseline, its suppression file, or an explicit allowlist the check reads. Record the count so it can only shrink.
 
-A baseline can only shrink. Make the check, or a test beside it, fail when the baseline gains an entry or its recorded count rises, and pass when an entry is removed because its site was fixed. Prefer the tool's own report of stale suppressions where it has one, so a fixed site's entry cannot linger.
+Make the check, or a test beside it, fail when the baseline gains an entry that is not in the recorded list or its count rises above the recorded count. When a fix removes an entry, lower the recorded count in the same change, so the freed slot cannot take a new violation. Prefer the tool's own report of stale suppressions where it has one, so a fixed site's entry cannot linger.
 
 The repository's verification must pass after the change. A check that fails on existing code is a broken build, not a constraint.
 
@@ -75,7 +75,7 @@ Otherwise, walk the ladder from the top and choose the first rung that can expre
 
 When rung 1 needs a broad refactor, do not start it here. Land the strongest cheaper rung now and report the refactor as a follow-up for `/trackbed:code:refactor-opportunities`. Record one clause per rejected stronger rung that explains why it was rejected.
 
-A check script written for rung 5 must not pass by reading nothing. Give it three exit statuses: `0` when it read its whole scope and found no violation, `1` when it found a violation, and a distinct status such as `2` when it could not judge, because nothing matched its scope, an input was unreadable, or the git base it diffs against is missing. Print the reason on stderr, and make sure every wrapper that runs it treats any non-zero status as a failure.
+A check script written for rung 5 must not pass by reading nothing. Give it three exit statuses: `0` when it read its whole scope and found no violation, `1` when it found a violation, and a distinct status such as `2` when it could not judge, because nothing matched its scope, an input was unreadable, or the git base it diffs against is missing. Its scope is the governed paths, not the diff: a diff that touches none of them is a clean `0`. Print the reason on stderr, and make sure every wrapper that runs it treats any non-zero status as a failure.
 
 ### 4. Write the Diagnostic for the Next Agent
 
@@ -92,9 +92,9 @@ For example: `Import from '@app/billing', not '@app/billing/internal/*'; interna
 
 1. Implement the mechanism plus the fixes or baseline from Step 2.
 2. **Wired:** confirm the check runs in the repository's standard local verification command and in CI, and name the script or workflow line that runs it. If it does not run there, wire it into an existing command or job. A check that only this session ran is not a constraint.
-3. **Red:** reintroduce the original mistake in a scratch edit or fixture and run the check. It must fail with the Step 4 diagnostic. Then run the same mistake through the exact local verification entry point named in the Wired step, and through the CI command too when it can run locally, and require a non-zero exit from each. Running the check directly is not enough: a wrapper that swallows exit codes, a path filter, or a warning-level severity can let the mistake through the command that actually runs. For a rung 5 script, also run it once where it cannot judge, such as an empty scope or a missing git base, and confirm the distinct status fails the entry point. Revert the scratch edits. When the tool supports rule tests or expected-error fixtures, keep a permanent case that pins the rejection.
+3. **Red:** reintroduce the original mistake in a scratch edit or fixture and run the check. It must fail with the Step 4 diagnostic. Then run the same mistake through the exact local verification entry point named in the Wired step, and through the CI command too when it can run locally, and require a non-zero exit from each. Running the check directly is not enough: a wrapper that swallows exit codes, a path filter, or a warning-level severity can let the mistake through the command that actually runs. For a rung 5 script, also run it once where it cannot judge, such as a scope that matches no files or a missing git base, and confirm the distinct status fails the entry point. Revert the scratch edits. When the tool supports rule tests or expected-error fixtures, keep a permanent case that pins the rejection.
 4. **Green:** run the check on the correct shape and across the repository. It must pass, apart from the recorded baseline. Run one legitimate exception from the Step 1 scope through the same entry point; it must pass. If the invariant has no legitimate exception, say so in the report.
-5. **Guarded:** list the ways the check could pass without a fix: an inline disable comment, a new baseline entry, a widened exclude or path filter, a lowered severity, and a deleted or emptied fixture. For each one, name the existing mechanism that blocks it, such as an unused-suppression or reason-required rule, the shrink-only baseline from Step 2, or the permanent red fixture, or report it as a follow-up. `references/mechanisms.md` lists per-ecosystem options. Adding a tool or CI job to close one still needs the user's approval under Constraints.
+5. **Guarded:** list the ways the check could pass without a fix: an inline disable comment, a new baseline entry, a widened exclude or path filter, a lowered severity, and a deleted or emptied fixture. For each one, name the existing mechanism that blocks it from the bypass catalog in `references/mechanisms.md`, or report it as a follow-up.
 6. **No collateral:** run the repository's lint, type-check, and test commands, or `/trackbed:verify:run`, and confirm nothing else broke.
 
 If the red run passes, the check does not encode the invariant; fix the check before continuing. If the check fails directly but the entry point passes, fix the wiring before continuing. Never report a constraint as working without the red-run output.
@@ -110,7 +110,7 @@ Reply inline with the items below. For an instruction fallback, omit Diagnostic,
 - **Invariant:** the Step 1 sentence.
 - **Mechanism:** the rung chosen, the files changed, and one clause per stronger rung explaining why it was rejected.
 - **Diagnostic:** the exact message an agent will see.
-- **Proof:** the red command with its failure excerpt, the entry-point and CI commands with their non-zero exits, the green command, the legitimate exception that passed, and where the check runs locally and in CI.
+- **Proof:** the red command with its failure excerpt, the entry-point and CI commands with their non-zero exits (or why the CI command could not run locally), the green command, the legitimate exception that passed, and where the check runs locally and in CI.
 - **Existing violations:** how many were fixed and how many were baselined, with the baseline location and what keeps it shrink-only.
 - **Bypass guards:** each way the check could pass without a fix, with the mechanism that blocks it or `unguarded`.
 - **Follow-ups:** a deferred stronger rung, unguarded bypasses, superseded instruction rules, a drafted fallback rule, and occurrences the check cannot reach. When those occurrences need a causal search rather than a pattern match, suggest `/trackbed:debug:find-sibling-bugs`.

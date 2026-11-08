@@ -10,7 +10,7 @@ sources:
   - id: addy-constraint-driven-development
     url: https://github.com/addyosmani/agent-skills/tree/main/skills/constraint-driven-development
     title: "Addy Osmani agent-skills - constraint-driven development"
-    rationale: "The post-wiring review of ways a check can pass without a fix comes from its guidance on guarding the bar; the red and legitimate-exception runs through the real verification command from its rule to run each enforced command against a known violation and a clean control; the shrink-only baseline from its ratchets; and the distinct could-not-run exit status from its floor-guard and quality-gate exit codes."
+    rationale: "The post-wiring review of ways a check can pass without a fix comes from its guidance on guarding the bar; the red and legitimate-exception runs through the real verification command from its rule to run each enforced command against a known violation and a clean control; the shrink-only baseline from its ratchets; and the distinct could-not-judge exit status from its floor-guard and quality-gate exit codes."
     usage: inspiration
     last_reviewed_at: 2026-11-08
     baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"

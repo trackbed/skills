@@ -95,19 +95,27 @@ setup() {
   grep -qF 'or report it as a follow-up' "$SKILL"
   grep -qF '**Bypass guards:** each way the check could pass without a fix, with the mechanism that blocks it or `unguarded`.' "$SKILL"
   grep -qF 'unguarded bypasses' "$SKILL"
+  grep -qF 'name the existing mechanism that blocks it from the bypass catalog in `references/mechanisms.md`' "$SKILL"
   grep -qF '## Guard the Check Against Bypass' "$MECHANISMS"
+  grep -qF 'but none rejects a new disable of the rule that is in use' "$MECHANISMS"
+  grep -qF 'A rule-unit test such as `RuleTester` never reads the configuration, so it does not count.' "$MECHANISMS"
+  for route in 'Inline disable' 'New baseline entry' 'Widened exclude or path filter' 'Lowered severity' 'Deleted or emptied fixture'; do
+    grep -qF -- "- **${route}:**" "$MECHANISMS"
+  done
   [ "$(grep -c '^- \*\*Suppression guard:\*\*' "$MECHANISMS")" -ge 4 ]
 }
 
 @test "encode constraint keeps baselines shrink-only" {
-  grep -qF 'A baseline can only shrink.' "$SKILL"
-  grep -qF 'fail when the baseline gains an entry or its recorded count rises' "$SKILL"
-  grep -qF 'pass when an entry is removed because its site was fixed' "$SKILL"
+  grep -qF 'Record the count so it can only shrink.' "$SKILL"
+  grep -qF 'fail when the baseline gains an entry that is not in the recorded list or its count rises above the recorded count' "$SKILL"
+  grep -qF 'When a fix removes an entry, lower the recorded count in the same change' "$SKILL"
+  grep -qF -- '- **New baseline entry:** the shrink-only check from Step 2.' "$MECHANISMS"
 }
 
 @test "encode constraint check scripts never pass vacuously" {
   grep -qF 'A check script written for rung 5 must not pass by reading nothing.' "$SKILL"
   grep -qF 'a distinct status such as `2` when it could not judge, because nothing matched its scope, an input was unreadable, or the git base it diffs against is missing' "$SKILL"
+  grep -qF 'Its scope is the governed paths, not the diff: a diff that touches none of them is a clean `0`.' "$SKILL"
   grep -qF 'make sure every wrapper that runs it treats any non-zero status as a failure' "$SKILL"
   grep -qF 'confirm the distinct status fails the entry point' "$SKILL"
 }
@@ -115,6 +123,7 @@ setup() {
 @test "encode constraint reports superseded instruction rules without editing them" {
   grep -qF 'for rules that the new check now enforces. Do not edit them.' "$SKILL"
   grep -qF '**Proof:** the red command with its failure excerpt' "$SKILL"
+  grep -qF 'the entry-point and CI commands with their non-zero exits (or why the CI command could not run locally)' "$SKILL"
   grep -qF '**Existing violations:** how many were fixed and how many were baselined' "$SKILL"
 }
 

@@ -35,7 +35,7 @@ Then confirm which of these the standard verification command and CI actually ex
 - **Structural rule:** Ruff has no plugin API, so use ast-grep or Semgrep, a Pylint or Flake8 plugin when the repository already runs one, or a pytest test that walks the `ast` module.
 - **Tests:** pytest invariant tests and architecture tests through import-linter or an `ast` walk.
 - **Baseline:** `ruff check --add-noqa` for existing sites, Ruff `per-file-ignores`, mypy per-module overrides, or basedpyright `--writebaseline`.
-- **Suppression guard:** Ruff `RUF100` reports unused `noqa` directives and `PGH004` reports blanket `noqa` without a rule code; mypy `warn_unused_ignores` reports unneeded `# type: ignore` comments and the `ignore-without-code` error code requires one.
+- **Suppression guard:** Ruff `RUF100` reports unused `noqa` directives and `PGH004` reports blanket `noqa` without a rule code; mypy `warn_unused_ignores` reports unneeded `# type: ignore` comments, and enabling the `ignore-without-code` error code through `enable_error_code` requires each one to name a code.
 
 ## Go
 
@@ -55,7 +55,7 @@ Then confirm which of these the standard verification command and CI actually ex
 - **Structural rule:** a Dylint library or an ast-grep rule.
 - **Tests:** `trybuild` compile-fail tests or `compile_fail` doctests pin that the mistake does not compile.
 - **Baseline:** `#[expect(clippy::<lint>, reason = "...")]` at existing sites (Rust 1.81+), which warns once the suppression becomes unnecessary.
-- **Suppression guard:** Clippy `allow_attributes` requires `#[expect]` instead of `#[allow]`, so an unneeded suppression raises `unfulfilled_lint_expectations`, and `allow_attributes_without_reason` requires a `reason`. Raise these and `unfulfilled_lint_expectations` to `deny` so they fail the build.
+- **Suppression guard:** set Clippy `allow_attributes` and `allow_attributes_without_reason` and the rustc lint `unfulfilled_lint_expectations` to `deny`, so every suppression is an `#[expect]` with a `reason` and a stale one fails the build.
 
 ## Java and Kotlin
 
@@ -95,13 +95,11 @@ Use a test or script when no single file shows the mistake:
 
 Use this catalog in Step 5 to block each way a check can go green without a fix. Prefer a guard the repository already runs, and report a route with no guard as a follow-up.
 
-- **Inline disable:** the ecosystem's suppression guard above, raised to error.
-- **New baseline entry:** a test or check step that fails when the baseline's entry count rises above the recorded count. Removing entries for fixed sites must still pass.
-- **Widened exclude or path filter:** a permanent fixture inside the governed scope that must keep failing, so moving it out of scope turns the run red.
-- **Lowered severity:** an assertion that the rule is configured at error level, or a red fixture that requires a non-zero exit rather than a warning.
-- **Deleted or emptied fixture:** the check script's could-not-run status when its fixture set is empty, or a test that names the fixture paths it expects.
-
-These guards protect against the cheapest route to green, not against someone deliberately changing the guard as well. Changes to the constraint's own configuration still deserve review.
+- **Inline disable:** the suppression guards above, enabled and raised to error, keep suppressions specific, explained, and pruned once stale, but none rejects a new disable of the rule that is in use. Only ESLint `noInlineConfig`, a `forbid` lint level in Rust, or a check that fails when a suppression naming the new rule appears blocks this route.
+- **New baseline entry:** the shrink-only check from Step 2.
+- **Widened exclude or path filter:** a test that places violating input at a path inside the governed scope, for example by copying a fixture into place, runs the real entry point with the repository's configuration, and expects a non-zero exit with the diagnostic. It catches only an exclude that covers that path. A rule-unit test such as `RuleTester` never reads the configuration, so it does not count.
+- **Lowered severity:** an assertion that the rule is configured at error level, or the entry-point test above, which requires a non-zero exit rather than a warning. A rule-unit test ignores the configured severity.
+- **Deleted or emptied fixture:** a test that names the fixture paths it expects and fails when one is missing or no longer fails the check.
 
 ## Agent Hooks
 
