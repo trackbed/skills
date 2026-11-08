@@ -51,12 +51,14 @@ if [ -z "$SUBMIT_STATUS" ] && [ "$REVIEW_EVENT" != "APPROVE" ] && [ -z "$PREPARE
 fi
 ```
 
-Choose the request from the draft-review outcome. A pending review this run created and confirmed as current is submitted in place, keeping whatever inline comments it holds in GitHub now. Any other created or possibly created pending review blocks submission. Otherwise create one review that carries the eligible inline comments, the body, and the event together.
+Choose the request from the draft-review outcome. A pending review this run created and confirmed as current is submitted in place, keeping whatever inline comments it holds in GitHub now; Section 3 re-reads it first, because the report invites the user to edit or submit it in GitHub before confirming. Any other created or possibly created pending review blocks submission. Otherwise create one review that carries the eligible inline comments, the body, and the event together.
 
 ```bash
+SUBMIT_IN_PLACE=false
 if [ -z "$SUBMIT_STATUS" ]; then
   if [ "$DRAFT_REVIEW_STATUS" = "PENDING" ] && [ -n "${DRAFT_REVIEW_ID:-}" ]; then
     SUBMIT_ROUTE="repos/$PR_NWO/pulls/$PR_NUMBER/reviews/$DRAFT_REVIEW_ID/events"
+    SUBMIT_IN_PLACE=true
     SUBMIT_PAYLOAD_JSON=$(jq -cn --arg event "$REVIEW_EVENT" --arg body "$PREPARED_REVIEW_BODY" \
       '{event: $event} + (if $body == "" then {} else {body: $body} end)')
   elif [ -n "${DRAFT_REVIEW_ID:-}" ] || {
@@ -88,7 +90,7 @@ fi
 
 ## 3. Submit once, then verify
 
-Re-read the head directly before the write so a review never lands on a head nobody reviewed. Never retry a failed or unexpected write; the server may have accepted it.
+Re-read the head directly before the write so a review never lands on a head nobody reviewed. When submitting in place, also re-read the pending review: if it was already submitted, deleted, or cannot be read, stop without writing and tell the user to inspect it in GitHub. Never retry a failed or unexpected write; the server may have accepted it.
 
 ```bash
 if [ -z "$SUBMIT_STATUS" ]; then
@@ -96,6 +98,12 @@ if [ -z "$SUBMIT_STATUS" ]; then
     SUBMIT_STATUS="not submitted — could not read PR head"
   elif [ "$PREWRITE_HEAD_OID" != "$HEAD_OID" ]; then
     SUBMIT_STATUS="not submitted — PR head moved"
+  elif [ "$SUBMIT_IN_PLACE" = true ] && ! DRAFT_STATE=$(
+    gh api "repos/$PR_NWO/pulls/$PR_NUMBER/reviews/$DRAFT_REVIEW_ID" --jq .state
+  ); then
+    SUBMIT_STATUS="not submitted — pending review could not be re-read (deleted or unavailable); inspect GitHub"
+  elif [ "$SUBMIT_IN_PLACE" = true ] && [ "$DRAFT_STATE" != "PENDING" ]; then
+    SUBMIT_STATUS="not submitted — draft review is no longer pending ($DRAFT_STATE); inspect GitHub"
   elif ! SUBMIT_RESPONSE=$(printf '%s' "$SUBMIT_PAYLOAD_JSON" | gh api -X POST "$SUBMIT_ROUTE" --input -); then
     SUBMIT_STATUS="write outcome unknown — GitHub API request failed; inspect GitHub"
   elif [ "$(printf '%s' "$SUBMIT_RESPONSE" | jq -r '.state')" != "$EXPECTED_STATE" ]; then
