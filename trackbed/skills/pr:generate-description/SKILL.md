@@ -101,7 +101,7 @@ Read the context-gathering procedure from `references/context-gathering.md` and 
 - **2.1.5 GitHub PR Template Analysis** — supported GitHub template locations, template selection, and template-following constraints.
 - **2.2 Commit History Analysis** — commit log and message bodies, narrative arc extraction.
 - **2.3 Linear Issue Context** — branch-name parsing, optional Linear integration lookup, divergence tracking.
-- **2.4 Code Structure Analysis** — scope (frontend/backend/full-stack), change characteristics, breaking-change indicators.
+- **2.4 Code Structure Analysis** — scope (frontend/backend/full-stack), change characteristics, breaking-change indicators, runtime dependencies, revert effects.
 - **2.5 Conversation History and Specification Files Analysis** — SIW spec files, conversation review, decision capture. Spec files and conversation context are for YOUR analysis only and **NEVER** referenced in the final PR body.
 
 ### Phase 2.5: Analysis and Clarification

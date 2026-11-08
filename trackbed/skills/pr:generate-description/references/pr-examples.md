@@ -92,6 +92,8 @@ The API only reads or writes the signed-in user's row: it takes the user ID from
 
 Run the migration before deploying the app. It only adds a table, so the current app version keeps working. There is no backfill; rows are created when people first save.
 
+Rollback: revert the app deploy. Settings saved after the deploy stay in `user_preferences`, which the old code doesn't read, so those users see their earlier browser settings again.
+
 ## Review notes
 
 - Settings stored in a browser are not copied to the account until the user saves once. Until then, each device keeps its local values.

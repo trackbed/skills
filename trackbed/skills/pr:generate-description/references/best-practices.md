@@ -18,7 +18,7 @@ A reviewer reads the body to decide whether to approve, what to examine closely,
 1. The problem: who was affected and how, in their terms.
 2. Behavior changes a user, caller, or operator will notice, including anything newly allowed, blocked, or defaulted differently.
 3. Decisions a reviewer could question, with the reason and the alternatives rejected.
-4. Risks: what could go wrong, how it would show up, and what limits it.
+4. Risks: what could go wrong, how it would show up, and what limits it, and each new runtime dependency with what it is for.
 5. Scope boundaries a reviewer would otherwise ask about, stated as facts, and named follow-ups.
 6. Breaking changes and rollout: who must act, what they do, in what order, how long the old behavior keeps working, how to roll back, and what a revert leaves behind.
 7. Differences from the linked issue, with the reason.

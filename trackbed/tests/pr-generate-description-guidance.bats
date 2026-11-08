@@ -772,10 +772,14 @@ EOF
     grep -qF "; or when a revert would not fully undo the change." "$templates"
     grep -qF "When a revert would not fully undo the change, say what it leaves behind" "$templates"
     grep -qF "When reverting the PR would not fully undo it, \`## Rollout\` says what a revert leaves behind." "$checklist"
-    grep -qF "| The diff has a one-way effect a revert would not undo" "$check"
+    grep -qF "| The diff has a one-way effect a revert would not undo (see \`references/context-gathering.md\` §2.4 step 5)" "$check"
+    grep -qF "the template section that holds rollout or risk content | Important | Yes |" "$check"
+    grep -qF "separating runtime dependencies from ones used only to develop, build, or test" "$check"
+    grep -qF "one-way effects a revert would not undo, as listed in \`references/context-gathering.md\` §2.4 step 5" "$check"
+    grep -qF "or the change adds a runtime dependency. Order the bullets:" "$templates"
     grep -qF "**ALWAYS** say in \`## Rollout\` what a revert leaves behind when reverting the PR would not fully undo it" "$practices"
 
-    grep -qF "3. **Deprecation period**: whether the old behavior keeps working for a while after merge, and until when" "$templates"
+    grep -qF "3. **Deprecation period**: whether the old behavior keeps working for a while after the change ships, and until when" "$templates"
     grep -qF "There is no deprecation period:" "$templates"
     grep -qF "When the body has \`## Breaking changes\`, it says whether the old behavior keeps working through a deprecation period, and until when." "$checklist"
     grep -qF "\`## Rollout\` only when deploying takes more than a merge or a revert would not fully undo the change" "$checklist"
@@ -824,6 +828,8 @@ EOF
 	awk '/^### 2\.1\.5 /{ section = 1 } section && /^   ```bash$/{ inside = 1; next } inside && /^   ```$/{ exit } inside { sub(/^   /, ""); print }' "$guide" > "$tmp/lookup.sh"
 	grep -qF 'git ls-tree --full-tree "$DEFAULT_TEMPLATE_REF" docs/ .github/' "$tmp/lookup.sh"
 	grep -qF '} | LC_ALL=C sort -u' "$tmp/lookup.sh"
+	grep -qF '`pull_request_template.txt` files, in any letter case, in the repository root' "$guide"
+	grep -qF 'files directly inside a `PULL_REQUEST_TEMPLATE/` directory, in any letter case' "$guide"
 	if grep -nE "for (path|cdpath|fpath|manpath) in" "$guide"; then false; fi
 
 	mkdir -p "$tmp/bin"
@@ -859,11 +865,15 @@ EOF
 	printf 'Nested\n' > docs/Pull_Request_Template/nested/deep.md
 	printf 'Html\n' > docs/Pull_Request_Template/notes.html
 	printf 'Elsewhere\n' > src/pull_request_template.md
+	printf 'Near miss\n' > docs/old_pull_request_template.md
+	printf 'Backup\n' > .github/PULL_REQUEST_TEMPLATE/feature.md.bak
 	git add .
 	git commit -q -m templates
 	git update-ref refs/remotes/origin/main main
 	git switch -q -c feature
 	printf 'Unmerged\n' > docs/pull_request_template.md
+	git add docs/pull_request_template.md
+	git commit -q -m "unmerged template"
 	mkdir -p src/deeper
 
 	[ -z "$(discover_templates release)" ]

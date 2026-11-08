@@ -64,7 +64,7 @@ Fixes WAN-521
 
 1. **What breaks**, and who is affected.
 2. **What they must do**, with a short before/after when it helps.
-3. **Deprecation period**: whether the old behavior keeps working for a while after merge, and until when, as a date, a release, or a condition. When it stops working as soon as the change deploys, say so.
+3. **Deprecation period**: whether the old behavior keeps working for a while after the change ships, and until when, as a date, a release, or a condition. When it stops working as soon as the change deploys, say so. When the gathered context gives no end, write that the end is not set yet instead of inventing one.
 4. **Release impact**: the SemVer level when the repository publishes a versioned artifact, and the changelog or release-note entry when one is expected.
 
 **EXAMPLE:**
@@ -107,7 +107,7 @@ If the count takes longer than 2 seconds or fails, the guard lets the picker loa
 
 **Include when:** deploying takes more than a merge, such as a migration that must run in a set order, a feature-flag default, a config or environment change, a backfill, or a rollback that is more than a revert; or when a revert would not fully undo the change.
 
-- Number the steps in the order they must happen, and say who does each one when it isn't the person deploying.
+- Number the steps in the order they must happen, and say who does each one when it isn't the person deploying. When deploying is only a merge, skip the steps and write only the rollback note.
 - End with how to roll back.
 - When a revert would not fully undo the change, say what it leaves behind, such as data already written in a new format, deleted records or files, or messages already sent to another system, and what cleans it up, if anything does.
 - If the migration rationale, rollback plan, or flag rollout plan is unknown, emit the matching `MISSING REQUIREMENT` from SKILL.md Phase 3 instead of inventing one.
@@ -125,7 +125,7 @@ Rollback: revert the app deploy. The table can stay, because nothing reads it wi
 
 ## Review notes
 
-**Include when:** something non-obvious remains that a reviewer should know. Order the bullets:
+**Include when:** something non-obvious remains that a reviewer should know, or the change adds a runtime dependency. Order the bullets:
 
 1. **Risks and side effects**: what could go wrong, how it would show up, and what limits it.
 2. **New runtime dependencies**: each package, service, or other system the change needs at run time, and what it is for. Leave out dependencies used only to develop, build, or test the project unless one needs review attention.

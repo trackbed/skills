@@ -34,7 +34,7 @@ sources:
   - id: mattpocock-pr-skill
     url: https://raw.githubusercontent.com/mattpocock/skills/main/skills/engineering/pr/SKILL.md
     title: "mattpocock/skills - pr skill"
-    rationale: "Asking whether a revert fully undoes the change, and saying in the Rollout section what a revert leaves behind, is inspired by this skill's section on one-way and two-way doors."
+    rationale: "Asking whether a revert fully undoes the change, and saying in the Rollout section what a revert leaves behind, is inspired by this skill's Merge Danger section, which classes a change as a one-way or two-way door."
     usage: inspiration
     last_reviewed_at: 2026-11-08
     baseline_commit: "e484a8095543718ced436b9b49a8160ed4554000"
