@@ -2,6 +2,10 @@
 
 Five-round interview structure for comprehensive issue definition. Ask every question with the structured question tool as defined in `SKILL.md`; group each round's questions into as few calls as the per-call limit in `SKILL.md` allows.
 
+## Improve Mode: Carried-Forward Content
+
+In improve mode, ask each round's `comment_conflicts` and `open_assumptions` questions before its own questions, even when the round carries forward. Phase 3 of `references/mode-and-review-flow.md` records them and defines how to ask them.
+
 ## Round 1: Problem & Value (Most Important)
 
 Problem & Value carries the most weight in the final issue; stay in this round until the Problem exit bar in `SKILL.md` is met.
@@ -37,7 +41,7 @@ Problem & Value carries the most weight in the final issue; stay in this round u
 - Are there related changes that should be separate issues?
 - What is the minimum viable implementation?
 - Can this ship in one PR? If not, what are the PR-sized slices and their order? (see `references/one-pr-rule.md`)
-- Which decisions belong in this issue, and which should remain implementation details for engineering?
+- Which decisions belong in this issue, and which should remain implementation details for engineering? Product decisions, module placement, and new or changed interfaces belong in the issue; only the implementation behind those interfaces is left to engineering.
 
 **Dig deeper when:**
 

@@ -28,6 +28,7 @@ Every Linear call in this skill uses the MCP operations below. Names are identic
 | Need | Operation |
 | --- | --- |
 | Fetch an issue | `get_issue` with `id` |
+| Comments on an issue | `list_comments` with `issueId` |
 | Duplicate and related search | `list_issues` with `query` and `team` |
 | Sub-issues of a parent | `list_issues` with `parentId` |
 | Teams | `list_teams` |
@@ -129,7 +130,7 @@ Read `references/mode-and-review-flow.md` and follow its Phase 3 instructions fo
 
 Phase 3 must produce:
 
-- **Improve mode**: current issue presented, Dev Ask preservation noted when relevant, `prior_session_context` recorded, improvement areas selected, related issues identified.
+- **Improve mode**: current issue presented, Dev Ask preservation noted when relevant, comments read, `prior_session_context`, `comment_conflicts`, and `open_assumptions` recorded, improvement areas selected, related issues identified.
 - **Create mode**: duplicate and related search completed, `.out-of-scope/` matches surfaced when relevant, user decision recorded, and related, blocking, and blocked issues stored as `relations` for Phase 7.
 - **Auto create mode**: after team resolution and duplicate handling, read `references/auto-create.md`; clarify, draft, approve, create, return the URL (or URLs for a split), and skip Phases 4–7. For a breakdown handoff, return the `ISSUE-DEFINE RESULT` block to the caller. For a breakdown batch, run Phase 3 duplicate handling and the auto-create flow separately for each entry, emit each terminal `ISSUE-DEFINE RESULT` immediately, and finish with `ISSUE-DEFINE BATCH RESULT` under **Structured Breakdown Batch**; otherwise stop.
 
@@ -156,13 +157,15 @@ Two rounds instead of five:
 - **Round 1: Problem & Reproduction** — what the bug is, numbered reproduction steps ending with "Bug: [what happens]", expected behavior.
 - **Round 2: Root Cause & Fix** — cause in 1–2 sentences, what must change, affected files.
 
+**Improve mode:** ask the `comment_conflicts` and `open_assumptions` questions from Phase 3 before Round 1.
+
 If the root cause is still unclear after Round 2, reclassify as Bug (Complex), set `is_simple_bug = false`, and switch to the standard interview at Round 1. Otherwise skip to Round 5 (team and labels only, project/priority/cycle on request) and proceed to Phase 6 with the simple template.
 
 ### Standard Interview
 
 Conduct the five rounds in `references/interview-rounds.md` with the structured question tool: Problem & Value, Scope & Boundaries, Technical Context, Acceptance Criteria, Metadata & Classification. Before each question, explain why it matters and give a recommendation when you have one.
 
-**Improve mode:** focus on the improvement areas selected in Phase 3. Show the current content first and ask whether to keep, modify, or expand it. Skip unselected rounds unless the user asks for them, and track what changed against the original.
+**Improve mode:** focus on the improvement areas selected in Phase 3. Show the current content first and ask whether to keep, modify, or expand it. Skip unselected rounds unless the user asks for them, but still ask each round's comment-conflict and open-assumption questions from Phase 3, and track what changed against the original.
 
 **Create mode:** start each section from blank, seeded with the Phase 4 hypotheses.
 

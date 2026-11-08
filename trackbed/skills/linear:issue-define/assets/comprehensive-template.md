@@ -68,7 +68,8 @@ Draft the issue following this template:
 ## Decision Boundaries
 
 - **Product decisions captured here:** [user-facing choices, scope calls, business rules]
-- **Implementation choices left to engineering:** [architecture details, low-level approach]
+- **Module and interface decisions captured here:** [which module owns the change; reference the new or changed interfaces in Interface Impact rather than repeating them]
+- **Implementation left to engineering:** [how each module meets those interfaces: internal structure, algorithms, low-level approach]
 
 ## Acceptance Criteria
 
@@ -113,7 +114,7 @@ Draft the issue following this template:
 
 ## Assumptions Used
 
-- [Only include when the issue had to infer target user, why-now, or non-goals from incomplete context]
+- [Only include when the issue had to infer target user, why-now, or non-goals from incomplete context. Each entry is unconfirmed]
 
 <!-- Only include this section if the issue has the "Dev Ask" label -->
 
