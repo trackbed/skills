@@ -31,14 +31,14 @@ sources:
   - id: claude-marketplace-settings
     url: https://code.claude.com/docs/en/settings-reference.md
     title: "Claude Code settings reference"
-    rationale: "Defines whole-entry marketplace replacement and the additionalMarketplaces alias; the checker preserves the registry fallback when a winning entry omits autoUpdate."
+    rationale: "Defines whole-entry marketplace replacement, the additionalMarketplaces alias, and managed marketplace allow and block lists that also gate auto-update; the checker preserves the registry fallback when a winning entry omits autoUpdate and reports unknown when a managed list is set."
     usage: inspiration
     last_reviewed_at: 2026-10-28
     baseline_hash: "sha256:3e61bb59ba30495277af107905960770c81dca87a15fff7bdd04844a63e9d759"
   - id: claude-managed-settings
     url: https://code.claude.com/docs/en/managed-settings.md
     title: "Claude Code managed settings guide"
-    rationale: "Defines platform-specific managed settings paths and drop-in fragments; the checker reads the base file and reports unknown for fragment merging or policy outside the files it can inspect."
+    rationale: "Defines platform-specific managed settings paths, drop-in fragments, policy helpers, and how managed sources combine; the checker reads the base file, treats an empty one as an empty object, and reports unknown for fragments, an unreadable drop-in directory, a policy helper, or policy outside the files it can inspect."
     usage: inspiration
     last_reviewed_at: 2026-10-28
     baseline_hash: "sha256:b8331e890c11bd57aff6e22a16a2f25f2bd1745093fd3977a24fdf6ee81d043b"

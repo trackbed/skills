@@ -21,16 +21,17 @@ PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
 OUTPUT_FORMAT="text"
 
+# Avoid here-documents and here-strings in this script: bash before 5.1 backs
+# them with a temp file, which a sandbox that blocks writes refuses.
 usage() {
-  cat << 'USAGE'
-Usage: check-environment.sh [--json] [--help]
-
-Runs a read-only health check for common trackbed workflow dependencies.
-
-Options:
-  --json   Print machine-readable JSON
-  --help   Show this help
-USAGE
+  printf '%s\n' \
+    'Usage: check-environment.sh [--json] [--help]' \
+    '' \
+    'Runs a read-only health check for common trackbed workflow dependencies.' \
+    '' \
+    'Options:' \
+    '  --json   Print machine-readable JSON' \
+    '  --help   Show this help'
 }
 
 while [ $# -gt 0 ]; do
@@ -354,7 +355,7 @@ detect_claude_plugin_cache() {
         registered="${registered:+$registered, }${version_dir##*/}"
         break
       fi
-    done <<< "$installed_paths"
+    done < <(printf '%s\n' "$installed_paths")
   done
   printf '%s%s\n' "$versions" "${registered:+ (registered $registered)}"
 }
@@ -410,7 +411,7 @@ claude_project_settings_files() {
             break
             ;;
         esac
-      done <<< "$worktrees"
+      done < <(printf '%s\n' "$worktrees")
       # A bare repository, a home-directory repository, or an unowned root
       # does not relocate the local settings file.
       if [ -n "$root" ]; then
@@ -456,6 +457,20 @@ claude_auto_update_setting() {
   ' "$1" 2> /dev/null
 }
 
+# Prints helper, marketplaces, or none for the managed settings file. A policy
+# helper replaces every other managed source, and managed marketplace allow or
+# block lists also gate auto-update, so the file alone cannot answer either way.
+claude_managed_policy() {
+  jq -er '
+    if type != "object" then error("settings root is not an object")
+    elif has("policyHelper") then "helper"
+    elif has("strictKnownMarketplaces") or has("allowedMarketplaces")
+      or has("blockedMarketplaces") then "marketplaces"
+    else "none"
+    end
+  ' "$1" 2> /dev/null
+}
+
 # Local-file /plugin auto-update policy. Session-only settings, remote managed
 # policy, OS policy, and workspace trust cannot be inferred by this shell probe.
 detect_claude_auto_update() {
@@ -466,6 +481,7 @@ detect_claude_auto_update() {
   local dropin
   local project_settings
   local value
+  local managed_policy
 
   if ! plugins_root="$(claude_plugins_root)"; then
     echo "not checked (HOME, CLAUDE_CONFIG_DIR, and CLAUDE_CODE_PLUGIN_CACHE_DIR unset)"
@@ -478,11 +494,32 @@ detect_claude_auto_update() {
 
   settings_file="$(claude_managed_settings_file)"
   if [ -n "$settings_file" ]; then
+    if [ -d "${settings_file%/*}/managed-settings.d" ] \
+      && { [ ! -r "${settings_file%/*}/managed-settings.d" ] || [ ! -x "${settings_file%/*}/managed-settings.d" ]; }; then
+      echo "unknown (managed settings fragments unreadable; check /plugin)"
+      return
+    fi
     for dropin in "${settings_file%/*}/managed-settings.d"/*.json; do
       [ -e "$dropin" ] || continue
       echo "unknown (managed settings fragments; check /plugin)"
       return
     done
+    if [ -f "$settings_file" ] && [ -s "$settings_file" ]; then
+      if ! managed_policy="$(claude_managed_policy "$settings_file")"; then
+        echo "unknown (unreadable: $settings_file)"
+        return
+      fi
+      case "$managed_policy" in
+        helper)
+          echo "unknown (managed policy helper; check /plugin)"
+          return
+          ;;
+        marketplaces)
+          echo "unknown (managed marketplace allow or block list; check /plugin)"
+          return
+          ;;
+      esac
+    fi
   fi
 
   if ! project_settings="$(claude_project_settings_files)"; then
@@ -492,6 +529,8 @@ detect_claude_auto_update() {
   while IFS= read -r settings_file; do
     [ -n "$settings_file" ] || continue
     [ -f "$settings_file" ] || continue
+    # Claude Code reads an empty settings file as an empty object.
+    [ -s "$settings_file" ] || continue
     if ! setting="$(claude_auto_update_setting "$settings_file")"; then
       echo "unknown (unreadable: $settings_file)"
       return
