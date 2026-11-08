@@ -27,12 +27,16 @@ To detect which MCP is available, check for any tool starting with the prefix:
 - `mcp__chrome-devtools__` -> chrome-devtools is available
 - `mcp__playwright__` -> playwright is available
 
-Use the first available in priority order. If multiple are available, prefer claude-in-chrome for its broader capabilities.
+Use the first available provider in the priority order for the target (SKILL.md Step 2):
+
+- Local targets (`auto`, `localhost`, `127.0.0.1`, `[::1]`): chrome-devtools, then playwright, then claude-in-chrome. The first two normally run their own browser profile, which keeps the user's accounts out of reach.
+- Other targets: claude-in-chrome, then chrome-devtools, then playwright. claude-in-chrome has the broadest capabilities.
 
 ## Provider-Specific Notes
 
 ### claude-in-chrome
 
+- Runs in the user's own Chrome profile, with their signed-in accounts and open tabs
 - Uses `computer` tool for screenshots, clicks, and hover with an `action` parameter
 - Has `form_input` for filling inputs (more reliable than click-then-type)
 - Has `get_page_text` for extracting full page text
@@ -41,6 +45,7 @@ Use the first available in priority order. If multiple are available, prefer cla
 
 ### chrome-devtools
 
+- Starts its own browser profile by default (`--isolated` makes it temporary); it reaches the user's browser only when configured to connect to an already running Chrome
 - Direct `click`, `fill`, `hover` tools (no composite `computer` tool)
 - Has `take_snapshot` for DOM snapshot and `take_screenshot` for visual
 - Has `fill_form` for batch form filling
@@ -48,6 +53,7 @@ Use the first available in priority order. If multiple are available, prefer cla
 
 ### playwright
 
+- Starts its own browser profile by default (`--isolated` keeps it in memory); it reaches an existing browser only when configured to
 - `browser_snapshot` returns an accessibility tree (useful for understanding page structure)
 - `browser_take_screenshot` for visual screenshots
 - Supports `browser_evaluate` for running JavaScript

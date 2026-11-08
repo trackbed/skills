@@ -201,10 +201,9 @@ If `app_url` was provided:
    - `__UNCONFIRMED_OWNER__` — replace `app_url` with the URL on the next line, and note in the review that the serving checkout could not be confirmed.
    - `__DETECTOR_UNAVAILABLE__` — ask the user for the dev-server URL; if non-interactive, clear `app_url`, warn that the shared detector is unavailable, and continue in code-only mode.
 
-1. Check for available browser MCP tools (in priority order):
-   - `mcp__claude-in-chrome__*` tools
-   - `mcp__chrome-devtools__*` tools
-   - `mcp__playwright__*` tools
+1. Check for available browser MCP tools in the priority order `trackbed:browse` uses for the target. For a local `app_url` (`localhost`, `127.0.0.1`, or `[::1]`), that order prefers providers that run their own browser profile:
+   - `mcp__chrome-devtools__*` tools, then `mcp__playwright__*` tools, then `mcp__claude-in-chrome__*` tools for a local `app_url`
+   - `mcp__claude-in-chrome__*` tools, then `mcp__chrome-devtools__*` tools, then `mcp__playwright__*` tools otherwise
 2. If found → pass `app_url` and browser MCP type to agents so they can take screenshots
 3. If none found:
 

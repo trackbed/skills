@@ -2,7 +2,7 @@ sources:
   - id: addy-browser-testing-devtools
     url: https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/browser-testing-with-devtools/SKILL.md
     title: "Addy Osmani agent-skills - browser testing with DevTools"
-    rationale: "Browser MCP boundaries, evidence capture, JavaScript constraints, and content boundary markers are adapted from this source."
+    rationale: "Browser MCP boundaries, profile isolation, evidence capture, JavaScript constraints, and content boundary markers are adapted from this source."
     usage: inspiration
     last_reviewed_at: 2026-08-20
     baseline_hash: "sha256:4e3aacd6a380cd25bc6c2d67fdd1c926a9b22535b8a62109ecd33cefd909e3d9"
