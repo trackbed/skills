@@ -18,6 +18,8 @@
 
 {{1-3 sentences: overall health, biggest themes, recommended starting point; with --for, the refactor that would make the planned change easiest, or that the change needs none}}
 
+{{Nothing worth changing, in every scope: when no finding or deepening candidate survived Phase 3 steps 3-5, or every surviving finding had LOW confidence and no deepening candidate survived, write `Nothing worth changing in <scope>.` in place of the summary above and name which trigger applied. Write "None." in the severity tables, Patterns & Themes, and Recommended Refactor Order, and fill every other section as usual.}}
+
 ---
 
 {{Severity tables: In Current PR scope only, add a `PR Relevance` column between `Location` and `Description` and populate it for every active finding. In full, path, and feature scopes, omit PR relevance entirely. With --for, add a `Change Relevance` column in the same position instead and populate it for every active finding.}}
@@ -44,11 +46,11 @@
 
 ## Patterns & Themes
 
-{{Group findings that share a root cause or would benefit from a single coordinated fix. For each theme, list the finding IDs it covers and the combined line count. Mark any theme whose combined blast radius exceeds 500 lines as an **automation candidate** (codemod / AST transform / batch refactor).}}
+{{Group findings that share a root cause or would benefit from a single coordinated fix. For each theme, list the finding IDs it covers and its edit size as defined by the Phase 3 Rule of 500. Mark any theme whose edit size is over 500 lines as an **automation candidate** (codemod / AST transform / batch refactor).}}
 
-| Theme     | Findings              | Combined lines | Automation candidate? |
-| --------- | --------------------- | -------------- | --------------------- |
-| {{theme}} | {{RO-001, RO-002, …}} | {{count}}      | {{yes / no}}          |
+| Theme | Findings | Edit size (lines) | Automation candidate? |
+| --- | --- | --- | --- |
+| {{theme}} | {{RO-001, RO-002, …}} | {{count}} | {{yes / no}} |
 
 ## Deepening Candidates
 
@@ -65,7 +67,7 @@
 
 ## Recommended Refactor Order
 
-{{Ordered list of refactors to tackle first, considering: risk, blast radius, dependency between findings, and quick wins. Separate automation-candidate themes (≥500 lines) from manual fixes.}}
+{{Ordered list of refactors to tackle first, considering: risk, blast radius, dependency between findings, and quick wins. Separate automation-candidate themes (edit size over 500 lines) from manual fixes.}}
 
 ## Breakdown-Ready Finding Data
 
@@ -84,7 +86,7 @@
 
 ## Noticed But Not Touching
 
-{{Observations agents recorded outside their assigned category group and, with --for, findings that would not ease the planned change. Not findings — surface them here so the user can decide whether to request a follow-up scan.}}
+{{Observations agents recorded outside their assigned category group, LOW-confidence items set aside by a nothing-worth-changing outcome, and, with --for, findings that would not ease the planned change. Not findings — surface them here so the user can decide whether to request a follow-up scan.}}
 
 ## Filtered PR-Scope Observations
 
