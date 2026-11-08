@@ -1,6 +1,6 @@
 ---
 name: docs:adr
-description: "Author Architecture Decision Records for significant, long-lived decisions. Creates ADRs in docs/decisions/ with sequential numbering and lifecycle states (PROPOSED / ACCEPTED / SUPERSEDED / DEPRECATED). Detects and preserves existing ADR format when one is in use; falls back to a Nygard-style template otherwise. Use when adopting a new pattern, committing to a dependency, changing a public interface, changing the data model, or rejecting an alternative a future maintainer might reasonably re-propose. Initiative-local SIW decisions stay in the spec and LOG for transfer to Linear."
+description: "Author Architecture Decision Records for significant, long-lived decisions, with lifecycle states (PROPOSED / ACCEPTED / SUPERSEDED / DEPRECATED). Finds the project's existing ADR log and matches its format and numbered or dated filenames; falls back to docs/decisions/ and a Nygard-style template otherwise. Use when adopting a new pattern, committing to a dependency, changing a public interface, changing the data model, or rejecting an alternative a future maintainer might reasonably re-propose. Initiative-local SIW decisions stay in the spec and LOG for transfer to Linear."
 argument-hint: "[decision title]"
 disable-model-invocation: false
 user-invocable: true
@@ -12,14 +12,16 @@ Author an ADR for a significant, long-lived decision: state the problem, the cho
 
 The model may run this skill without a user request. Every run that writes an ADR file, whoever started it, must announce the write with the `ADR WRITTEN` callout in step 6.
 
-When the model started the skill and the user did not ask for an ADR in this session:
+When the model started the skill and the user did not ask for this ADR in this session:
 
+- Write only when the decision passes the three-criterion test in step 1; otherwise write nothing.
+- Apply that test before pre-flight, so a decision that fails it stops there instead of asking about the ADR log.
 - Create only a new ADR file, with Status PROPOSED.
 - Emit `ASK FIRST` before editing, superseding, or deprecating an existing ADR, and before creating an ADR directory the project does not have.
 
 ## When to use
 
-A decision warrants an ADR if **any** of these are true:
+For a run the user requested, a decision warrants an ADR if **any** of these are true. A run nobody requested must also pass the stricter test in step 1.
 
 - It affects more than one module.
 - It commits to a dependency (library, service, data store, cloud provider).
@@ -33,23 +35,38 @@ Route elsewhere if:
 - **Feature spec / scope decisions before implementation** → use `/trackbed:docs:feature-spec`.
 - **Agent-facing rules** (commit style, package manager, conventions) → use `/trackbed:docs:update-agents-md`.
 
-## Pre-flight: detect existing ADR format
+## Pre-flight: find the ADR log and its convention
 
-Before drafting, check whether the project already has ADRs. If yes, **preserve the existing style** rather than imposing this template.
+Before drafting, find the project's ADR log. Read the repository signals below in order, and **preserve the convention they establish** rather than imposing this template.
 
-1. Look for an ADR directory. Common paths:
-   - `docs/decisions/`
-   - `docs/adr/` or `adr/`
-   - `docs/architecture/decisions/`
-   - `architecture/decisions/`
-2. If found, read 1–2 of the most recent ADRs. Identify:
+1. **Project instructions.** Read the agent and contributor instructions at the repository root, such as `AGENTS.md`, `CLAUDE.md`, and `CONTRIBUTING.md`, and any decision index or guide they link to. Note every ADR location, filename format, template, and status vocabulary they name.
+2. **ADR tool configuration.** Check for ADR tool settings that name the log's folder, such as `.adr-dir` (adr-tools) or `.log4brains.yml` (log4brains).
+3. **ADR folders anywhere in the repository.** Search below the repository root, not only at it, for folders named `decisions`, `adr`, or `adrs`, which also covers paths like `docs/architecture/decisions/`. Run this from the repository root:
+
+   ```bash
+   find . \( -name .git -o -name node_modules -o -name vendor -o -name dist -o -name build \) -prune \
+     -o -type d \( -iname decisions -o -iname adr -o -iname adrs \) -print
+   ```
+
+   Keep a folder as a candidate only when it holds Markdown decision records. An index such as `README.md` or a template file is not a record.
+
+Stop with `CONFUSION` and ask the user before drafting when the signals conflict:
+
+- More than one candidate folder holds ADR records.
+- Instructions or tool configuration name a location or filename format that the records on disk do not follow. Records the next rule treats as legacy do not count.
+- One folder mixes numbering schemes, such as `0001-` records beside `2026-11-02-` records, and no project instruction names the scheme for new records. When an instruction names it and the folder already holds records in that scheme, follow the instruction and treat records in the other scheme as legacy: keep them, and never number from them.
+
+With one log established:
+
+1. Read 1–2 of the most recent ADRs. Identify:
    - Template style (Nygard, MADR, custom).
    - Status vocabulary (may differ from the four states below).
-   - Numbering format (`0001-` vs `001-` vs `ADR-001-` vs `adr-001-`).
-   - Filename contract: literal prefix before the number, numeric zero-padding width, separator after the number, and slug convention.
-   - Filename slug convention.
-3. Treat the matched directory as `ADR_DIR` for the rest of the workflow.
-4. Match that style for the new ADR. Only fall back to `assets/adr-template.md` when the directory does not exist or is empty.
+   - Filename scheme: sequential integer (`0001-` vs `001-` vs `ADR-001-` vs `adr-001-`) or dated (`YYYY-MM-DD-`).
+   - Filename contract: literal prefix before the number or date, numeric zero-padding width, separator after it, and slug convention.
+2. Treat that folder as `ADR_DIR` for the rest of the workflow.
+3. Match that style for the new ADR.
+
+Use `assets/adr-template.md` and the default `docs/decisions/` folder only when no signal above establishes a convention. When no folder holds records yet, the log is the folder an instruction or tool setting names, or else the only ADR folder found that holds just an index or template. Use it as `ADR_DIR` with the filename scheme the instructions name, or `0001-` numbering when they name none.
 
 If the existing style uses a vocabulary that conflicts with the four lifecycle states below, prefer the project's vocabulary — but surface the mismatch with a `CONFUSION` marker so the user can decide whether to reconcile.
 
@@ -64,9 +81,7 @@ Four states (use verbatim unless the project already uses a different vocabulary
 
 ## Preservation rule
 
-> "Don't delete old ADRs. They capture historical context."
-
-Even SUPERSEDED ADRs stay in the directory. They explain _why_ the current approach was chosen over the previous one. Deleting them erases the reasoning that a future maintainer needs to avoid re-making a rejected choice.
+Keep every ADR in the directory once it is written, including SUPERSEDED and DEPRECATED ones. An old record explains _why_ the current approach replaced the previous one, and deleting it erases the reasoning a future maintainer needs to avoid re-making a rejected choice.
 
 ## Markers
 
@@ -154,15 +169,30 @@ Six steps. Do not skip steps.
 
 ### 1. Detect significance
 
-Apply the **When to use** criteria. If the decision affects only one function or is a purely tactical choice, emit a `NOTICED BUT NOT TOUCHING` marker (or nothing) and stop — this is not ADR-worthy.
+Apply the **When to use** criteria. If the decision affects only one function or is a purely tactical choice, emit a `NOTICED BUT NOT TOUCHING` marker naming the decision and why it is not ADR-worthy, and stop.
 
-### 2. Find next ADR number
+A run counts as requested when the user asked for this ADR in the session, including by accepting another skill's ADR offer. For a run nobody requested, the decision must also meet **all three** criteria before you write anything:
 
-Use `ADR_DIR` from pre-flight. Scan that directory for the highest existing ADR number and increment it. Match the project's detected filename contract, including any literal prefix, zero-padding, separator, and slug style. Do not silently normalize the project onto `ADR-` or bare-number filenames.
+- **Hard to reverse** — undoing it later would be costly or destructive.
+- **Surprising without context** — a future maintainer would reasonably ask "why this?" and not be able to infer the answer from the code alone.
+- **Result of a real tradeoff** — a credible alternative was rejected for a stated reason.
 
-While scanning, also check existing ADR titles and slugs for one that already records this decision. If a match exists, emit `CONFUSION` ("an ADR for this decision may already exist: #NNNN — supersede it instead of creating a duplicate?") and resolve with the user before numbering a new file.
+If any criterion fails, write nothing. Emit `NOTICED BUT NOT TOUCHING` naming the decision and each failed criterion, and stop.
 
-If the existing ADR filenames do not follow a sequential integer scheme you can increment safely (for example they are date-based or prose-only), emit `CONFUSION` and ask whether to preserve that non-sequential scheme or bootstrap a new ADR log.
+### 2. Find the next ADR number or filename
+
+Use `ADR_DIR` and the filename scheme from pre-flight. Match the project's detected filename contract, including any literal prefix, zero-padding, separator, and slug style. Do not silently normalize the project onto `ADR-`, bare-number, or dated filenames.
+
+While scanning, also check existing ADR titles and slugs for one that already records this decision. If a match exists, emit `CONFUSION` ("an ADR for this decision may already exist: #NNNN — supersede it instead of creating a duplicate?") and resolve with the user before naming a new file.
+
+- **Dated scheme**: name the file with today's date and a new slug, such as `2026-11-08-session-storage.md`. No number scan applies; also check that no record already has that name.
+- **Sequential integer scheme**: scan `ADR_DIR` for the highest existing ADR number and increment it.
+
+In a dated log, cite records by filename wherever this skill shows `#NNNN` or `#MMMM`.
+
+The highest-number scan is valid only when every record it reads follows one integer scheme. The example scan below reads a dated record such as `2026-11-02-cookie-sessions.md` as record 2026, so a scan over a mixed folder proposes the wrong number. Exclude legacy records that pre-flight set aside.
+
+If the existing filenames follow no scheme you can continue safely (for example they are prose-only), emit `CONFUSION` and ask whether to preserve that scheme or bootstrap a new ADR log.
 
 For the common `prefix + integer + separator + slug` shapes, extract the integer with a pattern adjusted to the detected prefix and separator. Example starting point:
 
@@ -176,7 +206,7 @@ find "$ADR_DIR" -maxdepth 1 -type f -print \
 
 Treat that snippet as an example, not a universal regex: tighten it to the exact convention you detected in pre-flight (for example `ADR-`, `adr-`, bare digits, or another fixed prefix) before trusting the result.
 
-If no ADR directory exists, create `docs/decisions/`, set `ADR_DIR=docs/decisions/`, and start at `0001`.
+If `ADR_DIR` does not exist yet, create the folder pre-flight chose, or `docs/decisions/` when no signal names one, and start with the filename scheme pre-flight chose, or `0001` when none applies.
 
 ### 3. Draft using the detected or default template
 

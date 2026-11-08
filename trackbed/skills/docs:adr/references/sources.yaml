@@ -2,7 +2,7 @@ sources:
   - id: addy-documentation-and-adrs
     url: https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/documentation-and-adrs/SKILL.md
     title: "Addy Osmani agent-skills - documentation and ADRs"
-    rationale: "ADR lifecycle states, preservation rules, and drafting markers are adapted from this source."
+    rationale: "The ADR lifecycle states, the rule to keep superseded records, and matching the repository's existing ADR convention from in-repository signals before using a default are adapted from this source."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
@@ -18,7 +18,7 @@ sources:
   - id: pocock-domain-model
     url: https://raw.githubusercontent.com/mattpocock/skills/main/skills/engineering/domain-modeling/SKILL.md
     title: "Matt Pocock skills - domain-model"
-    rationale: "The inline ADR-offer pattern with the 3-criterion test (hard-to-reverse, surprising-without-context, result-of-real-tradeoff) and the canonical offer message used by other skills (discovery, refactor) to detect ADR-worthy moments are adapted from this source."
+    rationale: "The 3-criterion test (hard-to-reverse, surprising-without-context, result-of-real-tradeoff) that gates ADR writes nobody requested, and the inline ADR-offer pattern and canonical offer message the discovery interview uses, are adapted from this source."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
