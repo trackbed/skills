@@ -147,6 +147,26 @@ class SessionSkillUsageTests(unittest.TestCase):
         self.assertEqual(evidence["skill_events"], 0)
         self.assertEqual(evidence["unknown_skill_events"], 1)
 
+    def test_counts_near_miss_names_apart_from_unrelated_unknown_names(self):
+        host_command = json.dumps({"type": "user", "message": {"content": "<command-name>/model</command-name>"}})
+        misspelled = json.dumps(
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [{"type": "tool_use", "name": "Skill", "input": {"skill": "trackbed:pr-crate"}}]
+                },
+            }
+        )
+
+        evidence = self.run_skill_usage(host_command, "pr:create")
+        self.assertEqual(evidence["unknown_skill_events"], 1)
+        self.assertEqual(evidence["near_miss_skill_events"], 0)
+
+        evidence = self.run_skill_usage(misspelled, "pr:create")
+        self.assertEqual(evidence["unknown_skill_events"], 1)
+        self.assertEqual(evidence["near_miss_skill_events"], 1)
+        self.assertNotIn("pr-crate", json.dumps(evidence))
+
     def test_counts_cursor_prompts_wrapped_in_user_query(self):
         session = json.dumps(
             {

@@ -53,7 +53,7 @@ sources:
   - id: warp-skill-doctor-workflow
     url: https://raw.githubusercontent.com/warpdotdev/common-skills/737129fae58e1feb4ec956c0f0bfa597b5c6ee89/.agents/skills/skill-doctor/SKILL.md
     title: "Warp common-skills - skill-doctor workflow"
-    rationale: "The optional eligibility-aware effectiveness pass, local scratch boundary, and separation of collection from judgment are informed by this workflow."
+    rationale: "The optional eligibility-aware effectiveness pass, local scratch boundary, separation of collection from judgment, user-level skill roots in the inventory, and treating repeated missed invocations as a trigger-wording defect are informed by this workflow."
     usage: inspiration
     last_reviewed_at: 2026-08-26
     baseline_hash: "sha256:88ff4f72aaa3342ed7a143394244a7a99c0fb7ac109b6020e9600305c01c9b46"
@@ -81,7 +81,7 @@ sources:
   - id: warp-skill-doctor-session-collector
     url: https://raw.githubusercontent.com/warpdotdev/common-skills/737129fae58e1feb4ec956c0f0bfa597b5c6ee89/.agents/skills/skill-doctor/scripts/collect_sessions.py
     title: "Warp skill-doctor - cross-harness session collector"
-    rationale: "scripts/extract-skill-usage.py is conceptually informed by the collector's cross-harness detection of explicit skill reads while retaining only validated skill names."
+    rationale: "scripts/extract-skill-usage.py is conceptually informed by the collector's cross-harness detection of explicit skill reads while retaining only validated skill names and setting aside unknown names that resemble no installed skill."
     usage: inspiration
     last_reviewed_at: 2026-08-26
     baseline_hash: "sha256:1df872bdb7d6e6a5408a34ad9049bfc19733764345f7ef93f3c38f45e5dea3ad"

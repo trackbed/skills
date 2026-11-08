@@ -3,7 +3,10 @@
 
 The extractor emits only validated skill names and aggregate diagnostics. It
 never emits transcript text, tool payloads, commands, transcript-derived paths,
-or reasoning.
+or reasoning. Names outside the --known-skill allowlist are only counted:
+unknown_skill_events counts events that named one, and near_miss_skill_events
+counts the events whose unknown name looks like a misspelled or differently
+spelled known skill.
 Claude Code, Codex, and Cursor JSONL shapes are auto-detected through the
 shared session-search parser.
 """
@@ -123,6 +126,49 @@ def canonical_skill_name(name: str) -> str:
         or hyphen_aliases.get(unqualified)
         or name
     )
+
+
+def skill_spelling(name: str) -> str:
+    """Fold case, a leading slash, and separator differences out of a skill name."""
+    return re.sub(r"[:_.]+", "-", name.strip().lstrip("/").lower())
+
+
+known_spellings: Set[str] = {skill_spelling(name) for name in known_skills}
+
+
+def within_distance(left: str, right: str, limit: int) -> bool:
+    """Return whether two strings are at most ``limit`` single-character edits apart."""
+    if abs(len(left) - len(right)) > limit:
+        return False
+    previous = list(range(len(right) + 1))
+    for row, left_char in enumerate(left, 1):
+        current = [row]
+        for column, right_char in enumerate(right, 1):
+            cost = 0 if left_char == right_char else 1
+            current.append(min(previous[column] + 1, current[column - 1] + 1, previous[column - 1] + cost))
+        if min(current) > limit:
+            return False
+        previous = current
+    return previous[-1] <= limit
+
+
+def is_near_miss(name: str) -> bool:
+    """Return whether an unknown name probably means a known skill.
+
+    A near miss, such as a misspelling or an ambiguous host spelling, could
+    otherwise turn into a false missed invocation. Host commands such as
+    ``/model`` and other plugins' skills are not near misses.
+    """
+    forms = {skill_spelling(name)}
+    if ":" in name:
+        forms.add(skill_spelling(name.split(":", 1)[1]))
+    for form in forms:
+        if len(form) < 4:
+            continue
+        limit = 1 if len(form) <= 8 else 2
+        if any(within_distance(form, known, limit) for known in known_spellings):
+            return True
+    return False
 
 
 def names_from_paths(value: object) -> Set[str]:
@@ -314,6 +360,7 @@ platforms: Set[str] = set()
 skills: Set[str] = set()
 skill_events = 0
 unknown_skill_events = 0
+near_miss_skill_events = 0
 
 for platform, event in iter_platform_events(sys.stdin, diagnostics):
     platforms.add(platform)
@@ -326,8 +373,11 @@ for platform, event in iter_platform_events(sys.stdin, diagnostics):
             skills.update(accepted)
             if accepted:
                 skill_events += 1
-            if prompt_names - known_skills:
+            unknown_names = prompt_names - known_skills
+            if unknown_names:
                 unknown_skill_events += 1
+                if any(is_near_miss(name) for name in unknown_names):
+                    near_miss_skill_events += 1
 
         tools = codex_tools(event) if platform == "codex" else claude_or_cursor_tools(event, platform)
         for tool_name, tool_input in tools:
@@ -337,8 +387,11 @@ for platform, event in iter_platform_events(sys.stdin, diagnostics):
                 skills.update(accepted)
                 if accepted:
                     skill_events += 1
-                if detected - known_skills:
+                unknown_names = detected - known_skills
+                if unknown_names:
                     unknown_skill_events += 1
+                    if any(is_near_miss(name) for name in unknown_names):
+                        near_miss_skill_events += 1
     except TranscriptShapeError:
         diagnostics.record_parse_error()
 
@@ -348,6 +401,7 @@ result = {
     "skills": sorted(skills),
     "skill_events": skill_events,
     "unknown_skill_events": unknown_skill_events,
+    "near_miss_skill_events": near_miss_skill_events,
     "lines": diagnostics.lines,
     "parse_errors": diagnostics.partial_errors,
 }
