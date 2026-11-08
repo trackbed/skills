@@ -41,7 +41,7 @@
 
 1. **ALWAYS** check whether the repository has a GitHub pull request template before drafting. GitHub supports a single `pull_request_template.md` or `pull_request_template.txt` file in the repository root, `docs/`, or `.github/`, plus multiple templates in a `PULL_REQUEST_TEMPLATE/` directory under those same locations.
 
-   GitHub treats template file names as case-insensitive, so `.github/PULL_REQUEST_TEMPLATE.md` counts the same as `.github/pull_request_template.md`. The lookup below applies the same rule to the `PULL_REQUEST_TEMPLATE/` directory name: it lists each location once and compares names in lowercase instead of probing exact paths.
+   GitHub treats template file names as case-insensitive, so `.github/PULL_REQUEST_TEMPLATE.md` counts the same as `.github/pull_request_template.md`. The lookup below applies the same rule to the `PULL_REQUEST_TEMPLATE/` directory name.
 
    GitHub applies PR templates from the repository default branch, not from unmerged files in the current worktree. Resolve the default branch and inspect that tree. Run this network lookup block with the shell tool's bounded timeout; credential or timeout failures must return control without asking for terminal input:
 
@@ -72,7 +72,7 @@
            git ls-tree --full-tree "$DEFAULT_TEMPLATE_REF" "$template_dir/" 2> /dev/null \
              | awk -F '\t' '{ split($1, meta, " "); if (meta[2] == "blob" && tolower($2) ~ /\.(md|txt)$/) print $2 }'
          done
-     } | sort -u
+     } | LC_ALL=C sort -u
    fi
    ```
 

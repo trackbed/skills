@@ -105,7 +105,7 @@ If the count takes longer than 2 seconds or fails, the guard lets the picker loa
 
 ## Rollout
 
-**Include when:** deploying takes more than a merge: a migration that must run in a set order, a feature-flag default, a config or environment change, a backfill, a rollback that is more than a revert, or a revert that would not fully undo the change.
+**Include when:** deploying takes more than a merge, such as a migration that must run in a set order, a feature-flag default, a config or environment change, a backfill, or a rollback that is more than a revert; or when a revert would not fully undo the change.
 
 - Number the steps in the order they must happen, and say who does each one when it isn't the person deploying.
 - End with how to roll back.

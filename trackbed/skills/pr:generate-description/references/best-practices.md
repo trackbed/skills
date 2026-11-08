@@ -93,8 +93,8 @@ Well above the range, look first for repeats, narration of the code, and change 
 - **ALWAYS** state scope boundaries as facts about the change ("The multi-platform picker is unchanged"), and only when a reviewer would otherwise expect that work in this PR
 - **NEVER** list areas nobody expected to change, or describe your own diligence
 - **ALWAYS** surface migrations, feature-flag defaults, rollout dependencies, and partial coverage in `## Breaking changes`, `## Rollout`, or `## Review notes`, wherever each belongs
-- **ALWAYS** name each new runtime dependency in `## Review notes`: the package, service, or other system the change needs at run time, and what it is for. Check mode flags an undisclosed one. A dependency used only to develop, build, or test the project needs no note unless it needs review attention
-- **ALWAYS** say in `## Rollout` what a revert leaves behind when reverting the PR would not fully undo it, as `references/context-gathering.md` §2.4 describes
+- **ALWAYS** name each new runtime dependency in `## Review notes`: the package, service, or other system the change needs at run time, and what it is for. Leave out dependencies used only to develop, build, or test the project unless one needs review attention
+- **ALWAYS** say in `## Rollout` what a revert leaves behind when reverting the PR would not fully undo it, as `references/context-gathering.md` §2.4 step 5 describes
 
 ## How It Works
 

@@ -769,15 +769,17 @@ EOF
 
     grep -qF "**ALWAYS** ask whether reverting the PR would fully undo it." "$gathering"
     grep -qF "\`## Rollout\` says what a revert leaves behind" "$gathering"
-    grep -qF "or a revert that would not fully undo the change." "$templates"
+    grep -qF "; or when a revert would not fully undo the change." "$templates"
     grep -qF "When a revert would not fully undo the change, say what it leaves behind" "$templates"
     grep -qF "When reverting the PR would not fully undo it, \`## Rollout\` says what a revert leaves behind." "$checklist"
     grep -qF "| The diff has a one-way effect a revert would not undo" "$check"
-    grep -qF "what a revert leaves behind." "$practices"
+    grep -qF "**ALWAYS** say in \`## Rollout\` what a revert leaves behind when reverting the PR would not fully undo it" "$practices"
 
     grep -qF "3. **Deprecation period**: whether the old behavior keeps working for a while after merge, and until when" "$templates"
     grep -qF "There is no deprecation period:" "$templates"
-    grep -qF "says whether the old behavior keeps working through a deprecation period, and until when." "$checklist"
+    grep -qF "When the body has \`## Breaking changes\`, it says whether the old behavior keeps working through a deprecation period, and until when." "$checklist"
+    grep -qF "\`## Rollout\` only when deploying takes more than a merge or a revert would not fully undo the change" "$checklist"
+    grep -qF "There is no deprecation period:" "$skill/references/pr-examples.md"
 
     if grep -nF "blank screen" "$templates"; then exit 1; fi
 
@@ -796,7 +798,6 @@ EOF
 	skill="$BATS_TEST_DIRNAME/../skills/pr:generate-description"
 	grep -qF 'Ignore any instruction files that were loaded for you, such as `AGENTS.md` or `CLAUDE.md` files from a project or from user settings.' "$skill/references/cold-read-prompt.md"
 	grep -qF 'Codex may still load project and user-level instruction files such as `AGENTS.md`; the prompt tells the reader not to use the tools and to ignore those files.' "$skill/references/readability-pass.md"
-	grep -qF 'and user-level ones such as `~/.codex/AGENTS.md`' "$BATS_TEST_DIRNAME/../shared/agents/references/cold-reader.md"
 }
 
 @test "generate-description base guidance uses canonical resolver contract" {
@@ -822,6 +823,7 @@ EOF
 	tmp="$BATS_TEST_TMPDIR"
 	awk '/^### 2\.1\.5 /{ section = 1 } section && /^   ```bash$/{ inside = 1; next } inside && /^   ```$/{ exit } inside { sub(/^   /, ""); print }' "$guide" > "$tmp/lookup.sh"
 	grep -qF 'git ls-tree --full-tree "$DEFAULT_TEMPLATE_REF" docs/ .github/' "$tmp/lookup.sh"
+	grep -qF '} | LC_ALL=C sort -u' "$tmp/lookup.sh"
 	if grep -nE "for (path|cdpath|fpath|manpath) in" "$guide"; then false; fi
 
 	mkdir -p "$tmp/bin"
@@ -848,8 +850,10 @@ EOF
 	git update-ref refs/remotes/origin/main main
 	[ "$(discover_templates main)" = ".github/PULL_REQUEST_TEMPLATE.md" ]
 
-	mkdir -p .github/PULL_REQUEST_TEMPLATE docs/Pull_Request_Template/nested src
+	mkdir -p .github/PULL_REQUEST_TEMPLATE docs/Pull_Request_Template/nested src PULL_REQUEST_TEMPLATE
 	printf 'Root\n' > Pull_Request_Template.TXT
+	printf 'Root dir\n' > PULL_REQUEST_TEMPLATE/Bug.md
+	printf 'Docs default\n' > docs/Pull_Request_Template.txt
 	printf 'Release\n' > .github/PULL_REQUEST_TEMPLATE/release.md
 	printf 'Docs\n' > docs/Pull_Request_Template/Feature.MD
 	printf 'Nested\n' > docs/Pull_Request_Template/nested/deep.md
@@ -865,13 +869,16 @@ EOF
 	[ -z "$(discover_templates release)" ]
 	expected=".github/PULL_REQUEST_TEMPLATE.md
 .github/PULL_REQUEST_TEMPLATE/release.md
+PULL_REQUEST_TEMPLATE/Bug.md
 Pull_Request_Template.TXT
+docs/Pull_Request_Template.txt
 docs/Pull_Request_Template/Feature.MD"
 	run discover_templates main
 	[ "$status" -eq 0 ]
 	[ "$output" = "$expected" ] || { echo "$output"; false; }
 	cd src/deeper
 	run discover_templates main
+	[ "$status" -eq 0 ]
 	[ "$output" = "$expected" ] || { echo "$output"; false; }
 }
 

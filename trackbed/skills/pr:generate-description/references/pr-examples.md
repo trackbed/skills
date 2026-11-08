@@ -169,7 +169,7 @@ PUT /api/users/me/default-platform    # before: { "platformId": 42 }
 PUT /api/users/me/preferences         # after: { "defaultPlatformId": 42, ...other settings }
 ```
 
-This is a major version change for the public API, listed under Breaking in the changelog for the next release.
+There is no deprecation period: both endpoints return `404 Not Found` as soon as this deploys. This is a major version change for the public API, listed under Breaking in the changelog for the next release.
 
 ## How it works
 
