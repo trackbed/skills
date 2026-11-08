@@ -405,6 +405,86 @@ PY
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
+@test "conversation map drops hidden general comments and keeps your threads resolved by others" {
+	run python3 - "$CONVERSATION_REFERENCE" "$SKILL" <<'PY'
+import pathlib
+import re
+import sys
+
+conversation, skill = [pathlib.Path(path).read_text() for path in sys.argv[1:]]
+query = next(block for block in re.findall(r'```bash\n(.*?)\n```', conversation, re.S)
+             if 'reviewThreads(first: 100' in block)
+assert 'resolvedBy { login }' in query.split('comments(first: 100)', 1)[0]
+fetch = conversation[conversation.index('**General PR comments (REST)**'):conversation.index('**Prior reviews (REST)**')]
+assert '`minimized`' in fetch
+filters = conversation[conversation.index('## 3. Filter'):conversation.index('## 4. Classify')]
+for term in ['drop general comments GitHub hides (REST `minimized` is not `null`)',
+             'keep a thread you started (`root author == SELF`) that someone else resolved',
+             'Threads you resolved yourself are dropped']:
+    assert term in filters, term
+assert 'any thread whose latest comment is **not** from you' not in filters
+assert 'Never draft a reply to a comment hidden as `spam` or `abuse`' in filters
+fallback = conversation[conversation.index('**GraphQL fallback.**'):conversation.index('## 2. Group')]
+assert 'Resolution: unknown — GraphQL unavailable' in fallback and 'still drop hidden general comments' in fallback
+classify = conversation[conversation.index('## 4. Classify'):]
+assert 'A thread you started that someone else resolved, including an unknown resolver, counts as unresolved here' in classify
+assert 'same live verification as an open thread' in classify
+assert '1. `resolved` — the thread is resolved, and either you resolved it (`resolvedBy.login` is `SELF`) or you did not start it.' in classify
+flag = next(line for line in skill.splitlines() if line.startswith('- `--all-threads`'))
+assert 'hidden general comments' in flag and 'threads you started that someone else resolved' in flag
+PY
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
+@test "report reply command names the REST root comment ID and general comments get a new comment" {
+	run python3 - "$CONVERSATION_REFERENCE" "$REPORT_TEMPLATE" <<'PY'
+import pathlib
+import sys
+
+conversation, report = [pathlib.Path(path).read_text() for path in sys.argv[1:]]
+group = conversation[conversation.index('## 2. Group'):conversation.index('## 3. Filter')]
+assert "the root comment's numeric REST `id`" in group and 'not the GraphQL node ID' in group
+assert 'no root comment ID' in group
+assert "Root comment ID: <numeric REST `id` of the thread's first comment, for the reply command | none — general comment; post a new top-level comment instead>" in report
+assert 'Resolution: <unresolved | resolved by @<login> | resolved — resolver unknown | unknown — GraphQL unavailable>' in report
+manual = report[report.index('## Manual posting'):report.index('## Optional deeper passes')]
+assert 'pulls/<number>/comments/<root-comment-id>/replies' in manual
+assert 'General PR comments are not threads and cannot be replied to' in manual
+assert 'repos/<owner>/<repo>/issues/<number>/comments' in manual
+# Copied commands read the body from a file so quotes in it never reach the shell.
+assert manual.count('-F body=@<') == 2 and "body='" not in manual
+assert 'a pending review that was no longer pending or could not be re-read' in manual
+PY
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
+@test "empty review-request list says team requests are not listed" {
+	run python3 - "$SKILL" <<'PY'
+import pathlib
+import sys
+
+skill = pathlib.Path(sys.argv[1]).read_text()
+assert 'say that no open PRs directly request your review and that requests to your teams are not listed' in skill
+assert 'no PRs are currently requesting your review' not in skill
+PY
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
+@test "draft review limits its never-submit rule to Step 12" {
+	run python3 - "$DRAFT_REFERENCE" "$PLUGIN_ROOT/skills/pr:github-review/references/sources.yaml" <<'PY'
+import pathlib
+import sys
+
+draft, sources = [pathlib.Path(path).read_text() for path in sys.argv[1:]]
+assert 'always outside this skill\'s authority' not in draft
+assert '/reviews/{review_id}/events` in Step 12' in draft
+assert 'only Step 14 may call it' in draft
+assert 'keeping final review submission outside the automated workflow' not in sources
+assert 'submitting a review only after a separate confirmed user action in Step 14' in sources
+PY
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
 @test "conversation states have deterministic non-overlapping precedence" {
 	run python3 - "$CONVERSATION_REFERENCE" <<'PY'
 import pathlib
@@ -1241,12 +1321,15 @@ jq -cn --arg args "$*" --arg input "$input" '{args: $args, input: $input}' >> "$
 case "$*" in
   "pr view 8683 --repo acme/repo --json headRefOid -q .headRefOid") printf '%s\n' "$GH_HEAD" ;;
   "api --paginate --slurp repos/acme/repo/pulls/8683/reviews") printf '%s' "$GH_REVIEWS" ;;
+  "api repos/acme/repo/pulls/8683/reviews/77 --jq .state")
+    [ "$GH_DRAFT_STATE" = "deleted" ] && { echo "gh: Not Found (HTTP 404)" >&2; exit 1; }
+    printf '%s\n' "$GH_DRAFT_STATE" ;;
   "api -X POST "*) printf '{"id": 91, "state": "%s", "html_url": "https://github.com/acme/repo/pull/8683#pullrequestreview-91"}' "$GH_STATE" ;;
   *) echo "unexpected gh call: $*" >&2; exit 9 ;;
 esac
 """
 
-def run(message, draft_status="not created — awaiting authorization", draft_id="", head=HEAD, reviews="[[]]", state="CHANGES_REQUESTED", submit_status="not submitted — awaiting confirmation"):
+def run(message, draft_status="not created — awaiting authorization", draft_id="", head=HEAD, reviews="[[]]", state="CHANGES_REQUESTED", submit_status="not submitted — awaiting confirmation", draft_state="PENDING"):
     with tempfile.TemporaryDirectory() as tmp:
         bin_dir = pathlib.Path(tmp, "bin")
         bin_dir.mkdir()
@@ -1262,7 +1345,7 @@ def run(message, draft_status="not created — awaiting authorization", draft_id
         env = dict(
             os.environ,
             PATH=f"{bin_dir}:{os.environ['PATH']}",
-            GH_LOG=str(log), GH_HEAD=head, GH_REVIEWS=reviews, GH_STATE=state,
+            GH_LOG=str(log), GH_HEAD=head, GH_REVIEWS=reviews, GH_STATE=state, GH_DRAFT_STATE=draft_state,
             SUBMIT_CHECK=checker, PR_NUMBER="8683", PR_NWO="acme/repo", HEAD_OID=HEAD, SELF="reviewer",
             CONFIRMATION_FILE=str(confirmation),
             DRAFT_REVIEW_STATUS=draft_status, DRAFT_REVIEW_ID=draft_id,
@@ -1317,6 +1400,17 @@ assert status == "submitted — COMMENTED", status
 posted = writes(calls)
 assert [call["args"] for call in posted] == ["api -X POST repos/acme/repo/pulls/8683/reviews/77/events --input -"]
 assert json.loads(posted[0]["input"])["event"] == "COMMENT"
+reread = [call["args"] for call in calls].index("api repos/acme/repo/pulls/8683/reviews/77 --jq .state")
+assert reread < calls.index(posted[0]), "the pending review must be re-read before it is submitted"
+
+# The user submitted or deleted the pending review in GitHub after the handoff: stop without writing.
+for draft_state, expected in [
+    ("COMMENTED", "not submitted — draft review is no longer pending (COMMENTED); inspect GitHub"),
+    ("deleted", "not submitted — pending review could not be re-read (deleted or unavailable); inspect GitHub"),
+]:
+    status, calls = run("Post the prepared review to PR 8683 as comment", draft_status="PENDING", draft_id="77", draft_state=draft_state)
+    assert status == expected, (draft_state, status)
+    assert writes(calls) == [], (draft_state, calls)
 
 # Confirmed, but unsafe state: no write.
 for kwargs, expected in [

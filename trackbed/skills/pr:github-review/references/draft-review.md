@@ -161,6 +161,6 @@ else
 fi
 ```
 
-Do not call `POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews/{review_id}/events`. That endpoint submits the pending review and is always outside this skill's authority.
+Do not call `POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews/{review_id}/events` in Step 12. That endpoint submits the pending review; only Step 14 may call it, after the user's separate confirmed action.
 
 Report the review ID, URL, retained run-unique payload path, and omitted-item count. Report an exact included comment count only when the response proves a pending review was created; report `0` for confirmed no-write outcomes and `unknown (<N> attempted)` for outcome-unknown or unexpected-state outcomes. Tell the user to inspect and edit the pending review's inline comments in GitHub before choosing Approve, Comment, or Request changes. If the post-write head check marked the review stale or unverifiable, tell the user not to submit it.

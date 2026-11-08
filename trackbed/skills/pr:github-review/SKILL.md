@@ -53,7 +53,7 @@ If `$ARGUMENTS` contains `--subagent-model`, or `printenv TRACKBED_REVIEW_SUBAGE
 - `--full` → `FULL_REVIEW=true`. Review the whole PR diff even when you reviewed the PR before; Step 4a otherwise narrows a re-review to what changed since your last review.
 - `--fresh` → `SKIP_THREADS=true`. Ignore the existing review conversation and produce a clean first-pass assessment of the whole PR only.
 - `--include-bots` → `INCLUDE_BOTS=true`. Include bot/app comments when mapping the conversation (default: human only).
-- `--all-threads` → `INCLUDE_RESOLVED=true`. Include already-resolved threads in the map (default: unresolved and awaiting-you threads only).
+- `--all-threads` → `INCLUDE_RESOLVED=true`. Include already-resolved threads and hidden general comments in the map (default: unresolved threads, plus threads you started that someone else resolved).
 - `--inline` → `INLINE_MODE=true`. Return the report in chat instead of writing the artifact file.
 - `--keep-worktree` → `KEEP_WORKTREE=true`. Leave the fetched worktree on disk for manual inspection and report its path.
 
@@ -124,7 +124,7 @@ if [ -z "$PR_JSON" ] && [ -z "${PR_SELECTOR:-}" ]; then
 fi
 ```
 
-If the list is empty, say that no PRs are currently requesting your review and ask the user for a PR number or URL. Otherwise stop and wait for the user's choice. Do not run the next block until `PR_SELECTOR` is set to the PR they name.
+If the list is empty, say that no open PRs directly request your review and that requests to your teams are not listed, then ask the user for a PR number or URL. Otherwise stop and wait for the user's choice. Do not run the next block until `PR_SELECTOR` is set to the PR they name.
 
 Fetch the PR context unless it was already resolved from the current branch:
 
@@ -272,7 +272,7 @@ Save each pass's result as soon as it finishes, per `references/resume.md`.
 
 If `SKIP_THREADS=true`, skip this step entirely and continue to cleanup.
 
-Do this step **while you are still inside the worktree** — the PR head checkout is what makes per-thread verification possible, and the next step removes it. Set `PR_HEAD="$HEAD_OID"`, then read `${CLAUDE_PLUGIN_ROOT}/shared/pr-review/references/review-thread-location.md` for anchor fields, submission filtering, and code location, then `references/conversation-fetch.md` to pull the existing review activity. Build a thread map from submitted feedback only, filter it (human-only and unresolved by default, widened by `--include-bots` and `--all-threads`), and classify each thread from the reviewer's seat as `awaiting-you`, `author-responded`, `peer-comment`, `your-open`, `new-from-others`, or `resolved`.
+Do this step **while you are still inside the worktree** — the PR head checkout is what makes per-thread verification possible, and the next step removes it. Set `PR_HEAD="$HEAD_OID"`, then read `${CLAUDE_PLUGIN_ROOT}/shared/pr-review/references/review-thread-location.md` for anchor fields, submission filtering, and code location, then `references/conversation-fetch.md` to pull the existing review activity. Build a thread map from submitted feedback only, filter it (by default human-only, visible, and unresolved, plus threads you started that someone else resolved; widened by `--include-bots` and `--all-threads`), and classify each thread from the reviewer's seat as `awaiting-you`, `author-responded`, `peer-comment`, `your-open`, `new-from-others`, or `resolved`.
 
 **Re-check every anchored thread against the live tree.** Follow the shared reference to read deleted lines from the merge base, full multi-line ranges, and whole files for file-level subjects; recover outdated anchors before judging the current implementation. Do not infer the outcome only from whether a fresh finding overlaps. Record a per-thread verification:
 
@@ -373,7 +373,7 @@ Finally, mark the run complete and retire its directory per `references/resume.m
 
 ## Step 14: Submit the Prepared Review Only on a Confirmed Action
 
-Run this step only when the user's newest message, sent after the Step 13 handoff, asks to post or submit the review. Set `SUBMIT_CHECK="${CLAUDE_PLUGIN_ROOT}/skills/pr:github-review/scripts/check-submit-confirmation.py"`, carry the current report's `SUBMIT_STATUS` into the reference, then read `references/submit-review.md` and follow it exactly. It passes the message verbatim to the checker, takes the review event only from the checker's output, re-checks the head, and submits the review shown in the report once. If the report already records a submission or uncertain write outcome, preserve that terminal status and do not retry. If the checker refuses the message, quote its reason and example phrase and make no GitHub write.
+Run this step only when the user's newest message, sent after the Step 13 handoff, asks to post or submit the review. Set `SUBMIT_CHECK="${CLAUDE_PLUGIN_ROOT}/skills/pr:github-review/scripts/check-submit-confirmation.py"`, carry the current report's `SUBMIT_STATUS` into the reference, then read `references/submit-review.md` and follow it exactly. It passes the message verbatim to the checker, takes the review event only from the checker's output, re-checks the head, re-reads a pending review it will submit in place, and submits the review shown in the report once. If the report already records a submission or uncertain write outcome, preserve that terminal status and do not retry. If the checker refuses the message, quote its reason and example phrase and make no GitHub write.
 
 For any other request after the handoff, such as replying to or resolving threads, apply the GitHub Write Gate: hand back the prepared text and do not run the write.
 

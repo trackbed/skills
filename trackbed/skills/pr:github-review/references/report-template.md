@@ -96,9 +96,11 @@ For each in-scope issue:
 
 _Existing threads on this PR. Reply where it moves the review forward; the rest are surfaced for awareness. Omit this section on a clean first pass with no activity._
 
-- @<latest-submitted-commenter> on `<path:range and side(s) | path (file-level)>` — **<awaiting-you | author-responded | peer-comment | your-open | new-from-others>**
+- @<latest-submitted-commenter> on `<path:range and side(s) | path (file-level) | general comment>` — **<awaiting-you | author-responded | peer-comment | your-open | new-from-others>**
   - Thread: <url>
-  - Root comment ID: <id, for the reply command>
+  - Root comment ID: <numeric REST `id` of the thread's first comment, for the reply command | none — general comment; post a new top-level comment instead>
+  - Resolution: <unresolved | resolved by @<login> | resolved — resolver unknown | unknown — GraphQL unavailable>
+  - Hidden: <minimized.reason> (only for a hidden general comment kept by --all-threads; omit otherwise)
   - Original anchor: <path, LINE/FILE subject, start/end sides and full range, outdated state, revision>
   - Current location: <verified path:range | whole file | cant-tell — missing evidence>
   - Latest: @<who>: "<short quote or paraphrase>"
@@ -178,13 +180,20 @@ If this run created a pending review, open the review URL above, inspect or edit
 
 If the pending-review offer was declined or a confirmed no-write blocker was resolved, the clearest later path is to re-run the skill with `--draft-review`. It will repeat the head, pending-review, ignored-payload, and payload-validation guards before creating one unsubmitted pending review.
 
-For `write outcome unknown`, `unexpected state`, an existing pending review, or a stale/unverifiable created review, do not retry with a raw API command. Inspect GitHub first. Submit or delete an existing draft there as appropriate, then re-run the guarded workflow against the current head if another review is still needed.
+For `write outcome unknown`, `unexpected state`, a pending review that was no longer pending or could not be re-read, an existing pending review, or a stale/unverifiable created review, do not retry with a raw API command. Inspect GitHub first. Submit or delete an existing draft there as appropriate, then re-run the guarded workflow against the current head if another review is still needed.
 
-The skill never posts thread replies. To reply to an existing review thread yourself, post to its root comment (the comment ID is in the Open Conversation entries):
+The skill never posts thread replies. To reply to an existing review thread yourself, save your reply to a file, then post it to the root comment, using the numeric REST ID from the entry's `Root comment ID` line. Reading the body from a file keeps quotes and other characters in it out of the shell:
 
 ```bash
 gh api -X POST "repos/<owner>/<repo>/pulls/<number>/comments/<root-comment-id>/replies" \
-  -f body='<your reply>'
+  -F body=@<reply-file>
+```
+
+General PR comments are not threads and cannot be replied to. To answer one, save your comment to a file, quoting or linking the comment you are answering, then post it as a new top-level comment on the PR:
+
+```bash
+gh api -X POST "repos/<owner>/<repo>/issues/<number>/comments" \
+  -F body=@<comment-file>
 ```
 
 ## Optional deeper passes
