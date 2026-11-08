@@ -158,8 +158,9 @@ For `VERIFIED` and `SUSPECTED`, assign:
 - evidence: repository-relative path and line or configuration key, expressed without secret material;
 - affected boundary and STRIDE/category mapping;
 - verification state and the missing proof, if any;
-- remediation owner; and
-- exact remediation route.
+- remediation owner;
+- exact remediation route; and
+- closure check: the configuration value, enforced check, or test whose presence would show the finding fixed. For secret exposure, keep it generic, such as the owner confirming rotation and the tracked exposure being removed.
 
 Never raise severity to compensate for low confidence. A pattern match cannot become `VERIFIED` without concrete evidence. Do not report a theoretical weakness with no repository-specific trace as a finding.
 
@@ -208,7 +209,7 @@ Render these sections in order:
 ## Method and Disclaimer
 ```
 
-The coverage table must include every inventory surface and its status. The ranked findings table must include ID, severity, confidence, verification state, category, location, and remediation owner. Each detail must include evidence, boundary, impact, missing proof, and route.
+The coverage table must include every inventory surface and its status. The ranked findings table must include ID, severity, confidence, verification state, category, location, and remediation owner. Each detail must include evidence, boundary, impact, missing proof, route, and closure check.
 
 When there are no verified findings, say `No verified findings in inspected surfaces`; do not say the repository is secure. When there are no findings at all, still include coverage gaps and limitations.
 
