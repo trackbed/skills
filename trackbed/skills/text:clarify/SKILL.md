@@ -100,7 +100,7 @@ Rewrite prose around the reader's task without reducing its substance, precision
 
 ## Source Tracking
 
-`references/sources.yaml` records the conceptual sources behind the reader-focused workflow and rubric, plus the humanize-mode sources. `references/ai-writing-patterns.md` is adapted from Wikipedia's "Signs of AI writing" under CC BY-SA 4.0; its attribution and license notice are in `references/WIKIPEDIA-CONTENT-LICENSE.md`. Runtime use of this skill does not require network access or loading those sources.
+`references/sources.yaml` records the conceptual sources behind the reader-focused workflow and rubric, plus the humanize-mode sources. `references/ai-writing-patterns.md` is adapted from Wikipedia's "Signs of AI writing" under CC BY-SA 4.0, with attribution and license notice in `references/WIKIPEDIA-CONTENT-LICENSE.md`, and from `blader/humanizer` under the MIT License, with its notice in `references/blader-humanizer-LICENSE`. Runtime use of this skill does not require network access or loading those sources.
 
 ## Output
 

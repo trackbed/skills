@@ -33,11 +33,36 @@ setup() {
 @test "the copied Wikipedia catalog keeps its notice and provenance under clarify" {
 	test -f "$CLARIFY/references/ai-writing-patterns.md"
 	test -f "$CLARIFY/references/WIKIPEDIA-CONTENT-LICENSE.md"
-	grep -qF "id: wikipedia-signs-of-ai-writing" "$CLARIFY/references/sources.yaml"
-	grep -qF "usage: copied" "$CLARIFY/references/sources.yaml"
-	grep -qF "notice: references/WIKIPEDIA-CONTENT-LICENSE.md" "$CLARIFY/references/sources.yaml"
-	grep -qF "id: blader-humanizer" "$CLARIFY/references/sources.yaml"
-	grep -qF 'text:clarify/references/ai-writing-patterns.md' ../THIRD_PARTY_NOTICES.md
+	local entry
+	entry="$(awk '/^  - id: /{inside = ($3 == "wikipedia-signs-of-ai-writing")} inside' "$CLARIFY/references/sources.yaml")"
+	[[ "$entry" == *"usage: copied"* ]]
+	[[ "$entry" == *"notice: references/WIKIPEDIA-CONTENT-LICENSE.md"* ]]
+	grep -qF '`text:clarify/references/ai-writing-patterns.md` is an adapted work based on Wikipedia' ../THIRD_PARTY_NOTICES.md
+}
+
+@test "the catalog declares humanizer as a copied MIT source with its notice" {
+	local commit="3e1da8bfce43ecbe43a56f3cb00b62fbdf1cbd56"
+	local entry
+	entry="$(awk '/^  - id: /{inside = ($3 == "blader-humanizer")} inside' "$CLARIFY/references/sources.yaml")"
+	[[ "$entry" == *"usage: copied"* ]]
+	[[ "$entry" == *'license: "MIT"'* ]]
+	[[ "$entry" == *"notice: references/blader-humanizer-LICENSE"* ]]
+	[[ "$entry" == *"upstream_path: SKILL.md"* ]]
+	[[ "$entry" == *"upstream_commit: $commit"* ]]
+	grep -qF "MIT License" "$CLARIFY/references/blader-humanizer-LICENSE"
+	grep -qF "Copyright (c) 2025 Siqi Chen" "$CLARIFY/references/blader-humanizer-LICENSE"
+	grep -qF "Permission is hereby granted, free of charge" "$CLARIFY/references/blader-humanizer-LICENSE"
+	grep -qF "in the Software without restriction, including without limitation the rights" "$CLARIFY/references/blader-humanizer-LICENSE"
+	grep -qF "The above copyright notice and this permission notice shall be included" "$CLARIFY/references/blader-humanizer-LICENSE"
+	grep -qF 'THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND' "$CLARIFY/references/blader-humanizer-LICENSE"
+	grep -qF "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM" "$CLARIFY/references/blader-humanizer-LICENSE"
+	local header
+	header="$(sed -n '1,10p' "$CLARIFY/references/ai-writing-patterns.md")"
+	[[ "$header" == *"WikiProject AI Cleanup, at revision 1366684471, under CC BY-SA 4.0"* ]]
+	[[ "$header" == *"[blader/humanizer](https://github.com/blader/humanizer) at commit \`$commit\`, under the MIT License"* ]]
+	[[ "$header" == *"blader-humanizer-LICENSE"* ]]
+	grep -qF '`text:clarify/references/ai-writing-patterns.md` adapts text from `SKILL.md` in [`blader/humanizer`]' ../THIRD_PARTY_NOTICES.md
+	grep -qF "trackbed/skills/text:clarify/references/blader-humanizer-LICENSE" ../THIRD_PARTY_NOTICES.md
 }
 
 @test "GitHub review sends its humanize passes through clarify's mode" {

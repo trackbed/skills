@@ -46,8 +46,12 @@ sources:
   - id: blader-humanizer
     url: https://github.com/blader/humanizer
     title: "blader/humanizer"
-    rationale: "The humanization workflow and pattern-removal framing are heavily inspired by this project."
-    usage: inspiration
+    rationale: "The AI writing pattern catalog retains adapted text from the project's SKILL.md, and the humanization workflow and pattern-removal framing are modeled on it."
+    usage: copied
+    license: "MIT"
+    notice: references/blader-humanizer-LICENSE
+    upstream_path: SKILL.md
+    upstream_commit: 3e1da8bfce43ecbe43a56f3cb00b62fbdf1cbd56
     last_reviewed_at: 2026-11-06
     baseline_commit: "0ef9fe5bc3572734fd3ae6c448fe00a30cd5dcf0"
     baseline_hash: "sha256:5643ec5e931b54175146e140d74b4eb2f0819d1dc03fd96786450c41f525a2e1"

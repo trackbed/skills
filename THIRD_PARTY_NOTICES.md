@@ -24,6 +24,10 @@ The wizard template in `trackbed:workflow:wizard` is adapted from [`mattpocock/s
 
 `trackbed:visual:check-slop` vendors and adapts Gesso Build's MIT-licensed anti-slop detector, 73-rule registry, rule catalog, and tests at commit [`1c3908b7efb56ec24624436dea5c32a371eb487c`](https://github.com/Gesso-Build/skills/tree/1c3908b7efb56ec24624436dea5c32a371eb487c). Its offline runtime also bundles attributed parser dependencies. The complete Gesso and dependency notices are retained in `trackbed/skills/visual:check-slop/references/THIRD_PARTY_NOTICES.md`.
 
+## Siqi Chen — `humanizer`
+
+`text:clarify/references/ai-writing-patterns.md` adapts text from `SKILL.md` in [`blader/humanizer`](https://github.com/blader/humanizer) at commit [`3e1da8bfce43ecbe43a56f3cb00b62fbdf1cbd56`](https://github.com/blader/humanizer/tree/3e1da8bfce43ecbe43a56f3cb00b62fbdf1cbd56), licensed under the MIT License. The complete notice is retained in `trackbed/skills/text:clarify/references/blader-humanizer-LICENSE`.
+
 ## Wikipedia contributors
 
 `text:clarify/references/ai-writing-patterns.md` is an adapted work based on Wikipedia's “Signs of AI writing” page. That file is separately offered under CC BY-SA 4.0 and carries attribution, modification, and license information in its skill-local `references/WIKIPEDIA-CONTENT-LICENSE.md`.
