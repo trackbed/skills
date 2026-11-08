@@ -45,6 +45,16 @@ Review every relevant concern area before marking the slice done. Complete each 
 
 **Why grouped together**: broken authentication turns a minor bug into a takeover. Most items here compose — cookies without `HttpOnly` combined with an XSS defect is the account-stealing path.
 
+## CSRF defense
+
+- [ ] Every cookie-authenticated state-changing endpoint has one server-enforced primary CSRF control: the framework's built-in protection, a server-validated token (a synchronizer token or a signed, session-bound double-submit cookie), a required custom header backed by a strict CORS policy, or Fetch Metadata with an origin fallback.
+- [ ] `SameSite` is set explicitly on those cookies and counts only as an extra layer, never as the primary control.
+- [ ] GET, HEAD, and OPTIONS never change state; a legacy endpoint that still changes state on one has its own explicit CSRF protection.
+- [ ] Origin checks fail closed when the source origin is missing or `null`, compare full origins (scheme, host, and port) exactly, and trust `Forwarded` or `X-Forwarded-Host` only when a known proxy sets it.
+- [ ] Client code attaches CSRF tokens only to the application's own endpoints, never to third-party URLs.
+
+**Why grouped together**: each item closes a known bypass of the same defense — a browser attaching ambient cookies to a request another site started. `SameSite` alone, a state-changing GET, a lenient origin comparison, or a token sent to a third party each reopens that path.
+
 ## Authorization & access control
 
 - [ ] Every handler that reads or mutates a user-scoped resource checks _this principal may touch this resource_, at the data layer.
@@ -118,6 +128,7 @@ Review every relevant concern area before marking the slice done. Complete each 
 - [ ] Secrets never transmitted in URLs (GET query strings end up in server logs, proxy logs, browser history).
 - [ ] Secrets generated with a CSPRNG. No `Math.random()` for anything security-relevant.
 - [ ] Rotation path documented for every secret. A secret without a rotation path is already compromised.
+- [ ] A secret that reached version control, logs, or another shared surface is rotated or revoked before history is cleaned; a history rewrite does not recall copies already pushed, cloned, or cached.
 - [ ] Default credentials for any self-hosted component changed before launch.
 - [ ] `.env.example` files describe variables without real values; `.env` files are gitignored.
 

@@ -15,6 +15,7 @@ Not a review checklist. Review coverage lives in `trackbed:security-reviewer`; e
 - Default deny: explicit allow-lists, not implicit "unless denied".
 - Object-level access: never trust a client-supplied ID without mapping it through ownership or permission checks.
 - SSRF risk belongs here in 2025: user-controlled URLs, redirects, callbacks, and fetch targets need allow-listed schemes, hosts, and network ranges.
+- CSRF belongs here too: every cookie-authenticated state change carries a server-enforced primary CSRF control, as `SKILL.md` describes; `SameSite` is an extra layer, not the control.
 
 Downstream review: `trackbed:security-reviewer`, access lens.
 
@@ -90,7 +91,7 @@ Downstream review: `trackbed:security-reviewer`, access, data, or injection lens
 **Pattern at author time**: use the vetted primitives, rotate session IDs on privilege change, set cookie flags correctly.
 
 - Session tokens are server-issued, high-entropy, and rotated on login, logout, password change, and role change.
-- Cookies carry `Secure`, `HttpOnly`, and `SameSite=Lax` or `Strict` for pure first-party flows.
+- Cookies carry `Secure`, `HttpOnly`, and an explicit `SameSite=Lax` or `Strict` for pure first-party flows.
 - MFA is a first-class option for privileged actions; designing it in later costs more.
 - Expiration has absolute and idle timeouts enforced server-side.
 - Auth endpoints have tighter rate limits than general APIs and do not reveal whether a username exists.
