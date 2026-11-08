@@ -2,7 +2,7 @@ sources:
   - id: addy-code-simplification
     url: https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/code-simplification/SKILL.md
     title: "Addy Osmani agent-skills - code simplification"
-    rationale: "The Rule of 500 automation trigger in Phase 3 step 8 comes from this source's guidance on scripting large refactors; the local step restates it in original wording."
+    rationale: "The Rule of 500 automation trigger in Phase 3 step 9 comes from this source's guidance on scripting large refactors; the local step restates it in original wording."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
@@ -42,7 +42,7 @@ sources:
   - id: aihero-improve-codebase-architecture-guide
     url: https://www.aihero.dev/skills-improve-codebase-architecture
     title: "AI Hero - The /improve-codebase-architecture Skill"
-    rationale: "The --for planned-change mode follows this guide's advice to point the scan at the next change and ask what would make it easy. The Phase 4 step 10 hand-off follows its advice to take one candidate per session, record the decision in a spec, and turn the rest into tickets. The checklist's hard-to-test pattern follows its use of the scan to find missing seams before testing legacy code, and the plain 'nothing worth changing' summary follows its warning that the scan rarely calls code fine."
+    rationale: "The --for planned-change mode follows this guide's advice to point the scan at the next change and ask what would make it easy. The Phase 4 step 10 hand-off follows its advice to take one candidate per session, record the decision in a spec, and turn the rest into tickets. The checklist's hard-to-test pattern follows its use of the scan to find missing seams before testing legacy code, the plain 'nothing worth changing' outcome follows its warning that the scan rarely calls code fine, and the closing --for suggestion after an undirected run follows its advice to aim the scan at a planned change."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     fetch_mode: curl-html
