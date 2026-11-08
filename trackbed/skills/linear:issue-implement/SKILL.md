@@ -105,7 +105,7 @@ Claude Code: mcp__linear__get_issue with id: {ISSUE_ID}, includeRelations: true
 Codex: get_issue with id: {ISSUE_ID}, includeRelations: true
 ```
 
-**If Linear MCP operations are unavailable**, the Linear MCP server is not connected. Stop and tell the user to connect it — do not continue without issue data.
+**If Linear MCP operations appear unavailable**, follow "Linear MCP operations unavailable" in `references/error-handling.md` before concluding the server is not connected: load the Linear tools through the host's tool discovery and make one real call first. Never continue without issue data.
 
 **Capture from issue response:**
 
@@ -121,6 +121,8 @@ Codex: get_issue with id: {ISSUE_ID}, includeRelations: true
 - `priority` - Issue priority
 - Issue relationships - blocking, blocked by, related, duplicate, parent, or child issues when returned
 - Linked resources - attachments, links, documents, or other assets when returned
+
+**Show the issue before changing anything.** As soon as the fetch succeeds, display `Linear issue: {identifier} — {title}`. Do this before the Step 1.4 status write and before any Step 2 branch change, so a mistyped issue ID is visible before Linear or the repository changes.
 
 ### 1.3 Handle Missing Issue
 

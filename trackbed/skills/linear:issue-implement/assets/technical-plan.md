@@ -8,10 +8,12 @@ Technical Implementation Plan for {identifier}
 {Include relevant UX/DX/AX effects, intentional changes, and material tradeoffs behind the chosen approach; unchanged or inapplicable dimensions need no invented improvement.}
 
 ## Product Requirements -> Technical Approach
-| Requirement | Technical Implementation |
-|-------------|-------------------------|
-| {user story 1} | {how it will be implemented} |
-| {user story 2} | {how it will be implemented} |
+| Requirement | Technical Implementation | Verified In |
+|-------------|-------------------------|-------------|
+| {user story 1} | {how it will be implemented} | {repository / live system: {where}} |
+| {user story 2} | {how it will be implemented} | {repository / live system: {where}} |
+
+{Mark a requirement verified in the live system when it is satisfied outside the repository, such as a feature flag, console setting, or content; repository state cannot show it met.}
 
 ## Referenced Linear Context
 | Reference | Access | Implementation Signal |
