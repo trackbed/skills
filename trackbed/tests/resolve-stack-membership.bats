@@ -337,7 +337,7 @@ load_assignments() {
 		local rebase_line
 		local push_line
 		rebase_line=$(grep -n 'gh stack rebase --upstack --no-trunk' "$flow" | tail -1 | cut -d: -f1)
-		push_line=$(grep -n '^[[:space:]]*gh stack push' "$flow" | tail -1 | cut -d: -f1)
+		push_line=$(grep -n '^[[:space:]]*env -u GH_STACK_NO_ATOMIC gh stack push' "$flow" | tail -1 | cut -d: -f1)
 		[ -n "$rebase_line" ]
 		[ -n "$push_line" ]
 		[ "$rebase_line" -lt "$push_line" ]
@@ -350,8 +350,8 @@ load_assignments() {
 	report_step=$(sed -n '/### Step 7: Report Results/,/## Error Handling/p' "$fixup")
 
 	grep -F 'gh stack rebase --upstack --no-trunk' <<<"$report_step"
-	! grep -E '^[[:space:]]*gh stack push' <<<"$report_step"
-	grep -F 'Do not run `gh stack push` automatically' <<<"$report_step"
+	! grep -E '^[[:space:]]*env -u GH_STACK_NO_ATOMIC gh stack push' <<<"$report_step"
+	grep -F 'Do not run `env -u GH_STACK_NO_ATOMIC gh stack push` automatically' <<<"$report_step"
 }
 
 @test "recreate-commits restacks before no-push and local-only exits" {
@@ -375,7 +375,7 @@ load_assignments() {
 	grep -F 'use the top PR to land the entire stack' "$stack_skill"
 	grep -F 'gh stack merge "$TARGET_PR_NUMBER" "${MERGE_ARGS[@]}"' "$stack_skill"
 	! grep -F 'Merging from the CLI is not supported' "$stack_skill" "$rules"
-	grep -F 'After `gh stack sync`, all branches were restored' "$stack_skill"
+	grep -F 'After `env -u GH_STACK_NO_ATOMIC gh stack sync`, all branches were restored' "$stack_skill"
 	grep -F 'After `gh stack rebase`, a rebase session remains active' "$stack_skill"
 	grep -F '`sync` restores all branches' "$rules"
 	grep -F '`rebase` leaves its session active' "$rules"
@@ -466,7 +466,7 @@ load_assignments() {
 	grep -F 'keep `PUSH_COMPLETED=false`, and skip to Step 7.' "$rebase_skill"
 	grep -F 'nothing was rebased or pushed, so CI stabilization was not started' "$rebase_skill"
 	grep -F 'Branch already contains `origin/<base-branch>`; nothing was rebased or pushed.' "$rebase_skill"
-	grep -F 'A stack (`IN_STACK=true`) skips this block and keeps `gh stack push`.' "$rebase_skill"
+	grep -F 'A stack (`IN_STACK=true`) uses the shared stack preflight above instead of this single-branch block, then keeps `env -u GH_STACK_NO_ATOMIC gh stack push`.' "$rebase_skill"
 
 	early_exit_line=$(grep -nF '  echo "ALREADY_CONTAINS_BASE=true"' "$rebase_skill" | cut -d: -f1)
 	rebase_line=$(grep -nFx 'git rebase --autostash origin/<base-branch>' "$rebase_skill" | cut -d: -f1)
@@ -570,4 +570,112 @@ load_assignments() {
 	[ "$status" -eq 0 ]
 	[ "$(git ls-remote --heads origin "refs/heads/$branch" | awk '{print $1}')" = "$rebased_head" ]
 	[ ! -e branch-name-executed ]
+}
+
+prepare_stack_preflight() {
+	git init --bare "$TMP_DIR/remote.git" >/dev/null 2>&1
+	git remote set-url origin "$TMP_DIR/remote.git"
+	git branch layer
+	git push origin feature layer >/dev/null 2>&1
+	export MOCK_STACK_VIEW_STATUS=0
+	export MOCK_STACK_VIEW_STDOUT='{"branches":[{"name":"feature","pr":{"state":"OPEN"}},{"name":"layer","pr":{"state":"OPEN"}},{"name":"gone","pr":{"state":"MERGED"}}]}'
+	export STACK_REMOTE=origin
+	PREFLIGHT="$TMP_DIR/preflight.sh"
+	python3 - "$REPO_ROOT/shared/git/references/stack-rewrite-safety.md" "$PREFLIGHT" <<'PY'
+from pathlib import Path
+import sys
+text = Path(sys.argv[1]).read_text()
+Path(sys.argv[2]).write_text(text.split('```bash\n', 1)[1].split('```', 1)[0])
+PY
+}
+
+advance_stack_remote() {
+	local branch="$1" tip next
+	tip=$(git --git-dir="$TMP_DIR/remote.git" rev-parse "refs/heads/$branch")
+	next=$(git --git-dir="$TMP_DIR/remote.git" -c user.name=Test -c user.email=test@example.com \
+		commit-tree "$tip^{tree}" -p "$tip" -m "Remote review suggestion")
+	git --git-dir="$TMP_DIR/remote.git" update-ref "refs/heads/$branch" "$next"
+}
+
+@test "stack preflight stops divergence on a later open branch before rewriting" {
+	prepare_stack_preflight
+	git switch layer >/dev/null 2>&1
+	git commit --allow-empty -m "Local layer work" >/dev/null
+	advance_stack_remote layer
+	local before
+	before=$(git rev-parse HEAD)
+
+	run bash "$PREFLIGHT"
+
+	[ "$status" -ne 0 ]
+	[[ "$output" == *"origin/layer has commits the local branch lacks; integrate them before rebasing."* ]]
+	[ "$(git rev-parse HEAD)" = "$before" ]
+	[ -z "$(git status --porcelain)" ]
+}
+
+@test "stack preflight allows behind-only ahead-only and equal histories" {
+	prepare_stack_preflight
+	advance_stack_remote layer
+	git commit --allow-empty -m "Local feature work" >/dev/null
+
+	run bash "$PREFLIGHT"
+
+	[ "$status" -eq 0 ]
+	[[ "$output" != *"integrate them"* ]]
+	# A behind-only layer is not fast-forwarded by the read-only guard.
+	[ "$(git rev-list --count layer..FETCH_HEAD)" -eq 1 ]
+}
+
+@test "stack preflight fails closed on inventory fetch or missing local branch" {
+	prepare_stack_preflight
+	git --git-dir="$TMP_DIR/remote.git" update-ref -d refs/heads/layer
+	run bash "$PREFLIGHT"
+	[ "$status" -ne 0 ]
+
+	export MOCK_STACK_VIEW_STDOUT='{}'
+	run bash "$PREFLIGHT"
+	[ "$status" -ne 0 ]
+
+	export MOCK_STACK_VIEW_STDOUT='{"branches":[{"name":"missing","pr":{"state":"OPEN"}}]}'
+	run bash "$PREFLIGHT"
+	[ "$status" -ne 0 ]
+}
+
+@test "both rewrite entry points require the shared preflight and matching remote" {
+	local consumer
+	for consumer in "$REPO_ROOT/skills/pr:rebase/SKILL.md" "$REPO_ROOT/skills/pr:stack/SKILL.md"; do
+		grep -qF '${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-rewrite-safety.md' "$consumer"
+		grep -qF 'run its complete preflight' "$consumer"
+		grep -qF 'STACK_REMOTE' "$consumer"
+	done
+	grep -qF 'in every mode including auto mode' "$REPO_ROOT/skills/pr:rebase/SKILL.md"
+}
+
+@test "all atomic stack push instructions clear the environment opt-out" {
+	local consumer line
+	for consumer in \
+		"$REPO_ROOT/skills/pr:stack/SKILL.md" \
+		"$REPO_ROOT/skills/pr:stack/references/cli-agent-rules.md" \
+		"$REPO_ROOT/skills/pr:rebase/SKILL.md" \
+		"$REPO_ROOT/skills/pr:fix-ci/SKILL.md" \
+		"$REPO_ROOT/skills/pr:fix-ci/references/fixup-flow.md" \
+		"$REPO_ROOT/skills/pr:fix-ci/references/consolidation-flow.md" \
+		"$REPO_ROOT/skills/git:fixup/SKILL.md" \
+		"$REPO_ROOT/skills/git:recreate-commits/SKILL.md"; do
+		while IFS= read -r line; do
+			[[ "$line" == *'env -u GH_STACK_NO_ATOMIC gh stack push'* ]]
+		done < <(grep -F 'gh stack push' "$consumer")
+	done
+	! grep -E '^[[:space:]]*gh stack sync' "$REPO_ROOT/skills/pr:stack/SKILL.md"
+}
+
+@test "atomic push command clears even a false-looking nonempty opt-out" {
+	cat >"$BIN_DIR/gh" <<'GH'
+#!/bin/sh
+[ "${GH_STACK_NO_ATOMIC+x}" != x ] || exit 98
+[ "$1 $2" = 'stack push' ]
+GH
+	export GH_STACK_NO_ATOMIC=0
+	run env -u GH_STACK_NO_ATOMIC gh stack push
+	[ "$status" -eq 0 ]
 }

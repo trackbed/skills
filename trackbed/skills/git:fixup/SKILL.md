@@ -296,7 +296,7 @@ Confirm success and show any remaining unstaged/untracked files.
 gh stack rebase --upstack --no-trunk # rebase the branches above onto the rewritten history
 ```
 
-Do not run `gh stack push` automatically. After the user confirms that collaborators are coordinated and the repository's history-rewrite policy permits publication, tell them to run `gh stack push` manually; it updates every stack branch with `--force-with-lease --atomic`.
+Do not run `env -u GH_STACK_NO_ATOMIC gh stack push` automatically. After the user confirms that collaborators are coordinated and the repository's history-rewrite policy permits publication, tell them to run `env -u GH_STACK_NO_ATOMIC gh stack push` manually; it updates every stack branch with `--force-with-lease --atomic`.
 
 ## Error Handling
 
@@ -380,6 +380,6 @@ If the rebase fails mid-way due to conflicts:
 - Staged changes prompt for handling before proceeding (included automatically under `--no-confirm`)
 - Orphan files (not touched by branch) require user decision or are skipped with `--no-confirm`
 - Autosquash rebase uses merge-base with the base branch, so fixup does not implicitly rebase onto the latest base tip
-- After rebase, a pushed branch needs a manual remote update after collaborator coordination; for a GitHub stack, restack locally with `gh stack rebase --upstack --no-trunk`, then tell the user to run `gh stack push` once publication is authorized
+- After rebase, a pushed branch needs a manual remote update after collaborator coordination; for a GitHub stack, restack locally with `gh stack rebase --upstack --no-trunk`, then tell the user to run `env -u GH_STACK_NO_ATOMIC gh stack push` once publication is authorized
 - Validation commands are project-specific - refer to `AGENTS.md`, `CLAUDE.md`, or equivalent instruction files
 - If `REVIEW_OVERVIEW.md` exists in the project root, this skill updates its `**Commit:**` fields in place (never committing the file); otherwise that step is skipped

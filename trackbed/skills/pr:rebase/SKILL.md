@@ -122,10 +122,12 @@ Route the result explicitly:
 
 Any resolver failure is an operational failure, not evidence that the branch is unstacked. Stop rather than falling through to a single-branch rebase.
 
+When `IN_STACK=true`, first read `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-rewrite-safety.md` and run its complete preflight before any stash or rewrite, in every mode including auto mode. Stop on divergence with the integrate-first message; behind-only branches are allowed. Pass the resolved `STACK_REMOTE` to the subsequent stack rebase and push with `--remote "$STACK_REMOTE"`.
+
 When `IN_STACK=true`, swap the git commands but keep every gate:
 
 - **Steps 2–3 replacement:** run `gh stack rebase` instead of `git rebase --autostash origin/<base-branch>`. It fetches, fast-forwards the trunk, and cascade-rebases every stack branch onto its updated parent. It has no autostash — if the working tree is dirty, `git stash` first and `git stash pop` after. On conflict (exit code 3), resolve each conflicted file under the same rules, round cap, and red flags as Step 3, then `gh stack rebase --continue`; abort with `gh stack rebase --abort` (restores all branches).
-- **Step 5 replacement:** the validated push procedure becomes `gh stack push` — it pushes all stack branches with `--force-with-lease --atomic`. All Step 5 gates and modes apply unchanged.
+- **Step 5 replacement:** the validated push procedure becomes `env -u GH_STACK_NO_ATOMIC gh stack push` — it pushes all stack branches with `--force-with-lease --atomic`. Atomicity covers Git refs, not PR/API updates. All Step 5 gates and modes apply unchanged.
 - **Step 7 addition:** report every branch the rebase touched, not just the current one (`gh stack view --json` shows the updated heads and PR states).
 
 ### Step 2: Fetch Latest, Exit Early, and Pin the Lease
@@ -158,7 +160,7 @@ printf 'LEASE_BRANCH=%q\nPRE_REBASE_REMOTE_OID=%q\n' "$LEASE_BRANCH" "$PRE_REBAS
 ```
 
 - On `ALREADY_CONTAINS_BASE=true`, report `REBASE PREFLIGHT: <branch> already contains origin/<base-branch>; nothing to rebase or push`, keep `PUSH_COMPLETED=false`, and skip to Step 7. Merge commits above the base still require rebasing to linearize them.
-- Otherwise, retain both shell-escaped assignments exactly as printed for Step 5 and report `lease pinned to <short-oid>` in `REBASE PREFLIGHT`, or `branch not on origin; absence lease` when `PRE_REBASE_REMOTE_OID` is empty: the lease requires the branch to stay absent. If the preflight fails, stop before rebasing. A stack (`IN_STACK=true`) skips this block and keeps `gh stack push`.
+- Otherwise, retain both shell-escaped assignments exactly as printed for Step 5 and report `lease pinned to <short-oid>` in `REBASE PREFLIGHT`, or `branch not on origin; absence lease` when `PRE_REBASE_REMOTE_OID` is empty: the lease requires the branch to stay absent. If the preflight fails, stop before rebasing. A stack (`IN_STACK=true`) uses the shared stack preflight above instead of this single-branch block, then keeps `env -u GH_STACK_NO_ATOMIC gh stack push`.
 
 ### Step 3: Rebase
 

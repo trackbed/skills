@@ -1,0 +1,9 @@
+sources:
+  - id: github-gh-stack-atomic-push
+    url: https://raw.githubusercontent.com/github/gh-stack/2a49e6751238633db504655d8a8eba3e433e827d/cmd/push.go
+    title: "GitHub gh-stack — atomic push defaults"
+    rationale: "Clearing GH_STACK_NO_ATOMIC preserves atomic Git ref updates without claiming atomic PR/API updates."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_commit: "2a49e6751238633db504655d8a8eba3e433e827d"
+    baseline_hash: "sha256:1cc68cd2956308dfe71c82a2cbcd27ff351e3277503c75bb45ddf3c1b68131e4"
