@@ -37,7 +37,7 @@ Problem & Value carries the most weight in the final issue; stay in this round u
 - Are there related changes that should be separate issues?
 - What is the minimum viable implementation?
 - Can this ship in one PR? If not, what are the PR-sized slices and their order? (see `references/one-pr-rule.md`)
-- Which decisions belong in this issue, and which should remain implementation details for engineering?
+- Which decisions belong in this issue, and which should remain implementation details for engineering? Product decisions, module placement, and new or changed interfaces belong in the issue; only the implementation behind those interfaces is left to engineering.
 
 **Dig deeper when:**
 
