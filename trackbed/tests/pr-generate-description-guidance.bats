@@ -798,10 +798,10 @@ EOF
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
-@test "generate-description cold read tells the reader to ignore loaded instruction files" {
+@test "generate-description cold read relies on the cold-reader agent to ignore loaded instruction files" {
 	skill="$BATS_TEST_DIRNAME/../skills/pr:generate-description"
-	grep -qF 'Ignore any instruction files that were loaded for you, such as `AGENTS.md` or `CLAUDE.md` files from a project or from user settings.' "$skill/references/cold-read-prompt.md"
-	grep -qF 'Codex may still load project and user-level instruction files such as `AGENTS.md`; the prompt tells the reader not to use the tools and to ignore those files.' "$skill/references/readability-pass.md"
+	grep -qF 'Codex may still load project and user-level instruction files such as `AGENTS.md`; the prompt tells the reader not to use the tools, and the cold-reader agent'"'"'s own rules tell it to ignore those files.' "$skill/references/readability-pass.md"
+	grep -qF 'If your host loaded instruction files for you anyway, such as `AGENTS.md` or `CLAUDE.md` files from a project or from user settings, ignore them.' "$BATS_TEST_DIRNAME/../agents/cold-reader.md"
 }
 
 @test "generate-description base guidance uses canonical resolver contract" {
