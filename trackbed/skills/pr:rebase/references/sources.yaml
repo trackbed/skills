@@ -4,5 +4,6 @@ sources:
     title: "Addy Osmani agent-skills - git workflow and versioning"
     rationale: "Rebase safety framing, branch-cost language, and review-ready git workflow conventions are adapted from this source."
     usage: inspiration
-    last_reviewed_at: 2026-07-01
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
     baseline_hash: "sha256:b1a84eac7a47f6e2985a27733137d862fcdeb552eefe2bd17629e1f3c20e0e97"
