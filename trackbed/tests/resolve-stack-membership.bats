@@ -611,6 +611,17 @@ run_documented_stack_checkout() {
 	! grep -E '< (base|reference)-branch >' "$strategies"
 }
 
+@test "breakdown stack recipe matches current gh-stack behavior" {
+	local strategies="$REPO_ROOT/skills/code:breakdown-findings/references/split-strategies.md"
+
+	! grep -iF 'private preview' "$strategies" || false
+	grep -F 'requires the repository to have stacked PRs enabled' "$strategies"
+	grep -F 'gh stack link --base "$BASE_BRANCH" stack-1-schema stack-2-service stack-3-ui' "$strategies"
+	grep -F 'becomes the whole description of every PR that `submit --auto` creates' "$strategies"
+	grep -F 'followed by a gh-stack attribution footer' "$strategies"
+	grep -F 'keeps or removes that footer' "$strategies"
+}
+
 @test "stack workflow does not delegate mutating description generation" {
 	local stack_skill="$REPO_ROOT/skills/pr:stack/SKILL.md"
 
