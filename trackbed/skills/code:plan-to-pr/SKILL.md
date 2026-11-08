@@ -147,10 +147,12 @@ Then invoke `trackbed:code:work-from-plan` with exactly `{active-plan}` as its o
 
 - it classified the plan as `implementation-ready` and route `direct`;
 - it completed implementation rather than recommending SIW or delegating to another tracker;
-- every completion criterion and plan-specific verification check passed;
+- its closeout reports every completion criterion `MET` with evidence, and every plan-specific verification check passed;
 - no STOP condition or missing requirement remains;
 - only validated in-scope source paths changed; and
 - the current branch remains `{plan-branch}`.
+
+An `UNMET` or `UNVERIFIED` criterion is a blocker. When the delegate returns `BLOCKED` with a `QUESTION`, stop and relay that question verbatim. Carry its `ASSUMPTIONS` list into the Step 7 report.
 
 ### Implementation Commit Boundary
 
@@ -304,6 +306,7 @@ Plan status: DONE in archived plan and index
 Plan archive: {plan-set-root}
 Later plan input: pass the selected archived `PR_PLAN_<label>_*.md` path
 Branch: {plan-branch}
+Assumptions: {defaulted open questions from the implementation closeout | none | not recorded (completion resume)}
 ```
 
 ## Error Handling

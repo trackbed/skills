@@ -2,7 +2,7 @@ sources:
   - id: compound-ce-work
     url: https://raw.githubusercontent.com/EveryInc/compound-engineering-plugin/main/skills/ce-work/SKILL.md
     title: "EveryInc compound-engineering-plugin - ce-work"
-    rationale: "The plan intake, route-before-work gate, context gathering before edits, missing-requirement handling, and bounded execution loop are adapted from ce-work while intentionally omitting broader autonomous pipeline behavior."
+    rationale: "The plan intake, route-before-work gate, context gathering before edits, missing-requirement handling, and bounded execution loop are adapted from ce-work while intentionally omitting broader autonomous pipeline behavior. Returning a blocker instead of prompting under delegation, proceeding on defaulted open questions as recorded assumptions, per-criterion closeout evidence, and keeping plan-local IDs out of written files also follow ce-work and its reference files."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "7dc50943bbf959dbe6a93a175e41e5fff8395e00"
@@ -10,7 +10,7 @@ sources:
   - id: compound-ce-plan
     url: https://raw.githubusercontent.com/EveryInc/compound-engineering-plugin/main/skills/ce-plan/SKILL.md
     title: "EveryInc compound-engineering-plugin - ce-plan"
-    rationale: "The standalone plan-shape assumptions, completion-criteria emphasis, dependency awareness, and missing-context markers consumed by this adapter are adapted from ce-plan."
+    rationale: "The standalone plan-shape assumptions, completion-criteria emphasis, dependency awareness, and missing-context markers consumed by this adapter are adapted from ce-plan. Its reference files also inform reading planned new files as expected-absent, open questions as carrying defaults, and plan-declared STOP conditions."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "7dc50943bbf959dbe6a93a175e41e5fff8395e00"
