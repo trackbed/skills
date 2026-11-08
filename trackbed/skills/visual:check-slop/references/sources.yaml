@@ -8,8 +8,10 @@ sources:
     notice: references/THIRD_PARTY_NOTICES.md
     upstream_path: "skills/anti-slop/SKILL.md; skills/anti-slop/references/rules.md; src/cli.ts; src/engine.ts; src/index.ts; src/rules.ts; src/types.ts; src/__tests__/*.test.ts except install-and-plugin.test.ts"
     upstream_commit: 1c3908b7efb56ec24624436dea5c32a371eb487c
-    last_reviewed_at: 2026-09-28
-    baseline_hash: ""
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "1c3908b7efb56ec24624436dea5c32a371eb487c"
+    fetch_mode: curl-html
+    baseline_hash: "sha256:4a34ad0280fa564ed0e468b4f52b07e4e88709f87088d45c107c5e061f401d0e"
   - id: node-html-parser-runtime
     url: https://github.com/taoqf/node-fast-html-parser
     title: "node-html-parser"
