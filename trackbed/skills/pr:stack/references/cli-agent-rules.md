@@ -19,7 +19,9 @@ Condensed operating reference for driving `gh stack` non-interactively. Every co
 | Pre-configure `git config rerere.enabled true` | `init` enables rerere and may prompt on first run; pre-setting skips the prompt and lets repeat conflicts auto-resolve. |
 | Stage and commit with plain `git add` / `git commit` | Full control over which changes land in which layer. `gh stack add -Am "msg" branch` exists as a one-shot shortcut but bypasses deliberate staging. |
 
-`sync` behaves safely non-interactively: a clean "remote is ahead" update happens automatically, and a local/remote stack divergence aborts the sync without pushing (`ℹ Sync aborted`). Pruning merged branches only happens with an explicit `--prune`.
+A clean "remote is ahead" update can fast-forward automatically. Active branch divergence is not reconciled by `sync`; run the shared stack rewrite preflight required by the owning skill before syncing. Pruning merged branches only happens with an explicit `--prune`.
+
+Clear `GH_STACK_NO_ATOMIC` for pushes and syncs that require atomic Git ref updates. PR/API updates are separate; never retry with `--no-atomic`.
 
 ## Command map
 
@@ -28,11 +30,11 @@ Condensed operating reference for driving `gh stack` non-interactively. Every co
 | Create a stack (first branch, or several bottom-to-top) | `gh stack init --base <resolved-trunk> <branch...>` |
 | Adopt existing local branches into a stack | `gh stack init --base <resolved-trunk> <existing-branch...>` (existing branches adopted, missing ones created) |
 | Add a branch on top | `gh stack add <branch>` (must be on the topmost branch; exit 5 otherwise — `gh stack top` first) |
-| Push all branches | `gh stack push` (`--force-with-lease --atomic`, skips merged/queued) |
+| Push all branches | `env -u GH_STACK_NO_ATOMIC gh stack push` (`--force-with-lease --atomic`, skips merged/queued) |
 | Push + create/update chained PRs + link stack | `gh stack submit --auto` (drafts) / `gh stack submit --auto --open` |
-| Routine sync (fetch, cascade-rebase, push, PR state) | `gh stack sync` (`--prune` to delete local branches for merged PRs) |
+| Routine sync (fetch, cascade-rebase, push, PR state) | `env -u GH_STACK_NO_ATOMIC gh stack sync` (`--prune` to delete local branches for merged PRs) |
 | Cascade rebase only | `gh stack rebase` (`--upstack`, `--downstack`, `--no-trunk`, `--continue`, `--abort`) |
-| Restack above the current branch after editing it | `gh stack rebase --upstack --no-trunk`, then `gh stack push` |
+| Restack above the current branch after editing it | `gh stack rebase --upstack --no-trunk`, then `env -u GH_STACK_NO_ATOMIC gh stack push` |
 | Inspect state (JSON to stdout) | `gh stack view --json` |
 | Navigate | `gh stack up [n]` / `down [n]` / `top` / `bottom` / `trunk` |
 | Check out a stack from GitHub | `gh stack checkout <stack-number \| pr-number \| pr-url>` |
@@ -96,5 +98,5 @@ gh stack view --json | jq '[.branches[] | .isMerged] | all'                     
 - The stack is a GitHub object, not CLI state: reviewers get a Stack Map UI, and `gh stack link` / the web UI can manage stacks without local tracking.
 - Branch protection, CODEOWNERS, and CI evaluate **as if each PR targeted the stack base** (e.g. `main`), not its direct parent. Actions workflows see `github.event.pull_request.stack` (position, size, base, number).
 - Merging a mid-stack PR lands it **and every unmerged PR below it** atomically; the PRs above are re-targeted and rebased automatically. With a merge queue, all stack PRs enter the queue together.
-- Squash merges are handled: `gh stack sync` detects them and replays remaining branches with `git rebase --onto`.
+- Squash merges are handled: `env -u GH_STACK_NO_ATOMIC gh stack sync` detects them and replays remaining branches with `git rebase --onto`.
 - Limits: strictly linear stacks (one parent, one child), no cross-fork stacks, linear history required, and auto-merge unavailable. In v0.1.0 or newer, `gh stack merge <pr-number> --yes <method-flag>` lands through an explicit PR without prompting; it cannot bypass repository merge requirements. `submit` cannot set custom PR titles/bodies in `--auto` mode — edit them afterward through `gh api --method PATCH repos/{owner}/{repo}/pulls/<number> --hostname <pr-host>`, deriving `<pr-host>` from that PR's URL; stop if the hostname cannot be determined.

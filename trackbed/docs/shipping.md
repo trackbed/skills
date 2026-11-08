@@ -137,6 +137,8 @@ By default, `/trackbed:git:recreate-commits` authorizes one backup-protected uns
 
 Automatic stack-wide rewriting additionally requires `--authorize-history-rewrite`. A `--manual` stacked invocation may instead use separate interactive confirmations that enumerate the full stack before authorizing the local reset/restack and the atomic whole-stack force-push.
 
+`trackbed:pr:rebase` and routine syncs in `trackbed:pr:stack` fetch every open branch and stop if local and remote histories diverge. Integrate those commits before retrying; behind-only branches are allowed. Stack pushes and syncs clear `GH_STACK_NO_ATOMIC` to keep Git ref updates atomic. PR/API updates remain separate.
+
 ## Verification
 
 The optional regression red-green check in `/trackbed:verify:run` restores the fix by stash commit ID and retains the stash entry, reporting its tag and commit ID for later identification. It leaves cleanup to the user because other workspaces share the stash list.

@@ -192,7 +192,7 @@ Push only after the branch chain is ready. When `PLAN_SCOPE_ACTIVE=true`, requir
 ```bash
 if [ "$IN_STACK" = true ]; then
   gh stack rebase --upstack --no-trunk
-  gh stack push
+  env -u GH_STACK_NO_ATOMIC gh stack push
 elif [ "$PLAN_SCOPE_ACTIVE" = true ]; then
   git push origin "{validated-push-head}:refs/heads/{validated-plan-branch}"
 else
@@ -200,7 +200,7 @@ else
 fi
 ```
 
-For a stack, restacking must succeed before `gh stack push`; never push the changed parent branch first.
+For a stack, restacking must succeed before `env -u GH_STACK_NO_ATOMIC gh stack push`; never push the changed parent branch first.
 
 When `PLAN_SCOPE_ACTIVE=true`, immediately require the local branch tip to remain `{validated-push-head}` and require the remote and Pull Request heads to equal that captured OID, then run the scoped-plan post-push checkpoint rule using the captured head and its tree. A moved local branch, failed push, or identity mismatch is a blocker, not permission to checkpoint an unvalidated tip or continue waiting.
 

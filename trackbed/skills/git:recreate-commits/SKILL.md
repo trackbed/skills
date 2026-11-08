@@ -122,7 +122,7 @@ Auto mode is the default: skip the granularity question, automatically choose th
    fi
    ```
 
-   Preserve `STACK_BRANCH_NAMES` and `STACK_BRANCHES` exactly as resolved; never replace or shorten the authorization boundary. Immediately before either stack-wide confirmation, before resetting, before restacking, and before pushing, call `resolve_stack_branch_names` and require its output to equal `STACK_BRANCH_NAMES` byte-for-byte. If the inventory cannot be re-read or differs, stop and require a fresh run so newly added, removed, or renamed branches cannot inherit stale authorization. `gh stack rebase --upstack --no-trunk` may rewrite branches above the current branch, and `gh stack push` targets the locally tracked stack.
+   Preserve `STACK_BRANCH_NAMES` and `STACK_BRANCHES` exactly as resolved; never replace or shorten the authorization boundary. Immediately before either stack-wide confirmation, before resetting, before restacking, and before pushing, call `resolve_stack_branch_names` and require its output to equal `STACK_BRANCH_NAMES` byte-for-byte. If the inventory cannot be re-read or differs, stop and require a fresh run so newly added, removed, or renamed branches cannot inherit stale authorization. `gh stack rebase --upstack --no-trunk` may rewrite branches above the current branch, and `env -u GH_STACK_NO_ATOMIC gh stack push` targets the locally tracked stack.
 
    For an unstacked invocation that may sync a remote (no `--no-push`), resolve and freeze the single-branch push boundary before resetting:
 
@@ -231,7 +231,7 @@ Synced Conductor workspace boundary contract (keep aligned across git-mutating w
    - If `--no-push` was passed, do not run any push command. The local restack above still applies. Report remote synchronization as delegated in `POTENTIAL CONCERNS`, then continue to the final summary.
    - If the unstacked branch resolved no `PUSH_LEASE_OID` and has no Pull Request, skip this step — the recreation is local-only.
    - Otherwise the rewritten history has diverged from the remote and a force-push is required. Before pushing:
-     - Before pushing, unless `--authorize-history-rewrite` was passed or (auto mode is active and `IN_STACK=false`), obtain the applicable publication confirmation and warn explicitly if others may have based active work on any listed branch. For an unstacked branch, confirm the single validated push target. For a stack, enumerate every branch in the frozen `STACK_BRANCHES` list, state that `gh stack push` performs an atomic whole-stack force-with-lease publication, and require explicit confirmation authorizing that whole-stack push. A reset/restack confirmation does not also authorize publication. Auto or explicit authorization skips the prompt only within the same unstacked/stacked boundary as the reset, not the warning or safety checks.
+     - Before pushing, unless `--authorize-history-rewrite` was passed or (auto mode is active and `IN_STACK=false`), obtain the applicable publication confirmation and warn explicitly if others may have based active work on any listed branch. For an unstacked branch, confirm the single validated push target. For a stack, enumerate every branch in the frozen `STACK_BRANCHES` list, state that `env -u GH_STACK_NO_ATOMIC gh stack push` performs an atomic whole-stack force-with-lease publication, and require explicit confirmation authorizing that whole-stack push. A reset/restack confirmation does not also authorize publication. Auto or explicit authorization skips the prompt only within the same unstacked/stacked boundary as the reset, not the warning or safety checks.
      - For an unstacked branch, require the checkout to remain on `PUSH_SOURCE_BRANCH`, then push exactly one validated remote ref with the captured lease:
 
        ```bash
@@ -250,7 +250,7 @@ Synced Conductor workspace boundary contract (keep aligned across git-mutating w
    - If `IN_STACK=true`, push the already-restacked whole stack instead of a single branch:
 
      ```bash
-     gh stack push # all stack branches, --force-with-lease --atomic
+     env -u GH_STACK_NO_ATOMIC gh stack push # all stack branches, --force-with-lease --atomic
      ```
 
    - Record the force-push (and any stack restack) in `POTENTIAL CONCERNS`.

@@ -97,7 +97,7 @@ If one of those conditions is true, choose exactly one push path:
 ```bash
 if [ "$IN_STACK" = true ]; then
   gh stack rebase --upstack --no-trunk
-  gh stack push
+  env -u GH_STACK_NO_ATOMIC gh stack push
 else
   git push --force-with-lease origin "$(git branch --show-current)"
 fi

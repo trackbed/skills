@@ -135,30 +135,32 @@ Re-running `submit --auto` is safe: it pushes changed branches, creates PRs only
 gh stack checkout <branch-or-pr-number>   # or: gh stack down / bottom
 # edit, git add <files>, git commit
 gh stack rebase --upstack                 # rebase everything above onto the new commits
-gh stack push                             # all branches, --force-with-lease --atomic
+env -u GH_STACK_NO_ATOMIC gh stack push                             # all branches, --force-with-lease --atomic
 ```
 
 **Routine sync (trunk moved, PRs merged, stack changed on GitHub):**
 
+First read `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-rewrite-safety.md` and run its complete preflight. Stop before syncing if any open branch diverged; allow behind-only branches. Use its resolved `STACK_REMOTE` for sync and any recovery rebase:
+
 ```bash
-gh stack sync         # fetch, cascade-rebase, push, sync PR state
-gh stack sync --prune # also delete local branches for merged PRs
+env -u GH_STACK_NO_ATOMIC gh stack sync --remote "$STACK_REMOTE"         # fetch, cascade-rebase, push, sync PR state
+env -u GH_STACK_NO_ATOMIC gh stack sync --remote "$STACK_REMOTE" --prune # also delete local branches for merged PRs
 ```
 
-Sync handles squash-merged parents automatically. A local/remote stack divergence aborts the sync safely in non-interactive terminals — resolve by unstacking and recreating, or surface it to the user.
+Sync handles squash-merged parents automatically. The shared preflight stops divergent active branches with the integrate-first message; gh-stack alone does not reconcile that divergence. Clearing `GH_STACK_NO_ATOMIC` makes Git ref updates all-or-nothing; PR/API updates remain separate.
 
 **Conflicts (exit code 3) are command-specific:**
 
-- After `gh stack sync`, all branches were restored before the command returned. Start a fresh `gh stack rebase`, resolve markers file by file, `git add` each, then run `gh stack rebase --continue`.
+- After `env -u GH_STACK_NO_ATOMIC gh stack sync`, all branches were restored before the command returned. Repeat the shared preflight, then start a fresh `gh stack rebase --remote "$STACK_REMOTE"`, resolve markers file by file, `git add` each, then run `gh stack rebase --continue`.
 - After `gh stack rebase`, a rebase session remains active. Resolve markers file by file, `git add` each, then run `gh stack rebase --continue` directly — do not start a second rebase.
 
 Repeat per conflict round. `gh stack rebase --abort` restores all branches if the resolution stops being mechanical; then escalate to the user.
 
-**After any history rewrite on a stack branch** (`trackbed:git:fixup`, `trackbed:git:recreate-commits`, fix-ci consolidation): the branches above are orphaned until you restack. Never push a single stack branch with plain `git push --force-with-lease`; `gh stack push` updates every branch atomically:
+**After any history rewrite on a stack branch** (`trackbed:git:fixup`, `trackbed:git:recreate-commits`, fix-ci consolidation): the branches above are orphaned until you restack. Never push a single stack branch with plain `git push --force-with-lease`; `env -u GH_STACK_NO_ATOMIC gh stack push` updates every branch atomically:
 
 ```bash
 gh stack rebase --upstack --no-trunk
-gh stack push
+env -u GH_STACK_NO_ATOMIC gh stack push
 ```
 
 **Restructure (reorder / drop / rename branches):** never `gh stack modify` (TUI-only). Tear down and rebuild — PRs and branches survive:
@@ -200,7 +202,7 @@ esac
 gh stack merge "$TARGET_PR_NUMBER" "${MERGE_ARGS[@]}"
 ```
 
-`gh stack merge` atomically lands every eligible PR through the target; if any cannot merge, none do. A repository merge queue controls its own method, so gh-stack ignores the supplied method there. GitHub re-targets and rebases PRs above a partial merge. After completion, run `gh stack sync --prune`.
+`gh stack merge` atomically lands every eligible PR through the target; if any cannot merge, none do. A repository merge queue controls its own method, so gh-stack ignores the supplied method there. GitHub re-targets and rebases PRs above a partial merge. After completion, repeat the routine-sync preflight and run `env -u GH_STACK_NO_ATOMIC gh stack sync --remote "$STACK_REMOTE" --prune`.
 
 ## Verification
 
