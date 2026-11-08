@@ -114,7 +114,7 @@ Draft the issue following this template:
 
 ## Assumptions Used
 
-- [Only include when the issue had to infer target user, why-now, or non-goals from incomplete context]
+- [Only include when the issue had to infer target user, why-now, or non-goals from incomplete context. Each entry is unconfirmed]
 
 <!-- Only include this section if the issue has the "Dev Ask" label -->
 
