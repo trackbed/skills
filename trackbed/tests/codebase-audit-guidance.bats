@@ -91,6 +91,28 @@ setup() {
 	grep -qF 'add a `Change Relevance` column in the same position instead' "skills/code:refactor-opportunities/assets/report-template.md"
 }
 
+@test "refactor opportunities defines the Rule of 500 once and lets every scope find nothing worth changing" {
+	local template="skills/code:refactor-opportunities/assets/report-template.md"
+	grep -qF "A theme's **edit size** is the number of lines its coordinated fix would edit, call sites included" "$REFACTOR_SKILL"
+	grep -qF '9. **Rule of 500 — automation trigger.**' "$REFACTOR_SKILL"
+	grep -qF 'For any theme whose edit size is over **500 lines**, mark the theme as an automation candidate' "$REFACTOR_SKILL"
+	grep -qF 'Flags themes whose fix edits over 500 lines as automation candidates.' "$REFACTOR_SKILL"
+	grep -qF 'its edit size as defined by the Phase 3 Rule of 500' "$template"
+	[ "$(cat "$REFACTOR_SKILL" "$template" | grep -c 'edit size\*\* is')" -eq 1 ]
+	run grep -niE '≥ ?500|500 or more|exceeds \**500|combined (line count|lines|blast radius)' "$REFACTOR_SKILL" "$template"
+	[ "$status" -eq 1 ] || { echo "$output"; false; }
+
+	grep -qF '6. **Decide whether anything is worth changing.** In every scope, the outcome is _nothing worth changing_ when no finding or deepening candidate survives steps 3-5, or every surviving finding has LOW confidence and no deepening candidate survives.' "$REFACTOR_SKILL"
+	grep -qF 'Why skipping: low confidence' "$REFACTOR_SKILL"
+	grep -qF 'When Phase 3 step 6 found nothing worth changing' "$REFACTOR_SKILL"
+	grep -qF '{{Nothing worth changing, in every scope: when no finding or deepening candidate survived Phase 3 steps 3-5, or every surviving finding had LOW confidence and no deepening candidate survived' "$template"
+
+	grep -qF 'After a full, path, or feature run without `--for`, end the summary with one line:' "$REFACTOR_SKILL"
+	grep -qF 'rerun with --for <spec-file | description>.' "$REFACTOR_SKILL"
+	grep -qF '"what would make this hard-to-test module ready for its first tests?"' "$REFACTOR_SKILL"
+	grep -qF 'Phase 3 step 9' "skills/code:refactor-opportunities/references/sources.yaml"
+}
+
 @test "refactor opportunities hands off one chosen item and never blocks a calling skill" {
 	grep -qF '10. **Hand off one item.** Unless another skill invoked this one' "$REFACTOR_SKILL"
 	grep -qF 'Do not design or implement it in this run.' "$REFACTOR_SKILL"
