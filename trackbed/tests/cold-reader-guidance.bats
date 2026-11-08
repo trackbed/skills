@@ -13,8 +13,17 @@ setup() {
 
   grep -qxF 'name: cold-reader' <<<"$frontmatter"
   grep -qxF 'omitClaudeMd: true' <<<"$frontmatter"
+  grep -qxF 'tools: Read, Grep, Glob' <<<"$frontmatter"
   grep -qxF 'disallowedTools: Write, Edit, NotebookEdit' <<<"$frontmatter"
   grep -qF '**Read-only agent.**' "$AGENT"
+}
+
+@test "cold reader reads for itself and ignores memory and earlier sessions" {
+  grep -qF '**Do all reading yourself.** Never launch, delegate to, or ask another agent' "$AGENT"
+  grep -qF 'A new agent starts with the project'"'"'s instruction files loaded' "$AGENT"
+  grep -qF 'prior reports, memory stores, earlier sessions, or anything else' "$AGENT"
+  grep -qF 'Its `tools: Read, Grep, Glob` allowlist leaves it no shell, web, connector, or agent-launch tool' "$CONTRACT"
+  grep -qF 'only the agent'"'"'s written rule keeps it from delegating' "$CONTRACT"
 }
 
 @test "cold reader reports unreadable material instead of answering" {

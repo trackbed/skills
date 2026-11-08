@@ -245,14 +245,25 @@ test("canonical plugin build preserves runtime path dependency closure", async (
     );
 
     const skillsRoot = path.join(built.pluginRoot, "skills");
-    const { data: coldReader } = parseFrontmatter(
-      await readText(path.join(skillsRoot, "trackbed:cold-reader", "SKILL.md")),
+    const coldReaderSkill = await readText(
+      path.join(skillsRoot, "trackbed:cold-reader", "SKILL.md"),
     );
+    const { data: coldReader } = parseFrontmatter(coldReaderSkill);
     assert.equal(coldReader.name, "trackbed:cold-reader");
     assert.equal(
       coldReader.omitClaudeMd,
       undefined,
       "Codex has no such field, so the converter must not pass it through",
+    );
+    assert.equal(
+      coldReader.tools,
+      undefined,
+      "the Claude tool allowlist must not reach the Codex agent skill",
+    );
+    assert.match(
+      coldReaderSkill,
+      /\*\*Do all reading yourself\.\*\* Never launch, delegate to/,
+      "on Codex the written rule is the only guard against delegation",
     );
     for (const name of [
       "code-review",
