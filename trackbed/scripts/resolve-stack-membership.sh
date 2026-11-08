@@ -199,9 +199,12 @@ STACK_NUMBER=$(gh api graphql \
   exit 1
 }
 
-if [ -n "$STACK_NUMBER" ]; then
+if [[ "$STACK_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
   STACK_MEMBERSHIP="remote"
-else
+elif [ -z "$STACK_NUMBER" ]; then
   STACK_MEMBERSHIP="none"
+else
+  echo "GitHub returned an invalid stack number for PR #$STACK_PR_NUMBER; stack membership is unknown." >&2
+  exit 1
 fi
 emit_result

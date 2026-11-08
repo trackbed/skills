@@ -27,6 +27,9 @@ setup() {
 	export MOCK_REPO_VIEW_STATUS=0
 	export MOCK_STACK_API_STATUS=0
 	export MOCK_STACK_NUMBER=""
+	export MOCK_TARGET_STACK_JSON='[{"number":41,"pull_requests":[{"number":17},{"number":18}]}]'
+	export MOCK_ALL_STACKS_JSON='[[{"number":41}]]'
+	export MOCK_STACK_LIST_STATUS=0
 }
 
 teardown() {
@@ -85,6 +88,28 @@ if [ "$1" = "api" ] && [ "$2" = "graphql" ]; then
     exit "$MOCK_STACK_API_STATUS"
   }
   printf '%s\n' "${MOCK_STACK_NUMBER:-}"
+  exit 0
+fi
+
+if [ "$1" = "api" ] && [ "$2" = "--paginate" ] && [ "$3" = "--slurp" ]; then
+  [ "${MOCK_STACK_LIST_STATUS:-0}" -eq 0 ] || exit "$MOCK_STACK_LIST_STATUS"
+  printf '%s\n' "$MOCK_ALL_STACKS_JSON"
+  exit 0
+fi
+
+if [ "$1" = "api" ]; then
+  [ "${MOCK_STACK_API_STATUS:-0}" -eq 0 ] || exit "$MOCK_STACK_API_STATUS"
+  printf '%s\n' "$MOCK_TARGET_STACK_JSON"
+  exit 0
+fi
+
+if [ "$1" = "stack" ] && [ "$2" = "checkout" ]; then
+  [ "${MOCK_STACK_CHECKOUT_STATUS:-0}" -eq 0 ] || exit "$MOCK_STACK_CHECKOUT_STATUS"
+  git switch top >/dev/null 2>&1 || exit 97
+  exit 0
+fi
+
+if [ "$1" = "stack" ] && { [ "$2" = "merge" ] || [ "$2" = "link" ]; }; then
   exit 0
 fi
 
@@ -250,6 +275,268 @@ load_assignments() {
 	[[ "$output" == *"Could not query GitHub stack metadata for PR #17"* ]]
 }
 
+@test "fails closed when GitHub returns an invalid stack number" {
+	export MOCK_PR_NUMBER=17
+	local number
+	for number in 0 -1 invalid '17 41'; do
+		export MOCK_STACK_NUMBER="$number"
+		run "$SCRIPT"
+		[ "$status" -eq 1 ]
+		[[ "$output" == *"invalid stack number for PR #17"* ]]
+		[[ "$output" != *"STACK_MEMBERSHIP="* ]]
+	done
+}
+
+run_documented_stack_merge() {
+	local resolution
+	local merge
+	resolution=$(awk '/^```bash$/ { block = 1; next } block && /^```$/ { exit } block { print }' \
+		"$REPO_ROOT/skills/pr:stack/references/merge-target.md")
+	merge=$(awk '/^## Merging$/ { section = 1 } section && /^```bash$/ { block = 1; next } block && /^```$/ { exit } block { print }' \
+		"$REPO_ROOT/skills/pr:stack/SKILL.md")
+	[ -n "$resolution" ]
+	[ -n "$merge" ]
+	MERGE_METHOD=squash TARGET_PR_NUMBER="$1" run bash -c "$resolution"$'\n'"$merge"
+}
+
+@test "whole-stack merge passes the stack number when the top PR number collides" {
+	export MOCK_ALL_STACKS_JSON='[[{"number":18},{"number":41}]]'
+
+	run_documented_stack_merge 18
+
+	[ "$status" -eq 0 ]
+	grep -F 'command [stack] [merge] [41] [--yes] [--squash]' "$GH_LOG"
+	! grep -q 'command \[stack\] \[merge\] \[18\]' "$GH_LOG"
+}
+
+@test "partial merge checks every page for a colliding stack before merging" {
+	export MOCK_ALL_STACKS_JSON='[[{"number":41}],[{"number":17}]]'
+
+	run_documented_stack_merge 17
+
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"stop and ask the user"* ]]
+	grep -F 'command [api] [--paginate] [--slurp] [repos/{owner}/{repo}/stacks?per_page=100]' "$GH_LOG"
+	! grep -q 'command \[stack\] \[merge\]' "$GH_LOG"
+}
+
+@test "partial merge uses the PR boundary only after proving no stack collision" {
+	run_documented_stack_merge 17
+
+	[ "$status" -eq 0 ]
+	grep -F 'command [api] [--paginate] [--slurp]' "$GH_LOG"
+	grep -F 'command [stack] [merge] [17] [--yes] [--squash]' "$GH_LOG"
+}
+
+@test "merge stops when the selected PR has no identifiable stack" {
+	local response
+	for response in '[]' '[{"number":41,"pull_requests":[{"number":19}]}]' '[{"pull_requests":[{"number":17}]}]'; do
+		export MOCK_TARGET_STACK_JSON="$response"
+		run_documented_stack_merge 17
+		[ "$status" -eq 1 ]
+		[[ "$output" == *"no identifiable stack"* ]]
+		! grep -q 'command \[stack\] \[merge\]' "$GH_LOG"
+	done
+}
+
+@test "merge stops on a failed target stack lookup" {
+	export MOCK_STACK_API_STATUS=4
+
+	run_documented_stack_merge 18
+
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"Could not determine the selected PR's stack"* ]]
+	! grep -q 'command \[stack\] \[merge\]' "$GH_LOG"
+}
+
+@test "partial merge stops on a failed collision lookup" {
+	export MOCK_STACK_LIST_STATUS=4
+
+	run_documented_stack_merge 17
+
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"Could not check stack-number collisions"* ]]
+	! grep -q 'command \[stack\] \[merge\]' "$GH_LOG"
+}
+
+@test "partial merge stops on a malformed or incomplete stack list" {
+	local response
+	for response in 'not-json' '[]' '[{}]' '[[{"number":"17"}]]' '[[{}]]'; do
+		export MOCK_ALL_STACKS_JSON="$response"
+		run_documented_stack_merge 17
+		[ "$status" -eq 1 ]
+		[[ "$output" == *"Invalid repository stack list"* ]]
+		! grep -q 'command \[stack\] \[merge\]' "$GH_LOG"
+	done
+}
+
+run_documented_stack_link() {
+	local link
+	link=$(awk '/^```bash$/ { block = 1; next } block && /^```$/ { exit } block { print }' \
+		"$REPO_ROOT/skills/pr:stack/references/link-target.md")
+	[ -n "$link" ]
+	run bash -c 'STACK_ITEMS=("$@")'$'\n'"$link" -- "$@"
+}
+
+@test "link rejects colliding PR leaders and ambiguous numeric branch names" {
+	export MOCK_ALL_STACKS_JSON='[[{"number":17}]]'
+	local item
+	for item in 17 +17 00017; do
+		run_documented_stack_link "$item" 18
+		[ "$status" -eq 1 ]
+		[[ "$output" == *"stop and ask the user"* || "$output" == *"Link requires a valid branch or PR identifier"* ]]
+		! grep -q 'command \[stack\] \[link\]' "$GH_LOG"
+	done
+}
+
+@test "PR-led link preserves the selected PR when its local head has unpublished commits" {
+	git update-ref refs/remotes/origin/feature HEAD
+	local remote_head
+	remote_head=$(git rev-parse refs/remotes/origin/feature)
+	printf 'unpublished work\n' >>tracked.txt
+	git commit -am "unpublished local commit" >/dev/null
+	[ "$(git rev-parse HEAD)" != "$remote_head" ]
+
+	run_documented_stack_link 17 18
+
+	[ "$status" -eq 0 ]
+	grep -F 'command [stack] [link] [17] [18]' "$GH_LOG"
+	! grep -q 'command \[pr\] \[view\]' "$GH_LOG"
+	! grep -q 'command \[stack\] \[link\] \[feature\]' "$GH_LOG"
+	[ "$(git rev-parse refs/remotes/origin/feature)" = "$remote_head" ]
+}
+
+@test "PR-led link keeps an exact identifier instead of resolving a shared head branch" {
+	run_documented_stack_link 18 19
+
+	[ "$status" -eq 0 ]
+	grep -F 'command [stack] [link] [18] [19]' "$GH_LOG"
+	! grep -q 'command \[pr\] \[view\]' "$GH_LOG"
+}
+
+@test "PR-led link rejects a same-number local branch with unpublished commits" {
+	git branch 17
+	git update-ref refs/remotes/origin/17 HEAD
+	git switch 17 >/dev/null 2>&1
+	printf 'unpublished work\n' >>tracked.txt
+	git commit -am "unpublished numeric branch" >/dev/null
+	[ "$(git rev-parse HEAD)" != "$(git rev-parse refs/remotes/origin/17)" ]
+
+	run_documented_stack_link 17 18
+
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"stop and ask for its explicit PR URL"* ]]
+	[ ! -e "$GH_LOG" ]
+}
+
+@test "PR-led link stops when local branch inspection fails" {
+	local real_git
+	real_git=$(command -v git)
+	cat >"$BIN_DIR/git" <<GIT
+#!/bin/sh
+if [ "\$1" = "show-ref" ]; then exit 128; fi
+exec "$real_git" "\$@"
+GIT
+	chmod +x "$BIN_DIR/git"
+
+	run_documented_stack_link 17 18
+
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"Could not inspect local branch names"* ]]
+	[ ! -e "$GH_LOG" ]
+}
+
+@test "URL-led link preserves the explicit URL despite same-number branches and stacks" {
+	git branch 17
+	export MOCK_ALL_STACKS_JSON='[[{"number":17}]]'
+	run_documented_stack_link https://github.com/acme/demo/pull/17 18
+
+	[ "$status" -eq 0 ]
+	! grep -q 'command \[api\]' "$GH_LOG"
+	grep -F 'command [stack] [link] [https://github.com/acme/demo/pull/17] [18]' "$GH_LOG"
+}
+
+@test "PR-led link checks later pages and stops on API or parsing failure" {
+	export MOCK_ALL_STACKS_JSON='[[{"number":41}],[{"number":17}]]'
+	run_documented_stack_link 17 18
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"stop and ask the user"* ]]
+	! grep -q 'command \[stack\] \[link\]' "$GH_LOG"
+	export MOCK_ALL_STACKS_JSON='[[{"number":41}]]'
+	export MOCK_STACK_LIST_STATUS=4
+	run_documented_stack_link 17 18
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"Could not check stack-number collisions"* ]]
+	! grep -q 'command \[stack\] \[link\]' "$GH_LOG"
+	export MOCK_STACK_LIST_STATUS=0
+	export MOCK_ALL_STACKS_JSON='[{}]'
+	run_documented_stack_link 17 18
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"Invalid repository stack list"* ]]
+	! grep -q 'command \[stack\] \[link\]' "$GH_LOG"
+}
+
+@test "link preserves a leading branch and remaining PR operands as inert arguments" {
+	local branch='topic-$(touch${IFS}$PWNED_FILE)'
+	export PWNED_FILE="$TMP_DIR/pwned"
+
+	run_documented_stack_link "$branch" 18
+
+	[ "$status" -eq 0 ]
+	grep -F "command [stack] [link] [$branch] [18]" "$GH_LOG"
+	[ ! -e "$PWNED_FILE" ]
+}
+
+run_documented_stack_checkout() {
+	local checkout
+	checkout=$(awk '/^```bash$/ { block = 1; next } block && /^```$/ { exit } block { print }' \
+		"$REPO_ROOT/shared/git/references/stack-checkout.md")
+	[ -n "$checkout" ]
+	run bash -c 'STACK_NUMBER=$1'$'\n'"$checkout" -- "$1"
+}
+
+@test "stack-number checkout restores the original lower-layer branch" {
+	git branch top
+
+	run_documented_stack_checkout 41
+
+	[ "$status" -eq 0 ]
+	grep -F 'command [stack] [checkout] [41]' "$GH_LOG"
+	[ "$(git branch --show-current)" = feature ]
+}
+
+@test "stack-number checkout restores a numeric entry branch with plain Git" {
+	git branch top
+	git switch -c 17 >/dev/null 2>&1
+
+	run_documented_stack_checkout 41
+
+	[ "$status" -eq 0 ]
+	[ "$(git branch --show-current)" = 17 ]
+	! grep -q 'command \[stack\] \[checkout\] \[17\]' "$GH_LOG"
+}
+
+@test "stack checkout refuses an undetermined stack number or a dirty tree" {
+	run_documented_stack_checkout ''
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"stack number could not be determined"* ]]
+	! grep -q 'command \[stack\] \[checkout\]' "$GH_LOG"
+	printf 'uncommitted work\n' >>tracked.txt
+	run_documented_stack_checkout 41
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"clean working tree is required"* ]]
+	! grep -q 'command \[stack\] \[checkout\]' "$GH_LOG"
+}
+
+@test "stack checkout stops when importing fails" {
+	export MOCK_STACK_CHECKOUT_STATUS=4
+
+	run_documented_stack_checkout 41
+
+	[ "$status" -eq 1 ]
+	[ "$(git branch --show-current)" = feature ]
+}
+
 @test "passes a metacharacter branch to gh as one inert argument" {
 	local branch='topic-$(touch${IFS}$PWNED_FILE)'
 	export PWNED_FILE="$TMP_DIR/pwned"
@@ -298,7 +585,12 @@ load_assignments() {
 		"$REPO_ROOT/skills/pr:rebase/SKILL.md" \
 		"$REPO_ROOT/skills/pr:stack/SKILL.md"; do
 		grep -F 'resolve-stack-membership.sh' "$consumer"
+		grep -F '${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-checkout.md' "$consumer"
+		! grep -F 'gh stack checkout "$STACK_PR_NUMBER"' "$consumer"
 	done
+	grep -F 'gh stack checkout "$STACK_NUMBER"' "$REPO_ROOT/shared/git/references/stack-checkout.md"
+	grep -F 'git switch -- "$STACK_RESTORE_BRANCH"' "$REPO_ROOT/shared/git/references/stack-checkout.md"
+	grep -F 'Retry only when the branch still equals `STACK_RESTORE_BRANCH` and membership is `local`' "$REPO_ROOT/shared/git/references/stack-checkout.md"
 
 	! grep -R -E 'gh stack view --json.*&& IN_STACK=true' \
 		"$REPO_ROOT/skills/git:fixup" \
@@ -373,7 +665,10 @@ load_assignments() {
 
 	grep -F 'highest PR the user intends to land' "$stack_skill"
 	grep -F 'use the top PR to land the entire stack' "$stack_skill"
-	grep -F 'gh stack merge "$TARGET_PR_NUMBER" "${MERGE_ARGS[@]}"' "$stack_skill"
+	grep -F 'gh stack merge "$MERGE_TARGET" "${MERGE_ARGS[@]}"' "$stack_skill"
+	grep -F 'Read `references/merge-target.md`' "$stack_skill"
+	grep -F 'On a partial-target collision, stop and ask the user how to proceed' "$stack_skill"
+	! grep -E 'gh stack (checkout|merge) <(branch-or-pr-number|pr-number|stack-number \\)' "$stack_skill" "$rules"
 	! grep -F 'Merging from the CLI is not supported' "$stack_skill" "$rules"
 	grep -F 'After `env -u GH_STACK_NO_ATOMIC gh stack sync`, all branches were restored' "$stack_skill"
 	grep -F 'After `gh stack rebase`, a rebase session remains active' "$stack_skill"

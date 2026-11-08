@@ -298,6 +298,8 @@ More review skills cover product, convention, UX, and GitHub-reviewer flows. Whi
 
 New work starts from the repository's workbench branch. Set it with `git config --local trackbed.baseBranch <branch>` when it differs from the remote default; the [shipping guide](trackbed/docs/shipping.md#base-branch) explains how the skills choose it.
 
+`/trackbed:pr:stack` uses stack numbers for remote checkout and whole-stack merges. Checkout recovery restores the original branch before retrying. Partial merges stop on stack-number collisions. Links preserve supplied PR identifiers; bare leading numbers require stack-number and local-branch collision checks, while explicit PR URLs bypass numeric selection.
+
 ### Inspect and test a live app
 
 ```bash
