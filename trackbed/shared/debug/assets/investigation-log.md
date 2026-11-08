@@ -11,6 +11,7 @@
 - **Method:** {how reproduced}
 - **Result:** {confirmed / could not reproduce}
 - **Evidence:** {test output, error message, stack trace}
+- **If unconfirmed:** {conditions under which the failure was reported or seen, and the attempts that did not trigger it}
 
 ### Phase 2: Isolate
 
@@ -44,3 +45,4 @@
 
 - **Tests:** {PASS / FAIL}
 - **Build:** {PASS / FAIL}
+- **Original failure:** {gone / still present / not rechecked}
