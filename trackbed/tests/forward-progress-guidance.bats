@@ -52,3 +52,18 @@ CONSUMERS=(
     test ! -e "$consumer/references/sources-snapshot"
   done
 }
+
+@test "forward progress recovers from a context reset using durable state" {
+  grep -qF "after a context reset or compaction, when drift symptoms such as repeated wrong file paths or API signatures or lost decisions appear" "$REFERENCE"
+  grep -qF "After a context reset or compaction, rebuild from durable state rather than memory:" "$REFERENCE"
+  grep -qF "Reload the current branch, the working-tree status, and the commits and diff since the base the active workflow resolved. Treat them as the record of what changed" "$REFERENCE"
+  grep -qF "If a failing check was being fixed when context was lost, rerun that check before continuing the fix" "$REFERENCE"
+  grep -qF "Count a confirmation or decision only when a surviving record shows it: a parent handoff, a written plan, or a commit. Otherwise ask again before the step it gates" "$REFERENCE"
+}
+
+@test "forward progress fixes defects before replay and defines valid checkpoints" {
+  grep -qF "When a demonstrated defect triggers the replay, fix the defect in the stage that produced it before rerunning that stage's dependency cone" "$REFERENCE"
+  grep -qF "A checkpoint counts as correctness evidence only when it names the check, the tree or input it ran against, the observed outcome, and the expected outcome." "$REFERENCE"
+  grep -qF "A checkpoint missing any of these is advisory progress state" "$REFERENCE"
+  grep -qF "It still counts as a substantive control when it establishes a property listed under Preserve Substantive Controls." "$REFERENCE"
+}

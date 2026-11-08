@@ -1,6 +1,6 @@
 # Preserve Forward Progress
 
-Load this when resuming prior work, retrying a failed step, or when stale markers, receipts, hashes, dashboards, or progress metadata would cause valid work to be repeated or completed stages to be rewound; it never bypasses controls that protect identity, authority, integrity, concurrency, resumability, scope, CI, or publication safety.
+Load this when resuming prior work, retrying a failed step, after a context reset or compaction, when drift symptoms such as repeated wrong file paths or API signatures or lost decisions appear, or when stale markers, receipts, hashes, dashboards, or progress metadata would cause valid work to be repeated or completed stages to be rewound; it never bypasses controls that protect identity, authority, integrity, concurrency, resumability, scope, CI, or publication safety.
 
 Keep an active implementation moving from its latest proven capability. Do not confuse advisory workflow state with either working output or evidence that the output is correct.
 
@@ -49,11 +49,19 @@ Establish the forward point as the latest stage with valid output and relevant c
 - an observed run disproves the earlier result; or
 - a changed dependency affects the stage.
 
-When replay is required, rerun the smallest affected dependency cone. Do not rewind unrelated stages or rerun unchanged implementation solely to recreate an advisory marker, receipt, dashboard row, or progress record.
+When replay is required, rerun the smallest affected dependency cone. When a demonstrated defect triggers the replay, fix the defect in the stage that produced it before rerunning that stage's dependency cone; replaying unchanged work only reproduces the defect. Do not rewind unrelated stages or rerun unchanged implementation solely to recreate an advisory marker, receipt, dashboard row, or progress record.
 
 A validated completion or implementation checkpoint is part of the forward point. Resume after it instead of repeating the implementation it already proves.
 
+A checkpoint counts as correctness evidence only when it names the check, the tree or input it ran against, the observed outcome, and the expected outcome. A checkpoint missing any of these is advisory progress state for correctness: it can say where work stood, but it cannot prove the work correct. It still counts as a substantive control when it establishes a property listed under Preserve Substantive Controls.
+
 When repeated incorrect file paths or API signatures, lost decisions, or a context reset make the next action uncertain, reload the current task requirements, applicable repository guidance, relevant source and types, and any validated checkpoint. Reconstruct the goal, constraints, completed work, and next action while preserving valid prior work and authorization boundaries. Lost conversational context alone does not invalidate completed work; check evidence against the current inputs before relying on it, and follow substantive recovery controls when uncertainty remains.
+
+After a context reset or compaction, rebuild from durable state rather than memory:
+
+- Reload the current branch, the working-tree status, and the commits and diff since the base the active workflow resolved. Treat them as the record of what changed; a remembered edit that they do not show did not happen.
+- If a failing check was being fixed when context was lost, rerun that check before continuing the fix, so the next edit targets the failure that exists now.
+- Count a confirmation or decision only when a surviving record shows it: a parent handoff, a written plan, or a commit. Otherwise ask again before the step it gates; a remembered approval does not outlive the conversation that held it.
 
 ## Handle a Blocking Workflow Safely
 

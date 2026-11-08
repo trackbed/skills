@@ -8,7 +8,7 @@
 
 ## Linear API Errors
 
-- Linear MCP operations unavailable: Linear MCP server is not connected — stop and ask the user to connect it
+- Linear MCP operations unavailable: before concluding that the server is not connected, load its Linear tools through the host's tool discovery (Claude Code can defer MCP tools until a `ToolSearch` query loads them) and make one real Linear call, such as the Step 1.2 issue lookup. Only when discovery finds no Linear tools, or that call fails with a connection error, stop and ask the user to connect the Linear MCP server. An authentication error is the "Authentication" case and a not-found result is the "Not found" case below, not a disconnected server
 - Rate limits: Wait and retry
 - Authentication: Direct user to check MCP setup
 - Not found: Verify issue ID and access

@@ -80,3 +80,57 @@ load 'test_helper/common'
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
+
+@test "linear issue implement loads tools, shows the issue, bounds fixes, and verifies outside criteria" {
+	run bash -c '
+    set -e
+    cd "'"$BATS_TEST_DIRNAME"'/.."
+    dir="skills/linear:issue-implement"
+    skill="$dir/SKILL.md"
+    errors="$dir/references/error-handling.md"
+    transition="$dir/references/status-transition.md"
+    workflows="$dir/references/implementation-workflows.md"
+    plan="$dir/assets/technical-plan.md"
+
+    grep -qF "load the Linear tools through the host'"'"'s tool discovery and make one real call first" "$skill"
+    grep -qF "load its Linear tools through the host'"'"'s tool discovery" "$errors"
+    grep -qF "and make one real Linear call" "$errors"
+    grep -qF "Only when discovery finds no Linear tools, or that call fails with a connection error" "$errors"
+    grep -qF "An authentication error is the \"Authentication\" case and a not-found result is the \"Not found\" case below, not a disconnected server" "$errors"
+    if grep -qF "Linear MCP operations unavailable: Linear MCP server is not connected" "$errors"; then false; fi
+
+    grep -qF "As soon as the fetch succeeds, display \`Linear issue: {identifier} — {title}\`" "$skill"
+    grep -qF "before the Step 1.4 status write and before any Step 2 branch change" "$skill"
+    show_line=$(grep -nF "**Show the issue before changing anything.**" "$skill" | head -n1 | cut -d: -f1)
+    fetch_line=$(grep -nF "### 1.2 Fetch Issue Details" "$skill" | head -n1 | cut -d: -f1)
+    transition_line=$(grep -nF "### 1.4 Apply the Authorized Status Transition" "$skill" | head -n1 | cut -d: -f1)
+    [ "$fetch_line" -lt "$show_line" ]
+    [ "$show_line" -lt "$transition_line" ]
+    grep -qF "includes the issue identifier and title, current state name and type" "$transition"
+
+    grep -qF "**Stop after two failed fixes for the same check.** Do not try a third edit." "$workflows"
+    grep -qF "Name the belief both attempts relied on" "$workflows"
+    grep -qF "and re-check it against the source" "$workflows"
+    grep -qF "If it was wrong and correcting it stays within the issue'"'"'s scope, correct it and note the change" "$workflows"
+    grep -qF "Otherwise stop with a blocker that names the check, both attempts, and the belief that failed" "$workflows"
+    grep -qF "the two-failed-fixes stop in step 3 applies here too" "$workflows"
+
+    grep -qF "Ensure every in-repository acceptance criterion is met, and mark each one met only from evidence for it" "$workflows"
+    if grep -qF "{criterion not yet met}" "$workflows"; then false; fi
+    grep -qF "For a criterion that lives outside the repository" "$workflows"
+    grep -qF "Mark it met only from what the live system shows through an available tool; otherwise list it as pending user action" "$workflows"
+    grep -qF "Pending user action:" "$workflows"
+    grep -qF "| Requirement | Technical Implementation | Verified In |" "$plan"
+
+    grep -qF "after a context reset or compaction, when drift symptoms appear" "$workflows"
+    grep -qF "Order each task'"'"'s new or changed interface and the tests that pin it before the implementation behind it" "$workflows"
+    grep -qF "Order each new or changed interface and the tests that pin it before the implementation behind it" "$workflows"
+    interface_line=$(grep -nF "Define {interface for task 1} and add the tests that pin it" "$workflows" | head -n1 | cut -d: -f1)
+    implement_line=$(grep -nF "Implement {task 1 from requirements} behind that interface" "$workflows" | head -n1 | cut -d: -f1)
+    [ "$interface_line" -lt "$implement_line" ]
+    grep -qF "an implementation-only task skips its interface item and keeps a test item after its implementation" "$workflows"
+    if grep -qF "Add tests for {task 1}" "$workflows"; then false; fi
+  '
+
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}

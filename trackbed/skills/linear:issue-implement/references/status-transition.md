@@ -39,7 +39,7 @@ In delegated mode, require the resolved `{target-status-id}` to equal the handof
 
 In delegated mode, skip this section: the parent already held this confirmation and section 1 validated its handoff. Never ask a second time for the same transition.
 
-In direct mode, if `{confirmed-state-type}` is anything other than `backlog`, ask one explicit confirmation that includes the issue identifier, current state name and type, target status name, and this exact question: `Proceed with implementation and move the issue to {target-status-name}?` This gate also applies when the issue is already `started`, `completed`, or `canceled`. Without an explicit confirmation, stop without changing Linear or the branch.
+In direct mode, if `{confirmed-state-type}` is anything other than `backlog`, ask one explicit confirmation that includes the issue identifier and title, current state name and type, target status name, and this exact question: `Proceed with implementation and move the issue to {target-status-name}?` This gate also applies when the issue is already `started`, `completed`, or `canceled`. Without an explicit confirmation, stop without changing Linear or the branch.
 
 `AUTO_MODE=true` does not remove this confirmation. A direct `--auto --set-in-progress` invocation still asks, because no parent gate stands behind it.
 
