@@ -65,14 +65,15 @@ If `--auto` is present, set `AUTO=true`, `IMPLEMENT=implement`, `POST=true`, and
 3. Capture the PR context:
 
    ```bash
-   PR_CONTEXT_JSON=$(gh pr view ${PR_SELECTOR:+"$PR_SELECTOR"} --json number,url,title,baseRefName,headRefName,reviewDecision,author)
+   PR_CONTEXT_JSON=$(gh pr view ${PR_SELECTOR:+"$PR_SELECTOR"} --json number,url,title,baseRefName,headRefName,headRefOid,reviewDecision,author)
    PR_NUMBER=$(printf '%s\n' "$PR_CONTEXT_JSON" | jq -r '.number // empty')
    PR_URL=$(printf '%s\n' "$PR_CONTEXT_JSON" | jq -r '.url // empty')
    BASE_BRANCH=$(printf '%s\n' "$PR_CONTEXT_JSON" | jq -r '.baseRefName // empty')
+   PR_HEAD=$(printf '%s\n' "$PR_CONTEXT_JSON" | jq -r '.headRefOid // empty')
    PR_AUTHOR=$(printf '%s\n' "$PR_CONTEXT_JSON" | jq -r '.author.login // empty')
    ```
 
-4. If no PR is found, or `PR_NUMBER`, `BASE_BRANCH`, `PR_URL`, or `PR_AUTHOR` is empty, ask the user for a PR URL and stop.
+4. If no PR is found, or `PR_NUMBER`, `BASE_BRANCH`, `PR_HEAD`, `PR_URL`, or `PR_AUTHOR` is empty, ask the user for a PR URL and stop.
 5. Capture repository and actor context. Derive `OWNER` and `REPO` from `PR_URL` so a URL for another repository does not accidentally target the current checkout's repository:
 
    ```bash
@@ -86,15 +87,23 @@ If `--auto` is present, set `AUTO=true`, `IMPLEMENT=implement`, `POST=true`, and
    SELF=$(gh api user --jq .login)
    ```
 
-6. Fetch the PR base branch if available so local code inspection has the same context as the reviewer:
+6. Set `PR_FETCH_REMOTE` to an existing configured Git remote whose repository matches `REPO_NWO`, preserving its transport and authentication. Use `origin` when it matches; if no remote matches, stop and report the expected repository. Fetch the selected PR's base and head, verify the captured head, and compute the merge base for anchor inspection. Stop on any failed fetch, missing object, or head mismatch; refresh PR context before retrying a changed head.
 
    ```bash
-   git fetch origin "refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}"
+   git fetch "$PR_FETCH_REMOTE" "refs/heads/$BASE_BRANCH" || exit 1
+   PR_BASE=$(git rev-parse FETCH_HEAD) || exit 1
+   git fetch "$PR_FETCH_REMOTE" "refs/pull/$PR_NUMBER/head" || exit 1
+   FETCHED_PR_HEAD=$(git rev-parse FETCH_HEAD) || exit 1
+   if [ "$FETCHED_PR_HEAD" != "$PR_HEAD" ]; then
+     echo "PR head changed; refresh PR context before inspecting feedback." >&2
+     exit 1
+   fi
+   MERGE_BASE=$(git merge-base "$PR_BASE" "$PR_HEAD") || exit 1
    ```
 
 ## Step 2: Fetch Review Feedback
 
-Fetch inline review comments, GraphQL review thread metadata, review-summary comments, and general PR comments.
+Read `${CLAUDE_PLUGIN_ROOT}/shared/pr-review/references/review-thread-location.md` for the shared anchor fields, submission filter, and locating rules. Fetch inline review comments, GraphQL review thread metadata, review-summary comments, and general PR comments; retain the shared REST anchor fields and review IDs for fallback.
 
 **REST comments** - use this for stable comment IDs, node IDs, paths, line numbers, diff hunks, URLs, and `in_reply_to_id`:
 
@@ -114,7 +123,7 @@ gh api --paginate "repos/$OWNER/$REPO/pulls/$PR_NUMBER/reviews"
 gh api --paginate "repos/$OWNER/$REPO/issues/$PR_NUMBER/comments"
 ```
 
-**GraphQL threads** - use this for thread IDs and resolution state:
+**GraphQL threads** - use this for thread IDs, resolution state, and the complete anchor:
 
 ```bash
 gh api graphql -f owner="$OWNER" -f name="$REPO" -F number="$PR_NUMBER" -f query='
@@ -126,12 +135,22 @@ query($owner: String!, $name: String!, $number: Int!, $cursor: String) {
         nodes {
           id
           isResolved
+          isOutdated
+          path
+          diffSide
+          startDiffSide
+          line
+          startLine
+          originalLine
+          originalStartLine
+          subjectType
           comments(first: 100) {
             nodes {
               id
               body
               url
               createdAt
+              state
               isMinimized
               minimizedReason
               author { login __typename }
@@ -152,6 +171,8 @@ If GraphQL fails but REST succeeds, resolution state is unknown for inline threa
 
 Group feedback into actionable items.
 
+First apply the shared submission filter: exclude `PENDING` comments and reviews before grouping, choosing latest authors, or counting items, including your own pending review IDs in REST-only fallback. This applies even with `--all`. Drop pending-only threads. Exclude `DISMISSED` review summaries unless `--all` is set; retained summaries must show their review state. Dismissed summaries do not imply resolved inline threads.
+
 1. Join REST comments to GraphQL comments by node ID (`REST.node_id` equals `GraphQL.id`).
 2. Treat the first comment in a GraphQL thread as the root comment. For REST-only fallback, group by `in_reply_to_id` where present; root comments have no `in_reply_to_id`.
 3. Treat each review summary with a non-empty body as a single `review-summary` item. Ignore empty approval/comment shells with no actionable body.
@@ -169,14 +190,15 @@ If no items remain after filtering, report that no unanswered review feedback wa
 
 ## Step 4: Classify Each Item
 
-For every remaining item, inspect the relevant code and branch diff before drafting a reply.
+For every remaining item, inspect the relevant code and branch diff before drafting a reply. Follow the shared locating rules from Step 2: verify the selected PR head, use the merge base for deleted-line anchors, inspect full ranges or whole-file subjects, and recover outdated anchors before comparing with the current implementation. Preserve the original anchor and current evidence separately; `isOutdated` is never proof of `already-addressed`.
 
 Use these commands as needed:
 
 ```bash
-git diff "origin/$BASE_BRANCH"...HEAD -- "$PATH"
-sed -n '<start>,<end>p' "$PATH"
+git diff "$MERGE_BASE" "$PR_HEAD" -- "$THREAD_PATH"
 ```
+
+Read each anchor's blob and inclusive range as the shared reference requires, rather than applying every thread's line number to the current file. Before implementing changes, verify the working branch belongs to this PR and reconcile any local commits with the fetched head.
 
 Classify each item as exactly one:
 
@@ -293,6 +315,9 @@ Unless `--inline` is set, create or update `GITHUB_REVIEW_REPLY_PLAN.md` in the 
 | Thread ID | `<graphql-thread-id, unavailable, or n/a>` |
 | Root comment ID | `<rest-root-comment-id or n/a>` |
 | Comment ID | `<review id or issue comment id, when applicable>` |
+| Review state | `<submitted review state, including DISMISSED with --all, or n/a>` |
+| Original anchor | `<path; LINE/FILE; start/end sides and range; outdated state; revision, or n/a>` |
+| Current verification | `<current location and code evidence, or cant-tell with the missing evidence>` |
 | Source comment links | one or more Markdown links to the source GitHub review/general comments, or `unavailable` with a reason |
 | Original author | `@<login>` |
 | Original author type | one of `human`, `bot`, `app`, `unknown` |

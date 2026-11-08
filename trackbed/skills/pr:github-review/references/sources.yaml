@@ -26,7 +26,7 @@ sources:
   - id: github-rest-pull-review-comments
     url: https://docs.github.com/en/rest/pulls/comments
     title: "GitHub REST API endpoints for pull request review comments"
-    rationale: "The skill uses this source for listing existing inline review comments and for the manual-posting appendix that replies to an existing review thread."
+    rationale: "The skill uses this source for inline comment IDs, diff sides, full ranges, file subjects, original revisions, and the manual-posting appendix for thread replies."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     fetch_mode: curl-html
@@ -34,7 +34,7 @@ sources:
   - id: github-graphql-pull-review-threads
     url: https://docs.github.com/en/graphql/reference/pulls
     title: "GitHub GraphQL Pull requests reference"
-    rationale: "The skill uses this source for reviewThreads metadata and resolution state when mapping an ongoing review conversation."
+    rationale: "The skill uses this source for reviewThreads anchors, outdated and resolution state, and comment submission state when mapping an ongoing review conversation."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     fetch_mode: curl-html

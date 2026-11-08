@@ -4,6 +4,8 @@ setup() {
 	PLUGIN_ROOT="$BATS_TEST_DIRNAME/.."
 	SKILL="$PLUGIN_ROOT/skills/pr:github-review/SKILL.md"
 	CONVERSATION_REFERENCE="$PLUGIN_ROOT/skills/pr:github-review/references/conversation-fetch.md"
+	THREAD_LOCATION_REFERENCE="$PLUGIN_ROOT/shared/pr-review/references/review-thread-location.md"
+	REPLY_SKILL="$PLUGIN_ROOT/skills/pr:github-review-reply/SKILL.md"
 	COMMENT_REFERENCE="$PLUGIN_ROOT/skills/pr:github-review/references/comment-drafting.md"
 	DRAFT_REFERENCE="$PLUGIN_ROOT/skills/pr:github-review/references/draft-review.md"
 	REPORT_TEMPLATE="$PLUGIN_ROOT/skills/pr:github-review/references/report-template.md"
@@ -212,6 +214,118 @@ PY
     ! grep -qF "this skill never posts" "$1"
   ' _ "$CONVERSATION_REFERENCE"
 
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
+@test "both GitHub review skills read the same shared thread locating contract" {
+	run python3 - "$SKILL" "$REPLY_SKILL" "$THREAD_LOCATION_REFERENCE" <<'PY'
+import pathlib
+import sys
+
+review, reply, location = [pathlib.Path(path).read_text() for path in sys.argv[1:]]
+shared = '${CLAUDE_PLUGIN_ROOT}/shared/pr-review/references/review-thread-location.md'
+assert shared in review[review.index('## Step 7:'):review.index('## Step 8:')]
+assert 'PR_HEAD="$HEAD_OID"' in review[review.index('## Step 7:'):review.index('## Step 8:')]
+assert shared in reply[reply.index('## Step 2:'):reply.index('## Step 3:')]
+for field in ['path', 'diffSide', 'startDiffSide', 'line', 'startLine', 'originalLine',
+              'originalStartLine', 'subjectType', 'isOutdated', 'state', 'side',
+              'start_side', 'start_line', 'original_line', 'original_start_line',
+              'subject_type', 'commit_id', 'original_commit_id', 'diff_hunk',
+              'pull_request_review_id']:
+    assert f'`{field}`' in location, f'shared contract lost {field}'
+PY
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
+@test "both review thread queries fetch side range subject outdated and comment state" {
+	run python3 - "$CONVERSATION_REFERENCE" "$REPLY_SKILL" <<'PY'
+import pathlib
+import re
+import sys
+
+required = {'path', 'diffSide', 'startDiffSide', 'line', 'startLine',
+            'originalLine', 'originalStartLine', 'subjectType', 'isOutdated'}
+for path in sys.argv[1:]:
+    text = pathlib.Path(path).read_text()
+    query = next(block for block in re.findall(r'```bash\n(.*?)\n```', text, re.S)
+                 if 'reviewThreads(first: 100' in block)
+    thread, comments = query.split('comments(first: 100)', 1)
+    assert required <= set(re.findall(r'\b\w+\b', thread)), path
+    assert re.search(r'\bstate\b', comments), f'{path}: comment state must be fetched'
+    assert 'pageInfo { hasNextPage endCursor }' in query
+PY
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
+@test "thread locating distinguishes deleted ranges file subjects and outdated history" {
+	run python3 - "$THREAD_LOCATION_REFERENCE" "$SKILL" "$CONVERSATION_REFERENCE" "$REPLY_SKILL" <<'PY'
+import pathlib
+import sys
+
+location, review, conversation, reply = [pathlib.Path(path).read_text() for path in sys.argv[1:]]
+file_subject = location.split('1. **File subject:**', 1)[1].split('2. **Current line anchor:**', 1)[0]
+assert 'read the whole file' in file_subject and 'Do not invent a line number' in file_subject
+current = location.split('2. **Current line anchor:**', 1)[1].split('3. **Outdated', 1)[0]
+for term in ['`RIGHT` selects the PR head blob', '`LEFT` selects the merge-base blob',
+             'inclusive', 'startLine..line', 'start_line..line', 'both start and end sides', 'both blobs']:
+    assert term in current, term
+outdated = location.split('3. **Outdated', 1)[1]
+for term in ['original_commit_id', 'original_start_line', 'original_line', 'diff_hunk',
+             'historical base blob', 'trace renames, moves', 'current merge base may differ',
+             'Do not apply an original line number to the current file',
+             'Neither `isOutdated` nor a missing file proves', 'record `cant-tell`']:
+    assert term in outdated, term
+assert 'git show HEAD:<path>' not in review + conversation
+classification = reply[reply.index('## Step 4:'):reply.index('## Step 5:')]
+assert 'sed -n' not in classification
+assert 'git diff "$MERGE_BASE" "$PR_HEAD"' in classification
+assert 'isOutdated` is never proof of `already-addressed`' in classification
+identify = reply[reply.index('## Step 1:'):reply.index('## Step 2:')]
+for term in ['headRefOid', 'refs/pull/$PR_NUMBER/head', '"$FETCHED_PR_HEAD" != "$PR_HEAD"',
+             'MERGE_BASE=$(git merge-base "$PR_BASE" "$PR_HEAD") || exit 1',
+             'configured Git remote whose repository matches `REPO_NWO`',
+             'git fetch "$PR_FETCH_REMOTE"', 'preserving its transport and authentication']:
+    assert term in identify, term
+assert 'git fetch "https://github.com/' not in identify
+PY
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
+@test "pending feedback is filtered before grouping and dismissed summaries need all" {
+	run python3 - "$THREAD_LOCATION_REFERENCE" "$CONVERSATION_REFERENCE" "$REPLY_SKILL" "$PLUGIN_ROOT/skills/pr:github-review/references/delta-review.md" <<'PY'
+import pathlib
+import sys
+
+location, conversation, reply, delta = [pathlib.Path(path).read_text() for path in sys.argv[1:]]
+for term in ['state == PENDING', 'pull_request_review_id', 'pending-only thread',
+             'pending tail hide submitted feedback', 'Exclude `PENDING` reviews',
+             'even with `--all` or `--all-threads`', 'state == DISMISSED',
+             'unless `--all` is set', 'does not establish that its inline threads were resolved']:
+    assert term in location, term
+group = conversation[conversation.index('## 2. Group'):conversation.index('## 3. Filter')]
+assert group.index('exclude `PENDING`') < group.index('1. Join')
+mapping = reply[reply.index('## Step 3:'):reply.index('## Step 4:')]
+assert mapping.index('exclude `PENDING`') < mapping.index('1. Join')
+assert 'Exclude `DISMISSED` review summaries unless `--all` is set' in mapping
+assert 'Never select a `PENDING` review' in delta
+PY
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
+@test "review reports preserve historical anchors and separate current verification" {
+	run python3 - "$REPORT_TEMPLATE" "$REPLY_SKILL" <<'PY'
+import pathlib
+import sys
+
+report, reply = [pathlib.Path(path).read_text() for path in sys.argv[1:]]
+assert 'DISMISSED | none; submitted reviews only, never PENDING' in report
+for term in ['Original anchor:', 'Current location:', 'path (file-level)', 'full range']:
+    assert term in report, term
+plan = reply[reply.index('## Step 7:'):reply.index('## Step 8:')]
+for term in ['| Review state |', '| Original anchor |', '| Current verification |',
+             'DISMISSED with --all', 'LINE/FILE', 'cant-tell']:
+    assert term in plan, term
+PY
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
