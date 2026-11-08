@@ -1707,6 +1707,7 @@
   },
   "source_provenance": {
     "manifest_glob": "trackbed/skills/*/references/sources.yaml",
+    "shared_manifest_globs": ["trackbed/scripts/*/sources.yaml"],
     "forbidden_snapshot_globs": [
       "trackbed/skills/*/references/sources-snapshot",
       ".agents/skills/*/references/sources-snapshot"
