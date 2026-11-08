@@ -55,7 +55,7 @@ Then confirm which of these the standard verification command and CI actually ex
 - **Structural rule:** a Dylint library or an ast-grep rule.
 - **Tests:** `trybuild` compile-fail tests or `compile_fail` doctests pin that the mistake does not compile.
 - **Baseline:** `#[expect(clippy::<lint>, reason = "...")]` at existing sites (Rust 1.81+), which warns once the suppression becomes unnecessary.
-- **Suppression guard:** set Clippy `allow_attributes` and `allow_attributes_without_reason` and the rustc lint `unfulfilled_lint_expectations` to `deny`, so every suppression is an `#[expect]` with a `reason` and a stale one fails the build.
+- **Suppression guard:** set Clippy `allow_attributes` and `allow_attributes_without_reason` and the rustc lint `unfulfilled_lint_expectations` to `deny`, so every outer suppression is an `#[expect]` with a `reason` and a stale one fails the build. `allow_attributes` does not flag an inner `#![allow]`, which only `forbid` blocks.
 
 ## Java and Kotlin
 
@@ -95,10 +95,10 @@ Use a test or script when no single file shows the mistake:
 
 Use this catalog in Step 5 to block each way a check can go green without a fix. Prefer a guard the repository already runs, and report a route with no guard as a follow-up.
 
-- **Inline disable:** the suppression guards above, enabled and raised to error, keep suppressions specific, explained, and pruned once stale, but none rejects a new disable of the rule that is in use. Only ESLint `noInlineConfig`, a `forbid` lint level in Rust, or a check that fails when a suppression naming the new rule appears blocks this route.
+- **Inline disable:** ESLint `noInlineConfig` or `@eslint-community/eslint-comments/no-restricted-disable` naming the rule, Ruff `--ignore-noqa` in the entry point, a `forbid` lint level in Rust, or a check that fails when a suppression naming the new rule appears. The suppression guards above, enabled and raised to error, prune stale suppressions and, depending on the tool, require a rule code or a reason, but none rejects a new disable of the rule that is in use. When the baseline itself is inline suppressions, such as `#[expect]`, `//nolint`, or `--add-noqa` comments, these blockers would void it, so use the check that counts suppressions naming the rule against the merge base instead.
 - **New baseline entry:** the shrink-only check from Step 2.
 - **Widened exclude or path filter:** a test that places violating input at a path inside the governed scope, for example by copying a fixture into place, runs the real entry point with the repository's configuration, and expects a non-zero exit with the diagnostic. It catches only an exclude that covers that path. A rule-unit test such as `RuleTester` never reads the configuration, so it does not count.
-- **Lowered severity:** an assertion that the rule is configured at error level, or the entry-point test above, which requires a non-zero exit rather than a warning. A rule-unit test ignores the configured severity.
+- **Lowered severity:** an assertion that the rule is configured at error level, or the entry-point test above, which requires a non-zero exit rather than a warning.
 - **Deleted or emptied fixture:** a test that names the fixture paths it expects and fails when one is missing or no longer fails the check.
 
 ## Agent Hooks

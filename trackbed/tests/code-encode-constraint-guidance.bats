@@ -80,10 +80,11 @@ setup() {
 }
 
 @test "encode constraint proves rejection through the commands that actually run" {
-  grep -qF 'Then run the same mistake through the exact local verification entry point named in the Wired step, and through the CI command too when it can run locally, and require a non-zero exit from each.' "$SKILL"
+  grep -qF 'Then run the same mistake through the exact local verification entry point named in the Wired step, and through the CI command too when it can run locally, and require a non-zero exit from each with the Step 4 diagnostic in its output; a failure from another check does not count.' "$SKILL"
   grep -qF 'a wrapper that swallows exit codes, a path filter, or a warning-level severity can let the mistake through' "$SKILL"
   grep -qF 'Run one legitimate exception from the Step 1 scope through the same entry point; it must pass.' "$SKILL"
   grep -qF 'If the check fails directly but the entry point passes, fix the wiring before continuing.' "$SKILL"
+  grep -qF 'If the invariant has no legitimate exception, say so in the report.' "$SKILL"
   wired_line="$(grep -n '^2\. \*\*Wired:\*\*' "$SKILL" | cut -d: -f1)"
   red_line="$(grep -n '^3\. \*\*Red:\*\*' "$SKILL" | cut -d: -f1)"
   [ -n "$wired_line" ] && [ -n "$red_line" ] && [ "$wired_line" -lt "$red_line" ]
@@ -91,11 +92,9 @@ setup() {
 
 @test "encode constraint blocks or reports every way a check can pass without a fix" {
   grep -qF '**Guarded:** list the ways the check could pass without a fix: an inline disable comment, a new baseline entry, a widened exclude or path filter, a lowered severity, and a deleted or emptied fixture.' "$SKILL"
-  grep -qF 'name the existing mechanism that blocks it' "$SKILL"
-  grep -qF 'or report it as a follow-up' "$SKILL"
   grep -qF '**Bypass guards:** each way the check could pass without a fix, with the mechanism that blocks it or `unguarded`.' "$SKILL"
   grep -qF 'unguarded bypasses' "$SKILL"
-  grep -qF 'name the existing mechanism that blocks it from the bypass catalog in `references/mechanisms.md`' "$SKILL"
+  grep -qF 'For each one, name the existing mechanism that blocks it from the bypass catalog in `references/mechanisms.md`, or report it as a follow-up.' "$SKILL"
   grep -qF '## Guard the Check Against Bypass' "$MECHANISMS"
   grep -qF 'but none rejects a new disable of the rule that is in use' "$MECHANISMS"
   grep -qF 'A rule-unit test such as `RuleTester` never reads the configuration, so it does not count.' "$MECHANISMS"
@@ -107,8 +106,9 @@ setup() {
 
 @test "encode constraint keeps baselines shrink-only" {
   grep -qF 'Record the count so it can only shrink.' "$SKILL"
-  grep -qF 'fail when the baseline gains an entry that is not in the recorded list or its count rises above the recorded count' "$SKILL"
-  grep -qF 'When a fix removes an entry, lower the recorded count in the same change' "$SKILL"
+  grep -qF 'compare the baseline with its copy at the merge base and fail when it holds an entry that copy lacks or more entries than it' "$SKILL"
+  grep -qF 'Treat a missing merge base as a could-not-judge case' "$SKILL"
+  grep -qF 'with the baseline location and what keeps it shrink-only' "$SKILL"
   grep -qF -- '- **New baseline entry:** the shrink-only check from Step 2.' "$MECHANISMS"
 }
 
@@ -123,7 +123,7 @@ setup() {
 @test "encode constraint reports superseded instruction rules without editing them" {
   grep -qF 'for rules that the new check now enforces. Do not edit them.' "$SKILL"
   grep -qF '**Proof:** the red command with its failure excerpt' "$SKILL"
-  grep -qF 'the entry-point and CI commands with their non-zero exits (or why the CI command could not run locally)' "$SKILL"
+  grep -qF 'the entry-point and CI commands with their non-zero exits and diagnostic excerpts (or why the CI command could not run locally), the could-not-judge run and its status for a rung 5 script, the green command, the legitimate exception that passed or that none exists' "$SKILL"
   grep -qF '**Existing violations:** how many were fixed and how many were baselined' "$SKILL"
 }
 
