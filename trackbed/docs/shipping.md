@@ -30,6 +30,8 @@ Configure the workbench in each repository rather than assuming a branch's role 
 
 Before implementation, `issue-to-pr` validates Linear's target branch and verifies that it has no existing Pull Request or remote branch on `origin`. A normal invocation requires a clean tree.
 
+It shows the resolved issue identifier and title before any mutation. Intake stops on research, decision, or diagnosis-only issues and parents whose work is already split into sub-issues, naming a suggested skill without invoking it. Unclear cases proceed through the existing implementation gates.
+
 `--continue` instead preserves an interrupted local implementation only when all of these hold:
 
 - Linear already places the issue in the resolved started status;
@@ -48,7 +50,7 @@ A Backlog issue is moved automatically to the team's resolved started status, pr
 - That child repeats the pre-write race close, updates the status field alone, and verifies it by reading the issue back before it creates a branch.
 - Resume mode never performs this transition.
 
-Once the state gate passes, a detected Conductor workspace is renamed best-effort to `ISSUE-ID: normalized issue title`. Missing CLI access, authentication, or rename support is reported without blocking canonical work. Continuations preserve the existing workspace name.
+Once the state gate passes, a detected Conductor workspace is renamed best-effort to `ISSUE-ID: normalized issue title`. Detection uses `CONDUCTOR_WORKSPACE_PATH`; a missing workspace identifier skips the rename before probing the CLI. Missing CLI access, authentication, or rename support is reported without blocking canonical work. Continuations preserve the existing workspace name.
 
 ### Review, Verification, and Shipping
 

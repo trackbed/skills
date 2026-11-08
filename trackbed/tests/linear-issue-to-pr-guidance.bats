@@ -220,7 +220,12 @@
     test -f "$adapter"
     grep -qF "After Step 10 closes the confirmation race" "$skill"
     grep -qF "Use the title from that freshest issue response as inert input" "$skill"
-    grep -qF "CONDUCTOR_WORKSPACE_ID" "$adapter"
+    grep -qF "Detect Conductor only when \`CONDUCTOR_WORKSPACE_PATH\` is set and non-empty" "$adapter"
+    grep -qF "require a non-empty \`CONDUCTOR_WORKSPACE_ID\`" "$adapter"
+    grep -qF "skipped — workspace identifier unavailable" "$adapter"
+    grep -qF "return without any CLI probe" "$adapter"
+    grep -qF "observed but undocumented" "$adapter"
+    grep -qF "cloud workspaces can also lack an automatic token" "$adapter"
     grep -qF "When it is absent, do not probe for the CLI or any Conductor tool" "$adapter"
     grep -qF "[A-Za-z0-9][A-Za-z0-9_-]*" "$adapter"
     grep -qF "Replace every run outside \`[A-Za-z0-9._ -]\` with one space" "$adapter"
@@ -242,6 +247,7 @@
     grep -qF "detected Conductor workspace is renamed best-effort" "$shipping_guide"
     grep -qF "id: conductor-openapi" "$sources"
     grep -qF "id: conductor-environment-variables" "$sources"
+    grep -qF "id: conductor-cloud-environment-variables" "$sources"
 
     adapter_line=$(grep -nF "After Step 10 closes the confirmation race" "$skill" | cut -d: -f1)
     delegate_line=$(grep -n "Invoke .*trackbed:linear:issue-implement" "$skill" | cut -d: -f1)
@@ -249,6 +255,50 @@
   '
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
+@test "Linear intake displays the issue and rejects clear non-PR work before mutation" {
+    run python3 - "$BATS_TEST_DIRNAME/.." <<'PYTEST'
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1])
+skill = (root / "skills/linear:issue-to-pr/SKILL.md").read_text()
+intake = (root / "skills/linear:issue-to-pr/references/issue-intake.md").read_text()
+sources = (root / "skills/linear:issue-to-pr/references/sources.yaml").read_text()
+lookup = skill.index("2. Fetch `{issue-id}`")
+intake_call = skill.index("read `references/issue-intake.md`", lookup)
+state_gate = skill.index("7. Re-fetch `{issue-id}` before the state gate")
+rename = skill.index("After Step 10 closes the confirmation race")
+delegate = skill.index("Invoke `trackbed:linear:issue-implement`")
+assert lookup < intake_call < state_gate < rename < delegate
+assert "including relations" in skill[lookup:intake_call]
+assert "Reapply `references/issue-intake.md` to the refreshed issue" in skill
+assert "title, requested work, or child relations changed, restart intake and the state gate" in skill
+confirmation = next(line for line in skill.splitlines() if line.startswith("9. When"))
+assert "issue identifier and title (`{issue-id}: {issue-title}`)" in confirmation
+assert skill.count("Issue title: {issue-title}") == 2
+assert "Issue intake does not fit one repository PR" in skill
+assert "clean up the preflight helper state" in skill
+assert "Show `Linear issue: {issue-id}: {issue-title}` in chat for every resolved issue" in intake
+assert "including a Backlog issue" in intake
+assert "both fresh and continuation modes" in intake
+assert "before the state gate or any Linear write, branch change, or workspace rename" in intake
+for result, route in [
+    ("Research or explanation", "trackbed:research"),
+    ("A decision or requirements discussion", "trackbed:discovery:interview"),
+    ("Diagnosis alone", "trackbed:debug:investigate"),
+    ("already split into sub-issues", "trackbed:linear:next"),
+]:
+    assert any(result in line and route in line for line in intake.splitlines())
+assert "Do not invoke that skill" in intake
+assert "Unclear cases proceed" in intake
+assert "Do not infer a split from a parent link or from the mere presence of children" in intake
+assert "documentation or test changes" in intake
+assert "untrusted inert text" in intake
+assert "id: compound-engineering-lfg-intake" in sources
+PYTEST
+    [ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
 @test "shared convergence validates an inert allowlisted caller handoff" {
