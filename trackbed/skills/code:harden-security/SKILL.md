@@ -249,7 +249,7 @@ This case-insensitive check names files whose staged changes match; it never pri
 - **Transmission** — over TLS, never via GET query string (ends up in server logs, proxy logs, browser history).
 - **Rotation** — documented cadence. A secret with no rotation path is already compromised — you just don't know when.
 - **Destruction** — zeroed in memory where the language allows; revoked upstream when no longer needed.
-- **Leak response** — when a secret reaches version control, logs, or another shared surface, rotate or revoke it before cleaning history. A history rewrite does not recall copies already pushed, cloned, or cached.
+- **Leak response** — when a secret reaches version control, logs, or another shared surface, rotate or revoke it before cleaning history.
 
 ## Integration with other skills
 

@@ -47,7 +47,7 @@ Review every relevant concern area before marking the slice done. Complete each 
 
 ## CSRF defense
 
-- [ ] Every cookie-authenticated state-changing endpoint has one server-enforced primary CSRF control: the framework's built-in protection, a server-validated token (a synchronizer token or a signed, session-bound double-submit cookie), a required custom header backed by a strict CORS policy, or Fetch Metadata with an origin fallback that accepts state changes only from `same-origin` requests.
+- [ ] Every cookie-authenticated state-changing endpoint has one server-enforced primary CSRF control: the framework's built-in protection, a server-validated token (a synchronizer token or a signed, session-bound double-submit cookie), a required custom header backed by a strict CORS policy, or Fetch Metadata that accepts state changes only when `Sec-Fetch-Site` is `same-origin`, with an origin fallback.
 - [ ] `SameSite` is set explicitly on those cookies and counts only as an extra layer, never as the primary control.
 - [ ] GET, HEAD, and OPTIONS never change state; a legacy endpoint that still changes state on one has its own explicit CSRF protection.
 - [ ] Origin checks fail closed when the source origin is missing or `null`, compare full origins (scheme, host, and port) exactly, take the target origin from configuration, and trust `Forwarded` or `X-Forwarded-Host` only when a known proxy sets it.
@@ -128,7 +128,7 @@ Review every relevant concern area before marking the slice done. Complete each 
 - [ ] Secrets never transmitted in URLs (GET query strings end up in server logs, proxy logs, browser history).
 - [ ] Secrets generated with a CSPRNG. No `Math.random()` for anything security-relevant.
 - [ ] Rotation path documented for every secret. A secret without a rotation path is already compromised.
-- [ ] A secret that reached version control, logs, or another shared surface is rotated or revoked before history is cleaned; a history rewrite does not recall copies already pushed, cloned, or cached.
+- [ ] A secret that reached version control, logs, or another shared surface is rotated or revoked before history is cleaned.
 - [ ] Default credentials for any self-hosted component changed before launch.
 - [ ] `.env.example` files describe variables without real values; `.env` files are gitignored.
 
