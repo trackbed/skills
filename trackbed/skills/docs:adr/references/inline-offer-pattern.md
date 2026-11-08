@@ -38,7 +38,7 @@ Copy this payload structure verbatim. Substitute only the three `{...}` evidence
 
 ## Handoff rule
 
-The offering skill MUST NOT author the ADR inline. It hands off to `/trackbed:docs:adr`, which runs its own 5-step authoring workflow. The offering skill MAY pre-load a decision title and a short context summary as `$ARGUMENTS` so the user does not have to retype them.
+The offering skill MUST NOT author the ADR inline. It hands off to `/trackbed:docs:adr`, which runs its own six-step authoring workflow. The offering skill MAY pre-load a decision title and a short context summary as `$ARGUMENTS` so the user does not have to retype them.
 
 ## De-duplication
 
