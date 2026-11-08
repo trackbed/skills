@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+bats_require_minimum_version 1.5.0
+
 setup() {
   SCRIPT_DIR="$BATS_TEST_DIRNAME/../scripts/dev-server"
   WORK_DIR="$BATS_TEST_TMPDIR/project"
@@ -575,4 +577,141 @@ JSON
 
   [ "$status" -eq 0 ]
   [ "$output" = "5174" ]
+}
+
+# Mocks for the ownership check: curl answers ANSWERING_PORTS, lsof maps each
+# LSOF_LISTENERS entry ("<port>=<cwd>") to a listener, and ss finds nothing.
+write_owner_mocks() {
+  mkdir -p "$MOCK_BIN"
+  cat >"$MOCK_BIN/curl" <<'SH'
+#!/usr/bin/env bash
+url="${@: -1}"
+for port in ${ANSWERING_PORTS:-}; do
+  if [ "$url" = "http://localhost:$port" ]; then
+    printf '200'
+    exit 0
+  fi
+done
+printf '000'
+SH
+  cat >"$MOCK_BIN/lsof" <<'SH'
+#!/usr/bin/env bash
+args=" $* "
+for entry in ${LSOF_LISTENERS:-}; do
+  port="${entry%%=*}"
+  dir="${entry#*=}"
+  case "$args" in
+    *" -iTCP:$port "*)
+      echo "4$port"
+      exit 0
+      ;;
+    *" -p 4$port "*)
+      printf 'p4%s\nfcwd\nn%s\n' "$port" "$dir"
+      exit 0
+      ;;
+  esac
+done
+exit 1
+SH
+  printf '#!/usr/bin/env bash\nexit 0\n' >"$MOCK_BIN/ss"
+  chmod +x "$MOCK_BIN/curl" "$MOCK_BIN/lsof" "$MOCK_BIN/ss"
+}
+
+@test "detect-url stops when the selected launch configuration's port does not answer" {
+  mkdir -p "$WORK_DIR/.claude"
+  cat >"$WORK_DIR/.claude/launch.json" <<'JSON'
+{
+  "configurations": [
+    { "name": "web", "port": 3000 },
+    { "name": "admin", "port": 4200 }
+  ]
+}
+JSON
+  write_owner_mocks
+
+  ANSWERING_PORTS="3000 5173" PATH="$MOCK_BIN:$PATH" run --separate-stderr "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR" --launch-config admin
+
+  [ "$status" -eq 0 ]
+  [ "$output" = "__NO_RUNNING_SERVER__" ]
+  [[ "$stderr" == *"launch configuration port 4200 did not answer"* ]]
+}
+
+@test "detect-url stops when the only launch configuration's port does not answer" {
+  mkdir -p "$WORK_DIR/.claude"
+  cat >"$WORK_DIR/.claude/launch.json" <<'JSON'
+{
+  "configurations": [
+    { "name": "web", "port": 4200 }
+  ]
+}
+JSON
+  write_owner_mocks
+
+  ANSWERING_PORTS="3000" PATH="$MOCK_BIN:$PATH" run --separate-stderr "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR"
+
+  [ "$status" -eq 0 ]
+  [ "$output" = "__NO_RUNNING_SERVER__" ]
+}
+
+@test "detect-url --check-owner reports a server that another checkout serves" {
+  local other_dir="$BATS_TEST_TMPDIR/other-checkout"
+  mkdir -p "$other_dir/app"
+  git init -q "$WORK_DIR"
+  git init -q "$other_dir"
+  write_owner_mocks
+
+  ANSWERING_PORTS="5173" LSOF_LISTENERS="5173=$other_dir/app" PATH="$MOCK_BIN:$PATH" run --separate-stderr "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR" --check-owner
+
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "__FOREIGN_SERVER__" ]
+  [ "${lines[1]}" = "http://localhost:5173$(printf '\t')$(cd "$other_dir" && pwd -P)" ]
+}
+
+@test "detect-url --check-owner accepts a server this checkout serves" {
+  mkdir -p "$WORK_DIR/web"
+  git init -q "$WORK_DIR"
+  write_owner_mocks
+
+  ANSWERING_PORTS="5173" LSOF_LISTENERS="5173=$WORK_DIR/web" PATH="$MOCK_BIN:$PATH" run --separate-stderr "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR" --check-owner
+
+  [ "$status" -eq 0 ]
+  [ "$output" = "http://localhost:5173" ]
+}
+
+@test "detect-url --check-owner flags a server whose checkout cannot be determined" {
+  git init -q "$WORK_DIR"
+  write_owner_mocks
+
+  ANSWERING_PORTS="5173" PATH="$MOCK_BIN:$PATH" run --separate-stderr "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR" --check-owner
+
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "__UNCONFIRMED_OWNER__" ]
+  [ "${lines[1]}" = "http://localhost:5173" ]
+}
+
+@test "detect-url --check-owner drops another checkout's server from the common-port scan" {
+  local other_dir="$BATS_TEST_TMPDIR/sibling-workspace"
+  mkdir -p "$other_dir"
+  git init -q "$WORK_DIR"
+  git init -q "$other_dir"
+  write_owner_mocks
+
+  ANSWERING_PORTS="3000 5173" LSOF_LISTENERS="3000=$other_dir 5173=$WORK_DIR" PATH="$MOCK_BIN:$PATH" run --separate-stderr "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR" --check-owner
+
+  [ "$status" -eq 0 ]
+  [ "$output" = "http://localhost:5173" ]
+  [[ "$stderr" == *"skipped http://localhost:3000, served from another checkout"* ]]
+}
+
+@test "detect-url --check-owner leaves an explicit port unchecked" {
+  local other_dir="$BATS_TEST_TMPDIR/other-checkout"
+  mkdir -p "$other_dir"
+  git init -q "$WORK_DIR"
+  git init -q "$other_dir"
+  write_owner_mocks
+
+  ANSWERING_PORTS="5173" LSOF_LISTENERS="5173=$other_dir" PATH="$MOCK_BIN:$PATH" run --separate-stderr "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR" --port 5173 --check-owner
+
+  [ "$status" -eq 0 ]
+  [ "$output" = "http://localhost:5173" ]
 }

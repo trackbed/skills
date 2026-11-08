@@ -1060,3 +1060,63 @@ assert_context_value() {
 	[ "$status" -eq 0 ]
 	assert_text_row ".context ignored" "no"
 }
+
+@test "the checker uses no here-documents or here-strings" {
+	# Bash before 5.1 backs them with a temp file, which a sandbox that blocks writes refuses.
+	run grep -nE '<<' "$SCRIPT"
+	[ "$status" -eq 1 ]
+}
+
+@test "an empty managed settings file counts as an empty object" {
+	setup_all_tools_path
+	ln -sf "$REAL_JQ" "$FAKE_BIN/jq"
+	create_fake_tool "uname" "MINGW64_NT"
+	local program_files="$BATS_TEST_TMPDIR/Program Files"
+	local managed="$program_files/ClaudeCode/managed-settings.json"
+	mkdir -p "${managed%/*}" "$CLAUDE_CONFIG_DIR"
+	: >"$managed"
+	printf '{"extraKnownMarketplaces":{"trackbed":{"autoUpdate":true}}}\n' >"$CLAUDE_CONFIG_DIR/settings.json"
+
+	run env PROGRAMFILES="$program_files" PATH="$FAKE_BIN" "$BASH_PATH" "$SCRIPT" --json
+	[ "$status" -eq 0 ]
+	assert_context_value claudeAutoUpdate "on (local files; confirm session policy in /plugin)"
+}
+
+@test "a managed policy helper or marketplace allow or block list reports unknown" {
+	setup_all_tools_path
+	ln -sf "$REAL_JQ" "$FAKE_BIN/jq"
+	create_fake_tool "uname" "MINGW64_NT"
+	local program_files="$BATS_TEST_TMPDIR/Program Files"
+	local managed="$program_files/ClaudeCode/managed-settings.json"
+	mkdir -p "${managed%/*}" "$CLAUDE_CONFIG_DIR"
+	printf '{"extraKnownMarketplaces":{"trackbed":{"autoUpdate":true}}}\n' >"$CLAUDE_CONFIG_DIR/settings.json"
+
+	printf '{"policyHelper":{"command":"/opt/policy"},"extraKnownMarketplaces":{"trackbed":{"autoUpdate":true}}}\n' >"$managed"
+	run env PROGRAMFILES="$program_files" PATH="$FAKE_BIN" "$BASH_PATH" "$SCRIPT" --json
+	[ "$status" -eq 0 ]
+	assert_context_value claudeAutoUpdate "unknown (managed policy helper; check /plugin)"
+
+	for key in strictKnownMarketplaces allowedMarketplaces blockedMarketplaces; do
+		printf '{"%s":[]}\n' "$key" >"$managed"
+		run env PROGRAMFILES="$program_files" PATH="$FAKE_BIN" "$BASH_PATH" "$SCRIPT" --json
+		[ "$status" -eq 0 ]
+		assert_context_value claudeAutoUpdate "unknown (managed marketplace allow or block list; check /plugin)"
+	done
+}
+
+@test "an unreadable managed drop-in directory reports unknown" {
+	[ "$(id -u)" -ne 0 ] || skip "root can list unreadable directories"
+	setup_all_tools_path
+	ln -sf "$REAL_JQ" "$FAKE_BIN/jq"
+	create_fake_tool "uname" "MINGW64_NT"
+	local program_files="$BATS_TEST_TMPDIR/Program Files"
+	local managed="$program_files/ClaudeCode/managed-settings.json"
+	mkdir -p "${managed%/*}/managed-settings.d"
+	printf '{"extraKnownMarketplaces":{"trackbed":{"autoUpdate":false}}}\n' >"$managed"
+	chmod 000 "${managed%/*}/managed-settings.d"
+
+	run env PROGRAMFILES="$program_files" PATH="$FAKE_BIN" "$BASH_PATH" "$SCRIPT" --json
+	chmod 755 "${managed%/*}/managed-settings.d"
+	[ "$status" -eq 0 ]
+	assert_context_value claudeAutoUpdate "unknown (managed settings fragments unreadable; check /plugin)"
+}

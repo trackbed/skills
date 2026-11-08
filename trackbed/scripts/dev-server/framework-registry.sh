@@ -4,7 +4,7 @@
 # plugins/compound-engineering/skills/ce-polish/scripts/detect-project-type.sh
 # plugins/compound-engineering/skills/ce-polish/scripts/resolve-port.sh
 # Reviewed at commit 6f9ab03a031c054a8046659926251fb6c149269f.
-# Upstream license: MIT.
+# Upstream license: MIT. Full notice: EveryInc-LICENSE in this directory.
 #
 # Canonical registry for config-file-backed framework signatures and for
 # dev-server port probes and defaults.

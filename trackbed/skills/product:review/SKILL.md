@@ -64,11 +64,13 @@ Usage:
 **If URL is `auto`:** Resolve it with the shared dev-server detector used by `trackbed:browse`:
 
 ```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/dev-server/detect-url.sh auto
+${CLAUDE_PLUGIN_ROOT}/scripts/dev-server/detect-url.sh auto --check-owner
 ```
 
 - `http://...` or `https://...` — set `TARGET_URL` to that value and continue.
 - `__MULTIPLE_URLS__` — list the candidate URLs and ask the user to pick one; if the runtime cannot ask, hard stop with the candidate list.
+- `__FOREIGN_SERVER__` — another Git checkout serves every server found. List each URL with the directory that serves it and ask the user whether to review it; if the runtime cannot ask, hard stop with that list.
+- `__UNCONFIRMED_OWNER__` — set `TARGET_URL` to the URL on the next line, continue, and note in the review that the serving checkout could not be confirmed.
 - `__NO_RUNNING_SERVER__` — hard stop with: `Error: No running dev server detected. Start the application first, then re-run.`
 
 **Validate the URL format after auto-resolution.** If `TARGET_URL` does not begin with `http://` or `https://`, **hard stop**: `Error: TARGET_URL must be an http:// or https:// URL, or auto. Got: $TARGET_URL`. This rejects typos and keeps an unintended value from reaching the shell.

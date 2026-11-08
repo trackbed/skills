@@ -28,11 +28,13 @@ git bisect run <test-command>
 
 Exit codes: 0 = good, non-zero = bad, 125 = skip.
 
+A command that fails for any reason other than the bug also exits non-zero, so bisect counts that commit as bad and can name the wrong first-bad commit. Use test-runner arguments that every commit in the range accepts. For Jest, pass the test file as a positional path pattern: Jest 30 rejects `--testPathPattern`, and Jest 29 does not know its replacement `--testPathPatterns`.
+
 ### Examples
 
 ```bash
-# Jest
-git bisect run npx jest --testPathPattern="auth.spec.ts" --no-coverage --bail
+# Jest (positional path pattern works before and after Jest 30)
+git bisect run npx jest auth.spec.ts --no-coverage --bail
 
 # Custom script
 git bisect run bash -c 'npm run build && npm test -- --grep "specific test"'
@@ -63,7 +65,7 @@ git log --oneline origin/production -1
 # Skip untestable commits (exit 125)
 git bisect run bash -c '
   npm run build 2>/dev/null || exit 125
-  npm test -- --testPathPattern="specific" || exit 1
+  npm test -- specific || exit 1
 '
 ```
 

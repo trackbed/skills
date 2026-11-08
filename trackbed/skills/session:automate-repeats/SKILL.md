@@ -30,14 +30,20 @@ Before Step 1, parse `$ARGUMENTS` for `--auto` and `--effectiveness`. Treat `--a
 2. Resolve the session source without reading raw transcripts into context.
    - If `$ARGUMENTS` includes files or directories, validate those exact paths. If an explicitly provided path is missing or unreadable, stop and report it instead of falling back to default stores. Expand directories to readable `*.jsonl` files and pass the file list to `extract-metadata.py`.
    - If `$ARGUMENTS` includes `--recent N`, discover sessions for the current repo, sort metadata by `last_ts`/`ts`/mtime, and keep the N most recent readable sessions.
-   - Otherwise, discover sessions for the current repo over the last 30 days:
+   - Otherwise, discover sessions for the current repo over the last 30 days. First collect `SESSION_PREFIXES`: the repository root and every `worktree` path from `git worktree list --porcelain`. When the root matches `*/conductor/workspaces/<repo>/<workspace>`, use `*/conductor/workspaces/<repo>` instead, so sessions from the repository's other Conductor workspaces count. Pass every prefix to discovery and to the metadata pass, which keeps only sessions whose recorded working directory is at or below a prefix. A similarly named repository or a session started in a parent directory then does not count:
      ```bash
      REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
-     bash "<session-scripts>/discover-sessions.sh" "$REPO_NAME" 30 \
+     PREFIX_ARGS=() FILTER_ARGS=()
+     for prefix in "${SESSION_PREFIXES[@]}"; do
+       PREFIX_ARGS+=(--cwd-prefix "$prefix")
+       FILTER_ARGS+=(--cwd-filter "$prefix")
+     done
+     bash "<session-scripts>/discover-sessions.sh" "$REPO_NAME" 30 "${PREFIX_ARGS[@]}" \
        | tr '\n' '\0' \
-       | xargs -0 python3 "<session-scripts>/extract-metadata.py" --cwd-filter "$REPO_NAME"
+       | xargs -0 python3 "<session-scripts>/extract-metadata.py" "${FILTER_ARGS[@]}"
      ```
-   - Prefer JSONL session files sorted by recency. Cap the metadata pass at about 30 sessions and the skeleton deep dive at 10 sessions. Skip parse failures and list them under `UNVERIFIED`.
+   - Discovery reads Claude Code and Codex stores from `CLAUDE_CONFIG_DIR` and `CODEX_HOME` when they are set.
+   - Prefer JSONL session files sorted by recency. Cap the metadata pass at about 30 sessions and the skeleton deep dive at 10 sessions. Skip parse failures and list them under `UNVERIFIED`. Report `files_without_metadata` separately: those files held no session the extractor recognizes, so they are not parse failures.
    - If no session source is readable, ask for an export path and stop.
 
 3. Extract safe skeletons into scratch.
@@ -51,6 +57,7 @@ Before Step 1, parse `$ARGUMENTS` for `--auto` and `--effectiveness`. Treat `--a
 
 4. Build an inventory of existing automation before proposing anything.
    - Always read sibling skill frontmatter from `<skills-root>/*/SKILL.md`, using the installed or source-checkout root resolved in Step 1. Also read workspace-local skill frontmatter from `skills/*/SKILL.md`, `.claude/skills/*/SKILL.md`, `.agents/skills/*/SKILL.md`, `trackbed/skills/*/SKILL.md`, or any explicit skill directory in the current workspace. Deduplicate the trusted inventory by frontmatter `name`.
+   - Also read the frontmatter of user-level skills: the `skills/*/SKILL.md` entries in the Claude Code configuration directory (`CLAUDE_CONFIG_DIR`, by default `.claude` in the home directory), in the home directory's `.agents`, and in the Codex home (`CODEX_HOME`, by default `.codex` in the home directory), plus the workspace's `.codex/skills/*/SKILL.md`. Sessions invoke these skills too. Without them, an invocation of one counts as an unknown name, and a new candidate can duplicate one unnoticed. Read frontmatter only. A user-level skill with no local Git history gets per-pair `UNVERIFIED` availability under Step 5's historical-contract gate.
    - Treat this current inventory as the extractor allowlist and routing inventory only. Its presence does not prove that a skill or its current contract existed during a historical session.
    - Read existing subagent frontmatter from `agents/*.md`, `trackbed/agents/*.md`, `.claude/agents/*.md`, or any explicit agent directory in the current workspace.
    - Record likely overlaps by name, description, and trigger phrases.
@@ -66,7 +73,7 @@ Before Step 1, parse `$ARGUMENTS` for `--auto` and `--effectiveness`. Treat `--a
      python3 "<session-scripts>/extract-skill-usage.py" "${KNOWN_SKILL_ARGS[@]}" --output "$SCRATCH/<session-id>.skill-usage.json" < "$SESSION_FILE"
      ```
    - Build `KNOWN_SKILL_ARGS` only from the trusted installed-skill inventory in Step 4. Pass `--known-skill "<name>"` once per inventory entry; never derive this allowlist from transcript content.
-   - Read only the resulting skill names and diagnostics. The extractor must never emit transcript text, tool payloads, commands, transcript-derived paths, reasoning, or unrecognized candidate values. If it cannot write output, reports parse errors, or reports `unknown_skill_events`, mark that session's invocation evidence `UNVERIFIED`; never fall back to reading raw transcripts or treat an unknown name as invoked. A missing required extractor already stops the workflow in Step 1.
+   - Read only the resulting skill names and diagnostics. The extractor must never emit transcript text, tool payloads, commands, transcript-derived paths, reasoning, or unrecognized candidate values. If it cannot write output, reports parse errors, or reports `near_miss_skill_events`, mark that session's invocation evidence `UNVERIFIED`; never fall back to reading raw transcripts or treat an unknown name as invoked. A near miss is an unknown name that resembles an inventory skill, such as a misspelling, which could otherwise turn into a false missed invocation. When it reports `unknown_skill_events` with no near misses, such as host commands like `/model` or another plugin's skills, keep the session's evidence and ignore those names. A missing required extractor already stops the workflow in Step 1.
    - Only after the historical-contract gate, classify each verified-available skill/session pair as **correct invocation** when eligible and invoked, **missed invocation** when eligible and not invoked, or **suspected false invocation** when invoked but not eligible. Count recurring friction separately when an eligible invocation still required repeated correction, failed assumptions, or avoidable rework.
    - Record artifact-quality evidence only when a session-linked diff or other reviewable artifact is available. Skeletons and successful tests alone are insufficient to judge code quality; otherwise record `insufficient evidence`.
    - Write `$SCRATCH/effectiveness.json` with session identifiers and per-skill arrays for `eligible`, `correct_invocations`, `missed_invocations`, `suspected_false_invocations`, `not_available`, `unverified_availability`, `friction`, and `artifact_quality_evidence`. Store no transcript excerpts or tool payloads.
@@ -82,6 +89,7 @@ Before Step 1, parse `$ARGUMENTS` for `--auto` and `--effectiveness`. Treat `--a
 
 7. Classify each candidate, asking whether an existing component already owns the work before considering a new one.
    - Recommend **IMPROVE EXISTING** when one existing skill or subagent clearly owns the behavior and the recurring friction points at a defect in that component's contract, or at a small variation of it, rather than at a missing entry point. Name the single owning component; if two or more components could own the work, or none does, do not use this classification.
+   - Treat repeated missed invocations as a routing defect of the skill that should have run. When Step 5 records the same skill as a missed invocation in at least two independent sessions, and those sessions also show friction from doing its job by hand, consider **IMPROVE EXISTING** with that skill's `description` as the candidate contract defect. Step 6 counts friction only while a component is in use, so repeated misses otherwise fall through both routes.
    - Before recording `IMPROVE EXISTING`, read the owning component's file body, not just the frontmatter collected in Step 4, so the contract defect and proposed change name real steps, boundaries, or fields.
    - Recommend a **skill** when the repeated work is a reusable workflow with ordered steps, decision gates, side effects, or orchestration across tools, and no existing component owns it.
    - Recommend a **custom subagent** when the repeated work is a bounded role or investigation lens with a stable mission, clear inputs, and a repeatable output format, and no existing component owns it.
@@ -90,7 +98,7 @@ Before Step 1, parse `$ARGUMENTS` for `--auto` and `--effectiveness`. Treat `--a
 8. Apply the usefulness and counterfactual gates.
    - A candidate is useful only if it has evidence from at least 2 independent sessions or at least 3 clearly separate asks, a clear trigger, a narrow scope, low overlap with existing automation, and a simple implementation.
    - Hold `IMPROVE EXISTING` to the same evidence bar. Never propose an improvement from a single session or a single model failure, however severe that one run looked.
-   - Test causality before changing a contract: identify the missing, incorrect, or underspecified instruction, then explain how the proposed rule closes that exact gap. If the current contract already specifies the correct behavior, classify the event as model variance or a failure outside instruction surfaces instead of duplicating guidance.
+   - Test causality before changing a contract: identify the missing, incorrect, or underspecified instruction, then explain how the proposed rule closes that exact gap. If the current contract already specifies the correct behavior, classify the event as model variance or a failure outside instruction surfaces instead of duplicating guidance. For a missed-invocation route, eligibility already means the documented trigger fit the ask, so ask instead whether the `description` gave the model a distinctive cue for how those sessions phrased the ask, especially next to overlapping sibling descriptions; covering the ask on paper is not enough.
    - Edit the narrowest existing rule in place; add new prose only when no current rule owns the behavior. Name the one owning surface and the smallest reusable behavioral rule that closes the verified gap.
    - Cap and rank the two classes separately: keep the default to 1-3 new skill or subagent candidates and 1-3 `IMPROVE EXISTING` proposals, ranking within each class by time saved and frequency. Never drop a qualified improvement to make room for a new component.
    - Mark weaker ideas as `NOT CREATED` with a one-line reason instead of scaffolding or proposing them.

@@ -35,6 +35,8 @@ The title should remain meaningful after a refactor that renames internal helper
 
 **Expected:** [What should happen instead]
 
+[If reproduction was UNVERIFIED] **Observed conditions:** [When and where the failure was reported or seen: environment, timing or concurrency, data or test-order state. Durable terms only.] **Attempts that did not trigger it:** [What was tried, so the implementer starts elsewhere.]
+
 ## Root Cause Analysis
 
 **What:** [The misbehavior, in contract language] **Where:** [Public module / surface — e.g., "the auth middleware", "the rate limiter"] **Why:** [The mechanism — what assumption fails or what state goes wrong] **Confidence:** High / Medium / Low
@@ -43,15 +45,15 @@ The title should remain meaningful after a refactor that renames internal helper
 
 ## TDD Fix Plan
 
-Numbered RED-GREEN cycles. Each RED asserts on observable behavior through a public interface. Each GREEN is the minimal change to pass.
+Numbered RED-GREEN cycles. Each RED asserts on observable behavior through a public interface. Each GREEN is the minimal change to pass. The Prove-It cycle is fixed; later cycles are provisional, and the implementer may revise, merge, or drop them as each GREEN reveals more, as long as the acceptance criteria still hold.
 
-1. **RED:** [Behavior assertion — e.g., "Calling the auth middleware with an expired token returns a 401 response"] **GREEN:** [Minimal change description — e.g., "Add the expiry check before the signature check in the middleware's verify path"]
+1. **Seam:** [Public interface the test drives — e.g., "the auth middleware's request handler"; catches: …; leaves unguarded: …] **RED:** [Behavior assertion — e.g., "Calling the auth middleware with an expired token returns a 401 response"] **GREEN:** [Minimal change description — e.g., "Add the expiry check before the signature check in the middleware's verify path"]
 
-2. **RED:** [Next assertion] **GREEN:** [Next minimal change]
+2. **Seam:** [Public interface] **RED:** [Next assertion] **GREEN:** [Next minimal change]
 
 **Prove-It regression test:**
 
-[One explicit test that fails before the fix and passes after. Describe what it asserts in behavior terms — not what file it lives in.]
+[One explicit test that fails before the fix and passes after. Describe what it asserts in behavior terms — not what file it lives in. For a crash, process exit, or rollback bug, name the real mechanism the test triggers; a simulated failure can pass before the fix.]
 
 ## Acceptance Criteria
 

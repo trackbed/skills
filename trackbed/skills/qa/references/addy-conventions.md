@@ -18,4 +18,4 @@ One marker per line, uppercase, no decoration.
 
 Before displaying the Step 11 summary, confirm:
 
-- [ ] The inline summary verdict (READY / NOT READY / READY WITH CAVEATS) matches the Blocker/Major counts.
+- [ ] The inline summary verdict (READY / NOT READY / READY WITH CAVEATS) matches the Blocker/Major counts and route coverage: READY only when every planned route was verified.

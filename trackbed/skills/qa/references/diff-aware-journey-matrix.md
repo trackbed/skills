@@ -17,9 +17,14 @@ Use this matrix in `diff-aware` QA before running browser or code-only checks. I
 
 ## Rules
 
-- Start with changed files, then map to routes, screens, or components. Do not choose routes only because they are easy to load.
+- Start with changed files, then map to routes, screens, or components. Include changed non-UI modules that pages depend on, such as view helpers, formatters, client-side behavior, and the server handlers behind a page, and map each one to every route that uses it. Do not choose routes only because they are easy to load.
 - Mark uncertain file-to-route mappings as `UNVERIFIED` and test them only after stating the assumption.
 - Include at least one normal state and one likely edge state for each changed user-facing surface when practical.
 - Ask before destructive journeys such as deleting production-like data, sending emails, charging cards, changing billing, or mutating shared records.
+- When a journey crosses an outside service, such as a sign-in provider, email, payments, SMS, or another third-party API, run that leg through a substitute the project already provides: a provider's sandbox or test mode, a local mail catcher, or fixture accounts. Name the substitute in Evidence.
+  - Mark the row `blocked` only when the diff changed that integration and no substitute covers it, and say what a person must confirm.
+  - A leg through an integration the diff did not touch is `skipped`, with that reason.
+  - End the report with one `UNVERIFIED` line naming the behaviors verified only against substitutes.
+  - The ask-first rule above still applies to destructive actions.
 - If browser MCP is unavailable, keep the matrix and set results to `code-only` with evidence from the source files that were inspected.
 - Do not auto-fix or auto-commit QA findings by default. Record follow-up issues or recommended fixes in the report.

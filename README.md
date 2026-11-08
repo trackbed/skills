@@ -857,7 +857,7 @@ Copied prose, scripts, templates, and substantial assets must be permitted by a 
 - `trackbed:product:strategy`: Adapted from skill `ce-strategy`.
 - `trackbed:code:optimize`: Adapted from [ce-optimize](https://github.com/EveryInc/compound-engineering-plugin/tree/6f9ab03a031c054a8046659926251fb6c149269f/plugins/compound-engineering/skills/ce-optimize), reviewed at commit `6f9ab03a031c054a8046659926251fb6c149269f`.
 - `trackbed:session:automate-repeats`: Adapted from skill `ce-sessions`, including its safe session discovery and extraction scripts reviewed at commit `6f9ab03a031c054a8046659926251fb6c149269f`.
-- `trackbed:setup`: Adapted from skill `ce-setup`, reviewed at commit `6f9ab03a031c054a8046659926251fb6c149269f`.
+- `trackbed:setup`: Informed by skill `ce-setup`, first reviewed at commit `6f9ab03a031c054a8046659926251fb6c149269f`; its workflow and checker are original.
 - `trackbed:docs:solution-note` (including `--refresh`): Adapted from skills `ce-compound` and `ce-compound-refresh`, reviewed at commit `6f9ab03a031c054a8046659926251fb6c149269f`.
 - `trackbed:docs:review`: Adapted from [ce-doc-review](https://github.com/EveryInc/compound-engineering-plugin/tree/main/plugins/compound-engineering/skills/ce-doc-review).
 - `trackbed:code:work-from-plan`: Adapted from [ce-work](https://github.com/EveryInc/compound-engineering-plugin/tree/main/plugins/compound-engineering/skills/ce-work) and [ce-plan](https://github.com/EveryInc/compound-engineering-plugin/tree/main/plugins/compound-engineering/skills/ce-plan) as a thin routing adapter, not a full autonomous execution pipeline.

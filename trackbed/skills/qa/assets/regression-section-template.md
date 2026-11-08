@@ -11,6 +11,10 @@ Use this section in `QA_REPORT.md` when a regression comparison ran.
 
 - QA-{NNN}: {title} (was {severity})
 
+### Not re-checked ({N})
+
+- QA-{NNN}: {title} ({severity}) — route {not verified | not in this run's plan}
+
 ### New ({N})
 
 - QA-{NNN}: {title} ({severity})

@@ -60,11 +60,13 @@ If `CONDUCTOR_IS_LOCAL` is `0`, emit `Warning: Conductor cloud workspace detecte
 **If URL is `auto`:** Resolve it with the shared dev-server detector:
 
 ```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/dev-server/detect-url.sh auto
+${CLAUDE_PLUGIN_ROOT}/scripts/dev-server/detect-url.sh auto --check-owner
 ```
 
 - `http://...` or `https://...` — set `TARGET_URL` to that value and continue.
 - `__MULTIPLE_URLS__` — list the candidate URLs and ask the user to pick one; if the runtime cannot ask, hard stop with the candidate list.
+- `__FOREIGN_SERVER__` — another Git checkout, such as a sibling worktree or the main checkout, serves every server found. Testing it would check code that is not on this branch, which matters most in diff-aware mode. List each URL with the directory that serves it and ask the user for this checkout's URL; if the runtime cannot ask, hard stop with: `Error: The running dev server belongs to another checkout ({directory}). Start this checkout's dev server, then re-run the command.`
+- `__UNCONFIRMED_OWNER__` — set `TARGET_URL` to the URL on the next line and continue. Record `UNVERIFIED: could not confirm which checkout serves {TARGET_URL}` in `STACK DETECTED` and in the report header.
 - `__NO_RUNNING_SERVER__` — hard stop with: `Error: No running dev server detected. Start your dev server first, then re-run the command.`
 
 **Validate explicit or resolved URL format.** If `TARGET_URL` does not begin with `http://` or `https://`, stop with: `Error: TARGET_URL must be an http:// or https:// URL, or auto. Got: $TARGET_URL`.
@@ -148,13 +150,13 @@ Map changed UI files to routes/pages:
 - Config-based routing: search router config for imports/references to the changed files
 - If mapping is ambiguous, include the likely route with a note
 
-A changed shared component, layout, or style file maps to every route that renders it: diff-aware mode narrows scope to affected routes, it does not skip routes that depend on changed shared code. If UI-relevant files changed but none of them maps to a route, the mapping is wrong rather than the scope empty; emit `MISSING REQUIREMENT` listing the unmapped files and ask for the intended routes instead of reporting zero routes tested.
+A changed shared component, layout, or style file maps to every route that renders it: diff-aware mode narrows scope to affected routes, it does not skip routes that depend on changed shared code. Once the UI-relevance gate above passes, also trace changed non-UI modules that pages depend on, such as view helpers, formatting utilities, client-side behavior controllers, and the server handlers behind a page, to every route that uses them, and list them in the row's Changed files. A helper changed alongside one component otherwise never reaches the other pages that use it. The gate itself does not change: a branch that changes only such modules still stops above. If UI-relevant files changed but none of them maps to a route, the mapping is wrong rather than the scope empty; emit `MISSING REQUIREMENT` listing the unmapped files and ask for the intended routes instead of reporting zero routes tested.
 
 For complex changed flows, sketch the user flow first as a compact flowchart before building the matrix. Include entry points, decision points, state transitions, and exit/error states so the matrix is grounded in the workflow rather than a flat file list.
 
 Create a branch-diff-to-journey matrix before building the test checklist. Read `references/diff-aware-journey-matrix.md` and populate one row per route/screen and meaningful user journey using the columns defined there.
 
-Mark speculative route mappings as `UNVERIFIED` rather than silently treating them as known routes. If a journey would mutate shared data, send external notifications, change billing, delete records, or otherwise be destructive, ask the user before executing it; if the runtime cannot ask, mark the row `blocked`.
+Mark speculative route mappings as `UNVERIFIED` rather than silently treating them as known routes. If a journey crosses an outside service, first try the project's own test stand-in for it, as the matrix reference describes. If a journey would mutate shared data, send external notifications, change billing, delete records, or otherwise be destructive, ask the user before executing it; if the runtime cannot ask, mark the row `blocked`.
 
 **targeted mode:**
 
@@ -268,9 +270,10 @@ Check if `QA_BASELINE.json` exists from a previous run:
 **Comparison logic:**
 
 1. **Score delta:** `current_score - baseline_score` (positive = improvement, negative = regression)
-2. **Fixed issues:** findings in the baseline that are NOT in the current run (matched by title + route)
-3. **New issues:** findings in the current run that are NOT in the baseline
-4. **Persistent issues:** findings present in both runs
+2. **Fixed issues:** findings in the baseline that are NOT in the current run (matched by title + route) and whose route this run verified (result `pass` or `fail` in the current `routes`)
+3. **Not re-checked:** baseline findings whose route this run did not verify, because it was blocked, skipped, `UNVERIFIED`, code-only, unreachable, or outside this run's plan (such as quick mode's smaller route set). A finding missing from a run that never looked is not fixed.
+4. **New issues:** findings in the current run that are NOT in the baseline
+5. **Persistent issues:** findings present in both runs
 
 Prepare a `## Regression` section for the QA report using `assets/regression-section-template.md`. Step 9 renders that section when a regression comparison ran.
 
@@ -281,13 +284,13 @@ Use the template from `assets/qa-report-template.md`.
 Populate all sections:
 
 - Fill in mode, URL, date, browser MCP type
-- List all tested routes with descriptions
+- List every route in the Step 4 test plan with its result (pass, fail, blocked, skipped, `UNVERIFIED`, or code-only) and, for anything other than pass or fail, a one-line reason. Quick and targeted runs account for every planned route this way, as the diff-aware matrix already does, including routes browse could not reach
 - Include the journey matrix for `diff-aware` runs, with route/screen, journey, state, expected behavior, evidence, result, and follow-up
 - Document each finding with severity, repro steps, expected vs actual, and recommended fix
 - Call out persona-visible paper cuts: small friction, confusing copy, awkward ordering, missing feedback, or visual inconsistencies that a realistic user persona would notice even when the route technically works
 - Include the `## Regression` section prepared in Step 8 when a regression comparison ran
 - Calculate summary counts per severity level
-- Provide overall recommendation (ready / not ready / ready with caveats); any Blocker finding makes it not ready regardless of the health score
+- Provide overall recommendation (ready / not ready / ready with caveats); any Blocker finding makes it not ready regardless of the health score. The health score measures only what was checked, so a run in which any planned route ended blocked, skipped, `UNVERIFIED`, or code-only is at best ready with caveats, and the recommendation names those routes
 
 **Numbering convention:** Findings are numbered `QA-001`, `QA-002`, etc.
 

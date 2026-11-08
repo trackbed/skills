@@ -3,7 +3,7 @@
 # Adapted from EveryInc/compound-engineering-plugin:
 # plugins/compound-engineering/skills/ce-polish/scripts/resolve-package-manager.sh
 # Reviewed at commit 6f9ab03a031c054a8046659926251fb6c149269f.
-# Upstream license: MIT.
+# Upstream license: MIT. Full notice: EveryInc-LICENSE in this directory.
 #
 # Output contract:
 #   line 1: npm | pnpm | yarn | bun | __NO_PACKAGE_JSON__

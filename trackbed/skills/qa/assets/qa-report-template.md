@@ -1,11 +1,13 @@
 # QA Report
 
-**Mode:** {quick | diff-aware | targeted} **URL:** {tested URL} **Date:** {timestamp} **Duration:** {elapsed time} **Browser MCP:** {claude-in-chrome | chrome-devtools | playwright | code-only} **Framework:** {detected framework or "not detected"} **Routes Tested:** {N} **Health Score:** {HEALTH_SCORE}/100 ({HEALTH_LABEL})
+**Mode:** {quick | diff-aware | targeted} **URL:** {tested URL} **Date:** {timestamp} **Duration:** {elapsed time} **Browser MCP:** {claude-in-chrome | chrome-devtools | playwright | code-only} **Framework:** {detected framework or "not detected"} **Routes Verified:** {N} of {N planned} **Health Score:** {HEALTH_SCORE}/100 ({HEALTH_LABEL})
 
 ## Tested Scope
 
-- {route 1}: {description}
-- {route 2}: {description}
+Every route in the test plan, with its result: pass, fail, blocked, skipped, `UNVERIFIED`, or code-only. Give a one-line reason for anything other than pass or fail.
+
+- {route 1}: {description} — {result}{: reason}
+- {route 2}: {description} — {result}{: reason}
 
 ## Journey Matrix (diff-aware only)
 
@@ -54,7 +56,7 @@
 
 ## Recommendation
 
-{ready / not ready / ready with caveats — with explanation}
+{ready / not ready / ready with caveats — with explanation. Ready requires every planned route to be verified; list any route that was not.}
 
 QA default flow does not auto-fix or auto-commit findings. Use the follow-up references above to route fixes.
 

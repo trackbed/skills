@@ -4,6 +4,9 @@
 # Upstream commit reviewed: 6f9ab03a031c054a8046659926251fb6c149269f
 # License: MIT, Copyright (c) 2025 Every.
 # Full notice: ../references/EveryInc-LICENSE
+# Local changes: a Claude cwd, a longer header window that stops once the
+# metadata is complete, path-aware --cwd-filter matching, and a separate count
+# for files without recognizable metadata.
 #
 """Extract session metadata from Claude Code, Codex, and Cursor JSONL files.
 
@@ -17,6 +20,13 @@ Single-file mode (stdin):
 Auto-detects platform from the JSONL structure.
 Outputs one JSON object per file, one per line.
 Includes a final _meta line with processing stats.
+
+--cwd-filter VALUE (repeatable) keeps Claude Code and Codex sessions whose
+recorded working directory matches any value. An absolute path matches that
+directory or one below it, never an ancestor; a bare name must equal one whole
+path segment. Sessions without a recorded working directory are dropped while a
+filter is set. Cursor records no working directory, so its sessions pass;
+discovery already scopes them to the repository's project folders.
 """
 
 from __future__ import annotations
@@ -41,7 +51,7 @@ from session_common import (
 
 Metadata = Dict[str, object]
 
-MAX_LINES = 25  # Only need first ~25 lines for metadata
+MAX_LINES = 200  # Resumed Claude sessions can open with long metadata preambles
 TAIL_BYTES = 16384  # Read last 16KB to find final timestamp past trailing metadata
 
 
@@ -52,7 +62,7 @@ def try_claude(
     if obj.get("type") != "user" or "gitBranch" not in obj:
         return None
     try:
-        return {
+        result: Metadata = {
             "platform": "claude",
             "branch": string_field(obj, "gitBranch"),
             "ts": string_field(obj, "timestamp"),
@@ -60,7 +70,11 @@ def try_claude(
         }
     except TranscriptShapeError:
         diagnostics.record_parse_error()
-    return None
+        return None
+    cwd = obj.get("cwd")
+    if isinstance(cwd, str) and cwd:
+        result["cwd"] = cwd
+    return result
 
 
 def update_codex(
@@ -125,6 +139,7 @@ def extract_from_lines(
 ) -> tuple[Optional[Metadata], TranscriptDiagnostics]:
     diagnostics = TranscriptDiagnostics()
     claude_result: Optional[Metadata] = None
+    first_cwd: Optional[str] = None
     codex_meta: Metadata = {}
     found_session_metadata = False
     saw_turn_context = False
@@ -133,23 +148,37 @@ def extract_from_lines(
     for obj in iter_json_objects(lines, diagnostics):
         if claude_result is None:
             claude_result = try_claude(obj, diagnostics)
+        if first_cwd is None:
+            record_cwd = obj.get("cwd")
+            if isinstance(record_cwd, str) and record_cwd:
+                first_cwd = record_cwd
         found_session, saw_context = update_codex(obj, codex_meta, diagnostics)
         found_session_metadata = found_session_metadata or found_session
         saw_turn_context = saw_turn_context or saw_context
         if cursor_result is None:
             cursor_result = try_cursor(obj)
+        # Stop once the metadata is complete, so large records later in the
+        # header window cost nothing.
+        if claude_result is not None and ("cwd" in claude_result or first_cwd):
+            break
+        if found_session_metadata and saw_turn_context:
+            break
+        if cursor_result is not None:
+            break
 
     result: Optional[Metadata]
     if claude_result is not None:
         result = claude_result
+        if "cwd" not in result and first_cwd:
+            result["cwd"] = first_cwd
     elif found_session_metadata:
         result = codex_meta
     else:
         result = cursor_result
 
+    # A file with no parse errors and no recognizable metadata is reported
+    # separately by the caller, apart from parse errors.
     if result is None and saw_turn_context:
-        diagnostics.record_parse_error()
-    elif result is None and diagnostics.partial_errors == 0:
         diagnostics.record_parse_error()
     return result, diagnostics
 
@@ -196,7 +225,7 @@ def _iter_user_assistant_text(
 ) -> Iterator[str]:
     """Yield only user/assistant text while counting malformed content shapes."""
     try:
-        with open(filepath, "r", errors="replace") as session_file:
+        with open(filepath, "r", encoding="utf-8", errors="replace") as session_file:
             for line in session_file:
                 stripped = line.strip()
                 if not stripped:
@@ -315,10 +344,65 @@ def count_keyword_matches(
     )
 
 
+def normalize_cwd(value: str) -> str:
+    """Use forward slashes and drop trailing separators."""
+    path = value.replace("\\", "/")
+    while len(path) > 1 and path.endswith("/"):
+        path = path[:-1]
+    return path
+
+
+def is_absolute_cwd(value: str) -> bool:
+    return value.startswith("/") or (len(value) > 2 and value[1] == ":" and value[2] == "/")
+
+
+def expand_cwd_filters(raw_filters: Sequence[str]) -> list[str]:
+    """Normalize filters, adding the symlink-resolved form of absolute paths."""
+    expanded: list[str] = []
+    for raw in raw_filters:
+        forms = [raw]
+        if os.path.isabs(raw):
+            forms.append(os.path.realpath(raw))
+        for form in forms:
+            normalized = normalize_cwd(form)
+            if normalized and normalized not in expanded:
+                expanded.append(normalized)
+    return expanded
+
+
+def cwd_matches_filter(cwd: str, cwd_filters: Sequence[str]) -> bool:
+    """Match a recorded working directory against normalized --cwd-filter values."""
+    paths = {normalize_cwd(cwd)}
+    if os.path.isabs(cwd):
+        paths.add(normalize_cwd(os.path.realpath(cwd)))
+    for path in paths:
+        segments = [segment for segment in path.split("/") if segment]
+        for wanted in cwd_filters:
+            if is_absolute_cwd(wanted):
+                if path == wanted or path.startswith(wanted.rstrip("/") + "/"):
+                    return True
+            elif wanted in segments:
+                return True
+    return False
+
+
+def session_in_scope(result: Metadata, cwd_filters: Sequence[str]) -> bool:
+    if result.get("platform") == "cursor":
+        return True
+    cwd = result.get("cwd")
+    return isinstance(cwd, str) and bool(cwd) and cwd_matches_filter(cwd, cwd_filters)
+
+
 def process_file(
     filepath: str,
-) -> tuple[Optional[Metadata], TranscriptDiagnostics]:
-    """Extract checked metadata and diagnostics for one file."""
+    cwd_filters: Sequence[str] = (),
+) -> tuple[Optional[Metadata], TranscriptDiagnostics, str]:
+    """Extract checked metadata and diagnostics for one file.
+
+    The status is "kept", "filtered" (outside the cwd filters), "missing" (no
+    recognizable metadata and no parse errors), or "error". The tail is read
+    only for kept sessions.
+    """
     diagnostics = TranscriptDiagnostics()
     try:
         size = os.path.getsize(filepath)
@@ -326,11 +410,13 @@ def process_file(
             result, header_diagnostics = extract_from_lines(itertools.islice(session_file, MAX_LINES))
     except (OSError, IOError):
         diagnostics.record_read_error()
-        return None, diagnostics
+        return None, diagnostics, "error"
 
     diagnostics.add(header_diagnostics)
     if result is None:
-        return None, diagnostics
+        return None, diagnostics, ("missing" if header_diagnostics.partial_errors == 0 else "error")
+    if cwd_filters and not session_in_scope(result, cwd_filters):
+        return result, diagnostics, "filtered"
 
     result["file"] = filepath
     result["size"] = size
@@ -339,7 +425,7 @@ def process_file(
             mtime = os.path.getmtime(filepath)
         except (OSError, IOError):
             diagnostics.record_read_error()
-            return None, diagnostics
+            return None, diagnostics, "error"
         result["ts"] = datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
         result["session"] = os.path.basename(os.path.dirname(filepath))
     else:
@@ -347,18 +433,19 @@ def process_file(
         diagnostics.add(tail_diagnostics)
         if last_ts:
             result["last_ts"] = last_ts
-    return result, diagnostics
+    return result, diagnostics, "kept"
 
 
 # Parse arguments: files and optional --cwd-filter / --keyword
 files: list[str] = []
-cwd_filter: Optional[str] = None
+raw_cwd_filters: list[str] = []
 keywords: Optional[list[str]] = None
 args = sys.argv[1:]
 i = 0
 while i < len(args):
     if args[i] == "--cwd-filter" and i + 1 < len(args):
-        cwd_filter = args[i + 1]
+        if args[i + 1]:
+            raw_cwd_filters.append(args[i + 1])
         i += 2
     elif args[i] == "--keyword" and i + 1 < len(args):
         keywords = [keyword for keyword in args[i + 1].split(",") if keyword]
@@ -369,6 +456,8 @@ while i < len(args):
     else:
         i += 1
 
+cwd_filters = expand_cwd_filters(raw_cwd_filters)
+
 if files:
     # Batch mode: isolate every file so later valid sessions always survive.
     processed = 0
@@ -376,20 +465,19 @@ if files:
     read_errors = 0
     filtered = 0
     matched = 0
+    without_metadata = 0
     for filepath in files:
         if not filepath.endswith(".jsonl"):
             continue
-        result, diagnostics = process_file(filepath)
+        result, diagnostics, status = process_file(filepath, cwd_filters)
         processed += 1
-        should_print = result is not None
-        if result is not None:
-            result_cwd = result.get("cwd")
-            if not isinstance(result_cwd, str):
-                result_cwd = None
-            if cwd_filter and result_cwd and cwd_filter not in result_cwd:
-                filtered += 1
-                should_print = False
-            elif keywords:
+        if status == "filtered":
+            filtered += 1
+        elif status == "missing":
+            without_metadata += 1
+        should_print = status == "kept" and result is not None
+        if should_print and result is not None:
+            if keywords:
                 matches, keyword_diagnostics = count_keyword_matches(
                     filepath,
                     keywords,
@@ -415,6 +503,8 @@ if files:
     }
     if read_errors:
         meta["read_errors"] = read_errors
+    if without_metadata:
+        meta["files_without_metadata"] = without_metadata
     if filtered:
         meta["filtered_by_cwd"] = filtered
     if keywords:
@@ -443,6 +533,8 @@ else:
             "files_processed": 1,
             "parse_errors": diagnostics.partial_errors,
         }
+        if result is None and diagnostics.partial_errors == 0:
+            meta["files_without_metadata"] = 1
         if diagnostics.read_errors:
             meta["read_errors"] = diagnostics.read_errors
         print(json.dumps(meta))
