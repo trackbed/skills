@@ -49,7 +49,7 @@ setup() {
   grep -qF '7. **Draft an instruction rule** as the fallback when no mechanism can decide the invariant.' "$SKILL"
   grep -qF 'Do not edit instruction files; include the drafted rule in the report and suggest the user add it with `/trackbed:docs:update-agents-md`.' "$SKILL"
   grep -qF 'Then skip Steps 4 and 5, since prose has no failure message or red run, and continue at Step 6.' "$SKILL"
-  grep -qF 'For an instruction fallback, omit Diagnostic, Proof, and Existing violations.' "$SKILL"
+  grep -qF 'For an instruction fallback, omit Diagnostic, Proof, Existing violations, and Bypass guards.' "$SKILL"
   grep -qF 'When rung 1 needs a broad refactor, do not start it here.' "$SKILL"
   grep -qF 'Record one clause per rejected stronger rung that explains why it was rejected.' "$SKILL"
 }
@@ -77,6 +77,39 @@ setup() {
   grep -qF 'A check that only this session ran is not a constraint.' "$SKILL"
   grep -qF 'Never report a constraint as working without the red-run output.' "$SKILL"
   grep -qF 'report the check as unverified and do not claim the red or green run' "$SKILL"
+}
+
+@test "encode constraint proves rejection through the commands that actually run" {
+  grep -qF 'Then run the same mistake through the exact local verification entry point named in the Wired step, and through the CI command too when it can run locally, and require a non-zero exit from each.' "$SKILL"
+  grep -qF 'a wrapper that swallows exit codes, a path filter, or a warning-level severity can let the mistake through' "$SKILL"
+  grep -qF 'Run one legitimate exception from the Step 1 scope through the same entry point; it must pass.' "$SKILL"
+  grep -qF 'If the check fails directly but the entry point passes, fix the wiring before continuing.' "$SKILL"
+  wired_line="$(grep -n '^2\. \*\*Wired:\*\*' "$SKILL" | cut -d: -f1)"
+  red_line="$(grep -n '^3\. \*\*Red:\*\*' "$SKILL" | cut -d: -f1)"
+  [ -n "$wired_line" ] && [ -n "$red_line" ] && [ "$wired_line" -lt "$red_line" ]
+}
+
+@test "encode constraint blocks or reports every way a check can pass without a fix" {
+  grep -qF '**Guarded:** list the ways the check could pass without a fix: an inline disable comment, a new baseline entry, a widened exclude or path filter, a lowered severity, and a deleted or emptied fixture.' "$SKILL"
+  grep -qF 'name the existing mechanism that blocks it' "$SKILL"
+  grep -qF 'or report it as a follow-up' "$SKILL"
+  grep -qF '**Bypass guards:** each way the check could pass without a fix, with the mechanism that blocks it or `unguarded`.' "$SKILL"
+  grep -qF 'unguarded bypasses' "$SKILL"
+  grep -qF '## Guard the Check Against Bypass' "$MECHANISMS"
+  [ "$(grep -c '^- \*\*Suppression guard:\*\*' "$MECHANISMS")" -ge 4 ]
+}
+
+@test "encode constraint keeps baselines shrink-only" {
+  grep -qF 'A baseline can only shrink.' "$SKILL"
+  grep -qF 'fail when the baseline gains an entry or its recorded count rises' "$SKILL"
+  grep -qF 'pass when an entry is removed because its site was fixed' "$SKILL"
+}
+
+@test "encode constraint check scripts never pass vacuously" {
+  grep -qF 'A check script written for rung 5 must not pass by reading nothing.' "$SKILL"
+  grep -qF 'a distinct status such as `2` when it could not judge, because nothing matched its scope, an input was unreadable, or the git base it diffs against is missing' "$SKILL"
+  grep -qF 'make sure every wrapper that runs it treats any non-zero status as a failure' "$SKILL"
+  grep -qF 'confirm the distinct status fails the entry point' "$SKILL"
 }
 
 @test "encode constraint reports superseded instruction rules without editing them" {
@@ -109,4 +142,10 @@ setup() {
 @test "encode constraint declares its inspiration source" {
   grep -qF 'url: https://x.com/poteto/status/2109699980248408574' "$SOURCES"
   grep -qF 'usage: inspiration' "$SOURCES"
+}
+
+@test "encode constraint declares constraint-driven development as inspiration" {
+  grep -qF 'url: https://github.com/addyosmani/agent-skills/tree/main/skills/constraint-driven-development' "$SOURCES"
+  grep -A3 'id: addy-constraint-driven-development' "$SOURCES" | grep -qF 'rationale: "The post-wiring review of ways a check can pass without a fix'
+  grep -A5 'id: addy-constraint-driven-development' "$SOURCES" | grep -qF 'usage: inspiration'
 }

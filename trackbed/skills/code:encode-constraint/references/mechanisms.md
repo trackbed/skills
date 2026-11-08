@@ -25,6 +25,7 @@ Then confirm which of these the standard verification command and CI actually ex
 - **Structural rule:** a local ESLint rule registered as an inline plugin in the flat config and tested with `RuleTester`, or an ast-grep or Semgrep rule.
 - **Tests:** a type test that marks the forbidden usage with `// @ts-expect-error`, which fails the build once the line stops erroring, or `expectTypeOf`; an invariant test in the existing runner.
 - **Baseline:** ESLint 9.24+ bulk suppressions (`eslint --suppress-rule <rule>` or `--suppress-all` writes `eslint-suppressions.json`), otherwise per-path overrides in the config.
+- **Suppression guard:** set `linterOptions.reportUnusedDisableDirectives` to `"error"` so a stale `eslint-disable` fails; set `linterOptions.noInlineConfig` when inline disables should not work at all. With bulk suppressions, ESLint already exits non-zero on unused entries, so treat `--pass-on-unpruned-suppressions` in a script as a bypass. typescript-eslint `ban-ts-comment` reports `@ts-ignore` and, by default, a `@ts-expect-error` without a description.
 
 ## Python
 
@@ -34,6 +35,7 @@ Then confirm which of these the standard verification command and CI actually ex
 - **Structural rule:** Ruff has no plugin API, so use ast-grep or Semgrep, a Pylint or Flake8 plugin when the repository already runs one, or a pytest test that walks the `ast` module.
 - **Tests:** pytest invariant tests and architecture tests through import-linter or an `ast` walk.
 - **Baseline:** `ruff check --add-noqa` for existing sites, Ruff `per-file-ignores`, mypy per-module overrides, or basedpyright `--writebaseline`.
+- **Suppression guard:** Ruff `RUF100` reports unused `noqa` directives and `PGH004` reports blanket `noqa` without a rule code; mypy `warn_unused_ignores` reports unneeded `# type: ignore` comments and the `ignore-without-code` error code requires one.
 
 ## Go
 
@@ -43,6 +45,7 @@ Then confirm which of these the standard verification command and CI actually ex
 - **Structural rule:** a custom `go/analysis` analyzer loaded as a golangci-lint module plugin or run through `go vet -vettool`.
 - **Tests:** table tests, or an architecture test that reads `go list -deps -json` output.
 - **Baseline:** golangci-lint `issues.new-from-rev` or `issues.new-from-merge-base` reports only new issues; use `//nolint:<linter> // <reason>` for individual sites.
+- **Suppression guard:** the `nolintlint` linter with `allow-unused: false`, `require-specific: true`, and `require-explanation: true` rejects unused, blanket, and unexplained `//nolint` directives.
 
 ## Rust
 
@@ -52,6 +55,7 @@ Then confirm which of these the standard verification command and CI actually ex
 - **Structural rule:** a Dylint library or an ast-grep rule.
 - **Tests:** `trybuild` compile-fail tests or `compile_fail` doctests pin that the mistake does not compile.
 - **Baseline:** `#[expect(clippy::<lint>, reason = "...")]` at existing sites (Rust 1.81+), which warns once the suppression becomes unnecessary.
+- **Suppression guard:** Clippy `allow_attributes` requires `#[expect]` instead of `#[allow]`, so an unneeded suppression raises `unfulfilled_lint_expectations`, and `allow_attributes_without_reason` requires a `reason`. Raise these and `unfulfilled_lint_expectations` to `deny` so they fail the build.
 
 ## Java and Kotlin
 
@@ -86,6 +90,18 @@ Use a test or script when no single file shows the mistake:
 - **Generated artifacts match their source:** regenerate in CI and fail on `git diff --exit-code`.
 - **Paired files exist:** assert that every X has its Y, such as a rollback for every migration or a test for every route.
 - **Registries stay complete:** enumerate implementations and assert that each one is registered.
+
+## Guard the Check Against Bypass
+
+Use this catalog in Step 5 to block each way a check can go green without a fix. Prefer a guard the repository already runs, and report a route with no guard as a follow-up.
+
+- **Inline disable:** the ecosystem's suppression guard above, raised to error.
+- **New baseline entry:** a test or check step that fails when the baseline's entry count rises above the recorded count. Removing entries for fixed sites must still pass.
+- **Widened exclude or path filter:** a permanent fixture inside the governed scope that must keep failing, so moving it out of scope turns the run red.
+- **Lowered severity:** an assertion that the rule is configured at error level, or a red fixture that requires a non-zero exit rather than a warning.
+- **Deleted or emptied fixture:** the check script's could-not-run status when its fixture set is empty, or a test that names the fixture paths it expects.
+
+These guards protect against the cheapest route to green, not against someone deliberately changing the guard as well. Changes to the constraint's own configuration still deserve review.
 
 ## Agent Hooks
 
