@@ -1594,6 +1594,10 @@ PY
 	[[ "$output" == *"not-on-head src/new.ts"* ]]
 	[[ "$output" != *"uncommitted"* ]]
 
+	# A path the unpushed commit did not touch still passes against the PR head.
+	run "$script" "$repo" "$pr_head" src/b.ts
+	[ "$status" -eq 0 ] && [ -z "$output" ] || { echo "$output"; false; }
+
 	# Once the PR head contains the fix, the check passes.
 	run "$script" "$repo" "$(git -C "$repo" rev-parse HEAD)" src/a.ts src/new.ts
 	[ "$status" -eq 0 ] && [ -z "$output" ] || { echo "$output"; false; }
@@ -1642,15 +1646,15 @@ step11 = skill[skill.index("## Step 11:"):]
 for term in [
     'FIX_CHECK="${CLAUDE_PLUGIN_ROOT}/skills/pr:github-review-reply/scripts/check-fix-on-head.sh"',
     "references/posting-guards.md",
-    "If you have a pending review on the PR, or the check fails, stop before the first write",
+    "If you have a pending review on the PR, stop before the first write",
+    "If the check itself fails, stop before the first write and report the error.",
+    "Hold every item implemented in this run (`Implementation status: implemented`)",
     "Never submit or discard it for them.",
     "confirm with `FIX_CHECK` that the change is in a commit on the PR's remote head",
     "`Post status: held — fix not on PR head`, do not post or resolve that item, and tell the user which paths to commit and push",
     "List every `answered-unresolved` thread planned for resolution and ask for explicit confirmation before resolving it, even under `--post` or `--auto`",
 ]:
     assert term in step8, f"Step 8 lost {term}"
-step1 = skill[skill.index("## Step 1:"):skill.index("## Step 2:")]
-assert '[ -n "$SELF" ] ||' in step1, "Step 1 must stop when the GitHub user is unknown"
 for term in ["Post one item at a time and never in parallel", "skip a thread resolved since drafting",
              "record the item as `posted` instead of posting again", "On a rate-limit response, stop at once"]:
     assert term in step9, f"Step 9 lost {term}"
@@ -1669,8 +1673,12 @@ for term in [
     'select(.user.login == $self and .state == "PENDING")',
     "no write happens without a clean check",
     "Never submit, discard, or edit the pending review for the user.",
-    'if ! git fetch origin "refs/pull/$PR_NUMBER/head"; then',
-    "Could not fetch the PR head; nothing was posted.",
+    "Could not identify the authenticated GitHub user; nothing was posted.",
+    "Skip this section when every item's `Changed paths` is `none`.",
+    "when the head commit is missing locally, the script exits 2 and the item is held",
+    "as its own single-quoted argument",
+    "If the re-read fails, stop posting and report the item",
+    'gh api --paginate "repos/$OWNER/$REPO/issues/$PR_NUMBER/comments"',
     "Any other exit status: set `Post status: held — fix not on PR head`",
     "If it is now resolved, set `Post status: skipped — resolved since drafting`",
     "a comment from `SELF` already follows the latest comment from anyone else",

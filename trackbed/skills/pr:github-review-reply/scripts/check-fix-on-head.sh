@@ -6,14 +6,15 @@
 # Usage: check-fix-on-head.sh <repo> <pr-head-oid> <path>...
 #
 # <pr-head-oid> is the full commit ID GitHub reports as the PR head, already
-# fetched into <repo>. Prints nothing and exits 0 when every path is on the PR
-# head. Otherwise prints one line per path that is not, as
-# "uncommitted <path>" (the working tree differs from HEAD, including untracked
-# files) or "not-on-head <path>" (the local commit differs from the PR head:
-# it is not pushed yet, or the checkout is behind the PR head), and exits 1.
-# Exits 2 on usage or Git errors, and for a path Git knows neither locally nor
-# in the PR head's history (a typo, a wrong-case name, or an ignored file),
-# which callers must treat as "not on the PR head".
+# fetched into <repo>. Each <path> is relative to the root of <repo>. Prints
+# nothing and exits 0 when every path is on the PR head. Otherwise prints one
+# line per path that is not, as "uncommitted <path>" (the working tree differs
+# from HEAD, including untracked files) or "not-on-head <path>" (the path's
+# content at HEAD differs from the PR head: unpushed commits, a checkout behind
+# the PR head, or a diverged branch), and exits 1. Exits 2 on usage or Git
+# errors, and for a path Git knows neither locally nor in the PR head's history
+# (a typo, a wrong-case name, or an ignored file the PR head never had), which
+# callers must treat as "not on the PR head".
 
 set -euo pipefail
 
@@ -59,30 +60,26 @@ for path in "$@"; do
   fi
 done
 
-# Keep NUL-separated Git output in files: command substitution drops NUL bytes.
-tmp=$(mktemp -d)
-trap 'rm -r -- "$tmp"' EXIT
-
-if ! git -C "$repo" -c core.quotePath=false status --porcelain=v1 -z \
-  --untracked-files=all --no-renames -- "$@" > "$tmp/dirty"; then
+if ! dirty=$(git -C "$repo" -c core.quotePath=false status --porcelain=v1 \
+  --untracked-files=all --no-renames -- "$@"); then
   echo "git status failed in $repo." >&2
   exit 2
 fi
-if ! git -C "$repo" -c core.quotePath=false diff --name-only -z \
-  --no-ext-diff --no-textconv --no-renames "$head_oid" HEAD -- "$@" > "$tmp/differs"; then
+if ! differs=$(git -C "$repo" -c core.quotePath=false diff --name-only \
+  --no-renames "$head_oid" HEAD -- "$@"); then
   echo "git diff against $head_oid failed in $repo." >&2
   exit 2
 fi
 
 status=0
-# Porcelain -z entries are "XY <path>" terminated by NUL.
-while IFS= read -r -d '' entry; do
-  printf 'uncommitted %s\n' "${entry:3}"
+# Porcelain entries are "XY <path>".
+if [ -n "$dirty" ]; then
+  printf '%s\n' "$dirty" | sed 's/^.. /uncommitted /'
   status=1
-done < "$tmp/dirty"
-while IFS= read -r -d '' path; do
-  printf 'not-on-head %s\n' "$path"
+fi
+if [ -n "$differs" ]; then
+  printf '%s\n' "$differs" | sed 's/^/not-on-head /'
   status=1
-done < "$tmp/differs"
+fi
 
 exit "$status"

@@ -7,6 +7,10 @@ Read this before the first GitHub write in Step 8. These guards make every reply
 GitHub files a new reply into the poster's own pending (unsubmitted) review, where only that person can see it. Before the first write of the run, including a resolve-only run, check for one:
 
 ```bash
+if [ -z "$SELF" ]; then
+  echo "Could not identify the authenticated GitHub user; nothing was posted." >&2
+  exit 1
+fi
 if ! PENDING_REVIEWS_JSON=$(gh api --paginate --slurp "repos/$OWNER/$REPO/pulls/$PR_NUMBER/reviews"); then
   echo "Could not check for a pending review; nothing was posted." >&2
   exit 1
@@ -26,7 +30,7 @@ A failed or invalid lookup stops the run the same way: no write happens without 
 
 ## 2. Fix on the PR head
 
-A reply that says a change was made is true only once the change is in a commit on the PR's remote head. Fetch the head GitHub reports right before writing:
+A reply that says a change was made is true only once the change is in a commit on the PR's remote head. Skip this section when every item's `Changed paths` is `none`. Otherwise, in Step 8 before asking for confirmation, read the head GitHub reports and fetch it:
 
 ```bash
 PR_HEAD_OID=$(gh pr view "$PR_NUMBER" --repo "$OWNER/$REPO" --json headRefOid --jq '.headRefOid // empty')
@@ -34,13 +38,11 @@ PR_HEAD_OID=$(gh pr view "$PR_NUMBER" --repo "$OWNER/$REPO" --json headRefOid --
   echo "Could not read the PR head; nothing was posted." >&2
   exit 1
 }
-if ! git fetch origin "refs/pull/$PR_NUMBER/head"; then
-  echo "Could not fetch the PR head; nothing was posted." >&2
-  exit 1
-fi
+git fetch origin "refs/pull/$PR_NUMBER/head" \
+  || echo "Could not fetch the PR head from origin; items whose fix needs it stay held." >&2
 ```
 
-The script itself confirms that `$PR_HEAD_OID` is available locally. For every item whose `Changed paths` is not `none`, run `"$FIX_CHECK" "$(git rev-parse --show-toplevel)" "$PR_HEAD_OID"` followed by each changed path, relative to the repository root, as its own quoted argument:
+A failed fetch does not stop the run: when the head commit is missing locally, the script exits 2 and the item is held. For every item whose `Changed paths` is not `none`, run `"$FIX_CHECK" "$(git rev-parse --show-toplevel)" "$PR_HEAD_OID"` followed by each changed path, relative to the repository root, as its own single-quoted argument:
 
 - Exit 0: the fix is on the PR head; the item may be posted and resolved.
 - Any other exit status: set `Post status: held — fix not on PR head`. Do not post its reply or resolve its thread. Record what the user must do: for `uncommitted` paths, commit and push them; for `not-on-head` paths, push the commits that change them, listed by `git log --oneline "$PR_HEAD_OID..HEAD" -- <paths>`, or, when that lists nothing, pull the PR head because the checkout is behind it; otherwise report the script's error.
@@ -52,9 +54,9 @@ The same check covers an answered-unresolved thread whose earlier reply cited a 
 The plan is a snapshot; GitHub is the source of truth. Immediately before posting or resolving each item, re-read it:
 
 - **Inline thread** — fetch the thread with `node(id: $THREAD_ID) { ... on PullRequestReviewThread { isResolved comments(last: 100) { nodes { author { login } createdAt body } } } }`.
-  - If it is now resolved, set `Post status: skipped — resolved since drafting` and move on.
+  - If it is now resolved, set `Post status: skipped — resolved since drafting` and move on; an item this run already posted keeps `posted`.
   - If the item has a reply to post (`Reply target` is not `none`) and a comment from `SELF` already follows the latest comment from anyone else, the reply was posted earlier. Set `Post status: posted` without posting again, then continue to the resolve step for it.
-- **Review-summary or general comment** — re-fetch the PR's issue comments. If a `SELF` comment created after the item's latest non-author comment links that comment's URL or matches the draft body, set `Post status: posted` without posting again.
+- **Review-summary or general comment** — re-fetch every page of the PR's issue comments with `gh api --paginate "repos/$OWNER/$REPO/issues/$PR_NUMBER/comments"`. If a `SELF` comment created after the item's latest non-author comment links that comment's URL or matches the draft body, set `Post status: posted` without posting again.
 
 If the re-read fails, stop posting and report the item, like any other failed write.
 

@@ -93,10 +93,6 @@ If `--auto` is present, set `AUTO=true`, `IMPLEMENT=implement`, `POST=true`, and
    OWNER="${REPO_NWO%%/*}"
    REPO="${REPO_NWO#*/}"
    SELF=$(gh api user --jq .login)
-   [ -n "$SELF" ] || {
-     echo "Could not identify the authenticated GitHub user; the posting guards need it." >&2
-     exit 1
-   }
    ```
 
 6. Set `PR_FETCH_REMOTE` to an existing configured Git remote whose repository matches `REPO_NWO`, preserving its transport and authentication. Use `origin` when it matches; if no remote matches, stop and report the expected repository. Fetch the selected PR's base and head, verify the captured head, and compute the merge base for anchor inspection. Stop on any failed fetch, missing object, or head mismatch; refresh PR context before retrying a changed head.
@@ -346,7 +342,7 @@ Unless `--inline` is set, create or update `GITHUB_REVIEW_REPLY_PLAN.md` in the 
 | Reply target | one of `inline-reply`, `top-level-comment`, `none` |
 | Resolve after posting | `yes` or `no` |
 | Humanized | `yes`, `no`, or `skipped` |
-| Post status | one of `not posted`, `posted`, `posted and resolved`, `posted, resolve failed`, `resolved`, `held — fix not on PR head`, `skipped — resolved since drafting`, `not posted — rate limited` |
+| Post status | one of `not posted`, `posted`, `posted and resolved`, `posted, resolve failed`, `resolved`, `resolve failed`, `held — fix not on PR head`, `skipped — resolved since drafting`, `not posted — rate limited` |
 
 **Reviewer comment**
 
@@ -377,14 +373,14 @@ If `POST=false` and `RESOLVE=false`, stop after writing or returning the plan.
 
 Set `FIX_CHECK="${CLAUDE_PLUGIN_ROOT}/skills/pr:github-review-reply/scripts/check-fix-on-head.sh"`, then read `references/posting-guards.md` and run its guards before asking for confirmation:
 
-1. **Pending review.** If you have a pending review on the PR, or the check fails, stop before the first write and ask the user to submit or discard it in GitHub. Never submit or discard it for them.
-2. **Fix on the PR head.** For every item whose `Changed paths` is not `none`, confirm with `FIX_CHECK` that the change is in a commit on the PR's remote head. If it is not, set `Post status: held — fix not on PR head`, do not post or resolve that item, and tell the user which paths to commit and push.
+1. **Pending review.** If you have a pending review on the PR, stop before the first write and ask the user to submit or discard it in GitHub. Never submit or discard it for them. If the check itself fails, stop before the first write and report the error.
+2. **Fix on the PR head.** Hold every item implemented in this run (`Implementation status: implemented`), because Step 5 leaves its changes uncommitted. For every other item whose `Changed paths` is not `none`, confirm with `FIX_CHECK` that the change is in a commit on the PR's remote head. If it is not, set `Post status: held — fix not on PR head`, do not post or resolve that item, and tell the user which paths to commit and push.
 
 Before any GitHub write, show:
 
 ```text
 Posting <N> replies/comments and resolving <M> inline review threads on <PR URL>.
-Holding <H> items until their fixes are pushed.
+Holding <H> items whose fixes are not on the PR head.
 ```
 
 List every `answered-unresolved` thread planned for resolution and ask for explicit confirmation before resolving it, even under `--post` or `--auto`; this run did not write the reply it relies on.
@@ -434,7 +430,7 @@ mutation($threadId: ID!) {
 }'
 ```
 
-After each successful resolve, update the plan's `Post status` field to `posted and resolved`, or `resolved` for an `answered-unresolved` thread. If a resolve fails after the reply posted, leave the reply in place, mark the `Post status` field as `posted, resolve failed`, and report the GitHub error.
+After each successful resolve, update the plan's `Post status` field to `posted and resolved`, or `resolved` for an `answered-unresolved` thread. If a resolve fails after the reply posted, leave the reply in place, mark the `Post status` field as `posted, resolve failed`, and report the GitHub error. If resolving an `answered-unresolved` thread fails, mark it `resolve failed` and report the GitHub error.
 
 ## Step 11: Final Output
 
