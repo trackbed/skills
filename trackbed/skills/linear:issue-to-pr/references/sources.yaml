@@ -8,10 +8,26 @@ sources:
     fetch_mode: curl-markdown
     baseline_hash: "sha256:9c0ead16421620bb9b4a338043717ea7541c157cd75ee5e1b06d381f7a046c32"
   - id: conductor-environment-variables
-    url: https://www.conductor.build/docs/reference/environment-variables
+    url: https://www.conductor.build/docs/reference/environment-variables.md
     title: "Conductor environment variables"
-    rationale: "The host adapter preserves Conductor's distinction between workspace display state and local or cloud execution context."
+    rationale: "The host adapter detects local and cloud workspaces through documented CONDUCTOR_WORKSPACE_PATH rather than the observed but undocumented workspace ID."
     usage: inspiration
-    last_reviewed_at: 2026-11-06
-    fetch_mode: curl-html
-    baseline_hash: "sha256:ca7493dc83c586450f1a44b1b3d71e7be5775d6e4948d4e72df551d119685ec2"
+    last_reviewed_at: 2026-11-08
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:bbb5f82a4320d0a960fcaf4c99ccd575fabb8bdf49c2f981abaf89035517ccae"
+  - id: conductor-cloud-environment-variables
+    url: https://www.conductor.build/docs/cloud/environment-variables.md
+    title: "Conductor cloud workspace environment variables"
+    rationale: "Cloud workspaces also expose CONDUCTOR_WORKSPACE_PATH and can lack automatic API credentials; the reviewed page does not document CONDUCTOR_WORKSPACE_ID."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:e99e5a5fb2640b2122aeba877c751a830c4ea1ed47e07d1e58a9d11d8b107db3"
+  - id: compound-engineering-lfg-intake
+    url: https://raw.githubusercontent.com/EveryInc/compound-engineering-plugin/7dc50943bbf959dbe6a93a175e41e5fff8395e00/skills/lfg/references/intake.md
+    title: "Compound Engineering LFG intake routing"
+    rationale: "Intake shows the resolved ticket title and checks the requested result before implementation; the local gate reports an alternative without invoking it."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:19937288e529654a3683cb0e4c83a94d0d8f68b06091d51daab0ecf0e239aaf2"
