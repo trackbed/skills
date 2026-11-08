@@ -48,6 +48,8 @@ Use `recommend-siw` when the plan is not already tracked but has one or more of 
 
 A named prerequisite is not automatically blocked or unknown. When the plan embeds a concrete prerequisite-readiness section, inspect its assertions against the current base. If every assertion is already true, treat the prerequisite as satisfied without requesting an index, sibling plan, tracker status, or landing record.
 
+An open question that carries a stated default and no blocking mark is not an open decision; proceed with the default.
+
 Recommend the smallest next SIW action:
 
 - `trackbed:siw:init` when there is a spec or durable project to track.
@@ -81,11 +83,12 @@ Use `blocked` when the plan is contradictory or cannot be executed safely:
 
 - The objective and non-goals conflict.
 - The plan depends on an unlanded prerequisite and no safe fallback exists.
-- A required file, issue, or external system is unavailable.
+- A file the plan expects to already exist, or a required issue or external system, is unavailable. A file the plan marks for creation is not unavailable.
+- An open question states no default, or the plan marks it as blocking implementation.
 - Acceptance criteria are absent and the work changes user-facing behavior.
 - Verification is impossible to discover and the plan changes production code.
 
-Ask the minimum question needed to remove the blocker, or recommend a planning workflow if the gap is broad.
+Ask the minimum question needed to remove the blocker, or recommend a planning workflow if the gap is broad. Under `trackbed:code:plan-to-pr` delegation, return that question with the blocker instead of asking it.
 
 ## Route Decision Output
 
