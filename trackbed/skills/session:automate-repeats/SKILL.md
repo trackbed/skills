@@ -30,14 +30,20 @@ Before Step 1, parse `$ARGUMENTS` for `--auto` and `--effectiveness`. Treat `--a
 2. Resolve the session source without reading raw transcripts into context.
    - If `$ARGUMENTS` includes files or directories, validate those exact paths. If an explicitly provided path is missing or unreadable, stop and report it instead of falling back to default stores. Expand directories to readable `*.jsonl` files and pass the file list to `extract-metadata.py`.
    - If `$ARGUMENTS` includes `--recent N`, discover sessions for the current repo, sort metadata by `last_ts`/`ts`/mtime, and keep the N most recent readable sessions.
-   - Otherwise, discover sessions for the current repo over the last 30 days:
+   - Otherwise, discover sessions for the current repo over the last 30 days. First collect `SESSION_PREFIXES`: the repository root and every `worktree` path from `git worktree list --porcelain`. When the root matches `*/conductor/workspaces/<repo>/<workspace>`, use `*/conductor/workspaces/<repo>` instead, so sessions from the repository's other Conductor workspaces count. Pass every prefix to discovery and to the metadata pass, which keeps only sessions whose recorded working directory is at or below a prefix. A similarly named repository or a session started in a parent directory then does not count:
      ```bash
      REPO_NAME=$(basename "$(git rev-parse --show-toplevel)")
-     bash "<session-scripts>/discover-sessions.sh" "$REPO_NAME" 30 \
+     PREFIX_ARGS=() FILTER_ARGS=()
+     for prefix in "${SESSION_PREFIXES[@]}"; do
+       PREFIX_ARGS+=(--cwd-prefix "$prefix")
+       FILTER_ARGS+=(--cwd-filter "$prefix")
+     done
+     bash "<session-scripts>/discover-sessions.sh" "$REPO_NAME" 30 "${PREFIX_ARGS[@]}" \
        | tr '\n' '\0' \
-       | xargs -0 python3 "<session-scripts>/extract-metadata.py" --cwd-filter "$REPO_NAME"
+       | xargs -0 python3 "<session-scripts>/extract-metadata.py" "${FILTER_ARGS[@]}"
      ```
-   - Prefer JSONL session files sorted by recency. Cap the metadata pass at about 30 sessions and the skeleton deep dive at 10 sessions. Skip parse failures and list them under `UNVERIFIED`.
+   - Discovery reads Claude Code and Codex stores from `CLAUDE_CONFIG_DIR` and `CODEX_HOME` when they are set.
+   - Prefer JSONL session files sorted by recency. Cap the metadata pass at about 30 sessions and the skeleton deep dive at 10 sessions. Skip parse failures and list them under `UNVERIFIED`. Report `files_without_metadata` separately: those files held no session the extractor recognizes, so they are not parse failures.
    - If no session source is readable, ask for an export path and stop.
 
 3. Extract safe skeletons into scratch.

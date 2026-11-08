@@ -22,7 +22,7 @@ JSONL
 @test "discover-sessions exits cleanly when no session stores exist" {
 	mkdir -p "$TEST_DIR/home"
 
-	run env HOME="$TEST_DIR/home" bash "$SCRIPTS/discover-sessions.sh" demo-repo 1
+	run env -u CLAUDE_CONFIG_DIR -u CODEX_HOME HOME="$TEST_DIR/home" bash "$SCRIPTS/discover-sessions.sh" demo-repo 1
 
 	[ "$status" -eq 0 ]
 	[ "$output" = "" ]
@@ -82,4 +82,37 @@ JSONL
 	grep -qF '"unknown_skill_events": 0' "$out"
 	! grep -qF '/tmp/.codex' "$out"
 	! grep -qF 'sk-abcdefghijklmnopqrstuvwxyz123456' "$out"
+}
+
+@test "discover-sessions lists Claude projects by encoded cwd prefix, not repo-name glob" {
+	# Claude Code encodes /work/my.repo as -work-my-repo, which a "*my.repo*" glob misses.
+	local claude="$TEST_DIR/claude-config/projects"
+	mkdir -p "$TEST_DIR/home" "$claude/-work-my-repo/subagents" "$claude/-elsewhere-other"
+	touch "$claude/-work-my-repo/a.jsonl" "$claude/-work-my-repo/subagents/d.jsonl" "$claude/-elsewhere-other/c.jsonl"
+
+	run env -u CODEX_HOME HOME="$TEST_DIR/home" CLAUDE_CONFIG_DIR="$TEST_DIR/claude-config" \
+		bash "$SCRIPTS/discover-sessions.sh" my.repo 1 --platform claude --cwd-prefix /work/my.repo
+
+	[ "$status" -eq 0 ]
+	[ "${#lines[@]}" -eq 1 ]
+	[[ "${lines[0]}" == "$claude/-work-my-repo/"*"a.jsonl" ]]
+
+	run env -u CODEX_HOME HOME="$TEST_DIR/home" CLAUDE_CONFIG_DIR="$TEST_DIR/claude-config" \
+		bash "$SCRIPTS/discover-sessions.sh" my.repo 1 --platform claude
+
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"a.jsonl"* ]]
+	[[ "$output" == *"c.jsonl"* ]]
+	[[ "$output" != *"d.jsonl"* ]]
+}
+
+@test "discover-sessions honors CODEX_HOME and lists a shared store once" {
+	mkdir -p "$TEST_DIR/home/.agents/sessions/2026"
+	touch "$TEST_DIR/home/.agents/sessions/2026/rollout-1.jsonl"
+
+	run env -u CLAUDE_CONFIG_DIR HOME="$TEST_DIR/home" CODEX_HOME="$TEST_DIR/home/.agents" \
+		bash "$SCRIPTS/discover-sessions.sh" demo-repo 1 --platform codex
+
+	[ "$status" -eq 0 ]
+	[ "$output" = "$TEST_DIR/home/.agents/sessions/2026/rollout-1.jsonl" ]
 }

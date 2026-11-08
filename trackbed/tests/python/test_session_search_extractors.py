@@ -805,6 +805,94 @@ runpy.run_path(script_path, run_name="__main__")
             self.assertEqual(records[-1]["files_matched"], 3)
             self.assertNotIn("CAFÉ", result.stdout)
 
+    def test_metadata_finds_resumed_claude_sessions_past_a_long_preamble(self):
+        preamble = "".join(
+            json.dumps({"type": "file-history-snapshot", "messageId": f"m{index}", "snapshot": {}}) + "\n"
+            for index in range(40)
+        )
+        first_turn = json.dumps(
+            {
+                "type": "user",
+                "timestamp": "2026-06-06T11:00:00Z",
+                "gitBranch": "main",
+                "sessionId": "resumed-session",
+                "cwd": "/work/demo-repo",
+                "message": {"content": "Continue the resumed task."},
+            }
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "resumed.jsonl"
+            path.write_text(preamble + first_turn + "\n", encoding="utf-8")
+
+            result = self.run_script("extract-metadata.py", "", path)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        records = [json.loads(line) for line in result.stdout.splitlines()]
+        self.assertEqual(records[0]["platform"], "claude")
+        self.assertEqual(records[0]["session"], "resumed-session")
+        self.assertEqual(records[0]["cwd"], "/work/demo-repo")
+        self.assertEqual(records[-1]["parse_errors"], 0)
+
+    def test_metadata_counts_files_without_metadata_apart_from_parse_errors(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "unrelated.jsonl"
+            path.write_text('{"type":"summary","summary":"not a session"}\n', encoding="utf-8")
+
+            result = self.run_script("extract-metadata.py", "", path)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        meta = json.loads(result.stdout.splitlines()[-1])
+        self.assertEqual(meta["parse_errors"], 0)
+        self.assertEqual(meta["files_without_metadata"], 1)
+
+    def test_metadata_cwd_filter_matches_whole_segments_and_descendants_only(self):
+        def codex(name, cwd):
+            return "\n".join(
+                [
+                    json.dumps(
+                        {
+                            "timestamp": "2026-06-06T10:00:00Z",
+                            "type": "session_meta",
+                            "payload": {"cwd": cwd, "id": name, "timestamp": "2026-06-06T10:00:00Z"},
+                        }
+                    ),
+                    json.dumps({"type": "turn_context", "payload": {"cwd": cwd, "model": "gpt-test"}}),
+                ]
+            )
+
+        claude_without_cwd = json.dumps(
+            {
+                "type": "user",
+                "timestamp": "2026-06-06T11:00:00Z",
+                "gitBranch": "main",
+                "sessionId": "claude-no-cwd",
+                "message": {"content": "hi"},
+            }
+        )
+        fixtures = {
+            "repo.jsonl": codex("repo", "/work/demo-repo"),
+            "app.jsonl": codex("app", "/work/demo-repo/app"),
+            "archive.jsonl": codex("archive", "/work/demo-repo-archive"),
+            "ancestor.jsonl": codex("ancestor", "/work"),
+            "claude.jsonl": claude_without_cwd,
+            "cursor.jsonl": CURSOR_SESSION.strip(),
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            paths = []
+            for name, content in fixtures.items():
+                path = Path(directory) / name
+                path.write_text(content + "\n", encoding="utf-8")
+                paths.append(path)
+
+            for cwd_filter in ("demo-repo", "/work/demo-repo/"):
+                with self.subTest(cwd_filter=cwd_filter):
+                    result = self.run_script("extract-metadata.py", "", "--cwd-filter", cwd_filter, *paths)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    records = [json.loads(line) for line in result.stdout.splitlines()]
+                    kept = {record.get("session") for record in records[:-1]}
+                    self.assertEqual(kept, {"repo", "app", Path(directory).name})
+                    self.assertEqual(records[-1]["filtered_by_cwd"], 3)
+
     def test_metadata_stdin_reads_only_the_detection_prefix(self):
         result = self.run_script("extract-metadata.py", CODEX_SESSION)
         self.assertEqual(result.returncode, 0, result.stderr)

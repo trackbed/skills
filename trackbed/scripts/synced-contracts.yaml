@@ -2020,7 +2020,8 @@
           "trackbed/scripts/release.py": 595,
           "trackbed/scripts/run-skillspector.sh": 644,
           "trackbed/scripts/siw-issue-reservation.sh": 1772,
-          "trackbed/scripts/skill-usage.js": 1165
+          "trackbed/scripts/skill-usage.js": 1165,
+          "trackbed/skills/session:automate-repeats/scripts/extract-metadata.py": 540
         },
         "excluded": ["trackbed/skills/pr:walkthrough/assets/d3.v7.9.0.min.js"]
       },
