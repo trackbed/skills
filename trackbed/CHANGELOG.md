@@ -31,6 +31,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 
 ### Fixed
 
+- `/kramme:text:clarify --humanize` now ships the MIT notice for the text its AI-writing pattern catalog retains from `blader/humanizer`, and credits humanizer as a copied source instead of an inspiration.
 - `/kramme:pr:generate-description` now finds repository PR templates when the agent's shell is zsh. The lookup looped over a variable named `path`, which zsh ties to `PATH`, so every later command in the lookup failed and it reported no template.
 
 ## [0.91.0] - 2026-11-02

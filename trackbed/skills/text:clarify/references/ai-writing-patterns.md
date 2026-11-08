@@ -1,6 +1,11 @@
 # AI Writing Patterns Reference
 
-Based on Wikipedia's "Signs of AI writing" page, maintained by WikiProject AI Cleanup. This adapted reference is licensed under CC BY-SA 4.0; attribution, modification, and license details are in `WIKIPEDIA-CONTENT-LICENSE.md`.
+This reference adapts two sources:
+
+- Wikipedia's "Signs of AI writing" page, maintained by WikiProject AI Cleanup, at revision 1366684471, under CC BY-SA 4.0. Attribution, modification, and license details are in `WIKIPEDIA-CONTENT-LICENSE.md`.
+- `SKILL.md` from [blader/humanizer](https://github.com/blader/humanizer) at commit `3e1da8bfce43ecbe43a56f3cb00b62fbdf1cbd56`, under the MIT License. Its complete notice is in `blader-humanizer-LICENSE`.
+
+This adapted reference is licensed under CC BY-SA 4.0. The material adapted from humanizer also remains subject to its MIT notice.
 
 ---
 
