@@ -62,11 +62,25 @@ def _names_page_chrome(value: str) -> bool:
     return any(PLAIN_ATTR_TOKEN.fullmatch(token) and DROP_ATTR_PATTERN.search(token) for token in value.split())
 
 
+def _close_through(stack: list[str], tag: str) -> bool:
+    """Pop the innermost open `tag` and every element opened after it; return False if none is open."""
+    for index in reversed(range(len(stack))):
+        if stack[index] == tag:
+            del stack[index:]
+            return True
+    return False
+
+
 class _Normalizer(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self._out: list[str] = []
-        self._skip_depth = 0
+        # Open elements inside a dropped region (root first) and outside one. Pages may omit
+        # optional end tags such as </li> or </p>, so an end tag closes everything opened
+        # after its own start tag. Inside a dropped region, the end tag of an element open
+        # outside it closes the region too; any other unmatched end tag is ignored.
+        self._skip_stack: list[str] = []
+        self._open_stack: list[str] = []
         self._heading_prefix: Optional[str] = None
         self._in_pre = False
         self._in_code = False
@@ -105,24 +119,27 @@ class _Normalizer(HTMLParser):
     # --- HTMLParser interface ---
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, Optional[str]]]) -> None:
-        if self._skip_depth:
+        if self._skip_stack:
             if tag not in VOID_TAGS:
-                self._skip_depth += 1
+                self._skip_stack.append(tag)
             return
 
         if tag in STRIP_TAGS:
             if tag not in VOID_TAGS:
-                self._skip_depth = 1
+                self._skip_stack = [tag]
             return
 
         if tag in STRUCTURAL_DROP_TAGS:
-            self._skip_depth = 1
+            self._skip_stack = [tag]
             return
 
         if _names_page_chrome(self._attr_value(attrs, "class")) or _names_page_chrome(self._attr_value(attrs, "id")):
             if tag not in VOID_TAGS:
-                self._skip_depth = 1
+                self._skip_stack = [tag]
             return
+
+        if tag not in VOID_TAGS:
+            self._open_stack.append(tag)
 
         if tag in HEADING_TAGS:
             self._out.append("\n\n")
@@ -191,10 +208,11 @@ class _Normalizer(HTMLParser):
             self.handle_endtag(tag)
 
     def handle_endtag(self, tag: str) -> None:
-        if self._skip_depth:
-            if tag not in VOID_TAGS:
-                self._skip_depth -= 1
-            return
+        if self._skip_stack:
+            if _close_through(self._skip_stack, tag) or tag not in self._open_stack:
+                return
+            self._skip_stack = []
+        _close_through(self._open_stack, tag)
 
         if tag in HEADING_TAGS:
             self._out.append("\n")
@@ -233,7 +251,7 @@ class _Normalizer(HTMLParser):
             return
 
     def handle_data(self, data: str) -> None:
-        if self._skip_depth:
+        if self._skip_stack:
             return
         if self._in_pre:
             self._out.append(data)

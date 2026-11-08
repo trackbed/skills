@@ -19,6 +19,8 @@ Defines what `scripts/normalize.py` strips and keeps when turning a transient fe
 - Image binaries (keep `alt` text inline as `[image: <alt>]`).
 - Inline event handlers and `data-*` attributes.
 
+A dropped element ends at its own closing tag or at the closing tag of an element that was open before it, unless an element with that name is still open inside the dropped element; that end tag then closes the inner element instead. Pages may omit optional end tags such as `</li>` or `</p>`, so inside a dropped element an end tag also closes every element opened after its own start tag; one unclosed list item inside a dropped `<nav>` cannot drop the rest of the page. An end tag that matches no open element inside or before the dropped element, such as a stray `</span>`, is ignored; a stray `</div>` still ends the dropped element when a `<div>` encloses it. A same-name sibling does not close the dropped element: after an unclosed `<p class="cookie-banner">`, everything that follows stays dropped until an enclosing element closes, and the rest of the page is dropped if none does.
+
 ### Volatile noise (regex pass after HTML strip)
 
 - Build/version stamps in footers: `Build [a-f0-9]{6,}`, `Generated on YYYY-MM-DD( HH:MM)?`, `v\d+\.\d+\.\d+(-\w+)?` _only when on a line with no other meaningful content_.
