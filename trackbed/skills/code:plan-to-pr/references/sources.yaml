@@ -2,7 +2,7 @@ sources:
   - id: addy-context-engineering
     url: https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/context-engineering/SKILL.md
     title: "Addy Osmani agent-skills - context engineering"
-    rationale: "The shared implementation checklist and selective context loading retain ideas from this source in original local language. The shared forward-progress reference's context-recovery paragraph retains its idea of reloading governing requirements and rebuilding task state when assumptions drift. The review date and hash preserve the original review against upstream commit 5e262b20e0cd88dba39e558f42f5c0b6d766d4b4."
+    rationale: "The shared implementation checklist and selective context loading retain ideas from this source in original local language. The shared forward-progress reference's context-recovery paragraph retains its idea of reloading governing requirements and rebuilding task state when assumptions drift. Its context-reset rules, which rebuild from the branch, working tree, and commits rather than memory and ask again for approvals that no durable record shows, follow the restartable task boundaries added in upstream commit a1c9bd627c38ac46630c4cdf0399c6985fb83f27. The review date and hash preserve the original review against upstream commit 5e262b20e0cd88dba39e558f42f5c0b6d766d4b4."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
