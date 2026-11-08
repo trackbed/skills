@@ -151,6 +151,16 @@ Assign every candidate exactly one state:
 
 Route `COVERAGE GAP` items only to `## Coverage Gaps`; keep them out of the ranked findings list. Keep `NOT A FINDING` items out of the ranked findings list and preserve a short filtered-candidates section so readers can understand material false positives.
 
+Credit a control or an unreachable path only on repository evidence:
+
+- An unset SameSite attribute is no observed control. Neither is `Lax` when the state change is reachable through a safe method such as GET, because browsers send `Lax` cookies on such cross-site top-level navigations.
+- SameSite never counts as an observed control for a candidate authenticated by HTTP authentication, because browsers attach those credentials regardless of cookie attributes.
+- When a cookie that authenticates the request is issued outside the repository, such as by an identity provider or gateway, record its SameSite value as unknown, not as a control.
+- Internal-only placement, such as a private network, VPN, or admin-only host, does not make a CSRF candidate unreachable or lower its exposure: the victim's browser sits inside that boundary and sends the forged request.
+- Protection credited to a provider, vendor, or contract counts as an observed control only when repository configuration shows it enabled for the affected boundary. Otherwise record the control, not the candidate, as a dated assumption under `## Scope and Limitations` or as a coverage gap; transferring a risk does not remove it.
+
+An unknown or assumed control never makes a candidate `NOT A FINDING` or `COVERAGE GAP`: classify the candidate on its other evidence and name that control as its missing proof.
+
 For `VERIFIED` and `SUSPECTED`, assign:
 
 - severity: `CRITICAL`, `HIGH`, `MEDIUM`, or `LOW` based on plausible impact and exposure;
