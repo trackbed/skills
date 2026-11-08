@@ -34,17 +34,16 @@ PR_HEAD_OID=$(gh pr view "$PR_NUMBER" --repo "$OWNER/$REPO" --json headRefOid --
   echo "Could not read the PR head; nothing was posted." >&2
   exit 1
 }
-git fetch origin "refs/pull/$PR_NUMBER/head"
-[ "$(git rev-parse FETCH_HEAD)" = "$PR_HEAD_OID" ] || {
-  echo "The PR head moved while fetching; re-run." >&2
+if ! git fetch origin "refs/pull/$PR_NUMBER/head"; then
+  echo "Could not fetch the PR head; nothing was posted." >&2
   exit 1
-}
+fi
 ```
 
-For every item whose `Changed paths` is not `none`, run `"$FIX_CHECK" "$(git rev-parse --show-toplevel)" "$PR_HEAD_OID" <changed paths>`, with paths relative to the repository root, with `FIX_CHECK` set in Step 8:
+The script itself confirms that `$PR_HEAD_OID` is available locally. For every item whose `Changed paths` is not `none`, run `"$FIX_CHECK" "$(git rev-parse --show-toplevel)" "$PR_HEAD_OID"` followed by each changed path, relative to the repository root, as its own quoted argument:
 
 - Exit 0: the fix is on the PR head; the item may be posted and resolved.
-- Exit 1 or 2: set `Post status: held — fix not on PR head`. Do not post its reply or resolve its thread. Record what the user must do: for `uncommitted` paths, commit and push them; for `not-on-head` paths, push the commits that change them, listed by `git log --oneline "$PR_HEAD_OID..HEAD" -- <paths>`; for exit 2, report the error.
+- Any other exit status: set `Post status: held — fix not on PR head`. Do not post its reply or resolve its thread. Record what the user must do: for `uncommitted` paths, commit and push them; for `not-on-head` paths, push the commits that change them, listed by `git log --oneline "$PR_HEAD_OID..HEAD" -- <paths>`, or, when that lists nothing, pull the PR head because the checkout is behind it; otherwise report the script's error.
 
 The same check covers an answered-unresolved thread whose earlier reply cited a change: resolve it only after its paths pass.
 
@@ -54,7 +53,7 @@ The plan is a snapshot; GitHub is the source of truth. Immediately before postin
 
 - **Inline thread** — fetch the thread with `node(id: $THREAD_ID) { ... on PullRequestReviewThread { isResolved comments(last: 100) { nodes { author { login } createdAt body } } } }`.
   - If it is now resolved, set `Post status: skipped — resolved since drafting` and move on.
-  - If a comment from `SELF` already follows the latest comment from anyone else, the reply was posted earlier. Set `Post status: posted` without posting again, then continue to the resolve step for it.
+  - If the item has a reply to post (`Reply target` is not `none`) and a comment from `SELF` already follows the latest comment from anyone else, the reply was posted earlier. Set `Post status: posted` without posting again, then continue to the resolve step for it.
 - **Review-summary or general comment** — re-fetch the PR's issue comments. If a `SELF` comment created after the item's latest non-author comment links that comment's URL or matches the draft body, set `Post status: posted` without posting again.
 
 If the re-read fails, stop posting and report the item, like any other failed write.

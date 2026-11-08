@@ -9,9 +9,11 @@
 # fetched into <repo>. Prints nothing and exits 0 when every path is on the PR
 # head. Otherwise prints one line per path that is not, as
 # "uncommitted <path>" (the working tree differs from HEAD, including untracked
-# files) or "not-on-head <path>" (the local commit differs from the PR head,
-# usually because it is not pushed yet), and exits 1. Exits 2 on usage or Git
-# errors, which callers must treat as "not on the PR head".
+# files) or "not-on-head <path>" (the local commit differs from the PR head:
+# it is not pushed yet, or the checkout is behind the PR head), and exits 1.
+# Exits 2 on usage or Git errors, and for a path Git knows neither locally nor
+# in the PR head's history (a typo, a wrong-case name, or an ignored file),
+# which callers must treat as "not on the PR head".
 
 set -euo pipefail
 
@@ -38,10 +40,24 @@ if ! git -C "$repo" rev-parse --verify --quiet "$head_oid^{commit}" > /dev/null;
   echo "Commit $head_oid is not available in $repo; fetch the PR head first." >&2
   exit 2
 fi
-if ! git -C "$repo" rev-parse --verify --quiet "HEAD^{commit}" > /dev/null; then
-  echo "$repo has no HEAD commit." >&2
-  exit 2
-fi
+
+# Status and diff print nothing for a path Git does not know, which would read
+# as "on the PR head". A path the PR head once had still counts, so a pushed
+# deletion passes.
+for path in "$@"; do
+  if ! known=$(git -C "$repo" ls-files --cached --others --exclude-standard -- "$path"); then
+    echo "git ls-files failed in $repo." >&2
+    exit 2
+  fi
+  if [ -z "$known" ] && ! known=$(git -C "$repo" log -1 --format=%H "$head_oid" -- "$path"); then
+    echo "git log failed in $repo." >&2
+    exit 2
+  fi
+  if [ -z "$known" ]; then
+    echo "Path '$path' is not known in $repo or in the history of $head_oid." >&2
+    exit 2
+  fi
+done
 
 # Keep NUL-separated Git output in files: command substitution drops NUL bytes.
 tmp=$(mktemp -d)

@@ -1610,6 +1610,23 @@ PY
 	[ "$status" -eq 2 ]
 	run "$script" "$repo" "$pr_head"
 	[ "$status" -eq 2 ]
+
+	# A path Git does not know is an error, never a silent pass: a typo, a
+	# subdirectory-relative name, or an ignored file.
+	printf 'scratch.log\n' >"$repo/.gitignore"
+	printf 'log\n' >"$repo/scratch.log"
+	for unknown in src/typo.ts a.ts scratch.log; do
+		run "$script" "$repo" "$(git -C "$repo" rev-parse HEAD)" "$unknown"
+		[ "$status" -eq 2 ] || { echo "$unknown: $output"; false; }
+		[[ "$output" == *"Path '$unknown' is not known"* ]]
+	done
+
+	# A deletion the PR head already has still passes.
+	git -C "$repo" add .gitignore
+	git -C "$repo" rm -q src/b.ts
+	git -C "$repo" commit -qm delete
+	run "$script" "$repo" "$(git -C "$repo" rev-parse HEAD)" src/b.ts
+	[ "$status" -eq 0 ] && [ -z "$output" ] || { echo "$output"; false; }
 }
 
 @test "github review reply guards every post: pushed fix, no pending review, re-check, one at a time" {
@@ -1629,13 +1646,20 @@ for term in [
     "Never submit or discard it for them.",
     "confirm with `FIX_CHECK` that the change is in a commit on the PR's remote head",
     "`Post status: held — fix not on PR head`, do not post or resolve that item, and tell the user which paths to commit and push",
+    "List every `answered-unresolved` thread planned for resolution and ask for explicit confirmation before resolving it, even under `--post` or `--auto`",
 ]:
     assert term in step8, f"Step 8 lost {term}"
+step1 = skill[skill.index("## Step 1:"):skill.index("## Step 2:")]
+assert '[ -n "$SELF" ] ||' in step1, "Step 1 must stop when the GitHub user is unknown"
 for term in ["Post one item at a time and never in parallel", "skip a thread resolved since drafting",
              "record the item as `posted` instead of posting again", "On a rate-limit response, stop at once"]:
     assert term in step9, f"Step 9 lost {term}"
 assert "Never resolve a held item." in step10
+assert "plus `answered-unresolved` threads the user confirmed in Step 8" in step10
 assert "`resolutionReason: ADDRESSED`" in step10
+# Top-level replies link their source so a re-run can recognise them.
+step6 = skill[skill.index("## Step 6:"):skill.index("## Step 7:")]
+assert "Start it with a link to the comment it answers" in step6
 assert "every item held because its fix is not on the PR head" in step11
 # Implemented fixes stay local, so --auto must hold their replies.
 step5 = skill[skill.index("## Step 5:"):skill.index("## Step 6:")]
@@ -1645,11 +1669,12 @@ for term in [
     'select(.user.login == $self and .state == "PENDING")',
     "no write happens without a clean check",
     "Never submit, discard, or edit the pending review for the user.",
-    'git fetch origin "refs/pull/$PR_NUMBER/head"',
-    '[ "$(git rev-parse FETCH_HEAD)" = "$PR_HEAD_OID" ]',
-    "Exit 1 or 2: set `Post status: held — fix not on PR head`",
+    'if ! git fetch origin "refs/pull/$PR_NUMBER/head"; then',
+    "Could not fetch the PR head; nothing was posted.",
+    "Any other exit status: set `Post status: held — fix not on PR head`",
     "If it is now resolved, set `Post status: skipped — resolved since drafting`",
-    "If a comment from `SELF` already follows the latest comment from anyone else",
+    "a comment from `SELF` already follows the latest comment from anyone else",
+    "links that comment's URL or matches the draft body",
     "HTTP 429, or HTTP 403 whose message mentions a rate limit",
     "Do not retry or wait it out.",
     "isCopilotCodeReview",
@@ -1678,13 +1703,15 @@ assert "only when it asks for a change, an answer, or a decision that no inline 
 assert "Judge by content, not by author type" in step3
 assert "`answered-unresolved` when it is unresolved and a later reply from `PR_AUTHOR` follows its latest non-author comment" in step3
 assert "exclude `answered-unresolved` threads unless `RESOLVE=true`" in step3
+assert "a kept `answered-unresolved` thread gets no new reply (`Reply target: none`)" in step3
 step4 = skill[skill.index("## Step 4:"):skill.index("## Step 5:")]
 assert "as its title and description (`PR_TITLE`, `PR_BODY`) state it" in step4
 assert "Record `Changed paths`" in step4
+assert "for every `answered-unresolved` thread whose existing PR-author reply says it changed" in step4
 for field in ["| Thread state |", "| Changed paths |", "`held — fix not on PR head`", "`skipped — resolved since drafting`", "`not posted — rate limited`"]:
     assert field in skill, f"plan template lost {field}"
 assert "id: compound-ce-resolve-pr-feedback" in sources
-entry = sources[sources.index("id: compound-ce-resolve-pr-feedback"):]
+entry = sources[sources.index("id: compound-ce-resolve-pr-feedback"):].split("\n  - id:")[0]
 assert "usage: inspiration" in entry
 PY
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
