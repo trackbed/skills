@@ -44,7 +44,7 @@ PLAN_TEMPLATE="skills/code:migrate/assets/migration-plan.md"
 @test "migration declares source-driven inspiration provenance" {
   grep -qF 'id: addy-source-driven-development' "$SOURCES"
   grep -qF 'usage: inspiration' "$SOURCES"
-  grep -qF 'last_reviewed_at: 2026-08-30' "$SOURCES"
+  grep -qF 'last_reviewed_at: 2026-11-06' "$SOURCES"
   grep -qF 'baseline_hash: "sha256:3ac95b5c852740047f3572aafc24c41f7f732990e63bfd22d43330ecaba1c9b6"' "$SOURCES"
 }
 
