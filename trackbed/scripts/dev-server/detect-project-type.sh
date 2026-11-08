@@ -3,7 +3,7 @@
 # Adapted from EveryInc/compound-engineering-plugin:
 # plugins/compound-engineering/skills/ce-polish/scripts/detect-project-type.sh
 # Reviewed at commit 6f9ab03a031c054a8046659926251fb6c149269f.
-# Upstream license: MIT.
+# Upstream license: MIT. Full notice: EveryInc-LICENSE in this directory.
 #
 # Detect the primary browser-facing project type for a repository or project
 # directory. Output grammar:

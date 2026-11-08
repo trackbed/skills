@@ -57,4 +57,4 @@ Do not scan prose files such as `AGENTS.md`, `CLAUDE.md`, READMEs, or issue text
 
 ## Source
 
-`detect-project-type.sh`, `resolve-package-manager.sh`, `read-launch-json.sh`, and `resolve-port.sh` are adapted from `ce-polish` in EveryInc's `compound-engineering-plugin`, reviewed at commit `6f9ab03a031c054a8046659926251fb6c149269f`. Upstream license: MIT.
+`detect-project-type.sh`, `resolve-package-manager.sh`, `read-launch-json.sh`, and `resolve-port.sh` are adapted from `ce-polish` in EveryInc's `compound-engineering-plugin`, reviewed at commit `6f9ab03a031c054a8046659926251fb6c149269f`. Upstream license: MIT; the complete notice ships as `EveryInc-LICENSE` in this directory, and `sources.yaml` records each copied file's upstream path and commit. `detect-url.sh` is original code that follows ce-polish's guidance.

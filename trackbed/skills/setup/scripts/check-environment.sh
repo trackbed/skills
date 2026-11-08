@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 # Environment health checker for trackbed:setup.
 #
-# Adapted from EveryInc/compound-engineering-plugin:
-# https://github.com/EveryInc/compound-engineering-plugin/tree/6f9ab03a031c054a8046659926251fb6c149269f/plugins/compound-engineering/skills/ce-setup
-# Reviewed upstream commit: 6f9ab03a031c054a8046659926251fb6c149269f
-# License: MIT; full notice at ../references/EveryInc-LICENSE
+# Original code informed by ideas from EveryInc/compound-engineering-plugin's
+# ce-setup skill; see ../references/sources.yaml.
 #
 # This local implementation is read-only. It reports tool availability and
 # repository context without installing packages, editing config, or fetching.

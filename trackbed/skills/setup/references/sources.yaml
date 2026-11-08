@@ -1,14 +1,11 @@
 sources:
   - id: compound-ce-setup
-    url: https://raw.githubusercontent.com/EveryInc/compound-engineering-plugin/6f9ab03a031c054a8046659926251fb6c149269f/plugins/compound-engineering/skills/ce-setup/SKILL.md
+    url: https://raw.githubusercontent.com/EveryInc/compound-engineering-plugin/main/skills/ce-setup/SKILL.md
     title: "EveryInc compound-engineering-plugin - ce-setup"
-    rationale: "The workflow and scripts/check-environment.sh are adapted from this source; reviewed at commit 6f9ab03a031c054a8046659926251fb6c149269f."
-    usage: copied
-    license: "MIT"
-    notice: references/EveryInc-LICENSE
-    upstream_path: plugins/compound-engineering/skills/ce-setup/SKILL.md
-    upstream_commit: 6f9ab03a031c054a8046659926251fb6c149269f
-    last_reviewed_at: 2026-06-07
+    rationale: "The read-only readiness check, grouping tools by importance, install guidance without installing, and shell constructs that need no temp file follow ideas from ce-setup, first reviewed at 6f9ab03; SKILL.md and scripts/check-environment.sh are original."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "7dc50943bbf959dbe6a93a175e41e5fff8395e00"
     baseline_hash: "sha256:626696dc061455a1320559b48ef8bced72fe8b87403d3d4d55592627c99ea6ec"
   - id: compound-ce-setup-health-checks
     url: https://raw.githubusercontent.com/EveryInc/compound-engineering-plugin/main/skills/ce-setup/scripts/check-health

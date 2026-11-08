@@ -6,7 +6,7 @@ Source-manifest entries marked `usage: inspiration` record ideas, facts, methods
 
 ## Every — `compound-engineering-plugin`
 
-Copied or adapted scripts and support files in `trackbed:code:optimize`, `trackbed:session:automate-repeats`, and `trackbed:setup` come from [`EveryInc/compound-engineering-plugin`](https://github.com/EveryInc/compound-engineering-plugin), licensed under the MIT License. Each affected skill carries a complete copy of the upstream license in `references/EveryInc-LICENSE`.
+Copied or adapted scripts and support files in `trackbed:code:optimize`, `trackbed:session:automate-repeats`, and the shared dev-server detection scripts in `trackbed/scripts/dev-server/` come from [`EveryInc/compound-engineering-plugin`](https://github.com/EveryInc/compound-engineering-plugin), licensed under the MIT License. Each affected skill carries a complete copy of the upstream license in `references/EveryInc-LICENSE`, and the dev-server scripts carry one as `trackbed/scripts/dev-server/EveryInc-LICENSE`.
 
 ## GitHub — `gh-stack`
 
