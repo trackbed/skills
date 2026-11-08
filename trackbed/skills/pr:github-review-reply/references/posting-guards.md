@@ -64,6 +64,7 @@ The plan is a snapshot; GitHub is the source of truth. Immediately before postin
   ```
 
   REST reports no resolution state, so skip the resolved check; Step 8 already required explicit confirmation for this post. If a `SELF` comment in the result was created after `Latest comment at drafting`, set `Post status: posted` without posting again. If the root comment is missing from the result, treat it as a failed re-read. REST-only threads are never resolved.
+
 - **Review-summary or general comment** — re-fetch every page of the PR's issue comments with `gh api --paginate "repos/$OWNER/$REPO/issues/$PR_NUMBER/comments"`. If a `SELF` comment created after both the item's latest non-author comment and its `Latest comment at drafting` links that comment's URL or matches the draft body, set `Post status: posted` without posting again.
 
 If the re-read fails, stop posting and report the item, like any other failed write.
