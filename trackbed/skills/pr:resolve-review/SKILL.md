@@ -44,9 +44,9 @@ Parse `$ARGUMENTS` for flags. After extracting all flags, the remainder is the *
 - `--source local|online|conductor` (aliases `--local`, `--online`, `--conductor`) → `REVIEW_SOURCE`. Default `auto`. If multiple sources are selected, or `--source` is given an unknown value, ask the user to pick one and stop.
 - `--post` → Not supported. Stop with: `--post is not supported by trackbed:pr:resolve-review.`
 - `--auto` → Not a supported flag here. Stop with: `--auto is not supported by trackbed:pr:resolve-review.`
-- `--implement-only` → `IMPLEMENT_ONLY=true`. Pure code-fix engine mode for callers that own the reply/resolution phase (e.g. `trackbed:pr:github-review-reply`): implement and validate fixes but make no GitHub writes, write no review file, and draft no replies (see Step 4). Mutually exclusive with `--team`; if a conflicting flag is given, ask the user to pick one and stop.
+- `--implement-only` → `IMPLEMENT_ONLY=true`. Pure code-fix engine mode for callers that own the reply/resolution phase (e.g. `trackbed:pr:github-review-reply`): implement and validate fixes but make no commits or GitHub writes, write no review file, and draft no replies (see Step 4). Mutually exclusive with `--team`; if a conflicting flag is given, ask the user to pick one and stop.
 - `--team` → Team Mode (see top of file).
-- `--granular` → `GRANULAR_COMMITS=true`. One commit per finding.
+- `--granular` → `GRANULAR_COMMITS=true`. Step 4 makes one commit per finding after validation instead of one commit for all fixes.
 - `--severity <list>` → `SEVERITY_FILTER`. Comma-separated values from `critical`, `important`, `suggestion`. Findings outside the filter are not processed and keep their existing `Resolution status` and `Action taken` fields unchanged so a later run can resolve them.
 
 **Payload classification:**
@@ -248,7 +248,7 @@ fi
 } > "$CHECKPOINT_FILE"
 ```
 
-If fixes later fail verification (Step 4), offer to roll back. Do not perform a destructive HEAD restore automatically. First report the recorded `CHECKPOINT_SHA`, whether a `CHECKPOINT_STASH_SHA` exists, and the validation failure. If the user explicitly confirms rollback, restore the branch to the recorded checkpoint using the repository's normal destructive restore command, then restore the exact recorded stash object using the Step 4 stash-restore flow below.
+If Step 4 validation ends `failed`, offer to roll back. Do not perform a destructive HEAD restore automatically. First report the recorded `CHECKPOINT_SHA`, whether a `CHECKPOINT_STASH_SHA` exists, and the validation failure. If the user explicitly confirms rollback, restore the branch to the recorded checkpoint using the repository's normal destructive restore command, then restore the exact recorded stash object using the Step 4 stash-restore flow below, and set every finding whose changes the rollback discarded to `open`.
 
 Either way, Step 4 restores the exact stash object recorded in `CHECKPOINT_FILE` so the user's pre-existing uncommitted work is restored. Do not use a generic `git stash pop`; it may apply the wrong stash after an interrupted or retried run.
 
@@ -264,19 +264,28 @@ Process each dependency-connected component sequentially in topological order be
 
 If a finding is process-level and not implementable as an in-place code change, defer it through the Step 2d manual-proposal flow instead of attempting a partial code edit.
 
-**If `GRANULAR_COMMITS=true`:** After implementing each finding, create a dedicated commit for it before moving to the next finding:
-
-```bash
-git add -A
-git commit -m "review: <brief description of the fix>"
-```
-
-Each commit should be self-contained and pass linting/formatting on its own. If a finding requires changes across multiple files, include all of them in the same commit. If two findings touch the same lines and cannot be separated cleanly, combine them into a single commit and note both finding numbers in the message.
+Record the files each fix changes; Step 4 stages from these lists. The run's changed files are `git diff --name-only "$CHECKPOINT_SHA"` plus untracked files, minus workflow artifacts; Step 4 classifies validation failures against that set. Workflow artifacts are never fix files: review overview files, `.context/` checkpoints and summaries, and other files this skill writes for itself.
 
 ### Step 4: Validate and summarize
 
-- **Validate** — Run `trackbed:verify:run --fast` and fix any new lint/format/test issues it reports. The fast tier covers review fixes; the full sweep runs once before the first push or Pull Request, or CI supplies it after the push. If validation fails after multiple attempts and `CHECKPOINT_SHA` exists, offer to roll back (see Step 2.5).
-- **Implement-only mode** (`IMPLEMENT_ONLY=true`) — Make no GitHub writes, write no review file, and draft no replies. Still run the scope-creep and validity checks (Step 2) and the validation above. Instead of the file output below, write `.context/resolve-review/implement-only-summary.json` atomically (write a temporary file, then rename it into place) and return a short chat summary naming that path. Use this schema:
+- **Validate** — Run `trackbed:verify:run --fast` and classify each failure it reports against the run's changed files (Step 3). The fast tier covers review fixes; the full sweep runs once before the first push or Pull Request, or CI supplies it after the push.
+  - **Pre-existing** — Only when the run changed neither the failing file nor anything it imports or tests, and the command still ran the checks that cover the fix files. If the failure stopped the command before those checks, run them directly; when they cannot run, the failure is new. Record the command and failing file, do not repair it, and do not let it block findings or the commit below.
+  - **New** — Every other failure, including one that names no file or that you cannot attribute; such a failure implicates every finding with changed files. Make one repair attempt and rerun the command. If it still fails, stop repairing: report the command and failure, keep the findings it implicates open, make no commit, and offer to roll back when `CHECKPOINT_SHA` exists (see Step 2.5).
+
+  Give each command the worst status among its failures: `failed` when any new failure remains, otherwise `pre-existing-failure` when a pre-existing failure remains, otherwise `passed`; a command that did not run is `not-run`, and a command's `summary` names every pre-existing failing file. The overall outcome is the worst status among commands that ran, or `not-run` when none ran.
+
+- **Commit the fixes** — Skip this bullet when `IMPLEMENT_ONLY=true`, because the delegating parent owns commits, or when no fix file changed. Commit only when the outcome above is `passed` or `pre-existing-failure`; otherwise report the fix files as uncommitted. When `GRANULAR_COMMITS=false`, make one commit that stages only the files the fixes changed:
+
+  ```bash
+  git add -- <files the fixes changed>
+  git commit -m "review: <brief summary of the fixes>"
+  ```
+
+  When `GRANULAR_COMMITS=true`, make one commit per finding in implementation order, staging only that finding's own files with the same `git add --` form; include repair-attempt files in the commit of the finding they repair. If two findings change the same file, combine them into one commit and name both findings in its message.
+
+  In both modes, never stage with `git add -A`. If `git commit` fails, unstage that commit's files with `git restore --staged -- <files>`, make no further commit, and report the remaining fix files as uncommitted. If a hook changes files, record the SHA of any commit still created and report the changed files as uncommitted. After the last commit, `git status --porcelain` must list only workflow artifacts; report any other path as uncommitted. Record each commit SHA for the summary.
+
+- **Implement-only mode** (`IMPLEMENT_ONLY=true`) — Make no commits or GitHub writes, write no review file, and draft no replies. Still run the scope-creep and validity checks (Step 2) and the validation above. Instead of the file output below, write `.context/resolve-review/implement-only-summary.json` atomically (write a temporary file, then rename it into place) and return a short chat summary naming that path. Use this schema:
 
   ```json
   {
@@ -288,11 +297,11 @@ Each commit should be self-contained and pass linting/formatting on its own. If 
       "url": "Optional PR URL"
     },
     "validation": {
-      "status": "passed|failed|not-run",
+      "status": "passed|failed|pre-existing-failure|not-run",
       "commands": [
         {
           "command": "test command",
-          "status": "passed|failed|not-run",
+          "status": "passed|failed|pre-existing-failure|not-run",
           "summary": "short result"
         }
       ]
@@ -312,11 +321,11 @@ Each commit should be self-contained and pass linting/formatting on its own. If 
   }
   ```
 
-  `blocked-implementation` means the fix could not be completed, or, with a `rationale` that starts `Needs author decision:`, that it needs a fact only the author can settle. `blocked-validation` means a fix was attempted but validation failed. Then skip the Generate summary bullet below.
+  `blocked-implementation` means the fix could not be completed, or, with a `rationale` that starts `Needs author decision:`, that it needs a fact only the author can settle. `blocked-validation` means a fix was attempted but validation still reports a new failure after the repair attempt. `pre-existing-failure` is a validation status only; findings keep their own status. Then skip the Generate summary bullet below.
 
 - **Generate summary** — Write resolutions back to the source review file (see Output format below). If the source was `PRODUCT_REVIEW_OVERVIEW.md`, `COPY_REVIEW_OVERVIEW.md`, `CONVENTION_REVIEW_OVERVIEW.md`, or `OVERENGINEERING_REVIEW_OVERVIEW.md`, update that file in place. A chat or payload review carrying `Review producer: trackbed:pr:overengineering-review` writes to `OVERENGINEERING_REVIEW_OVERVIEW.md`; other external, chat, and Conductor-sourced reviews write to `REVIEW_OVERVIEW.md`.
   - Use `Resolution status: addressed` only when the finding was implemented, already satisfied by the current code, or otherwise fully resolved.
-  - Use `Resolution status: open` when implementation or validation failed, is blocked, or needs another run before it can be considered resolved.
+  - Use `Resolution status: open` when implementation failed, a new validation failure remains, the finding is blocked, or it needs another run before it can be considered resolved. A pre-existing failure leaves the finding's status unchanged.
   - Use `deferred`, `acknowledged`, or `skipped` for the non-implementation outcomes defined in Step 2, but do not use `skipped` for severity-filtered findings that were never processed.
 - **Restore the checkpoint** — If a stash was created in Step 2.5, apply and drop the exact recorded stash now so the user's pre-existing uncommitted work is restored:
 
@@ -346,7 +355,7 @@ Each commit should be self-contained and pass linting/formatting on its own. If 
   fi
   ```
 
-  Keep the checkpoint only when validation failed, rollback is still being considered, or stash restoration ended in conflicts.
+  Keep the checkpoint only when the validation outcome is `failed` or `not-run`, rollback is still being considered, or stash restoration ended in conflicts.
 
 ## Guidelines
 

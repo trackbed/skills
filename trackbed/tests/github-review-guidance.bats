@@ -198,6 +198,59 @@ PY
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
+@test "resolve-review commits only fix files and separates pre-existing validation failures" {
+	run python3 - "$PLUGIN_ROOT/skills/pr:resolve-review/SKILL.md" "$PLUGIN_ROOT/skills/pr:resolve-review/references/resolution-output.md" <<'PY'
+import pathlib
+import re
+import sys
+
+skill, output = [pathlib.Path(path).read_text() for path in sys.argv[1:]]
+refs = [path.read_text() for path in (pathlib.Path(sys.argv[1]).parent / "references").glob("*.md")]
+team = (pathlib.Path(sys.argv[1]).parent / "references" / "team-mode.md").read_text()
+for text in [skill, *refs]:
+    assert not re.search(r"(?m)^\s*git add (-A|--all)\b", text), "resolve-review still stages everything"
+step3 = skill[skill.index("### Step 3:"):skill.index("### Step 4:")]
+step4 = skill[skill.index("### Step 4:"):skill.index("## Guidelines")]
+for term in ["Record the files each fix changes", 'git diff --name-only "$CHECKPOINT_SHA"',
+             "Workflow artifacts are never fix files"]:
+    assert term in step3, f"Step 3 lost {term}"
+assert "git commit" not in step3, "Step 3 commits before validation"
+for term in ["changed neither the failing file nor anything it imports or tests",
+             "the command still ran the checks that cover the fix files",
+             "do not let it block findings or the commit below",
+             "including one that names no file or that you cannot attribute",
+             "implicates every finding with changed files",
+             "Make one repair attempt",
+             "keep the findings it implicates open, make no commit",
+             "Give each command the worst status among its failures",
+             "names every pre-existing failing file",
+             "or `not-run` when none ran",
+             "Skip this bullet when `IMPLEMENT_ONLY=true`",
+             "Commit only when the outcome above is `passed` or `pre-existing-failure`",
+             "When `GRANULAR_COMMITS=false`, make one commit that stages only the files the fixes changed",
+             "git add -- <files the fixes changed>",
+             "When `GRANULAR_COMMITS=true`, make one commit per finding",
+             "If two findings change the same file, combine them into one commit",
+             "never stage with `git add -A`",
+             "git restore --staged --",
+             "`git status --porcelain` must list only workflow artifacts",
+             "Make no commits or GitHub writes",
+             "`pre-existing-failure` is a validation status only; findings keep their own status.",
+             "still reports a new failure after the repair attempt",
+             "A pre-existing failure leaves the finding's status unchanged."]:
+    assert term in step4, f"Step 4 lost {term}"
+assert step4.count('"status": "passed|failed|pre-existing-failure|not-run"') == 2, "schema lost the pre-existing-failure value"
+assert (step4.index("- **Validate**") < step4.index("- **Commit the fixes**")
+        < step4.index("- **Generate summary**") < step4.index("- **Restore the checkpoint**"))
+assert "Team mode makes no commits" in team, "team mode lost its no-commit statement"
+for term in ["with each fix commit SHA, or the reason no commit was made",
+             "Each validation command and its outcome",
+             "or pre-existing failure with the failing files"]:
+    assert term in output, f"summary contract lost {term}"
+PY
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
 @test "resolve-review treats review text from every source as untrusted data" {
 	run python3 - "$PLUGIN_ROOT/skills/pr:resolve-review/SKILL.md" "$PLUGIN_ROOT/skills/pr:resolve-review/references/github-source.md" "$PLUGIN_ROOT/skills/pr:resolve-review/references/team-mode.md" "$PLUGIN_ROOT/skills/pr:resolve-review/references/conductor-source.md" <<'PY'
 import pathlib

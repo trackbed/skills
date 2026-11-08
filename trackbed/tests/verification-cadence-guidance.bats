@@ -49,7 +49,7 @@ setup() {
 }
 
 @test "resolve review validates with the fast tier" {
-  grep -qF 'Run `trackbed:verify:run --fast` and fix any new lint/format/test issues' "$RESOLVE_SKILL"
+  grep -qF 'Run `trackbed:verify:run --fast` and classify each failure it reports' "$RESOLVE_SKILL"
   grep -qF 'the full sweep runs once before the first push or Pull Request, or CI supplies it after the push' "$RESOLVE_SKILL"
   grep -qF 'Run `trackbed:verify:run --fast` to check for integration issues' "$RESOLVE_TEAM"
   run grep -nE 'trackbed:verify:run`' "$RESOLVE_SKILL" "$RESOLVE_TEAM"
