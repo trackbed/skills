@@ -60,7 +60,7 @@ Use `git cherry-pick -n` to stage without committing if you need to drop or spli
 
 **Stack** — ordered branches, each rooted on the previous; each becomes a PR targeting the previous PR's branch.
 
-Preferred recipe: GitHub's native stacked PRs via the `gh stack` CLI extension (`gh extension install github/gh-stack`; requires the repository to have stacked PRs enabled — private preview as of mid-2026). Build the chain in a single working tree, pulling each layer's files from the reference branch:
+Preferred recipe: GitHub's native stacked PRs via the `gh stack` CLI extension (`gh extension install github/gh-stack`; requires the repository to have stacked PRs enabled). Build the chain in a single working tree, pulling each layer's files from the reference branch:
 
 ```bash
 # From the repo root, with REFERENCE_BRANCH committed and clean.
@@ -80,7 +80,7 @@ git commit -m "..."
 gh stack submit --auto # pushes all branches, opens chained draft PRs, links the stack
 ```
 
-`gh stack submit --auto` derives a single-commit PR's title and description from that commit. For a multi-commit branch, it humanizes the branch name for the title but supplies no commit-derived description; a repository PR template may still populate the body. Treat authoring every layer's real title and description as required follow-up: use `gh api --method PATCH repos/{owner}/{repo}/pulls/<number> --hostname <pr-host>`, deriving `<pr-host>` from that PR's URL and stopping if it cannot be determined, or run `trackbed:pr:generate-description` for each PR. As parents merge, GitHub re-targets the remaining PRs automatically; run `gh stack sync` to cascade-rebase and update local branches.
+`gh stack submit --auto` titles a single-commit PR with that commit's subject and humanizes the branch name for a multi-commit PR. A repository PR template, when one exists, becomes the whole description of every PR that `submit --auto` creates. Without a template, the description is the commit body of a single-commit layer (empty for a multi-commit layer) followed by a gh-stack attribution footer. Treat authoring every layer's real title and description as required follow-up, and decide deliberately whether the rewritten description keeps or removes that footer: use `gh api --method PATCH repos/{owner}/{repo}/pulls/<number> --hostname <pr-host>`, deriving `<pr-host>` from that PR's URL and stopping if it cannot be determined, or run `trackbed:pr:generate-description` for each PR. As parents merge, GitHub re-targets the remaining PRs automatically; run `gh stack sync` to cascade-rebase and update local branches.
 
 Fallback when `gh stack` is unavailable: chain worktrees manually, each branch rooted on the previous:
 
@@ -93,7 +93,7 @@ git worktree add ../stack-3-ui -b stack-3-ui stack-2-service
 # ... in ../stack-3-ui, bring in UI files, commit ...
 ```
 
-Open PRs in order: `stack-1-schema → base`, `stack-2-service → stack-1-schema`, etc. Re-target each downstream PR to `base` after its parent merges. A manually built chain can be adopted into a native GitHub stack later with `gh stack link stack-1-schema stack-2-service stack-3-ui`.
+Open PRs in order: `stack-1-schema → base`, `stack-2-service → stack-1-schema`, etc. Re-target each downstream PR to `base` after its parent merges. A manually built chain can be adopted into a native GitHub stack later with `gh stack link --base "$BASE_BRANCH" stack-1-schema stack-2-service stack-3-ui`. Always pass `--base`: without it, `link` bases the bottom of the stack on the repository's default branch and can re-point an existing PR to the wrong base.
 
 Other tooling automates the same chain (Graphite, git-spice, Mergify Stacks). This skill doesn't pick one — the author keeps whatever workflow they already use.
 
