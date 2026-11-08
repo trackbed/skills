@@ -4,12 +4,14 @@ sources:
     title: "Claude Code Docs - Extend Claude with skills"
     rationale: "The model-invocation metadata and direct-user versus Skill-tool routing boundary follow Claude Code's documented skill invocation controls."
     usage: inspiration
-    last_reviewed_at: 2026-08-29
-    baseline_hash: "sha256:a84b5b394a31b71d8548f0a9d378a05f32b07164c6bec813bc3de5cb241a5965"
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:358645b4b6ee39b4015da0ce872a4f59fd73223a665d253b8cde921ebc3c5b03"
   - id: addy-git-workflow-versioning
     url: https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/git-workflow-and-versioning/SKILL.md
     title: "Addy Osmani agent-skills - git workflow and versioning"
     rationale: "Narrative commit reconstruction, branch-history quality standards, and no-AI-attribution rules are adapted from this source."
     usage: inspiration
-    last_reviewed_at: 2026-07-29
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
     baseline_hash: "sha256:51677cf03845dd29d08ea4d3125665057b720aea3dccc572f25d8b172409ece6"

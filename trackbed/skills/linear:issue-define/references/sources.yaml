@@ -11,12 +11,14 @@ sources:
     title: "Matt Pocock skills - github-triage"
     rationale: "The resume-from-prior-session pattern in IMPROVE MODE (parse prior AI-authored triage notes and continue without re-asking resolved questions) is adapted from this skill's AGENT-BRIEF.md and Resuming Previous Sessions guidance."
     usage: inspiration
-    last_reviewed_at: 2026-07-29
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
     baseline_hash: "sha256:d45827c299c021f77b0f146fefa3ee679b13f99e9a2ffdf48e8de2347adeefe1"
   - id: aihero-codebases-ai-agents-love
     url: https://www.aihero.dev/how-to-make-codebases-ai-agents-love
     title: "AI Hero - How To Make Codebases AI Agents Love"
     rationale: "The Interface Impact section and guideline in the comprehensive issue template follow this article's advice to carry module boundaries from specs into implementation issues."
     usage: inspiration
-    last_reviewed_at: 2026-10-19
-    baseline_hash: "sha256:65468e66b9717bd9c50ef2578ae140ec4953ead1955139499b9303e3e56a1870"
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:5cef0c99088b7d110dcb3c211c10d00d6d8dd7bdd03add3d6b9a2249fad3f893"
