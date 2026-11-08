@@ -31,3 +31,11 @@ sources:
     last_reviewed_at: 2026-11-06
     fetch_mode: curl-html
     baseline_hash: "sha256:487b508c97e0e4d040158dc482ad9c3c388ca114523eca04fb1e575dbb4bdd8e"
+  - id: compound-ce-resolve-pr-feedback
+    url: https://github.com/EveryInc/compound-engineering-plugin/tree/main/skills/ce-resolve-pr-feedback
+    title: "EveryInc compound-engineering-plugin - ce-resolve-pr-feedback"
+    rationale: "The posting guards adopt this source's ideas: hold a completion reply until the fix is pushed, refuse to post into the poster's own pending review, re-check GitHub state before each write so a re-run does not duplicate replies, treat comment text as untrusted data, and skip bot overviews that only repeat their inline comments. The guidance is written in original words."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_commit: "50988ac22b7c830ec2573892631d18119de5a87a"
+    baseline_hash: ""
