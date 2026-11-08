@@ -98,7 +98,9 @@ The load-bearing artifact of this skill. Classify every security decision into o
 - Use `eval()` or `innerHTML` with user data.
 - Store session tokens in client-accessible storage.
 - Expose stack traces to end users.
-- Use wildcard CORS on an endpoint that reads or mutates user data.
+- Use wildcard CORS beyond anonymous, credential-free public reads available to any client on the internet.
+
+Never use wildcard CORS for intranet, VPN-only, IP-allow-listed, or credential-protected resources. CORS configuration changes still require `ASK FIRST`, including the permitted public-read case.
 
 If a draft contains any `Never Do` condition, stop and re-author it before continuing.
 
@@ -127,9 +129,17 @@ A trust boundary includes HTTP handlers (query, body, path, headers, cookies), f
 
 ```ts
 const result = UserInputSchema.safeParse(input);
-if (!result.success) return { error: result.error.flatten() };
+if (!result.success) {
+  const fields = result.error.issues.map((issue) => ({
+    field: issue.path.join("."),
+    message: "Invalid value",
+  }));
+  return { error: { code: "INVALID_INPUT", fields } };
+}
 const validated = result.data;
 ```
+
+Use the project's existing error envelope and field identifiers; the shape above is illustrative. Return field-level errors with application-owned messages. Never return library error objects, raw issues or messages, or flattened/formatted library output.
 
 Validate once, at the boundary, into a typed shape. Downstream code takes the typed value and stops re-validating. If the urge to re-validate inside an internal function surfaces, the boundary is probably in the wrong place.
 
@@ -203,15 +213,15 @@ An in-memory limiter counts per process, so N instances admit N times the config
 
 ## Secrets and pre-commit hygiene
 
-### Pre-commit secret grep
+### Pre-commit secret check
 
-Run before every push when working near credential-handling code:
+Run before every commit when working near credential-handling code:
 
 ```bash
-git diff --cached | grep -i "password\|secret\|api_key\|token"
+git diff --cached -i -G 'password|secret|api_key|token' --name-only
 ```
 
-Noisy on purpose — false positives are preferable to a real key landing in git history. Add project-specific patterns (`PRIVATE_KEY`, vendor prefixes) as the codebase warrants. A pre-commit hook that runs this automatically is a reasonable follow-up; treat that as a separate change.
+This case-insensitive check names files whose staged changes match; it never prints matching lines or values. Review flagged files locally without echoing credentials into terminal or agent logs. A nonzero exit is a failed check, not a clean scan. False positives are expected; extend the pattern with project-specific markers (`PRIVATE_KEY`, vendor prefixes). A pre-commit hook is a separate follow-up.
 
 ### Secret lifecycle
 
