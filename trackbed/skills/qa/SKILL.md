@@ -150,13 +150,13 @@ Map changed UI files to routes/pages:
 - Config-based routing: search router config for imports/references to the changed files
 - If mapping is ambiguous, include the likely route with a note
 
-A changed shared component, layout, or style file maps to every route that renders it: diff-aware mode narrows scope to affected routes, it does not skip routes that depend on changed shared code. If UI-relevant files changed but none of them maps to a route, the mapping is wrong rather than the scope empty; emit `MISSING REQUIREMENT` listing the unmapped files and ask for the intended routes instead of reporting zero routes tested.
+A changed shared component, layout, or style file maps to every route that renders it: diff-aware mode narrows scope to affected routes, it does not skip routes that depend on changed shared code. Once the UI-relevance gate above passes, also trace changed non-UI modules that pages depend on, such as view helpers, formatting utilities, client-side behavior controllers, and the server handlers behind a page, to every route that uses them, and list them in the row's Changed files. A helper changed alongside one component otherwise never reaches the other pages that use it. The gate itself does not change: a branch that changes only such modules still stops above. If UI-relevant files changed but none of them maps to a route, the mapping is wrong rather than the scope empty; emit `MISSING REQUIREMENT` listing the unmapped files and ask for the intended routes instead of reporting zero routes tested.
 
 For complex changed flows, sketch the user flow first as a compact flowchart before building the matrix. Include entry points, decision points, state transitions, and exit/error states so the matrix is grounded in the workflow rather than a flat file list.
 
 Create a branch-diff-to-journey matrix before building the test checklist. Read `references/diff-aware-journey-matrix.md` and populate one row per route/screen and meaningful user journey using the columns defined there.
 
-Mark speculative route mappings as `UNVERIFIED` rather than silently treating them as known routes. If a journey would mutate shared data, send external notifications, change billing, delete records, or otherwise be destructive, ask the user before executing it; if the runtime cannot ask, mark the row `blocked`.
+Mark speculative route mappings as `UNVERIFIED` rather than silently treating them as known routes. If a journey crosses an outside service, first try the project's own test stand-in for it, as the matrix reference describes. If a journey would mutate shared data, send external notifications, change billing, delete records, or otherwise be destructive, ask the user before executing it; if the runtime cannot ask, mark the row `blocked`.
 
 **targeted mode:**
 
