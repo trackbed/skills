@@ -18,6 +18,9 @@ An item labeled **Regenerate** means the draft is wrong at its root: when it fai
 - [ ] `## Changes` bullets start with an imperative verb and use no vague verbs (`update`, `improve`) without an object.
 - [ ] **Regenerate:** A migration, feature-flag default change, or breaking change in the diff appears in `## Breaking changes`, `## Rollout`, or `## Review notes`.
 - [ ] Partial coverage and rollout risk appear in `## Rollout` or `## Review notes`.
+- [ ] Each new runtime dependency in the diff is named in `## Review notes`.
+- [ ] When reverting the PR would not fully undo it, `## Rollout` says what a revert leaves behind.
+- [ ] `## Breaking changes` says whether the old behavior keeps working through a deprecation period, and until when.
 
 ## Readability
 

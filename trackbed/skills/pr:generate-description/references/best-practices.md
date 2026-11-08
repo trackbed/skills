@@ -20,7 +20,7 @@ A reviewer reads the body to decide whether to approve, what to examine closely,
 3. Decisions a reviewer could question, with the reason and the alternatives rejected.
 4. Risks: what could go wrong, how it would show up, and what limits it.
 5. Scope boundaries a reviewer would otherwise ask about, stated as facts, and named follow-ups.
-6. Breaking changes and rollout: who must act, what they do, in what order, and how to roll back.
+6. Breaking changes and rollout: who must act, what they do, in what order, how long the old behavior keeps working, how to roll back, and what a revert leaves behind.
 7. Differences from the linked issue, with the reason.
 8. Evidence behind a claim, and its limits, such as what the automated tests cover and what is left to manual testing.
 9. Manual tests for the behavior changes and risks a reviewer can't confirm from the diff, including the failure path of the riskiest one.
@@ -88,11 +88,13 @@ Well above the range, look first for repeats, narration of the code, and change 
 - **PREFER** about eight `## Changes` bullets at most; when a PR batches more changes than that, write one bullet per theme, name the changes that matter most, and leave the rest to the commits
 - **NEVER** cram the details of several changes into one bullet to keep the list short; a theme bullet states the theme, not every detail under it
 - **NEVER** mirror the list of files changed
-- **ALWAYS** order `## Review notes` as risks first, then scope boundaries and follow-ups, then evidence and any non-breaking release impact, then where to start
+- **ALWAYS** order `## Review notes` as risks first, then new runtime dependencies, then scope boundaries and follow-ups, then evidence and any non-breaking release impact, then where to start
 - **PREFER** three sentences at most per `## Review notes` bullet; move a longer explanation of the mechanism to `## How it works`
 - **ALWAYS** state scope boundaries as facts about the change ("The multi-platform picker is unchanged"), and only when a reviewer would otherwise expect that work in this PR
 - **NEVER** list areas nobody expected to change, or describe your own diligence
 - **ALWAYS** surface migrations, feature-flag defaults, rollout dependencies, and partial coverage in `## Breaking changes`, `## Rollout`, or `## Review notes`, wherever each belongs
+- **ALWAYS** name each new runtime dependency in `## Review notes`: the package, service, or other system the change needs at run time, and what it is for. Check mode flags an undisclosed one. A dependency used only to develop, build, or test the project needs no note unless it needs review attention
+- **ALWAYS** say in `## Rollout` what a revert leaves behind when reverting the PR would not fully undo it, as `references/context-gathering.md` §2.4 describes
 
 ## How It Works
 

@@ -748,6 +748,57 @@ EOF
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
+@test "generate-description covers runtime dependencies, revert leftovers, and deprecation periods" {
+	run bash -c '
+    set -euo pipefail
+    cd "'"$BATS_TEST_DIRNAME"'/.."
+    skill="skills/pr:generate-description"
+    templates="$skill/assets/section-templates.md"
+    practices="$skill/references/best-practices.md"
+    gathering="$skill/references/context-gathering.md"
+    checklist="$skill/references/verification-checklist.md"
+    check="$skill/references/check-mode.md"
+    sources="$skill/references/sources.yaml"
+
+    grep -qF "**ALWAYS** name each new runtime dependency in \`## Review notes\`" "$practices"
+    grep -qF "2. **New runtime dependencies**: each package, service, or other system the change needs at run time" "$templates"
+    grep -qF "**ALWAYS** list each new runtime dependency the diff adds" "$gathering"
+    grep -qF "Each new runtime dependency in the diff is named in \`## Review notes\`." "$checklist"
+    grep -qF "| Undisclosed new endpoint, runtime dependency, feature flag, or removed code path | Important | Yes |" "$check"
+    grep -qF "risks first, then new runtime dependencies, then scope boundaries" "$practices"
+
+    grep -qF "**ALWAYS** ask whether reverting the PR would fully undo it." "$gathering"
+    grep -qF "\`## Rollout\` says what a revert leaves behind" "$gathering"
+    grep -qF "or a revert that would not fully undo the change." "$templates"
+    grep -qF "When a revert would not fully undo the change, say what it leaves behind" "$templates"
+    grep -qF "When reverting the PR would not fully undo it, \`## Rollout\` says what a revert leaves behind." "$checklist"
+    grep -qF "| The diff has a one-way effect a revert would not undo" "$check"
+    grep -qF "what a revert leaves behind." "$practices"
+
+    grep -qF "3. **Deprecation period**: whether the old behavior keeps working for a while after merge, and until when" "$templates"
+    grep -qF "There is no deprecation period:" "$templates"
+    grep -qF "says whether the old behavior keeps working through a deprecation period, and until when." "$checklist"
+
+    if grep -nF "blank screen" "$templates"; then exit 1; fi
+
+    grep -qF "url: https://code.claude.com/docs/en/skills.md" "$sources"
+    for source_id in github-about-templates-docs mattpocock-pr-skill addy-git-workflow-versioning egm-codex-integration; do
+      grep -qF "id: $source_id" "$sources"
+    done
+    grep -qF "Release & Versioning section, added at upstream commit 1ffce563cf8a77c474f09b194ca93004a6f4a2b8" "$sources"
+    grep -qF "elephant-goldfish-model/4ac6b173c15704339bcd654f22a16b4c30120385/docs/codex.md" "$sources"
+  '
+
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
+@test "generate-description cold read tells the reader to ignore loaded instruction files" {
+	skill="$BATS_TEST_DIRNAME/../skills/pr:generate-description"
+	grep -qF 'Ignore any instruction files that were loaded for you, such as `AGENTS.md` or `CLAUDE.md` files from a project or from user settings.' "$skill/references/cold-read-prompt.md"
+	grep -qF 'Codex may still load project and user-level instruction files such as `AGENTS.md`; the prompt tells the reader not to use the tools and to ignore those files.' "$skill/references/readability-pass.md"
+	grep -qF 'and user-level ones such as `~/.codex/AGENTS.md`' "$BATS_TEST_DIRNAME/../shared/agents/references/cold-reader.md"
+}
+
 @test "generate-description base guidance uses canonical resolver contract" {
 	run bash -c '
     set -euo pipefail
@@ -766,51 +817,62 @@ EOF
 	[ "$status" -eq 0 ]
 }
 
-@test "generate-description PR template discovery reads default branch tree" {
-	run bash -c '
-    set -euo pipefail
-    discover_templates() {
-      DEFAULT_TEMPLATE_REF="$1"
-      {
-        for template_path in pull_request_template.md pull_request_template.txt .github/pull_request_template.md .github/pull_request_template.txt docs/pull_request_template.md docs/pull_request_template.txt; do
-          git cat-file -e "$DEFAULT_TEMPLATE_REF:$template_path" 2> /dev/null && printf "%s\n" "$template_path"
-        done
-        for dir in PULL_REQUEST_TEMPLATE .github/PULL_REQUEST_TEMPLATE docs/PULL_REQUEST_TEMPLATE; do
-          git ls-tree -r --name-only "$DEFAULT_TEMPLATE_REF" "$dir" 2> /dev/null |
-            awk -v dir="$dir/" '"'"'index($0, dir) == 1 { name = substr($0, length(dir) + 1); if (name !~ /\// && tolower(name) ~ /\.(md|txt)$/) print $0 }'"'"'
-        done
-      } | sort -u
-    }
+@test "generate-description PR template discovery reads default branch tree case-insensitively" {
+	guide="$BATS_TEST_DIRNAME/../skills/pr:generate-description/references/context-gathering.md"
+	tmp="$BATS_TEST_TMPDIR"
+	awk '/^### 2\.1\.5 /{ section = 1 } section && /^   ```bash$/{ inside = 1; next } inside && /^   ```$/{ exit } inside { sub(/^   /, ""); print }' "$guide" > "$tmp/lookup.sh"
+	grep -qF 'git ls-tree --full-tree "$DEFAULT_TEMPLATE_REF" docs/ .github/' "$tmp/lookup.sh"
+	if grep -nE "for (path|cdpath|fpath|manpath) in" "$guide"; then false; fi
 
-    tmp=$(mktemp -d)
-    trap "rm -rf \"$tmp\"" EXIT
-    cd "$tmp"
-    git init -q -b main
-    git config user.email test@example.com
-    git config user.name Test
-    git commit --allow-empty -q -m init
-    git branch release
-    [ -z "$(discover_templates main)" ]
+	mkdir -p "$tmp/bin"
+	printf '#!/bin/sh\nprintf "%%s\\n" "$TEST_DEFAULT_BRANCH"\n' > "$tmp/bin/gh"
+	chmod +x "$tmp/bin/gh"
+	discover_templates() {
+		PATH="$tmp/bin:$PATH" TEST_DEFAULT_BRANCH="$1" bash "$tmp/lookup.sh"
+	}
 
-    mkdir -p .github/PULL_REQUEST_TEMPLATE
-    printf "Default\n" > .github/pull_request_template.md
-    printf "Release\n" > .github/PULL_REQUEST_TEMPLATE/release.md
-    git add .
-    git commit -q -m templates
-    git switch -q -c feature
-    mkdir -p docs
-    printf "Unmerged\n" > docs/pull_request_template.md
-    pinned_base="$(git rev-parse release)"
-    [ "$pinned_base" != "$(git rev-parse main)" ]
-    [ -z "$(discover_templates "$pinned_base")" ]
-    output="$(discover_templates main)"
-    if grep -nE "for (path|cdpath|fpath|manpath) in" "'"$BATS_TEST_DIRNAME"'/../skills/pr:generate-description/references/context-gathering.md"; then exit 1; fi
-    printf "%s\n" "$output" | grep -qF ".github/pull_request_template.md"
-    printf "%s\n" "$output" | grep -qF ".github/PULL_REQUEST_TEMPLATE/release.md"
-    ! printf "%s\n" "$output" | grep -qF "docs/pull_request_template.md"
-  '
+	git init -q -b main "$tmp/repo"
+	cd "$tmp/repo"
+	git config user.email test@example.com
+	git config user.name Test
+	git commit --allow-empty -q -m init
+	git branch release
+	git update-ref refs/remotes/origin/main main
+	git update-ref refs/remotes/origin/release release
+	[ -z "$(discover_templates main)" ]
 
+	mkdir -p .github
+	printf 'Default\n' > .github/PULL_REQUEST_TEMPLATE.md
+	git add .
+	git commit -q -m "uppercase default template"
+	git update-ref refs/remotes/origin/main main
+	[ "$(discover_templates main)" = ".github/PULL_REQUEST_TEMPLATE.md" ]
+
+	mkdir -p .github/PULL_REQUEST_TEMPLATE docs/Pull_Request_Template/nested src
+	printf 'Root\n' > Pull_Request_Template.TXT
+	printf 'Release\n' > .github/PULL_REQUEST_TEMPLATE/release.md
+	printf 'Docs\n' > docs/Pull_Request_Template/Feature.MD
+	printf 'Nested\n' > docs/Pull_Request_Template/nested/deep.md
+	printf 'Html\n' > docs/Pull_Request_Template/notes.html
+	printf 'Elsewhere\n' > src/pull_request_template.md
+	git add .
+	git commit -q -m templates
+	git update-ref refs/remotes/origin/main main
+	git switch -q -c feature
+	printf 'Unmerged\n' > docs/pull_request_template.md
+	mkdir -p src/deeper
+
+	[ -z "$(discover_templates release)" ]
+	expected=".github/PULL_REQUEST_TEMPLATE.md
+.github/PULL_REQUEST_TEMPLATE/release.md
+Pull_Request_Template.TXT
+docs/Pull_Request_Template/Feature.MD"
+	run discover_templates main
 	[ "$status" -eq 0 ]
+	[ "$output" = "$expected" ] || { echo "$output"; false; }
+	cd src/deeper
+	run discover_templates main
+	[ "$output" = "$expected" ] || { echo "$output"; false; }
 }
 
 @test "PR creation and description generation no longer capture or attach visual evidence" {

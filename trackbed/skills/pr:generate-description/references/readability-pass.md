@@ -34,7 +34,7 @@ Also skip when the host can't launch an agent without the conversation history: 
 The writer can't read its own text cold, so a fresh agent reads the edited draft instead.
 
 1. Fill `{pr-title}` and `{pr-body}` in `references/cold-read-prompt.md` with the edited title and body.
-2. Launch one cold reader as `${CLAUDE_PLUGIN_ROOT}/shared/agents/references/cold-reader.md` describes and pass it only that prompt: no conversation history, no files, and no diff. On Claude Code that is the `trackbed:cold-reader` agent, which starts without the project's instruction files. On Codex, spawn it with `fork_turns="none"`, or `fork_context: false` when the spawn tool exposes that field instead, because a full-history fork would hand it the conversation. Don't override the model. The host may still give the agent tools, and Codex may still give it project instructions; the prompt tells it not to use them.
+2. Launch one cold reader as `${CLAUDE_PLUGIN_ROOT}/shared/agents/references/cold-reader.md` describes and pass it only that prompt: no conversation history, no files, and no diff. On Claude Code that is the `trackbed:cold-reader` agent, which starts without the project's instruction files. On Codex, spawn it with `fork_turns="none"`, or `fork_context: false` when the spawn tool exposes that field instead, because a full-history fork would hand it the conversation. Don't override the model. The host may still give the agent tools, and Codex may still load project and user-level instruction files such as `AGENTS.md`; the prompt tells the reader not to use the tools and to ignore those files.
 
 Apply the reply once:
 

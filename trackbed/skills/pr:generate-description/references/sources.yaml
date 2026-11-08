@@ -1,16 +1,16 @@
 sources:
   - id: anthropic-claude-code-skills
-    url: https://code.claude.com/docs/en/skills
+    url: https://code.claude.com/docs/en/skills.md
     title: "Claude Code Docs - Extend Claude with skills"
     rationale: "The model-invocation metadata and direct-user versus Skill-tool routing boundary follow Claude Code's documented skill invocation controls."
     usage: inspiration
-    last_reviewed_at: 2026-11-06
-    fetch_mode: curl-html
-    baseline_hash: "sha256:358645b4b6ee39b4015da0ce872a4f59fd73223a665d253b8cde921ebc3c5b03"
+    last_reviewed_at: 2026-11-08
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:977bb9f8d6a004c37e6731afd94bc3ad7bba1e64a2b2d7e7f22df910d4b06287"
   - id: addy-git-workflow-versioning
     url: https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/git-workflow-and-versioning/SKILL.md
     title: "Addy Osmani agent-skills - git workflow and versioning"
-    rationale: "Output markers, pull-request handoff conventions, and stating deliberate scope boundaries as reviewer notes are adapted from this source. The PR handoff discipline, structured change-summary expectations, and output-marker style that shape check mode's drift report come from the same source; they were reviewed against upstream commit 5e262b20e0cd88dba39e558f42f5c0b6d766d4b4 when check mode was a separate verifier skill."
+    rationale: "Output markers, pull-request handoff conventions, and stating deliberate scope boundaries as reviewer notes are adapted from this source. The PR handoff discipline, structured change-summary expectations, and output-marker style that shape check mode's drift report come from the same source; they were reviewed against upstream commit 5e262b20e0cd88dba39e558f42f5c0b6d766d4b4 when check mode was a separate verifier skill. The release-impact contract for breaking changes, including saying whether old behavior keeps working through a deprecation period and until when, draws on its Release & Versioning section, added at upstream commit 1ffce563cf8a77c474f09b194ca93004a6f4a2b8."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
@@ -23,6 +23,22 @@ sources:
     last_reviewed_at: 2026-11-06
     fetch_mode: curl-html
     baseline_hash: "sha256:2e6d2525dfed87cb3ebf6538687eecc9e5d33fc0a8e079ed0ca9d86d09a82e08"
+  - id: github-about-templates-docs
+    url: https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/about-issue-and-pull-request-templates
+    title: "GitHub Docs - About issue and pull request templates"
+    rationale: "Matching pull request template file names without regard to letter case, with an .md or .txt extension, follows this page's description of template file names."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    fetch_mode: curl-html
+    baseline_hash: "sha256:ad0e0ccf653eb38d3029581941db05f51a2d8cac633b4014a6f2ff481c6bc4cd"
+  - id: mattpocock-pr-skill
+    url: https://raw.githubusercontent.com/mattpocock/skills/main/skills/engineering/pr/SKILL.md
+    title: "mattpocock/skills - pr skill"
+    rationale: "Asking whether a revert fully undoes the change, and saying in the Rollout section what a revert leaves behind, is inspired by this skill's section on one-way and two-way doors."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_commit: "e484a8095543718ced436b9b49a8160ed4554000"
+    baseline_hash: "sha256:ab63f1cf78647389edcd386c9427c5dfca27ed2836930c24773ffee834c19bcd"
   - id: fofr-govuk-style-skill
     url: https://gist.githubusercontent.com/fofr/505e225f9bf5e839d30c12ba6bfa0be2/raw
     title: "An agent skill for writing in the GOV.UK style"
@@ -64,10 +80,10 @@ sources:
     baseline_commit: "6a8001ea31ccf72430ba0603a467ec6df9f69dd7"
     baseline_hash: "sha256:b2723722b419b1c368db423885a4421dda71278cf1f22b9928c7b722a0ab6730"
   - id: egm-codex-integration
-    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/403d8881d62022490637d740657b33f01e321ea8/docs/codex.md
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/4ac6b173c15704339bcd654f22a16b4c30120385/docs/codex.md
     title: "google/elephant-goldfish-model - Codex integration"
-    rationale: "Naming the Codex fork_context spawn variant for the cold read is informed by this source; reviewed at upstream commit 403d8881d62022490637d740657b33f01e321ea8."
+    rationale: "Naming the Codex fork_context spawn variant for the cold read, and telling the cold reader to ignore project and user-level instruction files that Codex may still load, are informed by this source; reviewed at upstream commit 4ac6b173c15704339bcd654f22a16b4c30120385."
     usage: inspiration
-    last_reviewed_at: 2026-11-06
+    last_reviewed_at: 2026-11-08
     baseline_commit: "6a8001ea31ccf72430ba0603a467ec6df9f69dd7"
-    baseline_hash: "sha256:6042c8eb7639c7fee9f61b1036027c038009a1a91175cf73551c4e5c75178301"
+    baseline_hash: "sha256:d1a64b8df61b7012a4fc112381b1946a8c98e125e92d1c21e05bc419b0fa6cdf"
