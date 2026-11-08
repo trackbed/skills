@@ -21,21 +21,21 @@ COMMIT_FIELDS = {"baseline_commit", "upstream_commit"}
 MOVING_REVISION_VALUES = {"head", "latest", "main", "master", "trunk"}
 
 
-def _resolved_notice_path(skill_dir: Path, raw_notice: str) -> tuple[Path | None, str | None]:
+def _resolved_notice_path(notice_root: Path, raw_notice: str, root_label: str) -> tuple[Path | None, str | None]:
     notice_value = raw_notice.split("#", 1)[0].strip()
     if not notice_value:
-        return None, "must name a skill-local license or notice file"
+        return None, f"must name a license or notice file in the {root_label}"
 
     notice_path = Path(notice_value)
     if notice_path.is_absolute():
-        return None, "must be relative to the skill directory"
+        return None, f"must be relative to the {root_label}"
 
-    skill_root = skill_dir.resolve()
-    resolved = (skill_dir / notice_path).resolve()
+    resolved_root = notice_root.resolve()
+    resolved = (notice_root / notice_path).resolve()
     try:
-        resolved.relative_to(skill_root)
+        resolved.relative_to(resolved_root)
     except ValueError:
-        return None, "must stay within the skill directory"
+        return None, f"must stay within the {root_label}"
     return resolved, None
 
 
@@ -45,6 +45,8 @@ def _check_copied_source(
     manifest_path: Path,
     entry: dict[str, Any],
     entry_id: str,
+    notice_root: Path,
+    root_label: str,
 ) -> None:
     manifest_relative = rel(manifest_path, root)
     for field in ("license", "notice", "upstream_path"):
@@ -80,7 +82,7 @@ def _check_copied_source(
     if is_empty_value(notice):
         return
 
-    notice_path, error = _resolved_notice_path(manifest_path.parent.parent, str(notice))
+    notice_path, error = _resolved_notice_path(notice_root, str(notice), root_label)
     if error:
         result.failures.append(f"source provenance: {manifest_relative} copied entry {entry_id!r} notice {error}")
         return
@@ -113,7 +115,15 @@ def check_source_provenance(context: LintContext) -> CheckResult:
                 "metadata, review date, hash, and original notes"
             )
 
-    for manifest_path in sorted(context.root.glob(manifest_glob)):
+    # A skill manifest lives at <skill>/references/sources.yaml and names
+    # notices relative to the skill directory. A shared manifest sits beside
+    # plugin-level files that no single skill owns, such as
+    # scripts/dev-server/, and names notices relative to its own directory.
+    manifests = [(path, path.parent.parent, "skill directory") for path in sorted(context.root.glob(manifest_glob))]
+    for pattern in config.get("shared_manifest_globs", []):
+        manifests.extend((path, path.parent, "manifest directory") for path in sorted(context.root.glob(pattern)))
+
+    for manifest_path, notice_root, root_label in manifests:
         manifest_relative = rel(manifest_path, context.root)
         for index, entry in enumerate(parse_sources_manifest(manifest_path), start=1):
             entry_id = str(entry.get("id", f"entry-{index}"))
@@ -131,6 +141,6 @@ def check_source_provenance(context: LintContext) -> CheckResult:
                 )
                 continue
             if usage == "copied":
-                _check_copied_source(result, context.root, manifest_path, entry, entry_id)
+                _check_copied_source(result, context.root, manifest_path, entry, entry_id, notice_root, root_label)
 
     return result

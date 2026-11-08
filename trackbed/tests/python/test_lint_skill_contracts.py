@@ -614,6 +614,70 @@ sources:
         self.assertIn("must stay within the skill directory", failures)
         self.assertIn("notice file does not exist", failures)
 
+    def test_shared_manifest_resolves_notice_beside_itself(self) -> None:
+        copied_entry = """
+sources:
+  - id: copied
+    url: https://example.com/copied
+    usage: copied
+    license: MIT
+    notice: {notice}
+    upstream_path: scripts/copied.sh
+    upstream_commit: 0123456789abcdef0123456789abcdef01234567
+""".strip()
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            shared = root / "trackbed" / "scripts" / "shared-tool"
+            shared.mkdir(parents=True)
+            (shared / "UPSTREAM-LICENSE").write_text("license notice\n", encoding="utf-8")
+            (root / "trackbed" / "scripts" / "OUTSIDE-LICENSE").write_text("license notice\n", encoding="utf-8")
+            context = self._context(root)
+            context.registry["source_provenance"]["shared_manifest_globs"] = ["trackbed/scripts/*/sources.yaml"]
+            manifest = shared / "sources.yaml"
+
+            manifest.write_text(copied_entry.format(notice="UPSTREAM-LICENSE"), encoding="utf-8")
+            accepted = lint_skill_contracts.check_source_provenance(context)
+            manifest.write_text(
+                copied_entry.format(notice="../OUTSIDE-LICENSE")
+                + """
+  - id: unknown-usage
+    url: https://example.com/unknown
+    usage: quoted
+  - id: incomplete
+    url: https://example.com/incomplete
+    usage: copied
+    notice: UPSTREAM-LICENSE
+    upstream_path: scripts/incomplete.sh
+    upstream_commit: main
+""",
+                encoding="utf-8",
+            )
+            rejected = lint_skill_contracts.check_source_provenance(context)
+
+        prefix = "source provenance: trackbed/scripts/shared-tool/sources.yaml"
+        incomplete = f"{prefix} copied entry 'incomplete'"
+        self.assertEqual(accepted.failures, [])
+        self.assertEqual(
+            rejected.failures,
+            [
+                f"{prefix} copied entry 'copied' notice must stay within the manifest directory",
+                f"{prefix} entry 'unknown-usage' has invalid usage 'quoted'; expected 'inspiration' or 'copied'",
+                f"{incomplete} is missing non-empty 'license'",
+                f"{incomplete} 'upstream_commit' must be immutable, not 'main'",
+                f"{incomplete} 'upstream_commit' must be a full 40- or 64-character commit hash",
+            ],
+        )
+
+    def test_repository_registry_checks_dev_server_manifest(self) -> None:
+        repo_root = SCRIPTS_DIR.parents[1]
+        registry = lint_skill_contracts.load_registry(SCRIPTS_DIR / "synced-contracts.yaml")
+        shared_globs = registry["source_provenance"]["shared_manifest_globs"]
+        matched = {path.relative_to(repo_root).as_posix() for glob in shared_globs for path in repo_root.glob(glob)}
+        entries = lint_skill_contracts.parse_sources_manifest(repo_root / "trackbed/scripts/dev-server/sources.yaml")
+
+        self.assertIn("trackbed/scripts/dev-server/sources.yaml", matched)
+        self.assertIn("copied", {entry.get("usage") for entry in entries})
+
 
 COMPONENT_CATALOG_REGISTRY = {
     "component_catalog": {"path": "catalog.json", "canonical_reference": "README.md"},
