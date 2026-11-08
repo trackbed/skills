@@ -4,14 +4,16 @@ sources:
     title: "OWASP Top 10:2025"
     rationale: "The author-time category pattern guide in references/owasp-top-10.md follows the OWASP Top 10:2025 vulnerability taxonomy."
     usage: inspiration
-    last_reviewed_at: 2026-07-03
-    baseline_hash: "sha256:545e65007afdd168218f5c3c883db802ccf9d61d53b80e01a002d81b4e8da10f"
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:cdba9b3d1dbf3e436bea90c7ef05d4ae51516994d8f0fdf3ce6e76a54f9a8cd1"
   - id: addy-security-and-hardening
     url: https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/security-and-hardening/SKILL.md
     title: "Addy Osmani agent-skills - security and hardening"
     rationale: "The Three-Tier Boundary System, ASK FIRST gating, marker vocabulary, supply-chain install boundary, and privacy-lifecycle engineering concepts are adapted from this source."
     usage: inspiration
-    last_reviewed_at: 2026-08-20
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
     baseline_hash: "sha256:2f9979b84678ca6f07e684bb862a086f5b27bfa6e9a0ad3d57c499dba47c2e50"
   - id: fetch-cors-protocol
     url: https://fetch.spec.whatwg.org/
@@ -25,5 +27,6 @@ sources:
     title: "OWASP Cross-Site Request Forgery Prevention Cheat Sheet"
     rationale: "The wildcard-CORS boundary names independent protections for cookie-authenticated state-changing requests."
     usage: inspiration
-    last_reviewed_at: 2026-08-27
-    baseline_hash: "sha256:dac41f7ae1dfc5dbd1f137289d4923a0e05d2e502a72af5c8b2c6dbfa9ff0ff8"
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:0dfd4887058b3b9059670996d477f16a871000a8b0c6ec64d6887426962c3e4e"
