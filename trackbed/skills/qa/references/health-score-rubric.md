@@ -55,7 +55,7 @@ If a finding spans multiple categories, assign it to the most severe one.
 
 | Score | Label | Meaning |
 | --- | --- | --- |
-| 90-100 | Excellent | No blockers, minimal issues. Ready to ship. |
+| 90-100 | Excellent | No blockers, minimal issues. Ready to ship when every planned route was verified. |
 | 75-89 | Good | No blockers, some minor issues. Ready with caveats. |
 | 50-74 | Fair | Major issues present. Needs work before shipping. |
 | 25-49 | Poor | Multiple major issues or blockers. Significant work needed. |

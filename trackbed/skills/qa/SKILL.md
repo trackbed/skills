@@ -270,9 +270,10 @@ Check if `QA_BASELINE.json` exists from a previous run:
 **Comparison logic:**
 
 1. **Score delta:** `current_score - baseline_score` (positive = improvement, negative = regression)
-2. **Fixed issues:** findings in the baseline that are NOT in the current run (matched by title + route)
-3. **New issues:** findings in the current run that are NOT in the baseline
-4. **Persistent issues:** findings present in both runs
+2. **Fixed issues:** findings in the baseline that are NOT in the current run (matched by title + route) and whose route this run verified (result `pass` or `fail` in the current `routes`)
+3. **Not re-checked:** baseline findings whose route this run did not verify, because it was blocked, skipped, `UNVERIFIED`, code-only, unreachable, or outside this run's plan (such as quick mode's smaller route set). A finding missing from a run that never looked is not fixed.
+4. **New issues:** findings in the current run that are NOT in the baseline
+5. **Persistent issues:** findings present in both runs
 
 Prepare a `## Regression` section for the QA report using `assets/regression-section-template.md`. Step 9 renders that section when a regression comparison ran.
 
@@ -283,13 +284,13 @@ Use the template from `assets/qa-report-template.md`.
 Populate all sections:
 
 - Fill in mode, URL, date, browser MCP type
-- List all tested routes with descriptions
+- List every route in the Step 4 test plan with its result (pass, fail, blocked, skipped, `UNVERIFIED`, or code-only) and, for anything other than pass or fail, a one-line reason. Quick and targeted runs account for every planned route this way, as the diff-aware matrix already does, including routes browse could not reach
 - Include the journey matrix for `diff-aware` runs, with route/screen, journey, state, expected behavior, evidence, result, and follow-up
 - Document each finding with severity, repro steps, expected vs actual, and recommended fix
 - Call out persona-visible paper cuts: small friction, confusing copy, awkward ordering, missing feedback, or visual inconsistencies that a realistic user persona would notice even when the route technically works
 - Include the `## Regression` section prepared in Step 8 when a regression comparison ran
 - Calculate summary counts per severity level
-- Provide overall recommendation (ready / not ready / ready with caveats); any Blocker finding makes it not ready regardless of the health score
+- Provide overall recommendation (ready / not ready / ready with caveats); any Blocker finding makes it not ready regardless of the health score. The health score measures only what was checked, so a run in which any planned route ended blocked, skipped, `UNVERIFIED`, or code-only is at best ready with caveats, and the recommendation names those routes
 
 **Numbering convention:** Findings are numbered `QA-001`, `QA-002`, etc.
 

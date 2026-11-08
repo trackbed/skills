@@ -2,6 +2,8 @@
 
 Write `QA_BASELINE.json` at the project root with this shape:
 
+Record every route in the run's test plan under `routes`, in every mode. A regression comparison counts a baseline finding as fixed only when the current run verified its route.
+
 ```json
 {
   "date": "{ISO 8601 timestamp}",
@@ -12,6 +14,13 @@ Write `QA_BASELINE.json` at the project root with this shape:
   "healthScore": {HEALTH_SCORE},
   "healthLabel": "{HEALTH_LABEL}",
   "routesTested": {N},
+  "routes": [
+    {
+      "route": "{URL path}",
+      "result": "{pass|fail|blocked|skipped|UNVERIFIED|code-only}",
+      "reason": "{why, unless pass or fail}"
+    }
+  ],
   "journeyMatrix": [
     {
       "routeOrScreen": "{route or screen}",
