@@ -163,14 +163,14 @@ Any change that introduces a new auth method, IdP, or role model is `ASK FIRST` 
 Every state-changing endpoint that a browser authenticates with cookies needs one server-enforced primary CSRF control:
 
 - the framework's built-in CSRF protection;
-- a token the server validates on every state-changing request: a synchronizer token, or a signed double-submit cookie bound to the session, never an unsigned cookie the server only compares with its copy;
+- a token the server validates on every state-changing request: a synchronizer token, or a signed double-submit cookie bound to the session, never an unsigned cookie the server only compares with a copy echoed in the request;
 - a required custom request header backed by a strict CORS policy, so a cross-origin page cannot send it without a preflight the server rejects; or
-- Fetch Metadata (`Sec-Fetch-Site`) checks, with an origin check as the fallback when the request lacks the header.
+- Fetch Metadata (`Sec-Fetch-Site`) checks that accept a state-changing request only when the value is `same-origin`, treating `same-site` like `cross-site`, with an origin check as the fallback when the request lacks the header.
 
-`SameSite` is set explicitly on those cookies but counts only as an extra layer, never as the control: same-site is wider than same-origin, so a sibling subdomain still counts as same-site; `Lax` still sends cookies on top-level navigations; and browser defaults differ.
+`SameSite` is set explicitly on those cookies but counts only as an extra layer, never as the control: same-site is wider than same-origin, so a sibling subdomain still counts as same-site; `Lax` still sends cookies on cross-site top-level GET navigations; and browser defaults differ.
 
 - **Safe methods** — GET, HEAD, and OPTIONS never change state. A legacy endpoint that still changes state on one gets its own explicit CSRF protection instead of inheriting the safe-method exemption.
-- **Origin checks** — fail closed when the source origin (`Origin`, or `Referer` when `Origin` is absent) is missing or `null`. Compare the full origin (scheme, host, and port) exactly, never by prefix, suffix, or substring. Take the target origin from configuration, and trust `Forwarded` or `X-Forwarded-Host` only when a known proxy sets it.
+- **Origin checks** — fail closed when the source origin (`Origin`, or `Referer` when `Origin` is absent) is missing or `null`. Compare the full origin (scheme, host, and port) exactly, never by prefix, suffix, or substring; parse the origin out of a `Referer` URL before comparing. Take the target origin from configuration, and trust `Forwarded` or `X-Forwarded-Host` only when a known proxy sets it.
 - **Client code** — attach CSRF tokens only to requests bound for the application's own endpoints, never to third-party URLs, where the token would leak.
 
 The CSRF group in `references/security-checklist.md` is the completion gate.

@@ -39,7 +39,7 @@ Review every relevant concern area before marking the slice done. Complete each 
 - [ ] Session tokens are server-issued, high-entropy, opaque to the client.
 - [ ] Session token rotated on every privilege change: login, logout, password change, MFA enrollment, role change.
 - [ ] Session expiration enforced server-side: both absolute (max lifetime) and idle (inactivity) timeouts.
-- [ ] Cookies carrying session material have `Secure`, `HttpOnly`, and `SameSite` set appropriately.
+- [ ] Cookies carrying session material have `Secure`, `HttpOnly`, and an explicit `SameSite`.
 - [ ] MFA is available for privileged actions — not as a future feature.
 - [ ] Account-enumeration resistance: login error messages do not reveal whether an account exists.
 
@@ -47,10 +47,10 @@ Review every relevant concern area before marking the slice done. Complete each 
 
 ## CSRF defense
 
-- [ ] Every cookie-authenticated state-changing endpoint has one server-enforced primary CSRF control: the framework's built-in protection, a server-validated token (a synchronizer token or a signed, session-bound double-submit cookie), a required custom header backed by a strict CORS policy, or Fetch Metadata with an origin fallback.
+- [ ] Every cookie-authenticated state-changing endpoint has one server-enforced primary CSRF control: the framework's built-in protection, a server-validated token (a synchronizer token or a signed, session-bound double-submit cookie), a required custom header backed by a strict CORS policy, or Fetch Metadata with an origin fallback that accepts state changes only from `same-origin` requests.
 - [ ] `SameSite` is set explicitly on those cookies and counts only as an extra layer, never as the primary control.
 - [ ] GET, HEAD, and OPTIONS never change state; a legacy endpoint that still changes state on one has its own explicit CSRF protection.
-- [ ] Origin checks fail closed when the source origin is missing or `null`, compare full origins (scheme, host, and port) exactly, and trust `Forwarded` or `X-Forwarded-Host` only when a known proxy sets it.
+- [ ] Origin checks fail closed when the source origin is missing or `null`, compare full origins (scheme, host, and port) exactly, take the target origin from configuration, and trust `Forwarded` or `X-Forwarded-Host` only when a known proxy sets it.
 - [ ] Client code attaches CSRF tokens only to the application's own endpoints, never to third-party URLs.
 
 **Why grouped together**: each item closes a known bypass of the same defense — a browser attaching ambient cookies to a request another site started. `SameSite` alone, a state-changing GET, a lenient origin comparison, or a token sent to a third party each reopens that path.
