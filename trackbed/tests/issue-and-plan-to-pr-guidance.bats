@@ -654,6 +654,66 @@
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
+@test "work-from-plan follows the generated plan contract without prompting under delegation" {
+	run bash -c '
+    set -e
+    cd "'"$BATS_TEST_DIRNAME"'/.."
+    skill="skills/code:work-from-plan/SKILL.md"
+    direct="skills/code:work-from-plan/references/direct-execution.md"
+    routing="skills/code:work-from-plan/references/routing.md"
+    parent="skills/code:plan-to-pr/SKILL.md"
+
+    # Planned files: only files the plan expects to exist can be missing.
+    grep -qF "a path the plan'"'"'s In Scope list marks for creation need not exist yet" "$skill"
+    grep -qF "A file the plan expects to already exist is missing" "$direct"
+    grep -qF "A file the plan says it creates is not missing." "$direct"
+    grep -qF "A file the plan marks for creation is not unavailable." "$routing"
+    if grep -qF "Affected files are missing or generated" "$direct"; then false; fi
+    if grep -qF "A required file, issue, or external system is unavailable." "$routing"; then false; fi
+
+    # Open questions with a default proceed and become closeout assumptions.
+    grep -qF "does not block: proceed with the default and list it under \`ASSUMPTIONS\` in the closeout" "$skill"
+    grep -qF "a question the plan marks as blocking implementation, such as with \`MISSING REQUIREMENT:\`, is a \`MISSING REQUIREMENT\` even when it lists a default" "$skill"
+    grep -qF "Every other question with a stated default does not block" "$skill"
+    grep -qF "The Open Questions section'"'"'s standard framing, which asks for answers before implementation, does not mark a question by itself." "$skill"
+    grep -qF "An open question that carries a stated default and no blocking mark is not an open decision; proceed with the default." "$routing"
+    grep -qF -- "- An open question states no default, or the plan marks it as blocking implementation." "$routing"
+
+    # Plan STOP conditions reach the intake summary and the stop list; continue-mode prior work is not drift.
+    grep -qF -- "- STOP conditions: every condition in the plan'"'"'s STOP Conditions section." "$skill"
+    grep -qF -- "- A STOP condition carried from the plan occurs." "$direct"
+    grep -qF "in \`trackbed:code:plan-to-pr\` continue mode, the prior in-scope work the parent validated is not drift" "$skill"
+
+    # Delegated runs return a blocker and question instead of prompting.
+    grep -qF "Under this delegation, hand every user decision back to the parent instead of asking it here." "$skill"
+    grep -qF "return \`BLOCKED: <blocker>\` with \`QUESTION: <the one question the user would need to answer>\`. Standalone runs may still ask." "$skill"
+    grep -qF "return the route decision as the blocker, with the minimum \`QUESTION\` when the route is \`blocked\`" "$skill"
+    grep -qF "Under \`trackbed:code:plan-to-pr\` delegation, return that question with the blocker instead of asking it." "$direct"
+    grep -qF "Under \`trackbed:code:plan-to-pr\` delegation, return that question with the blocker instead of asking it." "$routing"
+
+    # Closeout reports every completion criterion with status and evidence.
+    closeout=$(sed -n "/^## Step 6: Closeout$/,\$p" "$skill")
+    printf "%s\n" "$closeout" | grep -qFx "COMPLETION CRITERIA:"
+    printf "%s\n" "$closeout" | grep -qF -- "- <criterion as the plan states it>: MET|UNMET|UNVERIFIED - <evidence>"
+    printf "%s\n" "$closeout" | grep -qFx "ASSUMPTIONS:"
+    printf "%s\n" "$closeout" | grep -qF "List every completion criterion from the plan in the plan'"'"'s order."
+    printf "%s\n" "$closeout" | grep -qF "Mark it \`MET\` only with evidence a reader can check"
+
+    # Plan-local IDs stay out of written files; commit subjects are unaffected.
+    grep -qF "Keep plan-local IDs, such as execution labels (\`W01A\`), source IDs (\`SRC-03\`), and plan filenames, out of every file the run writes" "$skill"
+    grep -qF "Commit subjects are unaffected." "$skill"
+
+    # plan-to-pr consumes the per-criterion closeout, questions, and assumptions.
+    grep -qF -- "- its closeout reports every completion criterion \`MET\` with evidence, and every plan-specific verification check passed;" "$parent"
+    grep -qF "An \`UNMET\` or \`UNVERIFIED\` criterion is a blocker." "$parent"
+    grep -qF "When the delegate returns \`BLOCKED\` with a \`QUESTION\`, stop and relay that question verbatim." "$parent"
+    grep -qF "Carry its \`ASSUMPTIONS\` list into the Step 7 report." "$parent"
+    grep -qF "Assumptions: {defaulted open questions from the implementation closeout | none | not recorded (completion resume)}" "$parent"
+  '
+
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
 @test "breakdown findings delegates drafting in bounded batches" {
 	run bash -c '
 		set -e
