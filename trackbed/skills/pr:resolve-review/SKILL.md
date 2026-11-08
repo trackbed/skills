@@ -91,10 +91,7 @@ fi
 
 When parsing these files, accept the structured `- Location:` field, `**Location:**`, and legacy `**File:**` labels.
 
-**Fetching from GitHub** (treated as **external reviews**):
-
-- Use the PR URL provided in arguments or chat if present; otherwise the current branch's PR.
-- Commands: `gh pr view --json reviews,comments` and `gh api repos/{owner}/{repo}/pulls/{number}/comments`.
+**Fetching from GitHub** (treated as **external reviews**): read and follow `references/github-source.md`.
 
 **Fetching from Conductor** (treated as **external reviews**): when `CONDUCTOR_WORKSPACE_ID` is set and `mcp__conductor__GetDiffComments` is present, detect the tool by presence without probing it, then read and follow `references/conductor-source.md`. Use the runtime-exposed schema instead of hard-coding tool parameters.
 

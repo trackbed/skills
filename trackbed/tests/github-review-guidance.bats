@@ -151,6 +151,51 @@ PY
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
+@test "resolve-review fetches every GitHub page and skips resolved or unknown-state threads" {
+	run python3 - "$PLUGIN_ROOT/skills/pr:resolve-review/SKILL.md" "$PLUGIN_ROOT/skills/pr:resolve-review/references/github-source.md" "$PLUGIN_ROOT/skills/pr:resolve-review/references/team-mode.md" <<'PY'
+import pathlib
+import re
+import sys
+
+skill, source, team = [pathlib.Path(path).read_text() for path in sys.argv[1:]]
+assert "gh pr view --json reviews,comments" not in skill
+assert "**Fetching from GitHub** (treated as **external reviews**): read and follow `references/github-source.md`." in skill
+assert "For `REVIEW_SOURCE=online`, a PR URL, or when nothing else is found, fetch from GitHub by reading and following `github-source.md`" in team
+for text in (skill, team, source):
+    assert not re.search(r"gh api (?!--paginate|graphql)", text), "unpaginated gh api call"
+query = re.search(r"(?s)gh api graphql.*?query='(.*?)'", source).group(1)
+for field in ["isResolved", "isOutdated"]:
+    assert field in query, f"GraphQL query lost {field}"
+calls = re.findall(r"^gh api .*$", source, re.M)
+rest = [call for call in calls if "graphql" not in call]
+assert len(rest) == 3 and all(call.startswith("gh api --paginate --slurp ") for call in rest), rest
+for endpoint in ["pulls/$PR_NUMBER/comments", "pulls/$PR_NUMBER/reviews", "issues/$PR_NUMBER/comments"]:
+    assert any(endpoint in call for call in rest), endpoint
+for term in ["reviewThreads(first: 100, after: $cursor)", "pageInfo { hasNextPage endCursor }", "isResolved", "isOutdated",
+             "While `hasNextPage` is true, repeat the query", "Every page must succeed; a failed GraphQL page triggers **Resolution state unavailable** below.", "flatten it into one list",
+             "a non-zero exit, or a flattened result that is not an array, is a failed call",
+             "Group REST inline comments by `in_reply_to_id`",
+             "the root's REST `node_id` equals the ID of the thread's first comment",
+             "is a blocker, not an empty result",
+             "skip every thread whose `isResolved` is true",
+             "keep threads whose `isOutdated` is true",
+             "Their line numbers are approximate", "`(outdated; approximate)`",
+             "use that current `path:line` as the candidate's location",
+             "An outdated flag never proves the feedback was addressed.",
+             "Leave inline threads out rather than risk resolving closed conversations",
+             "A root comment that matches no fetched thread, and a reply whose root was not fetched, also have unknown resolution state",
+             "Skipped N inline review threads", "`no matching review thread` or `root comment not fetched`",
+             "If skipped threads leave no candidates, stop and report those lines instead of the no-review message",
+             "`path` alone when both `line` and `original_line` are null",
+             "A review summary or general comment uses the `path:line`, or `path` alone, that its body names, otherwise `review-scope`",
+             "repository-relative with no empty, `.`, or `..` segment",
+             "lists several distinct findings into one candidate per finding",
+             "`trackbed:pr:github-review-reply` owns posting"]:
+    assert term in source, f"github-source lost {term}"
+PY
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
 @test "github review reports issue traceability and withholds approval for missing coverage" {
 	run python3 - "$LINEAR_REFERENCE" "$REPORT_TEMPLATE" "$COMMENT_REFERENCE" "$REVIEW_GUIDE" <<'PY'
 import pathlib
