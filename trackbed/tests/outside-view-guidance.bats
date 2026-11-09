@@ -71,6 +71,37 @@ PY
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
+@test "outside-view template tables keep one cell count per table" {
+	run python3 - "$TEMPLATE" <<'PY'
+import pathlib
+import re
+import sys
+
+lines = pathlib.Path(sys.argv[1]).read_text().splitlines()
+tables, current = [], []
+for number, line in enumerate(lines, 1):
+    if line.startswith("|"):
+        current.append((number, line))
+    elif current:
+        tables.append(current)
+        current = []
+if current:
+    tables.append(current)
+
+problems = []
+for table in tables:
+    header_cells = len(re.split(r"(?<!\\)\|", table[0][1].strip().strip("|")))
+    for number, line in table:
+        cells = len(re.split(r"(?<!\\)\|", line.strip().strip("|")))
+        if cells != header_cells:
+            problems.append(f"line {number}: {cells} cells, header has {header_cells}")
+if not any("| Model diversity |" in line for table in tables for _, line in table):
+    problems.append("Run History table not found")
+raise SystemExit("\n".join(problems) if problems else 0)
+PY
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
 @test "outside-view clustering covers semantic paraphrases and minority support" {
 	run python3 - "$SKILL" <<'PY'
 import pathlib

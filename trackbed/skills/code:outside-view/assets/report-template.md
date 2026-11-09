@@ -84,8 +84,8 @@ Use this structure when writing `OUTSIDE_VIEW_REPORT.md` or a custom `--output` 
 ## Run History
 
 | Date | Mean | Scores | Top clusters | Blind spots | Personas | Model diversity |
-| --- | --: | --- | --- | --- | --- | --- | --- |
-| {YYYY-MM-DD} | {mean} | {comma-separated} | {top 3 cluster titles} | {every `fingerprint: title`, or none} | {persona ids} | {model | none + reason} |
+| --- | --: | --- | --- | --- | --- | --- |
+| {YYYY-MM-DD} | {mean} | {comma-separated} | {top 3 cluster titles} | {every `fingerprint: title`, or none} | {persona ids} | {model \| none + reason} |
 ```
 
 Keep `Run History` append-only: earlier rows are carried forward unchanged. The complete `Blind spots` cell, not the top-three summary, is the source for recurrence counting; persona ids remain the source for rotation.
