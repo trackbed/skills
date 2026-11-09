@@ -7,3 +7,11 @@ sources:
     last_reviewed_at: 2026-11-09
     fetch_mode: curl-html
     baseline_hash: "sha256:0300d252efa1c16119200bcd472369e066f6344ff12874e8bf5224000b9616ef"
+  - id: compound-code-review-deleted-files
+    url: https://github.com/EveryInc/compound-engineering-plugin/blob/a00d47c57fede04ab9ff04d405fa3846b9561c90/skills/ce-code-review/references/diff-scope.md
+    title: "EveryInc compound-engineering-plugin - ce-code-review diff scope (PR #1888)"
+    rationale: "Showing whole-file deletions to the finder as headers only and reading a deleted body from the base only when a finding needs it is informed by this source."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "a00d47c57fede04ab9ff04d405fa3846b9561c90"
+    baseline_hash: ""

@@ -126,6 +126,18 @@ PY
 	require_phrases "$REFACTOR" "End the run with \`Agents launched: N\`"
 }
 
+@test "overengineering finder sees whole-file deletions as headers only" {
+	require_phrases "$OVERENGINEERING" \
+		'(`git diff --irreversible-delete "$MERGE_BASE"...HEAD`)' \
+		'(`git diff --irreversible-delete --cached`)' \
+		'(`git diff --irreversible-delete`)' \
+		"shows each deleted file as its header only" \
+		"Review the code that ships, including what the deletion left behind in surviving files" \
+		'Read a deleted file'"'"'s old content with `git show "${MERGE_BASE}:<path>"` only when a candidate in surviving code depends on it'
+	run grep -qF '(`git diff "$MERGE_BASE"...HEAD`)' "$OVERENGINEERING"
+	[ "$status" -ne 0 ]
+}
+
 @test "gate delegation keeps arguments and producer evidence checks intact" {
 	require_phrases "$POLICY" \
 		"run each quality gate inside one such delegated agent on the orchestrator's model" \
