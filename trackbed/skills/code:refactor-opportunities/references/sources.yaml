@@ -2,7 +2,7 @@ sources:
   - id: addy-code-simplification
     url: https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/code-simplification/SKILL.md
     title: "Addy Osmani agent-skills - code simplification"
-    rationale: "The Rule of 500 automation trigger in Phase 3 step 9 comes from this source's guidance on scripting large refactors; the local step restates it in original wording."
+    rationale: "The four When NOT to flag pre-filters (already-clean code, code not yet understood, performance-critical code, and code about to be rewritten) follow this source's list of cases where simplification does not apply, and the Rule of 500 automation trigger in Phase 3 step 9 comes from its guidance on scripting large refactors; the local text restates both in original wording."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
