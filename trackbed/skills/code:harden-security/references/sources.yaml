@@ -15,6 +15,15 @@ sources:
     last_reviewed_at: 2026-11-06
     baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
     baseline_hash: "sha256:2f9979b84678ca6f07e684bb862a086f5b27bfa6e9a0ad3d57c499dba47c2e50"
+  - id: addy-security-hardening-patterns
+    url: https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/security-and-hardening/references/hardening-patterns.md
+    title: "Addy Osmani agent-skills - security and hardening patterns"
+    rationale: "The names-only staged-secret check that keeps matched credentials out of command output is adapted from this reference."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:18ff8d176eedaaa8ec1fba4cd7adacc8d81105b1b162b404b37c43b563a313c8"
   - id: fetch-cors-protocol
     url: https://fetch.spec.whatwg.org/
     title: "WHATWG Fetch Standard"
