@@ -40,6 +40,15 @@ sources:
     baseline_commit: "6efc127defc561e3a672b3d155b8216255a10e25"
     fetch_mode: curl-markdown
     baseline_hash: "sha256:49ef3a44228a14c774ec606477293be6467b232a9e4af9e031a3cad64ed87642"
+  - id: egm-style-persona
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/6efc127defc561e3a672b3d155b8216255a10e25/agents/style.md
+    title: "google/elephant-goldfish-model - style reviewer"
+    rationale: "The Scope check's single remedy for each flagged caveat (delete, rescale, or move it) and its rule that a caveat at the right strength and place is not a finding are informed by this source's caveat calibration; reviewed at upstream commit 6efc127defc561e3a672b3d155b8216255a10e25."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "6efc127defc561e3a672b3d155b8216255a10e25"
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:9330780622baaef8dc683ea78efb3ff8e4583e3dde7ab6092b84df50e8c9ea58"
   - id: egm-review-design
     url: https://raw.githubusercontent.com/google/elephant-goldfish-model/403d8881d62022490637d740657b33f01e321ea8/docs/designs/review.md
     title: "google/elephant-goldfish-model - review protocol design"

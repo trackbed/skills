@@ -96,11 +96,15 @@ Check for:
 
 7. **Defensive accretion.** Requirements, mechanisms, options, or caveats that answer a past review comment or a speculative risk rather than a stated objective: a mitigation for a failure the spec never establishes, a setting no requirement uses, handling for a case nobody named. When your prompt has a `Previously Resolved Findings` block, check that the text addressing each listed finding stays within what the finding needed. Do not reopen a decision the spec records as settled.
 
+   For each flagged caveat, recommend one remedy: **delete** it when the spec establishes no risk it guards against, **rescale** it when it overstates an established risk, or **move** it to the requirement or step it governs when it sits elsewhere. A caveat at the right strength and in the right place is not a finding.
+
+   When the only remedy for a Scope finding would undo the fix for a finding in the `Previously Resolved Findings` block, do not recommend removing that fix. Cite both finding IDs and write the recommendation as a choice: choose between keeping the earlier fix and applying the new remedy.
+
 **Severity guide:**
 
 - Critical: No scope definition at all, objectives don't match tasks
 - Major: Implicit inclusions that could derail timeline, unclear phase boundaries, an added requirement or mechanism that no objective needs
-- Minor: Missing out-of-scope declarations for unlikely features
+- Minor: Missing out-of-scope declarations for unlikely features, a caveat to rescale or move, a caveat to delete that adds no requirement or mechanism
 
 ---
 

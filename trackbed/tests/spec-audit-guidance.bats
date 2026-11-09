@@ -54,6 +54,17 @@ setup() {
   grep -F -- '- Minor:' "$DIMENSIONS" | grep -qF 'one file path the spec implies but does not write'
 }
 
+@test "the scope check names one remedy and a severity for each flagged caveat" {
+  grep -qF 'recommend one remedy: **delete** it when the spec establishes no risk it guards against, **rescale** it when it overstates an established risk, or **move** it' "$DIMENSIONS"
+  grep -qF 'A caveat at the right strength and in the right place is not a finding.' "$DIMENSIONS"
+  grep -F -- '- Minor:' "$DIMENSIONS" | grep -qF 'a caveat to rescale or move, a caveat to delete that adds no requirement or mechanism'
+}
+
+@test "a remedy that would undo an accepted fix becomes a choice citing both findings" {
+  grep -qF 'When the only remedy for a Scope finding would undo the fix for a finding in the `Previously Resolved Findings` block, do not recommend removing that fix.' "$DIMENSIONS"
+  grep -qF 'Cite both finding IDs and write the recommendation as a choice' "$DIMENSIONS"
+}
+
 @test "a re-audit checks what earlier fixes added without reopening settled decisions" {
   grep -qF '**Defensive accretion.**' "$DIMENSIONS"
   grep -qF 'Do not reopen a decision the spec records as settled.' "$DIMENSIONS"
