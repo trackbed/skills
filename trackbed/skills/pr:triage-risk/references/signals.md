@@ -14,7 +14,7 @@ Every changed file gets one kind, decided in this order:
 6. `test` — a path under a test directory (such as `test/`, `tests/`, `__tests__/`, `spec/`, `e2e/`, `cypress/`, `testdata/`, `__mocks__/`) or a test file name (such as `*.test.*`, `*.spec.*`, `*_test.*`, `test_*.py`, `conftest.py`, `*.bats`, `FooTest.java`).
 7. `code` — everything else, including configuration.
 
-The script diffs with `--text`, so a branch's `.gitattributes` cannot hide content as binary. Size signals count only `code` files that are not binary, except that a source file stays counted even when it contains a NUL byte. Renamed files are checked under both their old and new paths, each classified on its own, so moving a file out of a sensitive or policy-covered location, even into a test or docs directory, still raises the signal.
+The script diffs with `--text`, so a branch's `.gitattributes` cannot hide content as binary. Size signals count only `code` files that are not binary, except that a source file stays counted even when it contains a NUL byte. Deletions count in full toward the size signals: every deleted line of a `code` file counts toward the `shape:non-trivial`, `shape:large`, and `shape:very-large` thresholds like an added line, and a deleted `code` file counts toward the `shape:non-trivial` and `shape:large` file thresholds, so deleting one 600-line module raises `shape:large` on its own. The skill's Step 5 decides whether a deletion-driven size signal can be discounted. Renamed files are checked under both their old and new paths, each classified on its own, so moving a file out of a sensitive or policy-covered location, even into a test or docs directory, still raises the signal.
 
 ## Signals
 
