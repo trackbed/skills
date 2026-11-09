@@ -1,20 +1,22 @@
 sources:
   - id: compound-ce-work
-    url: https://raw.githubusercontent.com/EveryInc/compound-engineering-plugin/main/skills/ce-work/SKILL.md
+    url: https://github.com/EveryInc/compound-engineering-plugin/tree/main/skills/ce-work
     title: "EveryInc compound-engineering-plugin - ce-work"
     rationale: "The plan intake, route-before-work gate, context gathering before edits, missing-requirement handling, and bounded execution loop are adapted from ce-work while intentionally omitting broader autonomous pipeline behavior. Returning a blocker instead of prompting under delegation, proceeding on defaulted open questions as recorded assumptions, per-criterion closeout evidence, and keeping plan-local IDs out of written files also follow ce-work and its reference files."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "7dc50943bbf959dbe6a93a175e41e5fff8395e00"
-    baseline_hash: "sha256:a5af3eeda25683ef7d57db59d9dace279552d4e3a9b8b7af777328334df338ac"
+    fetch_mode: github-directory
+    baseline_hash: "sha256:8234de56af86b12b280f31623ec559002ffcd8a55cd5d061c13a189d9172a906"
   - id: compound-ce-plan
-    url: https://raw.githubusercontent.com/EveryInc/compound-engineering-plugin/main/skills/ce-plan/SKILL.md
+    url: https://github.com/EveryInc/compound-engineering-plugin/tree/main/skills/ce-plan
     title: "EveryInc compound-engineering-plugin - ce-plan"
     rationale: "The standalone plan-shape assumptions, completion-criteria emphasis, dependency awareness, and missing-context markers consumed by this adapter are adapted from ce-plan. Its reference files also inform reading planned new files as expected-absent, open questions as carrying defaults, and plan-declared STOP conditions."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "7dc50943bbf959dbe6a93a175e41e5fff8395e00"
-    baseline_hash: "sha256:16e4b8333e0db8dce5ce215d913075d7fb828a2820b1d544dc60e76e1c4e0ef9"
+    fetch_mode: github-directory
+    baseline_hash: "sha256:5b23f2f6d9ed64d7b7226d9c3c40112d27846cf734d6b4d6dce55fc8deb14067"
   - id: addy-context-engineering
     url: https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/context-engineering/SKILL.md
     title: "Addy Osmani agent-skills - context engineering"
