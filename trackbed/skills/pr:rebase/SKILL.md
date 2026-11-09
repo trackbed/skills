@@ -124,11 +124,13 @@ Any resolver failure is an operational failure, not evidence that the branch is 
 
 When `IN_STACK=true`, first read `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-rewrite-safety.md` and run its complete preflight before any stash or rewrite, in every mode including auto mode. Stop on divergence with the integrate-first message; behind-only branches are allowed. Pass the resolved `STACK_REMOTE` to the subsequent stack rebase and push with `--remote "$STACK_REMOTE"`.
 
+Then read `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-operations.md` for the gh-stack exit codes and the rules for other worktrees, and run its other-workspace preflight with `${CLAUDE_PLUGIN_ROOT}/scripts/list-stack-worktrees.sh` before any stash or rewrite. Its confirmation applies in every mode, including auto mode. A `--force-push` run delegated by `trackbed:pr:fix-ci` is non-interactive, so it stops and reports when the preflight lists another workspace.
+
 When `IN_STACK=true`, swap the git commands but keep every gate:
 
-- **Steps 2–3 replacement:** run `gh stack rebase` instead of `git rebase --autostash origin/<base-branch>`. It fetches, fast-forwards the trunk, and cascade-rebases every stack branch onto its updated parent. It has no autostash — if the working tree is dirty, `git stash` first and `git stash pop` after. On conflict (exit code 3), resolve each conflicted file under the same rules, round cap, and red flags as Step 3, then `gh stack rebase --continue`; abort with `gh stack rebase --abort` (restores all branches).
+- **Steps 2–3 replacement:** run `gh stack rebase` instead of `git rebase --autostash origin/<base-branch>`. It fetches, fast-forwards the trunk, and cascade-rebases every stack branch onto its updated parent. It has no autostash — if the working tree is dirty, `git stash` first and `git stash pop` after. On conflict (exit code 3), resolve each conflicted file in the worktree gh-stack names, under the shared reference's **Conflicts** rules and the same rules, round cap, and red flags as Step 3, then `gh stack rebase --continue`; abort with `gh stack rebase --abort` (restores all branches). Continue or abort only a rebase this session started, and pass `--accept-base-change` only under the shared reference's **Paused rebases** and **Base changes** rules, in every mode including auto mode.
 - **Step 5 replacement:** the validated push procedure becomes `env -u GH_STACK_NO_ATOMIC gh stack push` — it pushes all stack branches with `--force-with-lease --atomic`. Atomicity covers Git refs, not PR/API updates. All Step 5 gates and modes apply unchanged.
-- **Step 7 addition:** report every branch the rebase touched, not just the current one (`gh stack view --json` shows the updated heads and PR states).
+- **Step 7 addition:** report every branch the rebase touched, not just the current one (`gh stack view --json` shows the updated heads and PR states), every other workspace it changed, and any change of trunk.
 
 ### Step 2: Fetch Latest, Exit Early, and Pin the Lease
 

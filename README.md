@@ -300,6 +300,8 @@ New work starts from the repository's workbench branch. Set it with `git config 
 
 `/trackbed:pr:stack` uses stack numbers for remote checkout and whole-stack merges. Checkout recovery restores the original branch before retrying. Partial merges stop on stack-number collisions. Links preserve supplied PR identifiers; bare leading numbers require stack-number and local-branch collision checks, while explicit PR URLs bypass numeric selection.
 
+Before a stack `rebase` or `sync` changes a branch checked out in another Conductor workspace, `/trackbed:pr:stack` and `/trackbed:pr:rebase` name that workspace and wait for your confirmation. They resolve conflicts where gh-stack paused them and pass `--accept-base-change` only when you approve it.
+
 ### Inspect and test a live app
 
 ```bash

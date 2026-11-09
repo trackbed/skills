@@ -12,7 +12,7 @@ Condensed operating reference for driving `gh stack` non-interactively. Every co
 | Always pass branch names as positional arguments to `init`, `add`, and `checkout` | Running them bare opens interactive prompts. Names are used verbatim — never prefixed or transformed (`refactor/foo` stays `refactor/foo`). |
 | Always use `gh stack submit --auto` | Without `--auto`, submit opens a per-PR title editor. `--auto` creates new PRs as **drafts**; add `--open` to mark them ready for review. |
 | Always use `gh stack view --json` | Only JSON output is machine-readable. Bare `view` opens a TUI in a terminal; `view --short` never does, but prints a summary meant for people. |
-| Never use `gh stack modify` | TUI-only. Restructure with the Restructure steps in `SKILL.md`, which rebase and check every moved layer before `gh stack unstack` and `init`. If a repo is stuck mid-modify, `gh stack modify --abort` restores it. |
+| Never use `gh stack modify` | TUI-only. Restructure with the Restructure steps in `SKILL.md`, which rebase and check every moved layer before `gh stack unstack` and `init`. If a repo is stuck mid-modify, `gh stack modify --abort` restores it; run it only on the user's approval. |
 | Never run bare `gh stack checkout`, `switch` | Interactive pickers. Use a resolved stack number for remote checkout or a validated nonnumeric branch for local navigation. A PR number or PR URL can select another stack with that number. A stack-number import selects the top branch; restore the recorded entry branch before retrying the caller. If local tracking conflicts with the remote stack, run `gh stack unstack --local` first, then retry. |
 | Run `gh stack merge` only with a resolved target, `--yes`, and one validated method flag (`--merge`, `--squash`, or `--rebase`) | Use the stack number for the whole stack. A partial PR target requires a successful collision check from `merge-target.md`; stop and ask on a collision. Never use an unchecked PR number. |
 | Preserve supplied PR identifiers in `gh stack link` | A leading bare number requires local-branch and stack-number collision checks from `link-target.md`. Explicit PR URLs bypass numeric selection. Retain the original array; use a nonnumeric branch first only for supplied branch input. |
@@ -45,19 +45,7 @@ Clear `GH_STACK_NO_ATOMIC` for pushes and syncs that require atomic Git ref upda
 
 ## Exit codes
 
-| Code | Meaning | Response |
-| --- | --- | --- |
-| 0 | Success | Proceed. |
-| 1 | Generic error | Read stderr. |
-| 2 | Not in a stack / stack not found | Report the missing stack. Resolve the trunk and use `gh stack init --base <resolved-trunk> <branch...>` to create one, or resolve a positive stack number before `gh stack checkout "$STACK_NUMBER"`. Never guess a PR number. |
-| 3 | Rebase conflict | Recovery depends on the command: `sync` restores all branches, so start a fresh `gh stack rebase`; `rebase` leaves its session active, so resolve/stage files and run `gh stack rebase --continue` directly. Give up with `gh stack rebase --abort`. |
-| 4 | GitHub API failure | Check `gh auth status`, retry once. |
-| 5 | Invalid arguments | Fix the invocation. |
-| 6 | Branch belongs to multiple stacks | Check out a non-shared branch first. |
-| 7 | Rebase already in progress | `gh stack rebase --continue` or `--abort`. |
-| 8 | Stack locked by another gh-stack process | Wait (lock times out after ~5s) and retry. |
-| 9 | Stacked PRs not enabled on this repository | Stop and tell the user that stacked PRs must be enabled for the repository. Fall back to a manual branch chain or a single PR. |
-| 10 | Interrupted `modify` session | `gh stack modify --abort` to restore. |
+The exit codes and how to respond to each are in the shared `stack-operations.md` reference named in `SKILL.md`, together with the rules for stack commands that touch other worktrees.
 
 ## `view --json` shape
 
