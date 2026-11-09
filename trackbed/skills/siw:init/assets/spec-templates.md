@@ -27,18 +27,18 @@ Use when `linked_spec_files` exists. The SIW spec acts as a lightweight coordina
 
 ## Product Strategy Context
 
-{If strategy_context exists: summarize target problem, primary users, active tracks, relevant metrics, and applicable non-goals. Keep every marker and label the strategy reader returns. If no `STRATEGY.md` exists and the work is broad product-direction work: `MISSING PRODUCT CONTEXT: no STRATEGY.md found`, naming any fallback file read, before any fallback summary. For narrow work with no strategy context, omit this section.}
+{If strategy_context exists: summarize target problem, primary users, active tracks, relevant metrics, and applicable non-goals. Keep every marker and label the strategy reader returns. Flag stale strategy by keeping each `STALE:` marker with the context it dates. Record each unresolved conflict in `strategy_conflicts` as an open question instead of resolving it silently: this template has no Open Questions section, so list each one at the end of this section as `Open question: {conflict}`. If no `STRATEGY.md` exists and the work is broad product-direction work: `MISSING PRODUCT CONTEXT: no STRATEGY.md found`, naming any fallback file read, before any fallback summary. For narrow work with no strategy context, omit this section.}
 
 ## Linked Specifications
 
 The following external documents are the source of truth for this project:
 
-| Document | Path      | Description                                    |
-| -------- | --------- | ---------------------------------------------- |
-| {title1} | `{path1}` | {brief description or "Primary specification"} |
-| {title2} | `{path2}` | {brief description}                            |
+| Document | Path | Owner | Description |
+| --- | --- | --- | --- |
+| {title1} | `{path1}` | {owning spec tool from `linked_spec_owners`, or "None"} | {brief description or "Primary specification"} |
+| {title2} | `{path2}` | {owning spec tool, or "None"} | {brief description} |
 
-**Note:** Do not duplicate content from linked files. Refer to them directly for details.
+**Note:** Do not duplicate content from linked files. Refer to them directly for details. A file whose owner is another spec tool stays where that tool keeps it.
 
 ## Tasks
 
@@ -79,7 +79,7 @@ Use when `discovered_content` exists. Discovery mode generates content through i
 
 ## Product Strategy Context
 
-{If strategy_context exists: summarize target problem, primary users, active tracks, relevant metrics, and applicable non-goals. Keep every marker and label the strategy reader returns. If no `STRATEGY.md` exists and the work is broad product-direction work: `MISSING PRODUCT CONTEXT: no STRATEGY.md found`, naming any fallback file read, before any fallback summary. For narrow work with no strategy context, omit this section.}
+{If strategy_context exists: summarize target problem, primary users, active tracks, relevant metrics, and applicable non-goals. Keep every marker and label the strategy reader returns. Flag stale strategy by keeping each `STALE:` marker with the context it dates. Record each unresolved conflict in `strategy_conflicts` as an open question instead of resolving it silently: add each one to `## Open Questions`. If no `STRATEGY.md` exists and the work is broad product-direction work: `MISSING PRODUCT CONTEXT: no STRATEGY.md found`, naming any fallback file read, before any fallback summary. For narrow work with no strategy context, omit this section.}
 
 ## Problem Statement
 
@@ -142,7 +142,7 @@ Tasks will be tracked in individual issue files. See `siw/OPEN_ISSUES_OVERVIEW.m
 {If Implementation Phases were identified: Add note: "Suggested task breakdown from discovery:
 
 - {phase/step 1}
-- {phase/step 2} Use /trackbed:siw:generate-phases to create formal issues."}
+- {phase/step 2} Once the spec is planning-ready, use /trackbed:siw:generate-phases to create formal issues."}
 
 ## Design Decisions
 
@@ -162,7 +162,7 @@ Tasks will be tracked in individual issue files. See `siw/OPEN_ISSUES_OVERVIEW.m
 
 ## Open Questions
 
-{Include open questions from interview}
+{Include open questions from interview} {Add each unresolved strategy conflict from `strategy_conflicts`.}
 
 ## Risks
 
@@ -209,7 +209,7 @@ Use when no linked files or discovered content (current default behavior).
 
 ## Product Strategy Context
 
-{If strategy_context exists: summarize target problem, primary users, active tracks, relevant metrics, and applicable non-goals. Keep every marker and label the strategy reader returns. Include strategy conflicts as open questions rather than resolving them silently. If no `STRATEGY.md` exists and the work is broad product-direction work: `MISSING PRODUCT CONTEXT: no STRATEGY.md found`, naming any fallback file read, before any fallback summary. For narrow work with no strategy context, omit this section.}
+{If strategy_context exists: summarize target problem, primary users, active tracks, relevant metrics, and applicable non-goals. Keep every marker and label the strategy reader returns. Flag stale strategy by keeping each `STALE:` marker with the context it dates. Record each unresolved conflict in `strategy_conflicts` as an open question instead of resolving it silently: this template has no Open Questions section, so list each one at the end of this section as `Open question: {conflict}`. If no `STRATEGY.md` exists and the work is broad product-direction work: `MISSING PRODUCT CONTEXT: no STRATEGY.md found`, naming any fallback file read, before any fallback summary. For narrow work with no strategy context, omit this section.}
 
 ## Why Now
 

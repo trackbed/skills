@@ -604,6 +604,14 @@
       "skills": ["trackbed/skills/siw:generate-phases/SKILL.md"]
     },
     {
+      "kind": "guidance",
+      "suite": "trackbed/tests/siw-init-guidance.bats",
+      "skills": [
+        "trackbed/skills/siw:init/SKILL.md",
+        "trackbed/skills/siw:generate-phases/SKILL.md"
+      ]
+    },
+    {
       "kind": "executable",
       "suite": "trackbed/tests/siw-issue-reservation.bats",
       "skills": ["trackbed/skills/siw:generate-phases/SKILL.md"]

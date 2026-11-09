@@ -49,6 +49,8 @@ For an initiative too foggy to fit in one planning session, start with `/trackbe
 
 SIW keeps its tracked preparation state under `siw/`. During preparation, `siw:init` may leave authoritative linked source files elsewhere; those files remain the local source of truth until they are copied under `siw/` and their links are updated before transfer. The transfer gate must verify every linked source's disposition before Linear becomes authoritative.
 
+A spec that another spec tool, such as OpenSpec, manages is the exception: it stays where that tool keeps it, is never copied under `siw/`, and the SIW spec records that tool as its owner. Transfer does not migrate it and reports its path as an unresolved local reference; that tool, not Linear, stays responsible for the file's content.
+
 ```text
 siw/
 ├── <SPEC>.md
