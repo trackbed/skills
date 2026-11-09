@@ -13,6 +13,22 @@
 | Manual                      | {N}                          |
 | Estimated total effort      | {Quick/Moderate/Significant} |
 
+## Evidence Gaps
+
+{Every `UNVERIFIED` and `CONFLICT DETECTED` record from source grounding:}
+
+| Record | Claim or conflicting sources | Resolution | Blocks |
+| --- | --- | --- | --- |
+| {UNVERIFIED/CONFLICT DETECTED} | {claim and missing evidence, or source A and source B} | {version-specific reason, or BLOCKED} | {blocked phase and step, or No} |
+
+## New Network Endpoints
+
+{Every network endpoint a step would add to code, configuration, or CI:}
+
+| Endpoint | Added in | Source | Confirmed |
+| --- | --- | --- | --- |
+| {host or URL} | {file, configuration, or CI location; phase and step} | {authority tier}: {deep URL} | {pending review/yes at review/declined — step blocked/not reviewed (--auto)} |
+
 ## Phase 0: Pre-Migration
 
 **Effort:** Quick
@@ -31,7 +47,9 @@
 - [ ] Install codemod tools: {install commands}
 - [ ] Run codemods:
   - {codemod 1}: `{command}`
+    - Source: {authority tier}: {deep URL}
   - {codemod 2}: `{command}`
+    - Source: {authority tier}: {deep URL}
 - [ ] Review codemod output for correctness
 
 **Verification:** Build compiles (type errors OK at this stage).
@@ -48,6 +66,7 @@
 - **Change:** {description}
 - **Before:** `{old pattern}`
 - **After:** `{new pattern}`
+- **Source:** {authority tier}: {deep URL} — {evidence paraphrase}
 
 **Verification:** No remaining references to removed/renamed APIs.
 
