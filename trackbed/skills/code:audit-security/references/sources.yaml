@@ -8,21 +8,23 @@ sources:
     baseline_commit: "9a24d1408a10a5d0df624ffc128230424e405b82"
     baseline_hash: "sha256:d960820f3dc2b30966d8063d3293814b702f904ca453e762fc571a154bca94b3"
   - id: owasp-threat-modeling
-    url: https://cheatsheetseries.owasp.org/cheatsheets/Threat_Modeling_Cheat_Sheet.html
+    url: https://raw.githubusercontent.com/OWASP/CheatSheetSeries/master/cheatsheets/Threat_Modeling_Cheat_Sheet.md
     title: "OWASP Threat Modeling Cheat Sheet"
     rationale: "The model-first workflow, trust-boundary and data-flow inventory, threat identification, ranking, and review stages inform the audit sequence. Its limits on risk transfer inform the rule that a provider, vendor, or contract counts as a control only when repository configuration shows it enabled, and its review-and-validation stage informs each finding's closure check."
     usage: inspiration
-    last_reviewed_at: 2026-11-06
-    fetch_mode: curl-html
-    baseline_hash: "sha256:a0192a7226a019ad77933065c348ae9f6d1ba2a4808e80ce07acaa9c353c3565"
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "a13983001cb3ed79af5c52b9558db39a1cae8b0a"
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:5102d1557d58fdc184e1cb07dbd796f063e8899318e7d83de5b6242cebf74233"
   - id: owasp-attack-surface-analysis
-    url: https://cheatsheetseries.owasp.org/cheatsheets/Attack_Surface_Analysis_Cheat_Sheet.html
+    url: https://raw.githubusercontent.com/OWASP/CheatSheetSeries/master/cheatsheets/Attack_Surface_Analysis_Cheat_Sheet.md
     title: "OWASP Attack Surface Analysis Cheat Sheet"
     rationale: "The requirement to enumerate entry points, data, privileged operations, and changing attack surfaces informs the repository-wide inventory."
     usage: inspiration
-    last_reviewed_at: 2026-11-06
-    fetch_mode: curl-html
-    baseline_hash: "sha256:c276abfee61071b327d41774d7fbbfdd48228b26d23d751e8f4a9e7ac9e3fa28"
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "a13983001cb3ed79af5c52b9558db39a1cae8b0a"
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:239f4e4b29db5f8f03632e0ca70d61f1e44bce7dc4e0dbfee32eb0160b47f81b"
   - id: microsoft-stride
     url: https://raw.githubusercontent.com/MicrosoftDocs/azure-docs/refs/heads/main/articles/security/develop/threat-modeling-tool-threats.md
     title: "Microsoft Threat Modeling Tool - STRIDE threats"
