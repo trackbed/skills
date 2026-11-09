@@ -343,7 +343,11 @@
           </button>
           <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
         </div>
-        <pre class="mermaid">
+        <pre
+          class="mermaid"
+          role="img"
+          aria-label="CI/CD pipeline: main pushes run lint and tests, build a Docker image, deploy to staging, and reach production after smoke tests and manual approval; feature branches get a preview deploy"
+        >
       graph TD
         A[Push to main] --> B{Branch?}
         B -->|main| C[Run Tests]

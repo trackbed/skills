@@ -121,5 +121,28 @@ class PaletteContrastTests(unittest.TestCase):
         self.assertIn("sample scheme 0: --red-dim missing or not rgba", failures)
 
 
+class DiagramNameTests(unittest.TestCase):
+    TAG = re.compile(r"<(pre|canvas|svg)\b([^>]*)>", re.S)
+    INLINE_CODE = re.compile(r"`[^`\n]+`")
+
+    def test_every_shared_diagram_example_has_an_accessible_name(self) -> None:
+        missing = []
+        found = 0
+        for path in sorted(VISUAL.rglob("*")):
+            if path.suffix not in {".md", ".html"}:
+                continue
+            for match in self.TAG.finditer(self.INLINE_CODE.sub("", path.read_text(encoding="utf-8"))):
+                tag, attrs = match.group(1), match.group(2)
+                if tag == "pre" and 'class="mermaid"' not in attrs:
+                    continue
+                found += 1
+                named = 'role="img"' in attrs and re.search(r'aria-label="[^"]+"', attrs)
+                decorative = tag == "svg" and 'aria-hidden="true"' in attrs
+                if not (named or decorative):
+                    missing.append(f"{path.relative_to(VISUAL)}: <{tag}{attrs[:60]}")
+        self.assertGreater(found, 0)
+        self.assertEqual(missing, [])
+
+
 if __name__ == "__main__":
     unittest.main()

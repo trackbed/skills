@@ -353,7 +353,7 @@ Mermaid diagrams are often too small to read comfortably, especially complex flo
     <button onclick="zoomDiagram(this, 0.8)" title="Zoom out">&minus;</button>
     <button onclick="resetZoom(this)" title="Reset zoom">&#8634;</button>
   </div>
-  <pre class="mermaid">
+  <pre class="mermaid" role="img" aria-label="A leads to B">
     graph TD
       A --> B
   </pre>
@@ -733,7 +733,7 @@ For totals, counts, or aggregate status at the bottom:
 Down arrow SVG (reuse inline):
 
 ```html
-<svg viewBox="0 0 20 20">
+<svg viewBox="0 0 20 20" aria-hidden="true">
   <path d="M10 4 L10 16 M6 12 L10 16 L14 12" />
 </svg>
 ```
@@ -758,6 +758,7 @@ For connections that aren't simple vertical/horizontal, use an absolutely positi
 ```html
 <svg
   class="connectors"
+  aria-hidden="true"
   style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;"
 >
   <path
@@ -920,7 +921,12 @@ For simple inline visualizations without a library:
 
 ```html
 <!-- Sparkline -->
-<svg viewBox="0 0 100 30" style="width:100px;height:30px;">
+<svg
+  viewBox="0 0 100 30"
+  role="img"
+  aria-label="Weekly requests, trending up"
+  style="width:100px;height:30px;"
+>
   <polyline
     points="0,25 15,20 30,22 45,10 60,15 75,5 90,12 100,8"
     fill="none"
