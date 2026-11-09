@@ -167,3 +167,39 @@ setup() {
 	grep -qF "roughly 7–9 top-level chunks" "skills/visual:explain/references/onboarding-exploration-dimensions.md"
 	grep -qF "Then run a **depth check** on that interface." "skills/code:api-design/SKILL.md"
 }
+
+@test "api design drafts Design It Twice designs in fresh contexts and verifies the final pick" {
+	local skill="skills/code:api-design/SKILL.md"
+	local mode="skills/code:api-design/references/design-it-twice.md"
+	local sources="skills/code:api-design/references/sources.yaml"
+	local description
+
+	description="$(sed -n 's/^description: "\(.*\)"$/\1/p' "$skill")"
+	[[ "$description" == *"in fresh-context sub-agents where the host allows"* ]]
+	[[ "$description" == *"verifies the pick before recommending it"* ]]
+	[ "${#description}" -le 1024 ]
+	if grep -qF "sub-agents on Claude Code, sequentially elsewhere" "$skill"; then
+		echo "the description must not tie the parallel form to one host" >&2
+		return 1
+	fi
+
+	grep -qF "rather than a fork of the coordinating conversation; Claude Code's Agent tool is one example." "$skill"
+	grep -qF "**Parallel form (any host that can launch independent sub-agents).**" "$mode"
+	grep -qF "A sub-agent that forks the coordinating conversation does not count" "$mode"
+	grep -qF "including when its only sub-agent mechanism forks the conversation" "$mode"
+	grep -qF 'Form: parallel (<N> fresh-context sub-agents) | sequential (one context)' "$mode"
+	grep -qF 'Drafted blind: yes | no — <reason>' "$mode"
+
+	grep -qF 'Unknowns: <facts not yet established' "$mode"
+	grep -qF "do not add criteria later or change them to favor a design" "$mode"
+	grep -qF '### Design H: Hybrid (<what comes from which design>)' "$mode"
+	grep -qF "using the same sections as the drafted designs" "$mode"
+	grep -qF "### Step 4 — Verify the pick" "$mode"
+	grep -qF "**Choose the hardest realistic scenario**" "$mode"
+	grep -qF "For each invariant in the framing block, state whether it holds" "$mode"
+	grep -qF 'as `confirmed` (cite the code, documentation, or framing inspected during this run) or `assumed`' "$mode"
+
+	grep -qF "id: compound-ce-bakeoff" "$sources"
+	grep -qF "id: compound-ce-bakeoff-verification" "$sources"
+	[ "$(grep -A4 -E 'id: compound-ce-bakeoff(-verification)?$' "$sources" | grep -c 'usage: inspiration')" -eq 2 ]
+}

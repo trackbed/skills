@@ -18,9 +18,9 @@ sources:
   - id: pocock-improve-codebase-architecture-interface-design
     url: https://raw.githubusercontent.com/mattpocock/skills/main/skills/engineering/codebase-design/DESIGN-IT-TWICE.md
     title: "Matt Pocock skills - codebase-design (DESIGN-IT-TWICE.md)"
-    rationale: "The Design It Twice framing and sub-agent output shape in references/design-it-twice.md are cross-checked against this source's Design It Twice process."
+    rationale: "Now that design-an-interface is deleted upstream, this is the Design It Twice mode's surviving source: the framing and sub-agent output shape in references/design-it-twice.md are cross-checked against it, and the rules that each design sub-agent starts from a fresh context rather than a fork and that dispatch is described by host capability rather than one host's tool follow its 7739eae, 14bfbbd, and c0d6901 changes."
     usage: inspiration
-    last_reviewed_at: 2026-11-06
+    last_reviewed_at: 2026-11-08
     baseline_commit: "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
     baseline_hash: "sha256:21c3264953bd30ee87b181a3ccaf0e70649f461e5ffd7dc654acee4ba1788b31"
   - id: pocock-improve-codebase-architecture-language
@@ -39,3 +39,19 @@ sources:
     last_reviewed_at: 2026-11-06
     fetch_mode: curl-html
     baseline_hash: "sha256:5cef0c99088b7d110dcb3c211c10d00d6d8dd7bdd03add3d6b9a2249fad3f893"
+  - id: compound-ce-bakeoff
+    url: https://raw.githubusercontent.com/EveryInc/compound-engineering-plugin/main/skills/ce-bakeoff/SKILL.md
+    title: "EveryInc compound-engineering-plugin - ce-bakeoff"
+    rationale: "Design It Twice's framing rules in references/design-it-twice.md (every correctness requirement stated as a shared invariant, no criteria added later or changed to favor a design, unknowns left open, design-specific assumptions kept out of the shared framing) and its preference for fresh contexts over same-context drafting follow this source's Frame and authority guidance and its independent-candidate rule."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_commit: "6e7655a1ccf359e9e82cdcbdf38fa37a4ec680e1"
+    baseline_hash: "sha256:745ebcbc63d7af6586177a235f759b378faabbf759e9744c8da139fba48da03d"
+  - id: compound-ce-bakeoff-verification
+    url: https://raw.githubusercontent.com/EveryInc/compound-engineering-plugin/main/skills/ce-bakeoff/references/verification.md
+    title: "EveryInc compound-engineering-plugin - ce-bakeoff (references/verification.md)"
+    rationale: "Design It Twice's Step 4 in references/design-it-twice.md, which verifies the final pick as written (including a hybrid) by tracing a concrete hard scenario against each framing invariant and marking each premise confirmed or assumed before the recommendation is presented, follows this source's verification of the selected approach."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_commit: "6e7655a1ccf359e9e82cdcbdf38fa37a4ec680e1"
+    baseline_hash: "sha256:14ab1bcd8aaad6cfce80e66151b41e97c76734c2c8cea38d8882d10a774939b3"
