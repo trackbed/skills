@@ -42,7 +42,16 @@ setup() {
 
 @test "actionability flags design decisions left to the implementer" {
   grep -qF '**Decisions left to the implementer.**' "$DIMENSIONS"
-  grep -qF 'Mechanical choices with one defensible answer, such as a file name, are not findings.' "$DIMENSIONS"
+  grep -qF 'Mechanical choices with one defensible answer, such as a local variable name, are not findings.' "$DIMENSIONS"
+  grep -qF 'File paths belong to the file-boundary check, not to this exemption.' "$DIMENSIONS"
+  ! grep -qiF 'such as a file name' "$DIMENSIONS"
+}
+
+@test "actionability requires a file boundary of full repository paths" {
+  grep -qF '**File boundary.** When the spec has implementation tasks, does it list every file to be added, changed, or removed by its full repository path' "$DIMENSIONS"
+  grep -qF 'A folder pattern is acceptable only for generated files whose names are not known in advance.' "$DIMENSIONS"
+  grep -F -- '- Major:' "$DIMENSIONS" | grep -qF 'a missing or open-ended file list'
+  grep -F -- '- Minor:' "$DIMENSIONS" | grep -qF 'one file path the spec implies but does not write'
 }
 
 @test "a re-audit checks what earlier fixes added without reopening settled decisions" {

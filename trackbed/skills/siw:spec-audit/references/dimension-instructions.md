@@ -110,7 +110,7 @@ Check for:
 
 1. **Non-actionable tasks.** Tasks that describe outcomes but not concrete steps. "Make the system fast" vs "Reduce API response time to under 200ms".
 
-2. **Missing file/component references.** Tasks without clear indication of WHERE changes need to happen.
+2. **File boundary.** When the spec has implementation tasks, does it list every file to be added, changed, or removed by its full repository path, so the list bounds the implementer's edits? A folder pattern is acceptable only for generated files whose names are not known in advance. Naming a component, module, or area instead of paths leaves the list open-ended.
 
 3. **Tasks that are too large.** Single tasks covering multiple unrelated changes that should be subdivided.
 
@@ -122,13 +122,13 @@ Check for:
 
 7. **Ordering and dependency clarity.** Is it clear which tasks must be done before others? Are blocking dependencies explicit?
 
-8. **Decisions left to the implementer.** Could someone new to the codebase carry out each task correctly on the first attempt without making a design decision? Flag every choice the spec leaves open: a schema, an API shape or path, a dependency, an error or edge-case policy. Mechanical choices with one defensible answer, such as a file name, are not findings.
+8. **Decisions left to the implementer.** Could someone new to the codebase carry out each task correctly on the first attempt without making a design decision? Flag every choice the spec leaves open: a schema, an API shape or path, a dependency, an error or edge-case policy. Mechanical choices with one defensible answer, such as a local variable name, are not findings. File paths belong to the file-boundary check, not to this exemption.
 
 **Severity guide:**
 
 - Critical: Tasks so vague they can't be started; an open decision that sets architecture, a public contract, or a data shape
-- Major: Missing acceptance criteria, tasks too large to estimate, any other design decision left to the implementer
-- Minor: Minor dependency gaps, slightly over-granular tasks
+- Major: Missing acceptance criteria, tasks too large to estimate, a missing or open-ended file list, any other design decision left to the implementer
+- Minor: Minor dependency gaps, slightly over-granular tasks, one file path the spec implies but does not write
 
 ---
 
