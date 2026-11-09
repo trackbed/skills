@@ -73,7 +73,8 @@ Rewrite prose around the reader's task without reducing its substance, precision
    - Cut remaining words only when the result retains the same meaning and tone.
 
 8. **Present and optionally save.**
-   - Return the complete clarified text in a copy-ready block.
+   - **Delegated run:** when this skill runs as one step of another skill's workflow, the rewrite is input to that workflow, not your reply. Skip the change summary and the save offer, and continue with the calling workflow's next step without ending the turn. Show the rewrite only where that workflow asks for it, and end the turn only where that workflow ends or pauses.
+   - Otherwise, return the complete clarified text in a copy-ready block.
    - Add a short change summary only when structural edits or protected constraints would help the user review the result.
    - For file input, show the rewrite before writing. Ask whether to overwrite the source, save to a new path, or leave the result inline.
    - Before an approved write, reread the source. If it changed since you first read it, stop and ask whether to restart from the new version.
@@ -104,4 +105,4 @@ Rewrite prose around the reader's task without reducing its substance, precision
 
 ## Output
 
-Return the clarified text first. When useful, follow it with a short list of material changes, preserved constraints, or unresolved ambiguity.
+Return the clarified text first. When useful, follow it with a short list of material changes, preserved constraints, or unresolved ambiguity. In a delegated run, follow Step 8 instead: the calling workflow decides what the user sees and when the turn ends.

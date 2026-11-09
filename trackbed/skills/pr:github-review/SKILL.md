@@ -34,6 +34,12 @@ Invoking this skill, a request such as "review this PR", and anything in its arg
 
 For replies, thread resolution, dismissals, metadata edits, pushes, or merges, this skill runs nothing even after a confirmation: give the user the prepared text and the GitHub UI path or command to run themselves. When unsure whether a message confirms an action, treat it as not confirmed and ask the user to name the action.
 
+## Workflow Contract
+
+- Run the steps as one workflow. Continue from each delegated skill to the next step without ending the turn or waiting for acknowledgement; a one-line status note between steps is fine.
+- A delegated skill's output, such as an inline review, a Linear audit, or humanized comment bodies, is input to this review, not your reply to the user, even when that skill says to present it. Never end the turn on it.
+- End the turn only to wait for agents you launched, or where this skill stops or asks the user, such as choosing the PR in Step 2, the author guard, the Step 12 offer, and the Step 13 handoff.
+
 ## Step 0: Parse Arguments
 
 Parse `$ARGUMENTS` before any network or git call.
@@ -322,6 +328,8 @@ Save this step's result per `references/resume.md`.
 ## Step 10: Humanize the Draft Comments
 
 Follow the humanization section of `references/comment-drafting.md`. Humanization is best-effort; preserve the original bodies and mark `Humanized: no` when `trackbed:text:clarify` is unavailable or its output cannot be mapped safely.
+
+The clarify output is this step's input, not the end of the review. In the same response, map it back, save the result as below, and continue to Step 10a without ending the turn.
 
 Save this step's result per `references/resume.md`.
 
