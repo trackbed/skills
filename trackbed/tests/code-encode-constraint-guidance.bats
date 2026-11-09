@@ -106,8 +106,10 @@ setup() {
 
 @test "encode constraint keeps baselines shrink-only" {
   grep -qF 'Record the count so it can only shrink.' "$SKILL"
-  grep -qF 'compare the baseline with its copy at the merge base and fail when it holds an entry that copy lacks or more entries than it' "$SKILL"
+  grep -qF 'compare the baseline with its copy at the merge base and fail when it holds an entry that copy lacks, more entries than it, or a higher count for any entry' "$SKILL"
+  grep -qF 'When the merge base resolves but has no copy, this change introduces the baseline and sets its starting point, so pass.' "$SKILL"
   grep -qF 'Treat a missing merge base as a could-not-judge case' "$SKILL"
+  grep -qF 'make the CI job fetch that base, such as `fetch-depth: 0` in `actions/checkout`' "$SKILL"
   grep -qF 'with the baseline location and what keeps it shrink-only' "$SKILL"
   grep -qF -- '- **New baseline entry:** the shrink-only check from Step 2.' "$MECHANISMS"
 }
