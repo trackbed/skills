@@ -1,12 +1,12 @@
 sources:
   - id: compound-ce-plan
-    url: https://raw.githubusercontent.com/EveryInc/compound-engineering-plugin/main/skills/ce-plan/SKILL.md
+    url: https://github.com/EveryInc/compound-engineering-plugin/tree/main/skills/ce-plan
     title: "EveryInc compound-engineering-plugin - ce-plan"
-    rationale: "Stable issue identifier rules, repo-relative path discipline, and the risk-triggered confidence deepening gate are adapted from ce-plan's stable implementation-unit IDs and confidence-check/deepening workflow."
+    rationale: "Stable issue identifier rules, repo-relative path discipline, and the risk-triggered confidence deepening gate are adapted from ce-plan's reference files: the never-renumbered U-IDs in references/plan-sections.md, the repo-relative file paths in references/structure.md, the risk-profile deepening gate in references/final-review.md, and the confidence-gap scoring in references/deepening-workflow.md. Stopping on a requirements-only spec and routing it to a discovery interview deliberately departs from ce-plan, which enriches a requirements-only plan directly."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "7dc50943bbf959dbe6a93a175e41e5fff8395e00"
-    baseline_hash: "sha256:16e4b8333e0db8dce5ce215d913075d7fb828a2820b1d544dc60e76e1c4e0ef9"
+    baseline_hash: ""
   - id: compound-ce-plan-structure
     url: https://github.com/EveryInc/compound-engineering-plugin/blob/main/skills/ce-plan/references/structure.md
     title: "EveryInc compound-engineering-plugin - ce-plan structure reference"
