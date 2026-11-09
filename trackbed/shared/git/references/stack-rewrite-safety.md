@@ -1,8 +1,8 @@
 # Stack rewrite preflight
 
-Run this before `gh stack rebase` in `trackbed:pr:rebase` and before routine `gh stack sync` in `trackbed:pr:stack`, including a fresh rebase after sync conflicts. Resolve `STACK_REMOTE` to the remote the following gh-stack command will use: its explicit `--remote`, otherwise `remote.pushDefault`, otherwise the sole configured remote. Stop on an ambiguous remote; never check origin and then rewrite a different remote's stack.
+Run this before `gh stack rebase` in `trackbed:pr:rebase` and before routine `gh stack sync` and every Restructure in `trackbed:pr:stack`, including a fresh rebase after sync conflicts. Resolve `STACK_REMOTE` to the remote the following gh-stack command will use: its explicit `--remote`, otherwise `remote.pushDefault`, otherwise the sole configured remote. Stop on an ambiguous remote; never check origin and then rewrite a different remote's stack.
 
-Run the block in Bash. Fetch every open PR branch before any rewrite or stash. A fetch, inventory, ref, or ancestry failure stops the operation. Keep branch names as quoted data. A branch that is only behind is allowed; gh-stack can reconcile a fast-forward. A branch with commits on both sides must be integrated first.
+Run the block in Bash. Fetch every open PR branch before any rewrite or stash. A fetch, inventory, ref, or ancestry failure stops the operation. Keep branch names as quoted data. A branch that is only behind is allowed; gh-stack can reconcile a fast-forward. A branch with commits on both sides must be integrated first. A Restructure rebases from local tips and then force-pushes, which would drop a behind branch's remote commits, so it sets `STACK_STOP_ON_BEHIND=1` to stop on behind-only branches too.
 
 ```bash
 : "${STACK_REMOTE:?Resolve the gh-stack remote first}"
@@ -22,6 +22,10 @@ while IFS= read -r STACK_BRANCH; do
   read -r STACK_AHEAD STACK_BEHIND <<< "$STACK_COUNTS"
   if [ "$STACK_AHEAD" -gt 0 ] && [ "$STACK_BEHIND" -gt 0 ]; then
     echo "$STACK_REMOTE/$STACK_BRANCH has commits the local branch lacks; integrate them before rebasing." >&2
+    exit 1
+  fi
+  if [ "${STACK_STOP_ON_BEHIND:-0}" = 1 ] && [ "$STACK_BEHIND" -gt 0 ]; then
+    echo "$STACK_REMOTE/$STACK_BRANCH has commits the local branch lacks; sync them before restructuring." >&2
     exit 1
   fi
 done <<< "$OPEN_STACK_BRANCHES"
