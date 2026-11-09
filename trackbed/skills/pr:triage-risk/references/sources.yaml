@@ -7,3 +7,11 @@ sources:
     last_reviewed_at: 2026-11-06
     fetch_mode: curl-html
     baseline_hash: "sha256:5cef0c99088b7d110dcb3c211c10d00d6d8dd7bdd03add3d6b9a2249fad3f893"
+  - id: compound-ce-code-review
+    url: https://github.com/EveryInc/compound-engineering-plugin/tree/main/skills/ce-code-review
+    title: "EveryInc compound-engineering-plugin - ce-code-review"
+    rationale: "Discounting a size signal that deletions drive while deleted source keeps the tier at medium, checking deleted files for surviving use instead of reading their bodies, and raising the tier for changes that fail quietly follow ce-code-review's consequence-based review depth (pull request 1719) and deletion handling (pull request 1888), rewritten in original local language."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "18c2be5e3d79024f20bce936b8cb05272621760a"
+    baseline_hash: "sha256:210fe6141d256c0e3f9fca59a6b2702739329d8129e57204860815c80d4f6bad"

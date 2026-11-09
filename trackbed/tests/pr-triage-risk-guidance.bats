@@ -59,8 +59,43 @@ setup() {
   grep -qF 'Every signal in the script output appears under Signals, confirmed or discounted.' "$SKILL"
 }
 
+@test "triage risk documents that deletions count in full toward size signals" {
+  grep -qF 'Deletions count in full toward the size signals: every deleted line of a `code` file counts toward the `shape:non-trivial`, `shape:large`, and `shape:very-large` thresholds like an added line, and a deleted `code` file counts toward the `shape:non-trivial` and `shape:large` file thresholds' "$SIGNALS"
+  grep -qF 'Deleted lines count in full toward the `shape:` size signals.' "$SKILL"
+  grep -qF -- '- `files` — per-file `path`, `status` (`D` for a deleted file)' "$SKILL"
+}
+
+@test "triage risk discounts deletion-driven size signals by name, but not below medium for deleted source" {
+  grep -qF 'When lines in deleted files (`status` `D`) make up most of a size signal'"'"'s code lines, you may discount it to the level the remaining changed lines and files reach, naming the share from the `files` entries' "$SKILL"
+  grep -qF 'A deleted file'"'"'s lines count toward that share only when the Step 4 check found no surviving use and no directory scan or outside consumer could load it; lines removed from files that still exist never do.' "$SKILL"
+  grep -qF 'When the script reports `shape:deleted-source`, even if you discount it, this discount stops at medium' "$SKILL"
+  grep -qF 'Confirm or discount `shape:deleted-source` from the surviving-use check in Step 4, never from the deleted file'"'"'s body.' "$SKILL"
+}
+
+@test "triage risk checks deleted files for surviving use instead of reading their bodies" {
+  grep -qF '1. Every file named in a signal'"'"'s evidence, except a deleted file named only by `shape:deleted-source`.' "$SKILL"
+  grep -qF '2. Every deleted `code` or `test` file (`status` `D`): check whether it is still used, as described below; read its hunks only when item 1 named it.' "$SKILL"
+  grep -qF "git grep -n -F -e '<name>' HEAD --" "$SKILL"
+  grep -qF 'Look past static imports: string references, routes or commands resolved from file names, registration that ran when the file was imported' "$SKILL"
+  grep -qF "Read a deleted body with \`git show \"\$MERGE_BASE\":'<path>'\` only when you need its exported names or side effects" "$SKILL"
+  grep -qF 'Cite every surviving use as `path:line`.' "$SKILL"
+  grep -qF 'Finding no use never discounts a `path:` signal, because a deleted guard, migration, or workflow does its work without being referenced' "$SKILL"
+  grep -qF 'it does not discount `shape:deleted-source` when the file could be loaded by a directory scan or by a consumer outside the repository.' "$SKILL"
+  grep -qF 'For a deleted test, also check whether the code it tested still ships.' "$SKILL"
+  grep -qF 'For `shape:deleted-source`, say for each deleted file it names whether a surviving use was found, citing it as `path:line`.' "$SKILL"
+}
+
+@test "triage risk raises the tier for changes that fail quietly" {
+  grep -qF 'Also raise for changes that fail quietly, where nothing breaks at once and the defect surfaces later:' "$SKILL"
+  grep -qF -- '- a broken guard: a validation, permission, or safety check that no longer stops what it should;' "$SKILL"
+  grep -qF -- '- changed retry, backoff, or timeout handling;' "$SKILL"
+  grep -qF -- '- a deleted test whose subject still ships;' "$SKILL"
+  grep -qF -- '- a deleted file that the surviving tree still uses.' "$SKILL"
+}
+
 @test "triage risk reports partial reads and never reproduces secrets" {
-  grep -qF 'Name every `code` file whose hunks you did not read in the closing scope sentence; never report a partial read as a complete one.' "$SKILL"
+  grep -qF 'Name in the closing scope sentence every `code` file whose hunks you did not read, apart from a checked deleted file that no signal except `shape:deleted-source` names, and every deleted `code` or `test` file you did not check; never report a partial read as a complete one.' "$SKILL"
+  grep -qF "{Scope sentence: which files' hunks you read, which code files you did not (apart from checked deleted files that no signal except \`shape:deleted-source\` names), and which deleted code or test files you did not check for surviving use.}" "$SKILL"
   grep -qF 'never reproduce the value, not even partially, and list credential rotation under "Needs a human"' "$SKILL"
 }
 
