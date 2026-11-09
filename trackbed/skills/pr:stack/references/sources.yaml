@@ -70,9 +70,9 @@ sources:
   - id: github-gh-stack-merge-targets
     url: https://raw.githubusercontent.com/github/gh-stack/bd0a32504f9ae9f795875a9e6bb90ff7408fda08/cmd/merge.go
     title: "gh-stack merge target resolution"
-    rationale: "Whole-stack merges use the stack number; partial PR targets require proof that no stack uses that number because a stack match removes the PR boundary."
+    rationale: "Whole-stack merges use the stack number; partial PR targets require proof that no stack uses that number because a stack match removes the PR boundary. The shared merge-outcome checks follow how merge exits 0 after only queuing the PRs, exits 3 when a conflict means nothing landed, and exits 4 while a merge may still be running on GitHub."
     usage: inspiration
-    last_reviewed_at: 2026-11-08
+    last_reviewed_at: 2026-11-09
     baseline_commit: "bd0a32504f9ae9f795875a9e6bb90ff7408fda08"
     baseline_hash: "sha256:ed42daf1737069e09e4053a6e2e1e769b2cb8cd4315525fac00e9b9e3f5f3396"
   - id: github-gh-stack-link-targets
@@ -132,7 +132,7 @@ sources:
   - id: github-gh-stack-v0.3.0-worktree-sync
     url: https://raw.githubusercontent.com/github/gh-stack/2a49e6751238633db504655d8a8eba3e433e827d/cmd/sync.go
     title: "gh-stack v0.3.0 worktree-scoped sync"
-    rationale: "The other-workspace preflight follows how sync fast-forwards and rebases stack branches and the trunk in the worktrees that have them checked out, and restores every branch before it returns a conflict."
+    rationale: "The other-workspace preflight follows how sync fast-forwards and rebases stack branches and the trunk in the worktrees that have them checked out, and restores every branch before it returns a conflict. The shared sync-outcome check follows how sync exits 0 after a divergence abort or a failed push."
     usage: inspiration
     last_reviewed_at: 2026-11-09
     baseline_commit: "2a49e6751238633db504655d8a8eba3e433e827d"
@@ -140,7 +140,7 @@ sources:
   - id: github-gh-stack-v0.3.0-exit-codes
     url: https://raw.githubusercontent.com/github/gh-stack/2a49e6751238633db504655d8a8eba3e433e827d/cmd/utils.go
     title: "gh-stack v0.3.0 exit codes and base retargeting"
-    rationale: "The shared exit-code table, written in local words, follows the exit codes this file defines, including the clone-wide lock (exit 8), and its retarget check that stops without --accept-base-change."
+    rationale: "The shared exit-code table, written in local words, follows the exit codes this file defines, including the clone-wide lock (exit 8), and its retarget check that stops without --accept-base-change. The sync-outcome check detects the divergence-abort notice that this file prints before sync exits 0."
     usage: inspiration
     last_reviewed_at: 2026-11-09
     baseline_commit: "2a49e6751238633db504655d8a8eba3e433e827d"

@@ -15,6 +15,7 @@ Condensed operating reference for driving `gh stack` non-interactively. Every co
 | Never use `gh stack modify` | TUI-only. Restructure with the Restructure steps in `SKILL.md`, which rebase and check every moved layer before `gh stack unstack` and `init`. If a repo is stuck mid-modify, `gh stack modify --abort` restores it; run it only on the user's approval. |
 | Never run bare `gh stack checkout`, `switch` | Interactive pickers. Use a resolved stack number for remote checkout or a validated nonnumeric branch for local navigation. A PR number or PR URL can select another stack with that number. A stack-number import selects the top branch; restore the recorded entry branch before retrying the caller. If local tracking conflicts with the remote stack, run `gh stack unstack --local` first, then retry. |
 | Run `gh stack merge` only with a resolved target, `--yes`, and one validated method flag (`--merge`, `--squash`, or `--rebase`) | Use the stack number for the whole stack. A partial PR target requires a successful collision check from `merge-target.md`; stop and ask on a collision. Never use an unchecked PR number. |
+| Check what `sync` and `merge` did, not just their exit code | Follow the **Sync outcomes** and **Merge outcomes** sections of the shared `stack-operations.md` reference. |
 | Preserve supplied PR identifiers in `gh stack link` | A leading bare number requires local-branch and stack-number collision checks from `link-target.md`. Explicit PR URLs bypass numeric selection. Retain the original array; use a nonnumeric branch first only for supplied branch input. |
 | Multiple remotes: set `git config remote.pushDefault origin` or pass `--remote <name>` | `push`, `submit`, `sync`, `rebase`, and `link` accept `--remote`; `checkout` and `trunk` rely on `remote.pushDefault` and error without it. |
 | Pre-configure `git config rerere.enabled true` | `init` enables rerere and may prompt on first run; pre-setting skips the prompt and lets repeat conflicts auto-resolve. |
@@ -33,14 +34,14 @@ Clear `GH_STACK_NO_ATOMIC` for pushes and syncs that require atomic Git ref upda
 | Add a branch on top | `gh stack add <branch>` (must be on the topmost branch; exit 5 otherwise — `gh stack top` first) |
 | Push all branches | `env -u GH_STACK_NO_ATOMIC gh stack push` (`--force-with-lease --atomic`, skips merged/queued) |
 | Push + create/update chained PRs + link stack | `gh stack submit --auto` (drafts) / `gh stack submit --auto --open` |
-| Routine sync (fetch, cascade-rebase, push, PR state) | `env -u GH_STACK_NO_ATOMIC gh stack sync` (`--prune` to delete local branches for merged PRs) |
+| Routine sync (fetch, cascade-rebase, push, PR state) | The **Sync outcomes** block in the shared `stack-operations.md` reference (`--prune` to delete local branches for merged PRs) |
 | Cascade rebase only | `gh stack rebase` (`--upstack`, `--downstack`, `--no-trunk`, `--continue`, `--abort`) |
 | Restack above the current branch after editing it | `gh stack rebase --upstack --no-trunk`, then `env -u GH_STACK_NO_ATOMIC gh stack push` |
 | Inspect state (JSON to stdout) | `gh stack view --json` |
 | Navigate | `gh stack up [n]` / `down [n]` / `top` / `bottom` / `trunk` |
 | Check out a stack from GitHub | `gh stack checkout "$STACK_NUMBER"` (resolved positive stack number; stop if unavailable) |
 | Stack PRs whose branches other tools manage (jj, Sapling, git-town) | `gh stack link "${STACK_ITEMS[@]}"` after the `link-target.md` guard (bottom to top; preserves supplied PR identifiers) |
-| Atomically merge the whole stack or a checked partial target | `gh stack merge "$MERGE_TARGET" --yes <--merge \| --squash \| --rebase>` (resolve through `merge-target.md` first) |
+| Atomically merge the whole stack or a checked partial target | The **Merging** block in `SKILL.md` (`gh stack merge "$MERGE_TARGET" --yes <--merge \| --squash \| --rebase>`), run with `merge-target.md` and the shared **Merge outcomes** check in one Bash call |
 | Remove stack grouping (PRs/branches survive) | `gh stack unstack` (`--local` keeps the GitHub stack) |
 
 ## Exit codes
