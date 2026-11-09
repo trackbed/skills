@@ -294,6 +294,14 @@ node trackbed/scripts/probe-cold-reader-isolation.js
 
 Pass `--model <model>` to change the default `sonnet`, `--variant isolated`, `control`, or `unreadable` to run one variant, or `--claude-path <path>` to test another binary. It prints a JSON report naming the Claude Code version it tested and exits `0` when every variant passes. The `isolated` variant needs the `control` variant to mean anything: if a normal agent cannot see the planted markers either, the setup is broken and the cold reader's result proves nothing. See the [decision](decisions/2026-11-02-cold-reader-isolation.md).
 
+#### Probe Run Record
+
+Add a row after every live run, passed or failed, so anyone can see when isolation last held and on which Claude Code version. Put the newest run first. Take the version, model, and each variant's result from the JSON report, and mark a variant you skipped with `--variant` as `not run`. Use Notes for the reason you ran it and, for a failure, the variant's `problems`.
+
+| Date | Claude Code | Model | `isolated` | `control` | `unreadable` | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| 2026-11-09 | 2.1.319 | `sonnet` | passed | passed | passed | Seed run made when this record was added |
+
 ### Test Structure
 
 This is a representative inventory by test language, not an exhaustive list of the top-level Bats contracts:
