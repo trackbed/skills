@@ -13,9 +13,9 @@ setup() {
 @test "a dispute needs evidence the reviewer could have read" {
   grep -qF '**Contest:** the finding is wrong and you can cite evidence the reviewer could have read' "$REFERENCE"
   grep -qF '**Escalate:** the finding looks wrong only because of something no file records' "$REFERENCE"
-  grep -qF '"This was intentional" is not evidence.' "$REFERENCE"
+  grep -qF 'A claim that the choice was deliberate is not checkable evidence.' "$REFERENCE"
   grep -qF 'wanting a finding to be wrong is not evidence that it is' "$REFERENCE"
-  grep -qF 'Do not contest a comprehension gap.' "$REFERENCE"
+  grep -qF 'A comprehension gap is never grounds for a contest.' "$REFERENCE"
   grep -qF 'Do not add text only to satisfy a reviewer that lacked context.' "$REFERENCE"
   grep -qF 'Do not lower a severity to make a finding go away.' "$REFERENCE"
   grep -qF 'accept the finding, and record your evidence for the lower rating alongside it' "$REFERENCE"
