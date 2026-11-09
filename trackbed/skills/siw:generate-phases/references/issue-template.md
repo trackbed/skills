@@ -38,6 +38,7 @@ Use this template when creating each issue file in Phase 6.1.
 
 - [ ] Code compiles/builds
 - [ ] Tests: {specific tests to run or write}
+- Test limits: {what the named tests catch, and what they can't catch, such as behavior only a manual check or production data would reveal}
 - [ ] Manual verification: {what to check}
 
 ---

@@ -22,7 +22,7 @@ Evaluate:
 
 1. Atomicity: Is each task truly independent and committable on its own?
 2. Testability: Does each task have clear, verifiable acceptance criteria?
-3. Dependencies: Are dependencies correctly identified? Any missing?
+3. Dependencies: Are dependencies correctly identified? Any missing? Check every blocking edge (`Blocked by` entry) too, and flag any the task could start without, because each unneeded edge keeps ready work waiting.
 4. Completeness: Are any tasks missing to achieve the phase goals?
 5. Phase coherence: Does each phase result in a demoable or reviewable outcome that matches the work context?
 6. Sizing (hard gate): apply the XS/S/M/L grammar and the XL-is-not-acceptable rule from the Task Sizing Grammar above. Flag any XL task explicitly.
