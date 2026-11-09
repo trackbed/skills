@@ -106,3 +106,12 @@ setup() {
     fi
   done
 }
+
+@test "the isolation probe guide keeps a run record with a row per run" {
+  local guide="docs/development.md"
+
+  grep -qxF '#### Probe Run Record' "$guide"
+  grep -qF 'Add a row after every live run, passed or failed' "$guide"
+  grep -qE '^\| Date +\| Claude Code +\| Model +\| `isolated` +\| `control` +\| `unreadable` +\| Notes +\|$' "$guide"
+  grep -qE '^\| [0-9]{4}-[0-9]{2}-[0-9]{2} +\| [0-9]+\.[0-9]+\.[0-9]+ +\|' "$guide"
+}
