@@ -105,3 +105,23 @@ setup() {
 	! grep -qF 'drafting markers' "$SOURCES" || false
 	! grep -qF '(discovery, refactor)' "$SOURCES" || false
 }
+
+@test "adr deciders come only from the user, a linked record, or a stated convention" {
+	gate=$(grep -nF '### MISSING REQUIREMENT' "$SKILL" | cut -d: -f1)
+	sources=$(grep -nF 'Take deciders only from these sources:' "$SKILL" | cut -d: -f1)
+	marker=$(grep -nF 'MISSING REQUIREMENT: no deciders named' "$SKILL" | cut -d: -f1)
+	[ -n "$gate" ]
+	[ "$gate" -lt "$sources" ]
+	[ "$sources" -lt "$marker" ]
+	grep -qF -- "- The user's words in this session." "$SKILL"
+	grep -qF -- '- A linked issue, Pull Request, or decision record that shows who decided.' "$SKILL"
+	grep -qF -- "- A convention the project's instructions state" "$SKILL"
+	grep -qF 'Deciders in earlier ADRs are a suggestion to confirm with the user, never a source.' "$SKILL"
+	grep -qF 'When no source names a decider, stop at this gate and ask the user who decided.' "$SKILL"
+	grep -qF 'Never fill the field with a role such as "repository maintainers" from habit or precedent' "$SKILL"
+	grep -qF 'Deciders (only from a source the `MISSING REQUIREMENT` gate allows)' "$SKILL"
+	grep -qF -- '- Deciders (at least one named person or role).' "$SKILL"
+	grep -qF 'id: egm-rejection-attribution' "$SOURCES"
+	grep -qF 'elephant-goldfish-model/de27902a154c4a92dd52aac50082d53873e6ac91/skills/egm-draft/SKILL.md' "$SOURCES"
+	grep -qF 'Where `trackbed:docs:adr` may take deciders from: Informed by the rejection-attribution change' ../README.md
+}
