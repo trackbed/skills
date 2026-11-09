@@ -65,7 +65,7 @@ Every "this", "here", "it", or "the field" in a body must point at something in 
 
 ## 3. Self-read and fact check (v2)
 
-Reread each body against its view and apply every rule in Section 1 of `references/comment-drafting.md` again, including the first-line test and the fact cut. Then re-verify each factual claim in the code at `HEAD_OID` and cite the `path:line` that supports it in `Evidence`. Fix or drop a claim the code does not support. The result is v2.
+Reread each body against its view and apply every rule in Section 1 of `references/comment-drafting.md` again, including the first-line test, the fact cut, and the opener spread. Then re-verify each factual claim in the code at `HEAD_OID` and cite the `path:line` that supports it in `Evidence`. Fix or drop a claim the code does not support. The result is v2.
 
 ## 4. Two clarity readers in parallel
 
@@ -95,13 +95,13 @@ Verify every point a reader raises in the code at the head before you adopt it. 
 
 Give each part of a split comment its own `Location`, `Refers to`, and `Evidence`. Narrow a claim about framework behavior that you cannot confirm in the repository's own source or with a run to the part you did confirm, rather than hedging it. For example, if you have not seen a test run show that React logs "Invalid hook call" and then throws a `TypeError`, say only that every test in the file breaks.
 
-Record corrected facts in this skill's report. Never edit a sealed upstream artifact, such as the delegated code review's report, because changing its bytes breaks its seal check. The result is v3.
+Run the opener spread from `references/comment-drafting.md` again across all v3 bodies, because rewrites and splits can repeat a lead-in. Record corrected facts in this skill's report. Never edit a sealed upstream artifact, such as the delegated code review's report, because changing its bytes breaks its seal check. The result is v3.
 
 ## 6. Constrained humanize
 
 Send only the bodies changed since Step 10 to `/trackbed:text:clarify --humanize` in one indexed batch, following Section 3 of `references/comment-drafting.md`, with these constraints:
 
-- keep identifiers and code spans exact, as well as the question framing, the claims, the stated consequence, and the lead-in on the problem sentence;
+- keep identifiers and code spans exact, as well as the question framing, the claims, the stated consequence, and the lead-in on the problem sentence, if it has one;
 - add no fact or claim, and give no sentence more identifiers than the densest sentence you sent;
 - never replace an explicit reference with a pronoun.
 

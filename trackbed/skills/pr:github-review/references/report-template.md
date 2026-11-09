@@ -119,7 +119,7 @@ _Existing threads on this PR. Reply where it moves the review forward; the rest 
   - Humanized: yes|no
   - Clarity: <author>/<teammate>, then <final> | not checked
   - Draft comment:
-    > <concise, problem first, lightly hedged, understandable from the anchor alone — e.g. "If `loadRows()` in `src/api/rows.ts` returns an empty array, does this `.then` chain still resolve, or does the dashboard spinner hang? Couldn't trace it from the diff.">
+    > <concise, problem first, hedged only where it rests on your reading, understandable from the anchor alone — e.g. "If `loadRows()` in `src/api/rows.ts` returns an empty array, does this `.then` chain still resolve, or does the dashboard spinner hang? Couldn't trace it from the diff.">
 
 ## Important (should fix) (X found)
 

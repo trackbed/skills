@@ -618,7 +618,9 @@ PY
     grep -qF "**Fact cut:** for each fact, ask whether the author would miss it: do they need it to see the problem or act on it? If not, move it to \`Evidence\`." "$1"
     grep -qF "Facts the concern does not depend on belong in \`Evidence\` too" "$1"
     grep -qF "### Worked examples" "$1"
-    grep -qF "the problem sentence as its own first paragraph with its lead-in" "$1"
+    grep -qF "the problem sentence as its own first paragraph with its lead-in, if it has one" "$1"
+    grep -qF "**Opener spread:** read the opening words of every draft in the review together." "$1"
+    grep -qF "no lead-in may be added to a body that has none" "$1"
     grep -qF "Judge density, not length: reject text that adds a fact or claim" "$1"
     if grep -qF "Lead with a question" "$1"; then exit 1; fi
     if grep -qF "one to three sentences" "$1"; then exit 1; fi
@@ -630,20 +632,29 @@ PY
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
-@test "github review example comments open with one hedged problem sentence and end with the ask" {
+@test "github review example comments open with one problem sentence, vary lead-ins, and end with the ask" {
 	run python3 - "$COMMENT_REFERENCE" "$REPORT_TEMPLATE" <<'PY'
 import pathlib
 import re
 import sys
 
 drafting, template = [pathlib.Path(path).read_text() for path in sys.argv[1:]]
-LEAD_INS = ("If I understand correctly,", "Based on my reading of the code,", "It looks like")
+LEAD_INS = (
+    "If I understand correctly,",
+    "Based on my reading of the code,",
+    "It looks like",
+    "As far as I can tell,",
+    "Unless I'm missing something,",
+)
 CODE = re.compile(r"`[^`]*`")
 
 hedge = next(line for line in drafting.splitlines() if line.startswith("- **Hedge a little, so the comment invites a reply.**"))
 for lead in LEAD_INS:
     assert f'"{lead}"' in hedge, f"the hedge rule must name the lead-in {lead}"
 for term in [
+    "you may open the problem sentence with one light lead-in",
+    "You may also write your own when it fits the comment better",
+    "Across one review, no lead-in, listed or your own, may open more than two comments",
     "Hedge with the lead-in only, and keep the claim itself plain",
     "State results you ran without a hedge.",
     "Phrase `UNVERIFIED` concerns as questions.",
@@ -680,7 +691,6 @@ def check(name, body):
     problem = paragraphs[0]
     assert len(sentences(problem)) == 1, f"{name}: the problem must be one sentence in its own paragraph: {problem}"
     assert len(CODE.findall(problem)) <= 1, f"{name}: the problem sentence names more than one identifier: {problem}"
-    assert problem.startswith(LEAD_INS), f"{name}: the problem sentence must open with one light lead-in: {problem}"
     assert sentences(paragraphs[-1])[0].endswith("?"), f"{name}: the last paragraph must open with the ask: {paragraphs[-1]}"
     for paragraph in paragraphs[:-1]:
         assert "?" not in CODE.sub("CODE", paragraph), f"{name}: only the last paragraph may ask: {paragraph}"
@@ -689,17 +699,23 @@ def check(name, body):
 
 rewrites = quotes_after(drafting, "Rewrite:")
 assert len(rewrites) >= 2, "the worked examples must show at least two rewrites"
+assert any(not rewrite.startswith(LEAD_INS) for rewrite in rewrites), "a worked example must show a run-backed problem sentence with no lead-in"
 for number, rewrite in enumerate(rewrites, start=1):
     assert check(f"rewrite {number}", rewrite) >= 3, f"rewrite {number} must separate the problem, the reasons, and the ask"
 
 examples = quotes_after(template, "- Draft comment:")
 assert len(examples) == 4, f"expected one draft comment example per severity section, found {len(examples)}"
 shaped = 0
+bodies = list(rewrites)
 for number, example in enumerate(examples, start=1):
     match = re.search(r'e\.g\. "(.*)">$', example, re.S)
     assert match, f"draft comment example {number} must quote its example body"
+    bodies.append(match.group(1))
     shaped += check(f"template example {number}", match.group(1)) > 1
 assert shaped >= 2, "the report template must show the problem-first shape, not only one-question comments"
+for lead in LEAD_INS:
+    count = sum(body.startswith(lead) for body in bodies)
+    assert count <= 2, f"the examples open {count} comments with {lead}; they must model varied lead-ins"
 PY
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
@@ -710,14 +726,15 @@ import pathlib
 import sys
 
 reference, prompts = [pathlib.Path(path).read_text() for path in sys.argv[1:]]
-assert "including the first-line test and the fact cut" in reference
+assert "including the first-line test, the fact cut, and the opener spread" in reference
+assert "Run the opener spread from `references/comment-drafting.md` again across all v3 bodies" in reference
 row = next(line for line in reference.splitlines() if line.startswith("| The reader's `Problem` quote is not in the first sentence"))
 assert "the paraphrase names a detail instead of the problem" in row and "the reader reread the first paragraph" in row
 assert "Give the problem its own first paragraph in one plain sentence, and move secondary facts to `Evidence`" in row
 assert row.rstrip().endswith("| 3 |"), row
 humanize = reference[reference.index("## 6. Constrained humanize"):reference.index("## 7. Anchor re-check")]
 for term in [
-    "the lead-in on the problem sentence",
+    "the lead-in on the problem sentence, if it has one",
     "add no fact or claim, and give no sentence more identifiers than the densest sentence you sent",
     "A body may grow from splitting sentences or paragraphs",
 ]:
