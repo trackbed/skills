@@ -66,11 +66,21 @@ If `$ARGUMENTS` contains `--all-open`, set `ALL_OPEN_MODE=true`. Stop with a usa
 
 1. **Check for rebase/merge in progress:**
 
+   Ask Git where each marker lives, because `.git` is a file in a linked worktree such as a Conductor workspace:
+
    ```bash
-   ls -d .git/rebase-merge .git/rebase-apply .git/MERGE_HEAD 2> /dev/null
+   IN_PROGRESS=""
+   for MARKER in rebase-merge rebase-apply MERGE_HEAD; do
+     MARKER_PATH=$(git rev-parse --git-path "$MARKER") || exit 1
+     [ ! -e "$MARKER_PATH" ] || IN_PROGRESS="$IN_PROGRESS $MARKER"
+   done
+   [ -z "$IN_PROGRESS" ] || {
+     echo "In progress:$IN_PROGRESS" >&2
+     exit 1
+   }
    ```
 
-   If any exist, stop with error:
+   If it exits 1, stop. When it printed `In progress`, use this error; otherwise report Git's message:
 
    > "A rebase or merge is already in progress. Complete or abort it first with `git rebase --abort` or `git merge --abort`."
 
@@ -129,6 +139,7 @@ Then read `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-operations.md` for 
 When `IN_STACK=true`, swap the git commands but keep every gate:
 
 - **Steps 2–3 replacement:** run `gh stack rebase` instead of `git rebase --autostash origin/<base-branch>`. It fetches, fast-forwards the trunk, and cascade-rebases every stack branch onto its updated parent. It has no autostash — if the working tree is dirty, `git stash` first and `git stash pop` after. On conflict (exit code 3), resolve each conflicted file in the worktree gh-stack names, under the shared reference's **Conflicts** rules and the same rules, round cap, and red flags as Step 3, then `gh stack rebase --continue`; abort with `gh stack rebase --abort` (restores all branches). Continue or abort only a rebase this session started, and pass `--accept-base-change` only under the shared reference's **Paused rebases** and **Base changes** rules, in every mode including auto mode.
+- **Stop on every other gh-stack failure:** this stack path continues after a nonzero exit in exactly three cases: exit 3 from `gh stack rebase` or its `--continue` follows the conflict route above, a `rerun with --accept-base-change` message follows **Base changes**, and a failed trunk read is reported as unknown under **Base changes**. Every other nonzero exit from `gh stack rebase`, `--continue`, `--abort`, `push`, or `view` stops the run, including 7 (a rebase is paused, possibly in another workspace), 8 (another gh-stack command holds the lock), and 4 (a GitHub lookup failed). This skill does not retry them, even where the shared table allows a retry. Restore any stash this run created when no rebase is left paused, or name it in the report when one is. Then report the command, its exit code, the table's meaning, and gh-stack's message. Never fall back to `git rebase` or a single-branch push for a stack branch, because that leaves every branch above it on the old history.
 - **Step 5 replacement:** the validated push procedure becomes `env -u GH_STACK_NO_ATOMIC gh stack push` — it pushes all stack branches with `--force-with-lease --atomic`. Atomicity covers Git refs, not PR/API updates. All Step 5 gates and modes apply unchanged.
 - **Step 7 addition:** report every branch the rebase touched, not just the current one (`gh stack view --json` shows the updated heads and PR states), every other workspace it changed, and any change of trunk.
 
