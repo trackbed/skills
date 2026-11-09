@@ -32,13 +32,23 @@ sources:
     baseline_commit: "6a8001ea31ccf72430ba0603a467ec6df9f69dd7"
     baseline_hash: "sha256:d80db07e449b57b3b3776d1401cca72a54b6b65a0ab218b86f9064ee4b8167bc"
   - id: egm-implementation-readiness-standard
-    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/403d8881d62022490637d740657b33f01e321ea8/resources/document_standards/implementation-readiness-standard.md
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/6efc127defc561e3a672b3d155b8216255a10e25/resources/document_standards/implementation-readiness-standard.md
     title: "google/elephant-goldfish-model - implementation readiness standard"
-    rationale: "The Actionability check for design decisions left to the implementer is informed by this source; reviewed at upstream commit 403d8881d62022490637d740657b33f01e321ea8."
+    rationale: "The Actionability checks for design decisions left to the implementer and for a file boundary that lists every added, changed, or removed file by repository path, with a folder pattern only for generated files, are informed by this source; reviewed at upstream commit 6efc127defc561e3a672b3d155b8216255a10e25."
     usage: inspiration
-    last_reviewed_at: 2026-11-06
-    baseline_commit: "6a8001ea31ccf72430ba0603a467ec6df9f69dd7"
-    baseline_hash: "sha256:ed0d2a085eac0fd9581d504a2ec0df2a92d6b2538636a22b16e0b1370fba6dbb"
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "6efc127defc561e3a672b3d155b8216255a10e25"
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:49ef3a44228a14c774ec606477293be6467b232a9e4af9e031a3cad64ed87642"
+  - id: egm-style-persona
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/6efc127defc561e3a672b3d155b8216255a10e25/agents/style.md
+    title: "google/elephant-goldfish-model - style reviewer"
+    rationale: "The Scope check's single remedy for each flagged caveat (delete, rescale, or move it) and its rule that a caveat at the right strength and place is not a finding are informed by this source's caveat calibration; reviewed at upstream commit 6efc127defc561e3a672b3d155b8216255a10e25."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "6efc127defc561e3a672b3d155b8216255a10e25"
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:9330780622baaef8dc683ea78efb3ff8e4583e3dde7ab6092b84df50e8c9ea58"
   - id: egm-review-design
     url: https://raw.githubusercontent.com/google/elephant-goldfish-model/403d8881d62022490637d740657b33f01e321ea8/docs/designs/review.md
     title: "google/elephant-goldfish-model - review protocol design"

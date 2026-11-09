@@ -96,11 +96,15 @@ Check for:
 
 7. **Defensive accretion.** Requirements, mechanisms, options, or caveats that answer a past review comment or a speculative risk rather than a stated objective: a mitigation for a failure the spec never establishes, a setting no requirement uses, handling for a case nobody named. When your prompt has a `Previously Resolved Findings` block, check that the text addressing each listed finding stays within what the finding needed. Do not reopen a decision the spec records as settled.
 
+   For each flagged caveat, recommend one remedy: **delete** it when the spec establishes no risk it guards against, **rescale** it when it overstates an established risk, or **move** it to the requirement or step it governs when it sits elsewhere. A caveat at the right strength and in the right place is not a finding.
+
+   When the only remedy for a Scope finding would undo the fix for a finding in the `Previously Resolved Findings` block, do not recommend removing that fix. Cite both finding IDs and write the recommendation as a choice: choose between keeping the earlier fix and applying the new remedy.
+
 **Severity guide:**
 
 - Critical: No scope definition at all, objectives don't match tasks
 - Major: Implicit inclusions that could derail timeline, unclear phase boundaries, an added requirement or mechanism that no objective needs
-- Minor: Missing out-of-scope declarations for unlikely features
+- Minor: Missing out-of-scope declarations for unlikely features, a caveat to rescale or move, a caveat to delete that adds no requirement or mechanism
 
 ---
 
@@ -110,7 +114,7 @@ Check for:
 
 1. **Non-actionable tasks.** Tasks that describe outcomes but not concrete steps. "Make the system fast" vs "Reduce API response time to under 200ms".
 
-2. **Missing file/component references.** Tasks without clear indication of WHERE changes need to happen.
+2. **File boundary.** When the spec has implementation tasks, does it list every file to be added, changed, or removed by its full repository path, so the list bounds the implementer's edits? A folder pattern is acceptable only for generated files whose names are not known in advance. Naming a component, module, or area instead of paths leaves the list open-ended.
 
 3. **Tasks that are too large.** Single tasks covering multiple unrelated changes that should be subdivided.
 
@@ -122,13 +126,13 @@ Check for:
 
 7. **Ordering and dependency clarity.** Is it clear which tasks must be done before others? Are blocking dependencies explicit?
 
-8. **Decisions left to the implementer.** Could someone new to the codebase carry out each task correctly on the first attempt without making a design decision? Flag every choice the spec leaves open: a schema, an API shape or path, a dependency, an error or edge-case policy. Mechanical choices with one defensible answer, such as a file name, are not findings.
+8. **Decisions left to the implementer.** Could someone new to the codebase carry out each task correctly on the first attempt without making a design decision? Flag every choice the spec leaves open: a schema, an API shape or path, a dependency, an error or edge-case policy. Mechanical choices with one defensible answer, such as a local variable name, are not findings. File paths belong to the file-boundary check, not to this exemption.
 
 **Severity guide:**
 
 - Critical: Tasks so vague they can't be started; an open decision that sets architecture, a public contract, or a data shape
-- Major: Missing acceptance criteria, tasks too large to estimate, any other design decision left to the implementer
-- Minor: Minor dependency gaps, slightly over-granular tasks
+- Major: Missing acceptance criteria, tasks too large to estimate, a missing or open-ended file list, any other design decision left to the implementer
+- Minor: Minor dependency gaps, slightly over-granular tasks, one file path the spec implies but does not write
 
 ---
 

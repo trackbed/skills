@@ -42,7 +42,27 @@ setup() {
 
 @test "actionability flags design decisions left to the implementer" {
   grep -qF '**Decisions left to the implementer.**' "$DIMENSIONS"
-  grep -qF 'Mechanical choices with one defensible answer, such as a file name, are not findings.' "$DIMENSIONS"
+  grep -qF 'Mechanical choices with one defensible answer, such as a local variable name, are not findings.' "$DIMENSIONS"
+  grep -qF 'File paths belong to the file-boundary check, not to this exemption.' "$DIMENSIONS"
+  ! grep -qiF 'such as a file name' "$DIMENSIONS"
+}
+
+@test "actionability requires a file boundary of full repository paths" {
+  grep -qF '**File boundary.** When the spec has implementation tasks, does it list every file to be added, changed, or removed by its full repository path' "$DIMENSIONS"
+  grep -qF 'A folder pattern is acceptable only for generated files whose names are not known in advance.' "$DIMENSIONS"
+  grep -F -- '- Major:' "$DIMENSIONS" | grep -qF 'a missing or open-ended file list'
+  grep -F -- '- Minor:' "$DIMENSIONS" | grep -qF 'one file path the spec implies but does not write'
+}
+
+@test "the scope check names one remedy and a severity for each flagged caveat" {
+  grep -qF 'recommend one remedy: **delete** it when the spec establishes no risk it guards against, **rescale** it when it overstates an established risk, or **move** it' "$DIMENSIONS"
+  grep -qF 'A caveat at the right strength and in the right place is not a finding.' "$DIMENSIONS"
+  grep -F -- '- Minor:' "$DIMENSIONS" | grep -qF 'a caveat to rescale or move, a caveat to delete that adds no requirement or mechanism'
+}
+
+@test "a remedy that would undo an accepted fix becomes a choice citing both findings" {
+  grep -qF 'When the only remedy for a Scope finding would undo the fix for a finding in the `Previously Resolved Findings` block, do not recommend removing that fix.' "$DIMENSIONS"
+  grep -qF 'Cite both finding IDs and write the recommendation as a choice' "$DIMENSIONS"
 }
 
 @test "a re-audit checks what earlier fixes added without reopening settled decisions" {
