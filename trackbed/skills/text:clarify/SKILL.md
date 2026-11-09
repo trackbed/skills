@@ -47,6 +47,7 @@ Rewrite prose around the reader's task without reducing its substance, precision
 3. **Load the editing rubric.**
    - Read the plain-language rubric from `${CLAUDE_PLUGIN_ROOT}/shared/writing/references/plain-language-rubric.md`.
    - Apply its priorities and genre guidance to the reader contract. Do not import locale-specific spelling, date, currency, or number conventions unless the user requests them.
+   - Apply its Caveats and Claims test as an editor of someone else's text: move a caveat to the step where the reader decides, but never drop a caveat or narrow a claim yourself. Record each Drop and Narrow candidate, with its reason, for Step 8.
 
 4. **Restructure by reader value.**
    - Put the required action, conclusion, outcome, or answer before supporting background.
@@ -76,6 +77,7 @@ Rewrite prose around the reader's task without reducing its substance, precision
    - **Delegated run:** when this skill runs as one step of another skill's workflow, the rewrite is input to that workflow, not your reply. Skip the change summary and the save offer, and continue with the calling workflow's next step without ending the turn. Show the rewrite only where that workflow asks for it, and end the turn only where that workflow ends or pauses.
    - Otherwise, return the complete clarified text in a copy-ready block.
    - Add a short change summary only when structural edits or protected constraints would help the user review the result.
+   - In default mode, after the rewrite, list each Drop and Narrow candidate from Step 3 for the author, quoting the caveat or claim and giving the reason. The rewrite keeps every one of them.
    - For file input, show the rewrite before writing. Ask whether to overwrite the source, save to a new path, or leave the result inline.
    - Before an approved write, reread the source. If it changed since you first read it, stop and ask whether to restart from the new version.
    - Never overwrite a different existing file or delete a file without explicit approval for that exact path.
@@ -105,4 +107,4 @@ Rewrite prose around the reader's task without reducing its substance, precision
 
 ## Output
 
-Return the clarified text first. When useful, follow it with a short list of material changes, preserved constraints, or unresolved ambiguity. In a delegated run, follow Step 8 instead: the calling workflow decides what the user sees and when the turn ends.
+Return the clarified text first. When useful, follow it with a short list of material changes, preserved constraints, or unresolved ambiguity. In default mode, always follow it with the Drop and Narrow candidates for the author when there are any. In a delegated run, follow Step 8 instead: the calling workflow decides what the user sees and when the turn ends.
