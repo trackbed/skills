@@ -2,8 +2,8 @@ sources:
   - id: conductor-review-and-merge
     url: https://www.conductor.build/docs/guides/review-and-merge
     title: "Conductor Docs - Review and merge a workspace"
-    rationale: "Conductor's local diff-comment and Checks workflow informs the optional projection of canonical review findings into workspace comments."
+    rationale: "Conductor's local diff-comment and Checks workflow informs the optional projection of canonical review findings into workspace comments, and its merge-readiness check informs marking judgment-call comments as optional."
     usage: inspiration
-    last_reviewed_at: 2026-11-06
+    last_reviewed_at: 2026-11-09
     fetch_mode: curl-html
     baseline_hash: "sha256:0300d252efa1c16119200bcd472369e066f6344ff12874e8bf5224000b9616ef"
