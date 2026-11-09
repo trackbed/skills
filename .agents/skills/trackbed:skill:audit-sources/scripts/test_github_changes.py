@@ -244,12 +244,20 @@ class CommitListTests(unittest.TestCase):
         self.assertEqual([entry["sha"] for entry in report["commits"]], [sha(n)[:7] for n in (10, 9, 8)])
         self.assertTrue(report["commits_truncated"])
 
+    def test_default_lists_every_commit_below_a_full_page(self) -> None:
+        history = [commit(number) for number in range(200, 150, -1)]
+        report, _ = run_report(
+            gh_responses(recorded(), history=history), "--url", RAW_URL, "--baseline-commit", BASELINE
+        )
+        self.assertEqual((report["commit_count"], len(report["commits"])), (50, 50))
+        self.assertFalse(report["commits_truncated"])
+
     def test_full_api_page_marks_truncation(self) -> None:
         history = [commit(number) for number in range(200, 101, -1)]
         report, _ = run_report(
             gh_responses(recorded(), history=history), "--url", RAW_URL, "--baseline-commit", BASELINE
         )
-        self.assertEqual((report["commit_count"], len(report["commits"])), (99, 20))
+        self.assertEqual((report["commit_count"], len(report["commits"])), (99, 99))
         self.assertTrue(report["commits_truncated"])
 
 
