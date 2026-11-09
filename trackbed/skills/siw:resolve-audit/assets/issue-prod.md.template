@@ -1,12 +1,16 @@
 # ISSUE-G-{NNN}: Product: {finding_id} - {short title}
 
-**Status:** READY | **Priority:** {High/Medium/Low — see Step 3 severity-inheritance rule} | **Size:** {XS|S|M|L} | **Phase:** General | **Parallelization:** {Safe to parallelize | Must be sequential | Needs coordination} | **Mode:** {AUTO | HITL — <reason>; default AUTO — see Step 5} | **Related:** Spec Audit Report (Product)
+**Status:** READY | **Priority:** {High/Medium/Low — see Step 3 severity-to-priority rule} | **Size:** {XS|S|M|L} | **Phase:** General | **Parallelization:** {Safe to parallelize | Must be sequential | Needs coordination} | **Mode:** {AUTO | HITL — <reason>; default AUTO — see Step 5} | **Related:** Spec Audit Report (Product)
 
 ## Problem
 
 {Executive summary — which product dimension is at risk and why it matters for users or delivery}
 
-**Audit Finding:** `{finding_id}` **Dimension:** {target user / problem-solution fit / user state / critical moments / scope / success criteria / prioritization / strategy and pulse alignment} **Source:** `{report_path}` {If present} **Severity Note:** {copied from audit report}
+**Audit Finding:** `{finding_id}` **Dimension:** {target user / problem-solution fit / user state / critical moments / scope / success criteria / prioritization / strategy and pulse alignment} **Source:** `{report_path}`
+
+**Audit Severity:** {Critical | Major | Minor, as the report states it} {Severity Note copied verbatim from the audit report, if present}
+
+{If Step 4.0 accepted the finding as over-rated:} **Resolver's Rating Evidence:** {the resolver's evidence for a lower rating; Priority still follows the audit}
 
 ## Context
 

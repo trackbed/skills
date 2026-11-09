@@ -89,7 +89,7 @@ For each finding, collect:
 - Finding id and title
 - Requirement/source references
 - Evidence/code references
-- Severity/category section
+- Severity: the `**Severity:**` line, or the severity section the finding sits under
 - Severity Note if present
 - Existing issue note if present
 - Source report path (`AUDIT_IMPLEMENTATION_REPORT.md` or `AUDIT_SPEC_REPORT.md`)
@@ -111,7 +111,7 @@ If the parsed arguments include finding ids (example: `DIV-002 EXT-001 SPEC-003`
 2. Major findings, plus SPEC/PROD findings whose `Severity Note` says `from Major`
 3. Remaining Minor findings
 
-**Severity-inheritance rule (referenced by issue templates):** map a SPEC/PROD finding's effective priority from its `Severity Note` — `from Critical` → High, `from Major` → Medium, otherwise the finding's own severity.
+**Severity-to-priority rule (every issue template points here):** take the audit's severity from the finding's `Severity Note` when it records an original rating (`from Critical` or `from Major`), otherwise from the finding's own severity. Map it the same way for every finding type: Critical → High, Major → Medium, Minor → Low. Never adjust the result, even when Step 4.0 accepts the finding as over-rated.
 
 **Standard handled-finding skip rule.** Before creating an issue for a finding, skip it if any of these are true:
 
@@ -134,6 +134,7 @@ Check the finding in Step 4.0. If it stands, detect the finding type from its ID
 Read `${CLAUDE_PLUGIN_ROOT}/shared/findings/references/disputing-findings.md` once, then sort the finding. An audit can be wrong, but doubt alone does not make it wrong.
 
 - **Accept:** remove any earlier `[Contested]` line, then continue with Steps 4.1–4.4 and Step 5.
+  - **Over-rated:** if you believe the finding is real but rated too high, accept it. Keep the priority the Step 3 rule derives, and state your evidence for the lower rating in the executive summary (Step 4.1) so Step 5 can copy it into the issue.
 - **Contest:** name the evidence: file and line, quote, or decision entry. With `--auto`, contest it without asking, unless it is Critical or its `Severity Note` says `from Critical`. A wrong call there is too costly to make unattended, so handle it as an escalated finding. Otherwise ask the question below.
 - **Escalate:** name the unrecorded fact. With `--auto`, do not ask, annotate, or create an issue. Keep the fact for the Step 7 summary and move on; a later run without `--auto` picks the finding up again. Otherwise ask the question below.
 
@@ -312,7 +313,9 @@ Issue creation:
    - DIV-_/EXT-_ (and legacy DISC-_/MISS-_): `assets/issue-div-ext.md.template`
    - SPEC-\*: `assets/issue-spec.md.template`
    - PROD-\*: `assets/issue-prod.md.template`
-   - When the finding has a `Severity Note`, copy it verbatim into the issue body and apply the severity-inheritance rule from Step 3 to set `Priority`.
+   - Set `Priority` with the Step 3 severity-to-priority rule, whatever the finding type.
+   - Fill `Audit Severity` with the finding's severity from the report, followed by its `Severity Note` verbatim when it has one.
+   - When Step 4.0 accepted the finding as over-rated, fill `Resolver's Rating Evidence` with the evidence from the executive summary. Otherwise delete that line.
    - Set the `Mode` field. **Default `AUTO`.** Most resolutions an autonomous agent can implement and verify are AUTO. Set `HITL — <one-line reason>` only when the chosen option carries a concrete human-input requirement: an unsettled architectural/product decision, design review, a judgment call, manual testing that can't be automated, or external-system access. When unclear, choose `AUTO`. (A finding's severity does not by itself make it HITL.)
 
 5. Add row to `siw/OPEN_ISSUES_OVERVIEW.md` with status `READY`.
@@ -362,13 +365,13 @@ After creating the SIW issue for one finding, or ending its cycle at Step 4.0:
 
 ## Step 7: Final Summary
 
-At the end, report:
+At the end, report the following. When any finding was escalated, list the escalations first, before the counts; leave that entry out when there are none.
 
+- Escalated - needs your decision (finding ids + the unrecorded fact, or the evidence for a Critical finding held back from contesting)
 - Findings processed count
 - Issues created (`G-xxx` list)
 - Findings intentionally deferred
 - Contested (finding ids + the evidence)
-- Escalated - needs your decision (finding ids + the unrecorded fact, or the evidence for a Critical finding held back from contesting)
 - Skipped - already handled (finding ids + matched `Existing issue`, status marker, or issue file)
 - Skipped - not in report (finding ids passed in arguments that did not match the active report)
 - Recommended transfer command and any findings that still block migration

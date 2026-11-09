@@ -1,12 +1,16 @@
 # ISSUE-G-{NNN}: Spec: {finding_id} - {short title}
 
-**Status:** READY | **Priority:** {High/Medium/Low — see Step 3 severity-inheritance rule} | **Size:** {XS|S|M|L} | **Phase:** General | **Parallelization:** {Safe to parallelize | Must be sequential | Needs coordination} | **Mode:** {AUTO | HITL — <reason>; default AUTO — see Step 5} | **Related:** Spec Audit Report
+**Status:** READY | **Priority:** {High/Medium/Low — see Step 3 severity-to-priority rule} | **Size:** {XS|S|M|L} | **Phase:** General | **Parallelization:** {Safe to parallelize | Must be sequential | Needs coordination} | **Mode:** {AUTO | HITL — <reason>; default AUTO — see Step 5} | **Related:** Spec Audit Report
 
 ## Problem
 
 {Executive summary — what the spec says or fails to say, and why it matters}
 
-**Audit Finding:** `{finding_id}` **Dimension:** {coherence/completeness/clarity/scope/actionability/testability/rationale documentation/technical design} **Source:** `{report_path}` {If present} **Severity Note:** {copied from audit report}
+**Audit Finding:** `{finding_id}` **Dimension:** {coherence/completeness/clarity/scope/actionability/testability/rationale documentation/technical design} **Source:** `{report_path}`
+
+**Audit Severity:** {Critical | Major | Minor, as the report states it} {Severity Note copied verbatim from the audit report, if present}
+
+{If Step 4.0 accepted the finding as over-rated:} **Resolver's Rating Evidence:** {the resolver's evidence for a lower rating; Priority still follows the audit}
 
 ## Context
 
