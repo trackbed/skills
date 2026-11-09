@@ -94,6 +94,22 @@ class NormalizeHtmlTests(unittest.TestCase):
 
         self.assertEqual(normalize_html(raw), "keep\n")
 
+    def test_template_elements_are_dropped(self) -> None:
+        raw = (
+            '<template data-mint="manifest"><script>{"buildId":"b1","deploymentId":"d1"}</script>'
+            "<div>deploy d1</div></template><main><h1>Skills</h1><p>Body</p></main>"
+        )
+
+        self.assertEqual(normalize_html(raw), "# Skills\n\nBody\n")
+
+    def test_template_build_ids_do_not_change_hash_input(self) -> None:
+        page = '<template data-mint="manifest">{}</template><h1>Skills</h1><p>Body</p>'
+
+        self.assertEqual(
+            normalize_html(page.format('{"buildId":"b1","deploymentId":"d1"}')),
+            normalize_html(page.format('{"buildId":"b2","deploymentId":"d2"}')),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

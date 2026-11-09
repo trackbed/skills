@@ -24,7 +24,7 @@ from html.parser import HTMLParser
 from typing import Optional
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-STRIP_TAGS = {"script", "style", "noscript", "iframe", "svg", "form", "input", "button", "select"}
+STRIP_TAGS = {"script", "style", "noscript", "template", "iframe", "svg", "form", "input", "button", "select"}
 STRUCTURAL_DROP_TAGS = {"nav", "header", "footer", "aside"}
 VOID_TAGS = {
     "area",
