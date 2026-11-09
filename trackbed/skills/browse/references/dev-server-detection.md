@@ -31,8 +31,11 @@ Use explicit caller values first. If no explicit URL or port is provided, the de
 5. `docker-compose.yml` port mappings.
 6. `package.json` `dev` or `start` script flags.
 7. `.env.local`, `.env.development`, then `.env` `PORT=`.
-8. Framework defaults.
-9. Common-port listener scan as the final running-server fallback.
+8. The Conductor workspace range, `CONDUCTOR_PORT` through `CONDUCTOR_PORT+9`, when the base port is valid. It comes before framework defaults because another workspace's server often holds a default port.
+9. Framework defaults. A monorepo with several apps stops here.
+10. Common-port listener scan as the final running-server fallback.
+
+A monorepo with several apps tries the Conductor range first, then every app's port from steps 2-7 and 9 together, so one app's named port cannot hide another app's server.
 
 Do not scan prose files such as `AGENTS.md`, `CLAUDE.md`, READMEs, or issue text for ports. Those files often contain examples and stale troubleshooting notes.
 

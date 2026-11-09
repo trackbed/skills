@@ -345,43 +345,43 @@ if is_port "$LAUNCH_PORT"; then
   exit 0
 fi
 
-if [ -n "$APP_CANDIDATES" ]; then
-  candidate_urls=""
+# Print the reachable URLs for the app's resolved port, or for each monorepo
+# app's port. Extra arguments go to resolve-port.sh, such as --no-default.
+app_port_urls() {
+  local urls="" candidate port url
+  if [ -z "$APP_CANDIDATES" ]; then
+    port=$("$SCRIPT_DIR/resolve-port.sh" "$APP_ROOT" --type "$PROJECT_TYPE" "$@" 2> /dev/null || true)
+    try_port "$port" || true
+    return 0
+  fi
   while IFS= read -r candidate; do
-    [ -n "$candidate" ] || continue
     case "$candidate" in
-      *@*)
-        candidate_type="${candidate%@*}"
-        candidate_dir="${candidate#*@}"
-        candidate_root="$PROJECT_ROOT/$candidate_dir"
-        ;;
-      *)
-        continue
-        ;;
+      *@*) ;;
+      *) continue ;;
     esac
-
-    candidate_port=$("$SCRIPT_DIR/resolve-port.sh" "$candidate_root" --type "$candidate_type" 2> /dev/null || true)
-    candidate_url=$(try_port "$candidate_port" || true)
-    if [ -n "$candidate_url" ] && ! printf '%s\n' "$candidate_urls" | grep -Fxq "$candidate_url"; then
-      candidate_urls="${candidate_urls}
-${candidate_url}"
+    port=$("$SCRIPT_DIR/resolve-port.sh" "$PROJECT_ROOT/${candidate#*@}" --type "${candidate%@*}" "$@" 2> /dev/null || true)
+    url=$(try_port "$port" || true)
+    if [ -n "$url" ] && ! printf '%s\n' "$urls" | grep -Fxq "$url"; then
+      urls="${urls}${url}
+"
     fi
   done < <(printf '%s\n' "$APP_CANDIDATES" | tr ',' '\n')
+  printf '%s' "$urls"
+}
 
-  emit_candidates "$candidate_urls"
-  exit 0
-fi
-
-RESOLVED_PORT=$("$SCRIPT_DIR/resolve-port.sh" "$APP_ROOT" --type "$PROJECT_TYPE" 2> /dev/null || true)
-if is_port "$RESOLVED_PORT"; then
-  resolved_url=$(try_port "$RESOLVED_PORT" || true)
-  if [ -n "$resolved_url" ]; then
-    emit_resolved "$resolved_url"
+# A single app tries a port its project files name before the Conductor range.
+# A monorepo skips this step so that one app's named port cannot hide the
+# others; its apps' ports are all tried together after the Conductor range.
+if [ -z "$APP_CANDIDATES" ]; then
+  metadata_urls=$(app_port_urls --no-default)
+  if [ -n "$metadata_urls" ]; then
+    emit_candidates "$metadata_urls"
     exit 0
   fi
 fi
 
-# Conductor reserves ten workspace-specific ports; prefer them over sibling common-port servers.
+# Conductor reserves ten ports for this workspace. Try them before framework
+# defaults, because a sibling workspace's server may hold a default port.
 if is_port "${CONDUCTOR_PORT:-}"; then
   for offset in 0 1 2 3 4 5 6 7 8 9; do
     resolved_url=$(try_port "$((CONDUCTOR_PORT + offset))" || true)
@@ -390,6 +390,15 @@ if is_port "${CONDUCTOR_PORT:-}"; then
       exit 0
     fi
   done
+fi
+
+# Each app's port with its framework default allowed; a single app retries
+# a port its project files name. Monorepo apps stop here rather than scan
+# common ports.
+default_urls=$(app_port_urls)
+if [ -n "$default_urls" ] || [ -n "$APP_CANDIDATES" ]; then
+  emit_candidates "$default_urls"
+  exit 0
 fi
 
 COMMON_PORTS="3000 3001 4200 4201 4321 5000 5173 5174 8000 8080 8888 9000"

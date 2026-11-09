@@ -715,3 +715,133 @@ JSON
   [ "$status" -eq 0 ]
   [ "$output" = "http://localhost:5173" ]
 }
+
+@test "resolve-port --no-default prints only a port that project metadata names" {
+  printf 'export default {}\n' >"$WORK_DIR/vite.config.ts"
+
+  run "$SCRIPT_DIR/resolve-port.sh" "$WORK_DIR" --type vite --no-default
+  [ "$status" -eq 0 ]
+  [ "$output" = "" ]
+
+  printf 'PORT=4100\n' >"$WORK_DIR/.env"
+  run "$SCRIPT_DIR/resolve-port.sh" "$WORK_DIR" --type vite --no-default
+  [ "$status" -eq 0 ]
+  [ "$output" = "4100" ]
+}
+
+@test "detect-url prefers this workspace's Conductor range to a sibling on the framework default port" {
+  local sibling_dir="$BATS_TEST_TMPDIR/sibling-workspace"
+  mkdir -p "$sibling_dir"
+  git init -q "$WORK_DIR"
+  git init -q "$sibling_dir"
+  printf 'export default {}\n' >"$WORK_DIR/vite.config.ts"
+  write_owner_mocks
+
+  ANSWERING_PORTS="5173 55061" LSOF_LISTENERS="5173=$sibling_dir 55061=$WORK_DIR" CONDUCTOR_PORT=55060 PATH="$MOCK_BIN:$PATH" run --separate-stderr "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR" --check-owner
+
+  [ "$status" -eq 0 ]
+  [ "$output" = "http://localhost:55061" ]
+
+  ANSWERING_PORTS="5173" LSOF_LISTENERS="5173=$sibling_dir" CONDUCTOR_PORT=55060 PATH="$MOCK_BIN:$PATH" run --separate-stderr "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR" --check-owner
+
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "__FOREIGN_SERVER__" ]
+  [ "${lines[1]}" = "http://localhost:5173"$'\t'"$(cd "$sibling_dir" && pwd -P)" ]
+}
+
+@test "resolve-port --no-default skips a named port that equals the framework default" {
+  mkdir -p "$WORK_DIR/config"
+  printf 'port ENV.fetch("PORT", 3000)\n' >"$WORK_DIR/config/puma.rb"
+
+  run "$SCRIPT_DIR/resolve-port.sh" "$WORK_DIR" --type rails --no-default
+  [ "$status" -eq 0 ]
+  [ "$output" = "" ]
+
+  run "$SCRIPT_DIR/resolve-port.sh" "$WORK_DIR" --type rails
+  [ "$status" -eq 0 ]
+  [ "$output" = "3000" ]
+}
+
+@test "detect-url tries the Conductor range before a config port that equals the framework default" {
+  local sibling_dir="$BATS_TEST_TMPDIR/sibling-workspace"
+  mkdir -p "$sibling_dir"
+  git init -q "$WORK_DIR"
+  git init -q "$sibling_dir"
+  printf 'export default { server: { port: 5173 } }\n' >"$WORK_DIR/vite.config.ts"
+  write_owner_mocks
+
+  ANSWERING_PORTS="5173 55061" LSOF_LISTENERS="5173=$sibling_dir 55061=$WORK_DIR" CONDUCTOR_PORT=55060 PATH="$MOCK_BIN:$PATH" run --separate-stderr "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR" --check-owner
+
+  [ "$status" -eq 0 ]
+  [ "$output" = "http://localhost:55061" ]
+}
+
+@test "detect-url falls back to the framework default port outside the Conductor range" {
+  printf 'export default {}\n' >"$WORK_DIR/vite.config.ts"
+  write_owner_mocks
+
+  ANSWERING_PORTS="3000 5173" CONDUCTOR_PORT=55060 PATH="$MOCK_BIN:$PATH" run --separate-stderr "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR"
+  [ "$status" -eq 0 ]
+  [ "$output" = "http://localhost:5173" ]
+
+  ANSWERING_PORTS="3000 5173" PATH="$MOCK_BIN:$PATH" run --separate-stderr env -u CONDUCTOR_PORT "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR"
+  [ "$status" -eq 0 ]
+  [ "$output" = "http://localhost:5173" ]
+}
+
+@test "detect-url keeps a metadata port ahead of the Conductor range" {
+  printf 'export default { server: { port: 4001 } }\n' >"$WORK_DIR/vite.config.ts"
+  write_owner_mocks
+
+  ANSWERING_PORTS="4001 55060" CONDUCTOR_PORT=55060 PATH="$MOCK_BIN:$PATH" run --separate-stderr "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR"
+
+  [ "$status" -eq 0 ]
+  [ "$output" = "http://localhost:4001" ]
+}
+
+@test "detect-url tries the Conductor range before monorepo framework defaults" {
+  mkdir -p "$WORK_DIR/apps/web" "$WORK_DIR/apps/admin"
+  printf 'export default {}\n' >"$WORK_DIR/apps/web/vite.config.ts"
+  printf 'module.exports = {}\n' >"$WORK_DIR/apps/admin/next.config.js"
+  write_owner_mocks
+
+  ANSWERING_PORTS="3000 5173 55062" CONDUCTOR_PORT=55060 PATH="$MOCK_BIN:$PATH" run --separate-stderr "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR"
+  [ "$status" -eq 0 ]
+  [ "$output" = "http://localhost:55062" ]
+
+  ANSWERING_PORTS="3000 5173" PATH="$MOCK_BIN:$PATH" run --separate-stderr env -u CONDUCTOR_PORT "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "__MULTIPLE_URLS__" ]
+}
+
+@test "detect-url lists every monorepo app when only one names its port" {
+  local sibling_dir="$BATS_TEST_TMPDIR/sibling-workspace"
+  mkdir -p "$WORK_DIR/apps/web" "$WORK_DIR/apps/admin" "$sibling_dir"
+  git init -q "$WORK_DIR"
+  git init -q "$sibling_dir"
+  printf 'export default { server: { port: 4001 } }\n' >"$WORK_DIR/apps/web/vite.config.ts"
+  printf 'module.exports = {}\n' >"$WORK_DIR/apps/admin/next.config.js"
+  write_owner_mocks
+
+  ANSWERING_PORTS="3000 4001" PATH="$MOCK_BIN:$PATH" run --separate-stderr env -u CONDUCTOR_PORT "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR"
+  [ "$status" -eq 0 ]
+  [ "${lines[0]}" = "__MULTIPLE_URLS__" ]
+  [ "${#lines[@]}" -eq 3 ]
+  [[ "$output" == *"http://localhost:3000"* ]]
+  [[ "$output" == *"http://localhost:4001"* ]]
+
+  ANSWERING_PORTS="3000 4001" LSOF_LISTENERS="3000=$WORK_DIR/apps/admin 4001=$sibling_dir" PATH="$MOCK_BIN:$PATH" run --separate-stderr env -u CONDUCTOR_PORT "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR" --check-owner
+  [ "$status" -eq 0 ]
+  [ "$output" = "http://localhost:3000" ]
+}
+
+@test "detect-url stops a monorepo at its apps' ports instead of scanning common ports" {
+  mkdir -p "$WORK_DIR/apps/web" "$WORK_DIR/apps/admin"
+  printf 'export default {}\n' >"$WORK_DIR/apps/web/vite.config.ts"
+  printf 'module.exports = {}\n' >"$WORK_DIR/apps/admin/next.config.js"
+  write_owner_mocks
+
+  ANSWERING_PORTS="8080" PATH="$MOCK_BIN:$PATH" run --separate-stderr env -u CONDUCTOR_PORT "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR"
+  [ "$status" -eq 0 ]
+  [ "$output" = "__NO_RUNNING_SERVER__" ]
+}

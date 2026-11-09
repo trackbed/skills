@@ -2,7 +2,7 @@ sources:
   - id: compound-ce-polish-dev-server
     url: https://github.com/EveryInc/compound-engineering-plugin/tree/main/skills/ce-polish
     title: "EveryInc compound-engineering-plugin - ce-polish"
-    rationale: "The optional visual-mode app URL auto-detection flow references the shared dev-server detection contract adapted from this source."
+    rationale: "The optional visual-mode app URL auto-detection flow references the shared dev-server detection contract adapted from this source, and confirming a detected URL or asking for one when none answers follows its start-and-hand-off guidance."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "7dc50943bbf959dbe6a93a175e41e5fff8395e00"

@@ -2,6 +2,8 @@
 
 **Mode:** {Code-only | Visual + Code} **Agents Run:** {list of agents that ran} **Categories:** {list of categories audited}
 
+**Visual evidence:** {app URL (provided | detected | entered by user[, serving checkout unconfirmed | served from <checkout root>]) | none — reason}
+
 ## Relevance Filter
 
 - X findings validated as in-scope (PR/local)
