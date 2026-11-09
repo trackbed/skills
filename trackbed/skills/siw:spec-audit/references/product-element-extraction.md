@@ -16,7 +16,7 @@ Use this during product mode §P3 to identify and summarize product-relevant sec
 | Success Criteria | How is success measured? Metrics, definitions of done |
 | Phases / Milestones | How is delivery sequenced? What ships first? |
 | Strategy Alignment | Whether the spec aligns with repo-root `STRATEGY.md` target users, active tracks, metrics, and non-goals |
-| Pulse Signals | Whether recent `docs/pulse-reports/` evidence supports or challenges the spec's priorities |
+| Pulse Signals | Whether the pulse reports loaded in §P2 support or challenge the spec's priorities, each cited as `<filename> (<window>)`, which shows its report date and period |
 
 For each element, capture:
 

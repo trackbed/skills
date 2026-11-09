@@ -98,3 +98,34 @@ setup() {
   grep -F -- '- Minor:' "$DIMENSIONS" | grep -qF 'a missing failure signal or running-cost estimate'
   grep -qF 'id: egm-brainstorm-lenses' "skills/siw:spec-audit/references/sources.yaml"
 }
+
+@test "product mode reads compound pulse reports from the configured docs root" {
+  PRODUCT_MODE="skills/siw:spec-audit/references/product-mode.md"
+  grep -qF 'Read `docs_root` from `<repo-root>/.compound-engineering/config.yaml` only; never from `config.local.yaml`. When the file or key is absent, `<root>` is `docs`.' "$PRODUCT_MODE"
+  grep -qF 'A set value is valid only when it uses only letters, digits, `.`, `_`, `-`, and `/`, checked before the value reaches any command' "$PRODUCT_MODE"
+  grep -qF 'For an invalid value, read no reports and record `MISSING PRODUCT CONTEXT: pulse reports (invalid docs_root)`.' "$PRODUCT_MODE"
+  grep -qF 'Look only in `<root>/pulse-reports/`.' "$PRODUCT_MODE"
+  ! grep -qF 'If `docs/pulse-reports/` exists' "$PRODUCT_MODE" || false
+}
+
+@test "product mode picks the newest pulse reports by filename and dates each one" {
+  PRODUCT_MODE="skills/siw:spec-audit/references/product-mode.md"
+  grep -qF 'whose names match `YYYY-MM-DD_HH-MM.md`, and ignore every other file and subfolder' "$PRODUCT_MODE"
+  grep -qF 'Sort the names in descending order and read the newest three, or all of them when fewer exist.' "$PRODUCT_MODE"
+  grep -qF 'Never order reports by file modification time.' "$PRODUCT_MODE"
+  grep -qF 'The covered period is the window in its title line, `# <product> Pulse - <window> - <timestamp>`' "$PRODUCT_MODE"
+  grep -qF 'Label every pulse signal as `<filename> (<window>)`, such as `2026-11-02_09-30.md (7d)`' "$PRODUCT_MODE"
+  grep -qF 'the filename shows the report date and time.' "$PRODUCT_MODE"
+  grep -qF 'each cited as `<filename> (<window>)`, which shows its report date and period' "skills/siw:spec-audit/references/product-element-extraction.md"
+  grep -qF 'for each report used, its label as `<filename> (<window>)`, whose filename shows the report date and time' "skills/siw:spec-audit/assets/spec-audit-report-format.md"
+}
+
+@test "product mode reads only compound's pulse sections and keeps figures neutral" {
+  PRODUCT_MODE="skills/siw:spec-audit/references/product-mode.md"
+  PROMPT="skills/siw:spec-audit/references/product-reviewer-prompt.md"
+  grep -qF 'Compound writes Headlines, Usage, System performance, and Followups' "$PRODUCT_MODE"
+  ! grep -rqiF 'customer-signal' skills/siw:spec-audit || false
+  ! grep -rqiF 'customer signals' skills/siw:spec-audit || false
+  grep -qF 'Pulse figures carry no verdicts' "$PROMPT"
+  grep -qF 'must quote the figure and cite its report as `<filename> (<window>)`' "$PROMPT"
+}

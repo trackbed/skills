@@ -28,6 +28,8 @@ Read these files completely:
 
 Use this context to evaluate alignment with repo-level strategy and recent pulse signals. If no STRATEGY.md or pulse report exists, do not report absence as a finding by itself. Report it only when the spec depends on product-direction claims that cannot be evaluated without that context.
 
+Pulse figures carry no verdicts: the reports apply no thresholds, so a figure alone is neither good nor bad. A finding based on a pulse signal must quote the figure and cite its report as `<filename> (<window>)`, such as `2026-11-02_09-30.md (7d)`, where the filename gives the report date and time and the window is the covered period. Do not compare figures from reports that cover different periods as if they were a trend.
+
 ## Work Context Adjustments
 
 {Include this block ONLY if work_context is not Production Feature and not absent:}
@@ -97,7 +99,7 @@ This spec has Work Type: {work_context.work_type}
 - Does the spec align with STRATEGY.md target users, active tracks, key metrics, and non-goals when available?
 - Does the spec ignore recent pulse signals that should affect priority, risk, or success criteria?
 - Does it propose work that belongs outside current active tracks without explaining why strategy is changing?
-- Severity guide: Clear contradiction with current strategy or recent user signals = Major. Missing linkage where linkage would materially affect priority = Minor.
+- Severity guide: Clear contradiction with current strategy or recent pulse signals = Major. Missing linkage where linkage would materially affect priority = Minor.
 
 ## Output Format
 
