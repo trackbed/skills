@@ -35,3 +35,13 @@ REPORT_TEMPLATE=".agents/skills/trackbed:skill:audit-sources/references/report-t
 	grep -qF '| Moved or gone | Skipped |' "$REPORT_TEMPLATE"
 	grep -qF '### Skipped' "$REPORT_TEMPLATE"
 }
+
+@test "source audit compares a GitHub directory source as its text files" {
+	grep -qF 'run `python3 scripts/github_directory.py --url "<head_url>" --output "<tmp>/body"`' "$SKILL"
+	grep -qF "Never fetch GitHub's HTML directory page instead." "$SKILL"
+	grep -qF 'and a raw `SKILL.md` entry against only that file' "$SKILL"
+	grep -qF 'Its fetch mode is `github-directory`.' "$SKILL"
+	grep -qF 'Any nonzero exit is a source error: record the helper' "$SKILL"
+	grep -qF '| `github-directory` |' "$NORMALIZATION_RULES"
+	grep -qF '**Directory files:**' "$REPORT_TEMPLATE"
+}

@@ -55,6 +55,7 @@
     "measured": [
       ".agents/skills/trackbed:skill:audit-sources/scripts/extract_graphql_definitions.py",
       ".agents/skills/trackbed:skill:audit-sources/scripts/github_changes.py",
+      ".agents/skills/trackbed:skill:audit-sources/scripts/github_directory.py",
       ".agents/skills/trackbed:skill:audit-sources/scripts/normalize.py",
       "trackbed/hooks/lib/command_safety/cli.py",
       "trackbed/hooks/lib/command_safety/commit.py",

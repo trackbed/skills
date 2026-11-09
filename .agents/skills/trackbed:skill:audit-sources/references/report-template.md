@@ -27,6 +27,7 @@ Totals: {{X changed, Y unchanged, M moved or gone, S skipped, Z errors, B bootst
 - **URLs:** {{https://owasp.org/www-project-top-ten/}} ({{trackbed:code:harden-security}} `{{owasp-top-10}}`, {{trackbed:code:audit-security}} `{{owasp-top-10}}`)
 - **Change evidence:** {{for a hashed source: `sha256:abc...` → `sha256:def...`; for a GitHub-hosted source: commit history}}
 - **Commit window:** {{GitHub-hosted sources only: `<baseline_commit>` (`recorded`, `pinned`, or `derived`) → `<head_commit>`}}
+- **Directory files:** {{GitHub directory sources only: `file_count` files compared from scripts/github_directory.py; skipped: `path` (reason), or "none"}}
 - **Upstream commits:** {{GitHub-hosted sources only: `commit_count`, or "at least `commit_count`; partial list" when `commits_truncated` is true, followed by one line per commit line from scripts/github_changes.py — short SHA, date, first message line}}
 
 #### {{trackbed:code:harden-security}} — {{owasp-top-10}}, last reviewed {{2026-01-15}}
