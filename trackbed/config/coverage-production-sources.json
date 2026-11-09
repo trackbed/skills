@@ -658,6 +658,11 @@
     },
     {
       "kind": "guidance",
+      "suite": "trackbed/tests/docs-review-guidance.bats",
+      "skills": ["trackbed/skills/docs:review/SKILL.md"]
+    },
+    {
+      "kind": "guidance",
       "suite": "trackbed/tests/spec-audit-guidance.bats",
       "skills": ["trackbed/skills/siw:spec-audit/SKILL.md"]
     },
