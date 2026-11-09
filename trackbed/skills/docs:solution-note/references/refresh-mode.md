@@ -23,7 +23,7 @@ Route elsewhere if:
 - **Produced by**: this skill does not create a separate report by default; it emits an inline refresh report and may update existing `docs/solutions/*.md` notes when confirmed.
 - **Consumed by**: maintainers and future agents deciding whether a solution note can be trusted.
 - **Refreshed by**: rerun `/trackbed:docs:solution-note --refresh` after referenced files move, tests change, repeated bugs invalidate the lesson, or `last_checked` is old enough to reduce confidence.
-- **Retired by**: confirmed delete or consolidate actions in Phase 5.
+- **Retired by**: confirmed delete or consolidate actions in Phase 6.
 
 ## Argument parsing
 
@@ -48,7 +48,7 @@ Severity guidance:
 
 - Prefer `UPDATE` over `DELETE` when a clear small edit would preserve useful knowledge.
 - Prefer `CONSOLIDATE` over `DELETE` when two notes each contain useful unique details.
-- Use `DELETE` only when the note's core lesson is false or its problem area is gone. An accurate note is not a default `DELETE` because its reasoning seems recoverable elsewhere. Removing or trimming it for that reason needs an explicit user request to cull such notes, plus, for each claim, a named in-repo artifact (a test, code comment, AGENTS.md or CLAUDE.md, skill reference, or another note) whose own text states the same reasoning, quoted in the report. Topical overlap is not coverage.
+- Use `DELETE` only when the note's core lesson is false or its problem area is gone. Missing referenced files alone do not justify `DELETE` while the problem the note covers still exists; classify `UPDATE` and correct the references. An accurate note is not a default `DELETE` because its reasoning seems recoverable elsewhere. Removing or trimming it for that reason needs an explicit user request to cull such notes, plus, for each claim, a named in-repo artifact (a test, code comment, AGENTS.md or CLAUDE.md, skill reference, or another note) whose own text states the same reasoning, quoted in the report. Topical overlap is not coverage.
 - Separate descriptive drift from an implementation conflict. Claims about current mechanics (paths, commands, APIs, symbol names) follow the code, so the note gets an `UPDATE`. When the note's guidance has independent support (a test, spec, ADR, or incident write-up) and the code no longer satisfies it, classify from that support: keep the guidance and report the mismatch as a possible regression under `NOTICED BUT NOT TOUCHING`. This skill never edits product code.
 - A claim the repository cannot confirm, such as an operational practice, an environment or production behavior, or an external-service fact, is not grounds for `DELETE`, for dropping it during `CONSOLIDATE`, or for an `UPDATE` that removes it. Act only on a demonstrated contradiction, and list the claim as `UNVERIFIED:` in the report.
 
@@ -84,7 +84,17 @@ Compare selected notes and nearby notes in `docs/solutions/` for:
 
 When overlap is plausible but not proven, classify as `UPDATE` with a `CONFUSION` note rather than forcing consolidation.
 
-### 4. Emit the refresh report
+### 4. Check inbound references
+
+Before proposing `DELETE` or `CONSOLIDATE` for a note, search the repository's Markdown for links to it by path and filename, for example `rg -n --hidden --glob '*.md' '<slug>\.md'`, and read each citing passage.
+
+- When a citing document's text depends on the note, such as sending readers there for the procedure or citing it as evidence, do not propose `DELETE`. Classify the note `UPDATE` instead, correcting or narrowing its lesson, and name each citing file in the report.
+- A link that only lists the note, such as an index entry, does not block a delete, but name its file so the user sees which link the delete would break.
+- For `CONSOLIDATE`, name every citing file in the proposed action so the confirmation shows which links must follow the merged note.
+
+This skill never edits files outside `docs/solutions/`, so it reports citing files instead of repointing them.
+
+### 5. Emit the refresh report
 
 Emit one inline report with this shape:
 
@@ -97,9 +107,9 @@ SOLUTION REFRESH REPORT
   Proposed action: update Code references and set `last_checked` to YYYY-MM-DD.
 ```
 
-Every `UPDATE`, `CONSOLIDATE`, or `DELETE` classification needs a concrete reason and evidence. `KEEP` needs a short confidence note.
+Every `UPDATE`, `CONSOLIDATE`, or `DELETE` classification needs a concrete reason and evidence. `KEEP` needs a short confidence note. List every citing file that step 4 found under `Inbound references:`, marking the ones that blocked a `DELETE`.
 
-### 5. Apply confirmed changes
+### 6. Apply confirmed changes
 
 Do not mutate files unless `--apply` is present or the user explicitly asks to apply the report.
 
@@ -107,7 +117,7 @@ When applying:
 
 1. Emit `PLAN:` listing every file to edit, delete, or consolidate.
 2. For `KEEP`, update only `last_checked` if the user wants bookkeeping updates.
-3. For `UPDATE`, edit only stale sections and frontmatter. Preserve user-authored detail.
+3. For `UPDATE`, edit only stale sections and frontmatter. Preserve user-authored detail, keep the note's original `date`, and set `last_checked` to today.
 4. For `CONSOLIDATE`, ask with `ASK FIRST` before merging content or deleting either note.
 5. For `DELETE`, ask with `ASK FIRST` before deleting. Surface the note path and one-line reason.
 

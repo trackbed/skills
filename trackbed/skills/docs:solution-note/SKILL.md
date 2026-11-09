@@ -36,7 +36,7 @@ Route elsewhere if:
 
 ## Artifact lifecycle
 
-- **Produced by**: Phase 4 writes `docs/solutions/<slug>.md` from `assets/solution-note-template.md`.
+- **Produced by**: Phase 4 writes `docs/solutions/<slug>.md` from `assets/solution-note-template.md`, or updates an approved existing note in place.
 - **Consumed by**: future agents, maintainers, review workflows, debugging sessions, migration plans, and refactor passes that search `docs/solutions/` for prior solved problems.
 - **Refreshed by**: `/trackbed:docs:solution-note --refresh` when referenced files move, code behavior changes, verification ages, or a related bug proves the note incomplete.
 - **Retired by**: `/trackbed:docs:solution-note --refresh` after explicit user confirmation to delete or consolidate stale notes.
@@ -78,6 +78,15 @@ Then confirm the note has these minimum ingredients:
 
 Emit `MISSING REQUIREMENT` and ask for the missing item when any load-bearing ingredient is absent.
 
+Once the gate passes, check whether a type, lint rule, or test added to the repository's existing verification could reject the mistake. When one could, emit this handoff and still write the note:
+
+```
+NOTICED BUT NOT TOUCHING: a <type | lint rule | test> could reject this mistake: <invariant>
+Why skipping: a check enforces the lesson where a note only instructs; use /trackbed:code:encode-constraint to build and prove it.
+```
+
+In that note, spend the detail on what the check can't hold: failed approaches, measurements, and preconditions. Keep the other required sections brief, and do not build the check inside this workflow.
+
 ### 3. Prevent duplicates
 
 If `docs/solutions/` already exists:
@@ -91,16 +100,18 @@ Never overwrite an existing solution note without explicit user confirmation.
 ### 4. Draft and write
 
 1. Read `assets/solution-note-template.md`.
-2. Create `docs/solutions/` if missing.
+2. Create `docs/solutions/` if missing. When it already holds notes, read the store's vocabulary first: its subfolders and the frontmatter values already in use, such as `source` labels and tag spellings. Reuse an existing value or subfolder that fits instead of inventing a near-synonym (`bug-fix`, not `bugfix`), and add a new one only when none fits.
 3. Fill every placeholder with grounded content. Do not leave `TODO`, angle-bracket placeholders, or invented file paths.
-4. Set frontmatter:
+4. Set frontmatter for a new note:
    - `title`: human-readable note title.
    - `date`: today's absolute date.
    - `status`: `active` for reusable current notes; `draft` only when the user explicitly asks for an incomplete note.
-   - `source`: `current-session`, `bug-fix`, `migration`, `review`, `incident`, `refactor`, or another short source label.
+   - `source`: the store's existing label when one fits; otherwise `current-session`, `bug-fix`, `migration`, `review`, `incident`, `refactor`, or another short source label.
    - `related_files`: YAML list of repo-relative files, or `[]`.
    - `last_checked`: today's absolute date.
-5. Write to `docs/solutions/<slug>.md`.
+5. Write a new note to `docs/solutions/<slug>.md`, or under the existing subfolder that fits when the store groups notes in subfolders.
+
+When the user approved updating an existing note in step 3, keep its path, original `date`, `title`, and frontmatter keys. Add any new files to its `related_files`, set only `last_checked` to today, and edit just the body sections the new lesson changes. `date` records when the lesson was first written.
 
 Emit a concise `PLAN:` block before writing when the note will touch an existing file or when the lesson spans more than one subsystem.
 
@@ -122,7 +133,7 @@ Use these markers exactly when they apply:
 - `MISSING REQUIREMENT`: the note lacks a load-bearing section or slug.
 - `CONFUSION`: duplicate notes, unclear scope, or "one note or several" ambiguity.
 - `UNVERIFIED`: factual claim, command result, metric, or code behavior has not been checked.
-- `NOTICED BUT NOT TOUCHING`: related docs, terms, or adjacent lessons are outside this note.
+- `NOTICED BUT NOT TOUCHING`: related docs, terms, adjacent lessons, or a check that could enforce the lesson are outside this note.
 - `PLAN`: multi-file or existing-note edits need an edit plan before writing.
 - `ASK FIRST`: updating an existing note, renaming an existing note, or changing committed reuse guidance.
 
