@@ -10,7 +10,7 @@ sources:
   - id: addy-security-and-hardening
     url: https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/security-and-hardening/SKILL.md
     title: "Addy Osmani agent-skills - security and hardening"
-    rationale: "The Three-Tier Boundary System, ASK FIRST gating, marker vocabulary, supply-chain install boundary, privacy-lifecycle engineering concepts, and filename-only staged-secret check are adapted from this source."
+    rationale: "The Three-Tier Boundary System, ASK FIRST gating, marker vocabulary, supply-chain install boundary, privacy-lifecycle engineering concepts, filename-only staged-secret check, Never Do rule against loosening security headers, and rotate-before-cleaning-history leak response are adapted from this source."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
@@ -35,7 +35,7 @@ sources:
   - id: owasp-csrf-prevention
     url: https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html
     title: "OWASP Cross-Site Request Forgery Prevention Cheat Sheet"
-    rationale: "The wildcard-CORS boundary names independent protections for cookie-authenticated state-changing requests."
+    rationale: "The CSRF section and checklist group adapt its primary-control options, SameSite limitations, safe-method rule, fail-closed source- and target-origin checks, and same-origin client token scoping; the wildcard-CORS boundary names independent protections for cookie-authenticated state-changing requests."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     fetch_mode: curl-html

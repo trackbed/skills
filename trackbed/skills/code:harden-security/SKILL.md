@@ -20,6 +20,7 @@ Code examples in this skill use TypeScript/Node idioms (Zod, `npm audit`, `crypt
 - Adding, upgrading, or remediating dependencies, package-manager configuration, lockfiles, build inputs, or installer behavior. For read-only dependency inventory, vulnerability, staleness, or upgrade-plan audits, use `trackbed:deps:audit` instead.
 - Designing collection, retention, deletion, or third-party sharing of personal or sensitive data, including sharing with an LLM provider.
 - Configuring headers, CORS, cookies, or rate limits.
+- Adding or changing a state-changing endpoint that a browser authenticates with cookies (CSRF).
 - Anywhere you find yourself about to write an `innerHTML`, `eval`, `exec`, or raw SQL interpolation.
 
 ## When not to use
@@ -99,8 +100,11 @@ The load-bearing artifact of this skill. Classify every security decision into o
 - Store session tokens in client-accessible storage.
 - Expose stack traces to end users.
 - Use wildcard CORS beyond anonymous, credential-free public reads available to any client on the internet.
+- Disable or loosen a security header to make a feature or test pass.
 
 Never use wildcard CORS for intranet, VPN-only, IP-allow-listed, or credential-protected resources. CORS configuration changes still require `ASK FIRST`, including the permitted public-read case.
+
+When a requirement, not a failing feature or test, genuinely needs a looser security-header policy, surface it as `ASK FIRST` with the exact directive and the behavior that requires it.
 
 If a draft contains any `Never Do` condition, stop and re-author it before continuing.
 
@@ -150,11 +154,28 @@ The `Ask First` gate on new auth flows is there because this area is where subtl
 - **Password storage** — bcrypt, scrypt, or argon2 with appropriate cost factors. Never SHA-256 alone, never plaintext, never reversible encryption.
 - **Comparisons on secrets** — constant-time (`crypto.timingSafeEqual` or equivalent). String `==` leaks timing information.
 - **Session tokens** — server-issued, high-entropy, rotated on privilege change (login, logout, password change, role escalation). Never reuse a session ID across privilege boundaries.
-- **Cookie attributes** — `Secure`, `HttpOnly`, `SameSite=Lax` (or `Strict` for pure first-party flows). Never store session tokens where client JS can read them.
+- **Cookie attributes** — `Secure`, `HttpOnly`, `SameSite=Lax` (or `Strict` for pure first-party flows), set explicitly rather than left to the browser default. Never store session tokens where client JS can read them.
 - **MFA** — any flow with administrative or financial capability should have MFA available by default, not as an afterthought.
 - **Expiration** — absolute + idle timeouts. Server-side enforcement, not just client-side clearing.
 
 Any change that introduces a new auth method, IdP, or role model is `ASK FIRST` territory.
+
+## Cross-site request forgery
+
+Every state-changing endpoint that a browser authenticates with cookies needs one server-enforced primary CSRF control:
+
+- the framework's built-in CSRF protection;
+- a token the server validates on every state-changing request: a synchronizer token, or a signed double-submit cookie bound to the session, never an unsigned cookie the server only compares with a copy echoed in the request;
+- a required custom request header backed by a strict CORS policy, so a cross-origin page cannot send it without a preflight the server rejects; or
+- Fetch Metadata (`Sec-Fetch-Site`) checks that accept a state-changing request only when the value is `same-origin`, treating `same-site` like `cross-site`, with an origin check as the fallback when the request lacks the header.
+
+`SameSite` is set explicitly on those cookies but counts only as an extra layer, never as the control: same-site is wider than same-origin, so a sibling subdomain still counts as same-site; `Lax` still sends cookies on cross-site top-level GET navigations; and browser defaults differ.
+
+- **Safe methods** — GET, HEAD, and OPTIONS never change state. A legacy endpoint that still changes state on one gets its own explicit CSRF protection instead of inheriting the safe-method exemption.
+- **Origin checks** — fail closed when the source origin (`Origin`, or `Referer` when `Origin` is absent) is missing or `null`. Compare the full origin (scheme, host, and port) exactly, never by prefix, suffix, or substring; parse the origin out of a `Referer` URL before comparing. Take the target origin from configuration, and trust `Forwarded` or `X-Forwarded-Host` only when a known proxy sets it.
+- **Client code** — attach CSRF tokens only to requests bound for the application's own endpoints, never to third-party URLs, where the token would leak.
+
+The CSRF group in `references/security-checklist.md` is the completion gate.
 
 ## Data protection
 
@@ -230,6 +251,7 @@ This case-insensitive check names files whose staged changes match; it never pri
 - **Transmission** — over TLS, never via GET query string (ends up in server logs, proxy logs, browser history).
 - **Rotation** — documented cadence. A secret with no rotation path is already compromised — you just don't know when.
 - **Destruction** — zeroed in memory where the language allows; revoked upstream when no longer needed.
+- **Leak response** — when a secret reaches version control, logs, or another shared surface, rotate or revoke it before cleaning history.
 
 ## Integration with other skills
 

@@ -146,3 +146,59 @@ BOUNDARY_SYSTEM="skills/code:harden-security/references/boundary-system.md"
   grep -qF "Run before every commit" "${docs[0]}"
   ! grep -qF "Run before every push" "${docs[0]}"
 }
+
+@test "CSRF guidance requires one server-enforced primary control and closes known bypasses" {
+  local csrf_section
+  local csrf_group
+
+  csrf_section="$(sed -n '/^## Cross-site request forgery$/,/^## Data protection$/p' "$SKILL")"
+  csrf_group="$(sed -n '/^## CSRF defense$/,/^## Authorization & access control$/p' "$CHECKLIST")"
+
+  grep -qF "needs one server-enforced primary CSRF control" <<<"$csrf_section"
+  grep -qF "the framework's built-in CSRF protection" <<<"$csrf_section"
+  grep -qF "a token the server validates on every state-changing request" <<<"$csrf_section"
+  grep -qF "never an unsigned cookie the server only compares with a copy echoed in the request" <<<"$csrf_section"
+  grep -qF "a required custom request header backed by a strict CORS policy" <<<"$csrf_section"
+  grep -qF 'Fetch Metadata (`Sec-Fetch-Site`) checks that accept a state-changing request only when the value is `same-origin`, treating `same-site` like `cross-site`, with an origin check as the fallback' <<<"$csrf_section"
+  grep -qF '`SameSite` is set explicitly on those cookies but counts only as an extra layer, never as the control' <<<"$csrf_section"
+  grep -qF "GET, HEAD, and OPTIONS never change state" <<<"$csrf_section"
+  grep -qF "gets its own explicit CSRF protection" <<<"$csrf_section"
+  grep -qF 'fail closed when the source origin (`Origin`, or `Referer` when `Origin` is absent) is missing or `null`' <<<"$csrf_section"
+  grep -qF "Compare the full origin (scheme, host, and port) exactly" <<<"$csrf_section"
+  grep -qF 'trust `Forwarded` or `X-Forwarded-Host` only when a known proxy sets it' <<<"$csrf_section"
+  grep -qF "attach CSRF tokens only to requests bound for the application's own endpoints" <<<"$csrf_section"
+
+  grep -qF "Every cookie-authenticated state-changing endpoint has one server-enforced primary CSRF control" <<<"$csrf_group"
+  grep -qF "the framework's built-in protection, a server-validated token" <<<"$csrf_group"
+  grep -qF 'a required custom header backed by a strict CORS policy, or Fetch Metadata' <<<"$csrf_group"
+  grep -qF 'Fetch Metadata that accepts state changes only when `Sec-Fetch-Site` is `same-origin`, with an origin fallback' <<<"$csrf_group"
+  grep -qF '`SameSite` is set explicitly on those cookies and counts only as an extra layer, never as the primary control' <<<"$csrf_group"
+  grep -qF "has its own explicit CSRF protection" <<<"$csrf_group"
+  grep -qF 'fail closed when the source origin is missing or `null`, compare full origins' <<<"$csrf_group"
+  grep -qF 'take the target origin from configuration' <<<"$csrf_group"
+  grep -qF 'and an explicit `SameSite`' "$CHECKLIST"
+  grep -qF "attaches CSRF tokens only to the application's own endpoints" <<<"$csrf_group"
+
+  grep -qF 'explicit `SameSite` cookies add a layer but are not the control' "$BOUNDARY_SYSTEM"
+  ! grep -qF 'appropriate `SameSite` cookies' "$BOUNDARY_SYSTEM"
+}
+
+@test "security headers are never loosened to make a feature or test pass" {
+  local never_do
+  local tier_three
+
+  never_do="$(sed -n '/^### Never Do$/,/^Per-item rationale/p' "$SKILL")"
+  tier_three="$(sed -n '/^## Tier 3 — Never Do$/,/^---$/p' "$BOUNDARY_SYSTEM")"
+
+  grep -qF "Disable or loosen a security header to make a feature or test pass." <<<"$never_do"
+  grep -qF "genuinely needs a looser security-header policy, surface it as \`ASK FIRST\` with the exact directive" <<<"$never_do"
+  grep -qF "**Disable or loosen a security header to make a feature or test pass**" <<<"$tier_three"
+  grep -qF "surface it as \`ASK FIRST\` with the exact directive" <<<"$tier_three"
+}
+
+@test "leaked secrets are rotated before history is cleaned" {
+  grep -qF "rotate or revoke it before cleaning history" "$SKILL"
+  grep -qF "is rotated or revoked before history is cleaned" "$CHECKLIST"
+  grep -qF "rotate or revoke it first and clean history second" "$BOUNDARY_SYSTEM"
+  ! grep -qF "\"I'll rotate it after\" is true and necessary" "$BOUNDARY_SYSTEM"
+}
