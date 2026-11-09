@@ -227,7 +227,11 @@ Place before `</body>`, after any Mermaid init:
         const el = document.getElementById(id);
         if (el) {
           el.scrollIntoView({ behavior: "smooth", block: "start" });
-          history.replaceState(null, "", "#" + id);
+          // file: pages and sandboxed previews can refuse the URL update; the
+          // scroll has already started, so ignore the error.
+          try {
+            history.replaceState(null, "", "#" + id);
+          } catch {}
         }
       });
     });

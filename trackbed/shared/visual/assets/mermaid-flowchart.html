@@ -26,8 +26,8 @@
 
         --primary: #0d9488;
         --primary-dim: rgba(13, 148, 136, 0.08);
-        --secondary: #7c3aed;
-        --secondary-dim: rgba(124, 58, 237, 0.08);
+        --secondary: #4d7c0f;
+        --secondary-dim: rgba(77, 124, 15, 0.08);
         --tertiary: #d97706;
         --tertiary-dim: rgba(217, 119, 6, 0.08);
         --danger: #dc2626;
@@ -46,8 +46,8 @@
 
           --primary: #2dd4bf;
           --primary-dim: rgba(45, 212, 191, 0.14);
-          --secondary: #c4b5fd;
-          --secondary-dim: rgba(196, 181, 253, 0.12);
+          --secondary: #a3e635;
+          --secondary-dim: rgba(163, 230, 53, 0.12);
           --tertiary: #fbbf24;
           --tertiary-dim: rgba(251, 191, 36, 0.12);
           --danger: #f87171;
@@ -377,9 +377,10 @@
         <code>look: 'handDrawn'</code> for a sketchy aesthetic. Switch to
         <code>look: 'classic'</code> in the Mermaid config for clean, precise
         lines. The <code>layout: 'elk'</code> engine provides better node
-        positioning for complex graphs — it requires the separate
-        <code>@mermaid-js/layout-elk</code> package (imported above). Without
-        it, Mermaid silently falls back to dagre.
+        positioning for complex graphs. With Mermaid 11, which this template
+        pins, it requires the separate
+        <code>@mermaid-js/layout-elk</code> package (imported above); without
+        it, Mermaid 11 silently falls back to dagre.
       </div>
     </div>
 
@@ -399,8 +400,8 @@
           primaryColor: isDark ? "#115e59" : "#ccfbf1",
           primaryBorderColor: isDark ? "#2dd4bf" : "#0d9488",
           primaryTextColor: isDark ? "#ccfbf1" : "#134e4a",
-          secondaryColor: isDark ? "#1e1b4b" : "#ede9fe",
-          secondaryBorderColor: isDark ? "#c4b5fd" : "#7c3aed",
+          secondaryColor: isDark ? "#1a2e05" : "#ecfccb",
+          secondaryBorderColor: isDark ? "#a3e635" : "#4d7c0f",
           secondaryTextColor: isDark ? "#ccfbf1" : "#134e4a",
           tertiaryColor: isDark ? "#2e2618" : "#fffbeb",
           tertiaryBorderColor: isDark ? "#fbbf24" : "#d97706",

@@ -492,6 +492,14 @@
         border-color: var(--border-bright);
       }
 
+      .source-mark {
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+        background: var(--accent);
+        flex-shrink: 0;
+      }
+
       /* ============ RESPONSIVE ============ */
       @media (max-width: 768px) {
         body {
@@ -527,9 +535,15 @@
           Sources
         </div>
         <div class="sources">
-          <div class="source"><span>💬</span> Slack</div>
-          <div class="source"><span>🐙</span> GitHub</div>
-          <div class="source"><span>📧</span> Email</div>
+          <div class="source">
+            <span class="source-mark" aria-hidden="true"></span> Slack
+          </div>
+          <div class="source">
+            <span class="source-mark" aria-hidden="true"></span> GitHub
+          </div>
+          <div class="source">
+            <span class="source-mark" aria-hidden="true"></span> Email
+          </div>
         </div>
       </div>
 
