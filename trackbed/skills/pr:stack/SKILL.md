@@ -1,6 +1,6 @@
 ---
 name: pr:stack
-description: Create and manage GitHub stacked PRs with gh-stack v0.1.0 or newer. Build an ordered chain of dependent branches, submit chained draft PRs, make mid-stack edits safely, merge or sync stacks, and adopt existing branch chains. Use when a change should land as a sequence of small dependent PRs instead of one large PR. Requires a repository with stacked PRs enabled (private preview); degrades to a manual chain otherwise.
+description: Create and manage GitHub stacked PRs with gh-stack v0.3.0 or newer. Build an ordered chain of dependent branches, submit chained draft PRs, make mid-stack edits safely, merge or sync stacks, and adopt existing branch chains. Use when a change should land as a sequence of small dependent PRs instead of one large PR. Requires stacked PRs to be enabled for the repository; degrades to a manual chain otherwise.
 argument-hint: "[init [--base <trunk>] <branches...> | submit | sync | merge <pr-number> | adopt [--base <trunk>] <branches...> | status]"
 disable-model-invocation: true
 user-invocable: true
@@ -56,7 +56,7 @@ Synced Conductor workspace boundary contract (keep aligned across git-mutating w
 When `CONDUCTOR_WORKSPACE_PATH` is set, capture and validate the entry branch as `{workspace-branch}` before any stack checkout. Stack operations may check out sibling stack branches as gh stack requires; finish by returning to `{workspace-branch}` and say so in the report.
 
 - **Extension missing:** the membership resolver records that local tracking is unavailable before checking GitHub. If GitHub reports an existing remote stack, do not create a duplicate manual chain. Otherwise offer to install the extension (`gh extension install github/gh-stack`); if declined, fall back to ordered branches each rooted on the previous, PRs opened with `gh pr create --base <parent-branch>`, and a note in each PR body naming its position in the chain.
-- **Feature not enabled (exit code 9 from `submit`/`link`/`checkout`):** the repository lacks stacked-PRs preview access. Stop without retrying and tell the user (waitlist: gh.io/stacksbeta), then offer the same manual-chain fallback — `gh stack link` can adopt the chain into a native stack once the repo is enabled.
+- **Feature not enabled (exit code 9 from `submit`/`link`/`checkout`):** stacked PRs must be enabled for the repository. Stop without retrying, tell the user so, and offer the same manual-chain fallback — once the repository is enabled, re-run Step 1 and follow its route.
 
 One-time non-interactive setup (safe to re-run):
 
@@ -83,9 +83,9 @@ eval "$STACK_RESOLVED"
 | `STACK_MEMBERSHIP=none`, user wants a new stack | **Create** |
 | `STACK_MEMBERSHIP=none`, ordered branches already exist | **Adopt** |
 
-The resolver treats “not tracked locally” as either a `gh stack view` exit 2 or a zero exit with empty output or the known “is not part of a stack” notice — gh-stack v0.1.0 reports an untracked branch through both channels — then queries the branch PR's GraphQL `stack` field. A zero exit only proves local membership when stdout has the documented stack JSON shape and includes the current branch. Authentication, API, parsing, and unexpected CLI failures stop the workflow; they are never interpreted as “not stacked.”
+The resolver treats “not tracked locally” as either a `gh stack view` exit 2 or a zero exit with empty output or the known “is not part of a stack” notice — gh-stack can report an untracked branch through either channel — then queries the branch PR's GraphQL `stack` field. A zero exit only proves local membership when stdout has the documented stack JSON shape and includes the current branch. Authentication, API, parsing, and unexpected CLI failures stop the workflow; they are never interpreted as “not stacked.”
 
-The minimum supported extension version is v0.1.0. Older versions have known unsafe behavior after parent-history rewrites; the resolver stops with the exact `gh extension upgrade stack` command instead of entering a rewrite workflow.
+The minimum supported extension version is v0.3.0. Older versions push stack branches one at a time by default, can replay already-merged commits when rebasing after a merge, and do not follow a base branch that GitHub retargets. The resolver stops on them with the exact `gh extension upgrade stack` command instead of returning a membership result.
 
 ## Create a new stack
 
@@ -164,20 +164,34 @@ gh stack rebase --upstack --no-trunk
 env -u GH_STACK_NO_ATOMIC gh stack push
 ```
 
-**Restructure (reorder / drop / rename branches):** never `gh stack modify` (TUI-only). Tear down and rebuild — PRs and branches survive:
+**Restructure (reorder / drop / rename branches):** never `gh stack modify` (TUI-only). Rebuilding the stack records a new order but does not move commits, so fix Git history first, then tear down and rebuild. PRs and branches survive, except that a renamed branch gets a new PR; tell the user to close the old one.
 
-```bash
-gh stack view --json # record and validate the existing trunk before unstacking
-gh stack unstack
-# rename/reorder with plain git as needed
-gh stack init --base <recorded-trunk> <branches bottom-to-top>
-gh stack submit --auto
-```
+1. Read `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-rewrite-safety.md` and run its complete preflight with `STACK_STOP_ON_BEHIND=1` before every Restructure, because the rebuild force-pushes every moved layer and would drop commits that exist only on the remote. If it stops on a behind branch, run **Routine sync** above; on a diverged branch, integrate it; then start over. Run `gh stack view --json`. If any branch reports `needsRebase: true`, restack first and start over, because a stale layer's old parent tip is not where that layer starts: run `gh stack rebase --remote "$STACK_REMOTE"`, handling conflicts as in **Conflicts** above. Validate the trunk and record it as `<recorded-trunk>`. For every branch, record its tip SHA and its old parent's tip SHA before moving anything; for the bottom branch, the old parent tip is `git merge-base <recorded-trunk> <branch>`.
+2. Keep the recorded branch names until step 4. From the lowest changed position up the new order, rebase every layer onto its new parent, including a layer whose parent kept its name but was itself moved. Use the recorded old parent tip so only that layer's own commits move:
+
+   ```bash
+   git rebase --onto <new-parent> <recorded-old-parent-tip> <branch>
+   ```
+
+   The new bottom layer's parent is the recorded trunk. A dropped branch leaves the stack; its commits stay out of every remaining layer. Stop on a conflict or any other Git error, such as a branch checked out in another worktree, and escalate instead of resolving content the user did not ask to change or touching another worktree.
+
+3. Confirm each layer holds only its own commits. A rebase changes commit SHAs, so compare patches with `git range-diff <recorded-old-parent-tip>..<recorded-tip> <new-parent>..<branch>`. Stop on any unpaired commit: a line marked `<` (dropped) or `>` (added).
+
+   On any stop in steps 2–3, nothing has been unstacked or pushed yet. Run `git rebase --abort` if a rebase is active, restore each layer you already moved to its recorded tip (`git reset --keep <recorded-tip>` on the checked-out branch, `git branch -f <branch> <recorded-tip>` for the others), and report the recorded trunk and tips to the user.
+
+4. Rebuild from the recorded trunk, bottom to top. Rename branches only after `gh stack unstack`, then pass the new names to `init`:
+
+   ```bash
+   gh stack unstack
+   # rename branches with plain git as needed
+   gh stack init --base <recorded-trunk> <branches bottom-to-top>
+   gh stack submit --auto
+   ```
 
 ## Adopt an existing chain
 
-- **Local ordered branches** (e.g. built from a `trackbed:code:breakdown-findings --split` Stack plan): validate every member with `git check-ref-format --branch`, store them in `STACK_BRANCHES`, resolve `BASE_BRANCH` through the Create step's `${CLAUDE_PLUGIN_ROOT}/scripts/resolve-base.sh` JSON procedure (including `BASE_BRANCH_OVERRIDE` when supplied), then run `gh stack init --base "$BASE_BRANCH" "${STACK_BRANCHES[@]}"` (bottom to top — existing branches are adopted), followed by `gh stack submit --auto`. Stop if the resolved trunk is unclear or conflicts with the chain's known parent.
-- **PRs or branches already on GitHub, or branches managed by external tools** (jj, Sapling, git-town, worktree chains): validate each branch/PR operand from Step 0 and store them in `STACK_ITEMS` bottom to top. Read `references/link-target.md` and run its guarded link procedure with the original array. Bare PR leaders require collision checks; explicit URLs pass through unchanged. Branch-led input uses the supplied branch. It pushes branch operands, creates missing PRs, repairs bases, and links the stack — no local tracking required.
+- **Local ordered branches** (e.g. built from a `trackbed:code:breakdown-findings --split` Stack plan): validate every member with `git check-ref-format --branch`, store them in `STACK_BRANCHES`, resolve `BASE_BRANCH` through the Create step's `${CLAUDE_PLUGIN_ROOT}/scripts/resolve-base.sh` JSON procedure (including `BASE_BRANCH_OVERRIDE` when supplied), then run `gh stack init --base "$BASE_BRANCH" "${STACK_BRANCHES[@]}"` (bottom to top — existing branches are adopted), followed by `gh stack submit --auto`. Stop if the resolved trunk is unclear or conflicts with the chain's known parent. gh-stack shares local tracking across a clone's worktrees, so a worktree chain needs `init`, not `link`.
+- **PRs already on GitHub without a local chain, or branches managed by other tools** (jj, Sapling, git-town): validate each branch/PR operand from Step 0 and store them in `STACK_ITEMS` bottom to top. Read `references/link-target.md` and run its guarded link procedure with the original array. Bare PR leaders require collision checks; explicit URLs pass through unchanged. Branch-led input uses the supplied branch. It pushes branch operands, creates missing PRs, repairs bases, and links the stack — no local tracking required.
 
 ## Status report
 

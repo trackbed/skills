@@ -16,9 +16,10 @@
 # so a caller cannot rewrite or push history under an unknown stack state.
 #
 # Local membership requires stack JSON on stdout, not merely a zero exit status
-# from "gh stack view --json": gh-stack v0.1.0 has been observed reporting "is
-# not part of a stack" while still exiting 0, and trusting that exit code alone
-# routes an unstacked branch into stack-wide rebase and push commands.
+# from "gh stack view --json": gh-stack can report "is not part of a stack" while
+# still exiting 0 (observed in v0.1.0 and not confirmed fixed since), and trusting
+# that exit code alone routes an unstacked branch into stack-wide rebase and push
+# commands.
 
 set -euo pipefail
 
@@ -71,7 +72,7 @@ STACK_MEMBERSHIP=""
 STACK_CLI_AVAILABLE=0
 STACK_PR_NUMBER=""
 STACK_NUMBER=""
-GH_STACK_MINIMUM_VERSION="0.1.0"
+GH_STACK_MINIMUM_VERSION="0.3.0"
 
 REMOTE_NAMES=$(git remote) || {
   echo "Could not enumerate Git remotes; stack membership is unknown." >&2
@@ -112,7 +113,7 @@ if GH_STACK_VERSION_OUTPUT=$(gh stack --version 2>&1); then
     echo "Could not parse the installed gh-stack version; upgrade to v$GH_STACK_MINIMUM_VERSION or newer with 'gh extension upgrade stack'." >&2
     exit 1
   fi
-  if ((GH_STACK_VERSION_MAJOR == 0 && GH_STACK_VERSION_MINOR < 1)); then
+  if ((GH_STACK_VERSION_MAJOR == 0 && GH_STACK_VERSION_MINOR < 3)); then
     echo "gh-stack v$GH_STACK_VERSION is unsupported; upgrade to v$GH_STACK_MINIMUM_VERSION or newer with 'gh extension upgrade stack'." >&2
     exit 1
   fi

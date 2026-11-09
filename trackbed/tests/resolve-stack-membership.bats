@@ -20,7 +20,7 @@ setup() {
 	git remote add origin https://github.com/acme/demo.git
 
 	export MOCK_EXTENSION_STATUS=0
-	export MOCK_EXTENSION_VERSION=0.1.0
+	export MOCK_EXTENSION_VERSION=0.3.0
 	export MOCK_STACK_VIEW_STATUS=2
 	export MOCK_PR_LIST_STATUS=0
 	export MOCK_PR_NUMBER=""
@@ -51,7 +51,7 @@ write_mock_gh() {
 
 if [ "$1" = "stack" ] && [ "$2" = "--version" ]; then
   [ "${MOCK_EXTENSION_STATUS:-0}" -eq 0 ] || exit "$MOCK_EXTENSION_STATUS"
-  printf 'gh stack version %s\n' "${MOCK_EXTENSION_VERSION:-0.1.0}"
+  printf 'gh stack version %s\n' "${MOCK_EXTENSION_VERSION:-0.3.0}"
   exit 0
 fi
 
@@ -242,6 +242,31 @@ load_assignments() {
 	[[ "$output" == *"gh extension upgrade stack"* ]]
 	! grep -q 'command \[stack\] \[view\]' "$GH_LOG"
 	! grep -q 'command \[pr\] \[list\]' "$GH_LOG"
+}
+
+@test "rejects gh-stack older than v0.3.0 with an upgrade instruction" {
+	export MOCK_EXTENSION_VERSION=0.2.1
+
+	run "$SCRIPT"
+
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"gh-stack v0.2.1 is unsupported; upgrade to v0.3.0 or newer with 'gh extension upgrade stack'."* ]]
+	! grep -q 'command \[stack\] \[view\]' "$GH_LOG" || false
+	! grep -q 'command \[pr\] \[list\]' "$GH_LOG"
+}
+
+@test "accepts gh-stack versions above the v0.3.0 floor" {
+	export MOCK_STACK_VIEW_STATUS=0
+
+	for version in 0.10.0 1.0.0; do
+		export MOCK_EXTENSION_VERSION="$version"
+		run "$SCRIPT"
+
+		[ "$status" -eq 0 ]
+		load_assignments
+		[ "$STACK_MEMBERSHIP" = "local" ]
+		[ "$STACK_CLI_AVAILABLE" = "1" ]
+	done
 }
 
 @test "fails closed when the gh-stack version cannot be parsed" {
@@ -622,6 +647,31 @@ run_documented_stack_checkout() {
 	grep -F 'keeps or removes that footer' "$strategies"
 }
 
+@test "pr:stack guidance matches gh-stack v0.3 behavior" {
+	local stack_skill="$REPO_ROOT/skills/pr:stack/SKILL.md"
+	local rules="$REPO_ROOT/skills/pr:stack/references/cli-agent-rules.md"
+
+	! grep -R -i -E 'private preview|waitlist|stacksbeta' "$REPO_ROOT/skills" || false
+	grep -F 'stacked PRs must be enabled for the repository' "$stack_skill"
+	grep -F 'The minimum supported extension version is v0.3.0' "$stack_skill"
+	! grep -iF 'linear history' "$rules" || false
+	grep -F 'Stacks accept merge-commit, squash, and rebase merges.' "$rules"
+	grep -F '`view --short` never does' "$rules"
+	grep -F 'Only JSON output is machine-readable.' "$rules"
+	grep -F 'a worktree chain needs `init`, not `link`' "$stack_skill"
+	! grep -F 'worktree chains)' "$stack_skill" "$rules" || false
+
+	local rebase_line init_line
+	rebase_line=$(grep -n -F 'git rebase --onto <new-parent> <recorded-old-parent-tip> <branch>' "$stack_skill" | cut -d: -f1)
+	init_line=$(grep -n -F 'gh stack init --base <recorded-trunk> <branches bottom-to-top>' "$stack_skill" | cut -d: -f1)
+	[ -n "$rebase_line" ]
+	[ -n "$init_line" ]
+	[ "$rebase_line" -lt "$init_line" ]
+	grep -F 'Confirm each layer holds only its own commits' "$stack_skill"
+	grep -F 'Stop on any unpaired commit' "$stack_skill"
+	grep -F 'which rebase and check every moved layer before `gh stack unstack` and `init`' "$rules"
+}
+
 @test "stack workflow does not delegate mutating description generation" {
 	local stack_skill="$REPO_ROOT/skills/pr:stack/SKILL.md"
 
@@ -930,6 +980,26 @@ advance_stack_remote() {
 	[[ "$output" != *"integrate them"* ]]
 	# A behind-only layer is not fast-forwarded by the read-only guard.
 	[ "$(git rev-list --count layer..FETCH_HEAD)" -eq 1 ]
+}
+
+@test "restructure preflight also stops a behind-only branch" {
+	prepare_stack_preflight
+	advance_stack_remote layer
+	local before
+	before=$(git rev-parse layer)
+
+	STACK_STOP_ON_BEHIND=1 run bash "$PREFLIGHT"
+
+	[ "$status" -ne 0 ]
+	[[ "$output" == *"origin/layer has commits the local branch lacks; sync them before restructuring."* ]]
+	[ "$(git rev-parse layer)" = "$before" ]
+
+	local stack_skill="$REPO_ROOT/skills/pr:stack/SKILL.md"
+	local preflight_line rebase_line
+	preflight_line=$(grep -n -F 'run its complete preflight with `STACK_STOP_ON_BEHIND=1` before every Restructure' "$stack_skill" | cut -d: -f1)
+	rebase_line=$(grep -n -F 'git rebase --onto <new-parent> <recorded-old-parent-tip> <branch>' "$stack_skill" | cut -d: -f1)
+	[ -n "$preflight_line" ]
+	[ "$preflight_line" -lt "$rebase_line" ]
 }
 
 @test "stack preflight fails closed on inventory fetch or missing local branch" {
