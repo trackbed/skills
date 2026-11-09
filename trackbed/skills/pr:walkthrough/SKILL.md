@@ -172,8 +172,11 @@ Read the local `references/` and `assets/` files just in time, as step 2 below d
    - `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/libraries.md` for Mermaid theming, Chart.js, anime.js, and CDN usage
 
 3. **Style.** Use typography, palette, and depth to clearly distinguish before, after, neutral context, and risks. Avoid the stock generated looks: a dark theme with blue or purple accents, and a cream or off-white page with italic accent words in headlines, numbered "01/02/03" section labels, and pill-shaped badges. Respect `prefers-reduced-motion`.
+   - Keep all text, including dim text, status chips, and panel headers, at 4.5:1 contrast or higher in both the light and dark schemes. The shared palettes meet that floor, so recheck any color you change or add.
+   - Show every state with a word or a line style as well as color: label panels and chips Before, After, Added, Modified, or Deleted, and draw removed or before elements with dashed lines.
 
 4. **Generate and fact-check.** After composing the artifact, compare the rendered claims back to the fact sheet and source evidence before reporting it. Verify counts, file references, function/type names, Mermaid labels, before/after statements, and review notes. If polish introduced a new claim, add source evidence or remove the claim.
+   - Check that every diagram has an accessible name: each `<pre class="mermaid">`, chart `<canvas>`, and informative `<svg>` carries `role="img"` and an `aria-label` that states the diagram's claim, and decorative SVG carries `aria-hidden="true"`. `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/libraries.md` shows the pattern.
 
 5. **Deliver.** Open the fact-checked artifact in the browser and report the file path to the user.
 
@@ -200,7 +203,8 @@ Run these first to understand the full scope:
 - Read all changed files in full, including surrounding code paths needed to validate behavior
 - Check whether `CHANGELOG.md` has an entry for the changes
 - Check whether project documentation needs updates for new or changed features
-- Reconstruct decision rationale from available conversation history, progress docs, commit messages, and PR descriptions
+- Compare dependency manifests, lockfiles, and build configuration on both sides, such as `package.json`, `pyproject.toml`, `go.mod`, Dockerfiles, CI workflows, and Makefiles. Record each added, removed, or upgraded dependency and each build-configuration change in the fact sheet as data.
+- Reconstruct decision rationale from available conversation history, progress docs, commit messages, and PR descriptions. Record each alternative these sources name, together with its source.
 
 ### Verification Checkpoint
 
@@ -217,12 +221,14 @@ Before generating HTML, produce a structured fact sheet of every claim to presen
 
 ### Page Sections
 
+Render a section only when the fact sheet gives it something to show. Omit an empty section, or merge a section with a single fact into its nearest neighbor, and leave it out of the navigation. A small change can need only a few of these sections.
+
 1. **Executive summary** — Lead with the intuition: why do these changes exist, and what was the core insight? Then give factual scope such as files, lines, and new modules. Use hero depth with 20-24px type and an accent-tinted background.
-2. **KPI dashboard** — Show lines added/removed, files changed, new modules, and test counts. Include housekeeping indicators for whether `CHANGELOG.md` was updated and whether docs need changes.
+2. **KPI dashboard** — Show lines added/removed, files changed, new modules, and test counts. Include housekeeping indicators for whether `CHANGELOG.md` was updated and whether docs need changes. When the change touches dependencies or build configuration, show those changes from the fact sheet.
 3. **Module architecture** — Show a Mermaid dependency graph of the current state inside `.mermaid-wrap` with zoom controls.
 4. **Major feature comparisons** — Use side-by-side before/after panels for each significant change area.
 5. **Flow diagrams** — Use Mermaid flowcharts, sequences, or state diagrams for new lifecycle, pipeline, or interaction patterns with the same zoom controls.
-6. **File map** — Show a full tree with color-coded new, modified, and deleted indicators inside `<details>` collapsed by default.
+6. **File map** — Show a full tree with new, modified, and deleted indicators inside `<details>` collapsed by default. Each indicator carries a word as well as its color.
 7. **Test coverage** — Compare before/after test file counts and explain what is covered.
 8. **Review notes** — Present explanatory Good/Bad/Ugly analysis for the visual artifact, not authoritative inline findings. Use `trackbed:pr:code-review` for actionable review and `trackbed:pr:product-review` for live UX/product review.
    - **Good**: Solid choices, improvements, and clean patterns
@@ -233,15 +239,15 @@ Before generating HTML, produce a structured fact sheet of every claim to presen
 9. **Decision log** — For each significant design choice, include:
    - **Decision**: One-line summary
    - **Rationale**: Why this approach
-   - **Alternatives considered**: What was rejected and why
-   - **Confidence**: High for sourced, medium for inferred, and low for unrecoverable rationale, with green, blue, and amber borders respectively
+   - **Alternatives considered**: Only alternatives that a commit, PR, document, or conversation names, each with what was rejected, why, and its source. Never infer an alternative. When none is recorded, write `None recorded`.
+   - **Confidence**: High for sourced, medium for inferred, and low for unrecoverable rationale, with green, blue, and amber borders and the confidence word shown on each entry
 10. **Re-entry context** — Add a present-you-to-future-you note inside `<details>` collapsed by default:
     - Key invariants the changed code relies on
     - Non-obvious coupling between files or behaviors
     - Gotchas that would surprise a future modifier
     - Follow-up work such as migrations, config updates, or docs
 
-Make sections 1-3 dominate the viewport. Keep sections 6 onward compact and collapsible. Use red for removed/before, green for added/after, yellow for modified, and blue for neutral context.
+Make sections 1-3 dominate the viewport. Keep sections 6 onward compact and collapsible. Use red for removed/before, green for added/after, amber for modified, and blue for neutral context, each paired with its word or line style.
 
 ### Output
 

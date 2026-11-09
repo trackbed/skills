@@ -24,17 +24,19 @@
         --border: rgba(0, 0, 0, 0.07);
         --border-bright: rgba(0, 0, 0, 0.14);
         --text: #292017;
-        --text-dim: #8a7e72;
-        --accent: #c2410c;
-        --accent-dim: rgba(194, 65, 12, 0.07);
-        --green: #4d7c0f;
-        --green-dim: rgba(77, 124, 15, 0.07);
-        --orange: #b45309;
-        --orange-dim: rgba(180, 83, 9, 0.07);
-        --sage: #65a30d;
-        --sage-dim: rgba(101, 163, 13, 0.07);
-        --teal: #0f766e;
-        --teal-dim: rgba(15, 118, 110, 0.07);
+        --text-dim: #6a6157;
+        --accent: #b13b0b;
+        --accent-dim: rgba(177, 59, 11, 0.07);
+        --green: #456e0d;
+        --green-dim: rgba(69, 110, 13, 0.07);
+        --orange: #a34b08;
+        --orange-dim: rgba(163, 75, 8, 0.07);
+        --red: #c21f1f;
+        --red-dim: rgba(194, 31, 31, 0.07);
+        --sage: #4d6b45;
+        --sage-dim: rgba(77, 107, 69, 0.07);
+        --teal: #0e716a;
+        --teal-dim: rgba(14, 113, 106, 0.07);
         --plum: #9f1239;
         --plum-dim: rgba(159, 18, 57, 0.07);
       }
@@ -48,13 +50,15 @@
           --border: rgba(255, 255, 255, 0.06);
           --border-bright: rgba(255, 255, 255, 0.12);
           --text: #ede5dd;
-          --text-dim: #a69889;
+          --text-dim: #b9aea2;
           --accent: #fb923c;
           --accent-dim: rgba(251, 146, 60, 0.12);
           --green: #a3e635;
           --green-dim: rgba(163, 230, 53, 0.1);
           --orange: #fbbf24;
           --orange-dim: rgba(251, 191, 36, 0.1);
+          --red: #fca5a5;
+          --red-dim: rgba(252, 165, 165, 0.1);
           --sage: #bef264;
           --sage-dim: rgba(190, 242, 100, 0.1);
           --teal: #5eead4;
@@ -549,7 +553,7 @@
 
       <!-- Flow arrow -->
       <div class="flow-arrow" style="--i: 1">
-        <svg viewBox="0 0 20 20">
+        <svg viewBox="0 0 20 20" aria-hidden="true">
           <path d="M10 4 L10 16 M6 12 L10 16 L14 12" />
         </svg>
         incoming events
@@ -575,7 +579,7 @@
       </div>
 
       <div class="flow-arrow" style="--i: 3">
-        <svg viewBox="0 0 20 20">
+        <svg viewBox="0 0 20 20" aria-hidden="true">
           <path d="M10 4 L10 16 M6 12 L10 16 L14 12" />
         </svg>
         pipeline entry
@@ -663,7 +667,7 @@
       </div>
 
       <div class="flow-arrow" style="--i: 5">
-        <svg viewBox="0 0 20 20">
+        <svg viewBox="0 0 20 20" aria-hidden="true">
           <path d="M10 4 L10 16 M6 12 L10 16 L14 12" />
         </svg>
         stored and queryable
@@ -689,7 +693,7 @@
       </div>
 
       <div class="flow-arrow" style="--i: 7">
-        <svg viewBox="0 0 20 20">
+        <svg viewBox="0 0 20 20" aria-hidden="true">
           <path d="M10 4 L10 16 M6 12 L10 16 L14 12" />
         </svg>
         consumed by

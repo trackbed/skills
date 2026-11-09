@@ -8,6 +8,8 @@ Use for flowcharts, sequence diagrams, ER diagrams, state machines, mind maps, c
 
 Do NOT use for dashboards — CSS Grid card layouts with Chart.js look better for those. Data tables use `<table>` elements.
 
+**Name every diagram.** Give each `<pre class="mermaid">` `role="img"` and an `aria-label` that states the diagram's claim, such as `aria-label="Request flow: the gateway validates the token before the service reads the database"`. Mermaid renders the SVG inside that element and keeps its attributes, and this works for every diagram type. Do the same for a Chart.js `<canvas>` and any informative inline `<svg>`. Mark decorative SVG such as arrows with `aria-hidden="true"`.
+
 **CDN:**
 
 ```html
@@ -259,7 +261,11 @@ Auth --> API
 **Flowchart with decisions:**
 
 ```html
-<pre class="mermaid">
+<pre
+  class="mermaid"
+  role="img"
+  aria-label="Request routing: unauthenticated users log in first, then admins reach the admin panel and users their dashboard"
+>
 graph TD
   A[Request] --> B{Authenticated?}
   B -->|Yes| C[Load Dashboard]
@@ -275,7 +281,11 @@ graph TD
 **Sequence diagram:**
 
 ```html
-<pre class="mermaid">
+<pre
+  class="mermaid"
+  role="img"
+  aria-label="API request: the gateway validates the JWT, forwards to the service, which queries the database"
+>
 sequenceDiagram
   participant C as Client
   participant G as Gateway
@@ -294,7 +304,11 @@ sequenceDiagram
 **ER diagram:**
 
 ```html
-<pre class="mermaid">
+<pre
+  class="mermaid"
+  role="img"
+  aria-label="Order schema: users place orders, orders contain line items, line items reference products"
+>
 erDiagram
   USERS ||--o{ ORDERS : places
   ORDERS ||--|{ LINE_ITEMS : contains
@@ -309,7 +323,11 @@ erDiagram
 **State diagram:**
 
 ```html
-<pre class="mermaid">
+<pre
+  class="mermaid"
+  role="img"
+  aria-label="Document lifecycle from draft through review and approval to published and archived"
+>
 stateDiagram-v2
   [*] --> Draft
   Draft --> Review : submit
@@ -324,7 +342,11 @@ stateDiagram-v2
 **Mind map:**
 
 ```html
-<pre class="mermaid">
+<pre
+  class="mermaid"
+  role="img"
+  aria-label="Project stack grouped into frontend, backend, and infrastructure"
+>
 mindmap
   root((Project))
     Frontend
@@ -360,11 +382,17 @@ Use for bar charts, line charts, pie/doughnut charts, radar charts, and other da
 ```html
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 
-<canvas id="myChart" width="600" height="300"></canvas>
+<canvas
+  id="myChart"
+  width="600"
+  height="300"
+  role="img"
+  aria-label="Feedback items per month, rising from 45 in January to 120 in May"
+></canvas>
 
 <script>
   const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const textColor = isDark ? "#8b949e" : "#6b7280";
+  const textColor = isDark ? "#9ca3ac" : "#5f6672";
   const gridColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
   const fontFamily =
     getComputedStyle(document.documentElement)
