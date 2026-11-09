@@ -117,6 +117,8 @@ Use `/trackbed:siw:spec-audit --apply <report>` for deterministic report finding
 
 Use `/trackbed:siw:resolve-audit` for findings requiring a choice. It checks each finding first. A finding it can disprove with evidence the auditor could have read is marked `[Contested]` and gets no issue once you agree, or straight away with `--auto`; name its ID on a later run to reopen it. A finding that looks wrong only because of something no file records always waits for you, and so does a Critical finding under `--auto`, including one capped from Critical. For the rest, it presents an executive summary, alternatives, and a recommendation before creating the selected local SIW issue. Explicitly supplied legacy implementation-audit reports remain readable for migration recovery, but SIW no longer produces new implementation-audit reports.
 
+Every issue it creates takes its priority from the audit's severity: Critical to High, Major to Medium, Minor to Low, using the original severity when the audit capped a finding. The issue shows that severity. When the resolver thinks a real finding is rated too high, it still accepts it, and the issue records its evidence beside the audit's rating. The final summary lists findings waiting on your decision first.
+
 ## Initial Issue Definition
 
 ### Issue set

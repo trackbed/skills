@@ -102,3 +102,31 @@ setup() {
   grep -qF 'Do not invoke resolve-review again: its checkpoint would stash those changes' "$reply"
   grep -qF 'Otherwise make the fix yourself with their answer, on top of the first run'"'"'s uncommitted changes.' "$reply"
 }
+
+@test "resolve-audit derives every issue's priority from the audit's severity" {
+  local template
+
+  grep -qF 'Map it the same way for every finding type: Critical → High, Major → Medium, Minor → Low.' "$RESOLVE_AUDIT"
+  grep -qF -- '- Set `Priority` with the Step 3 severity-to-priority rule, whatever the finding type.' "$RESOLVE_AUDIT"
+  ! grep -qF 'severity-inheritance' "$RESOLVE_AUDIT"
+  for template in skills/siw:resolve-audit/assets/issue-{div-ext,spec,prod}.md.template; do
+    grep -qF '**Priority:** {High/Medium/Low — see Step 3 severity-to-priority rule}' "$template"
+    grep -qF '**Audit Severity:** {Critical | Major | Minor, as the report states it} {Severity Note copied verbatim from the audit report, if present}' "$template"
+    grep -qF "**Resolver's Rating Evidence:**" "$template"
+  done
+}
+
+@test "resolve-audit accepts an over-rated finding and records its evidence" {
+  grep -qF 'if you believe the finding is real but rated too high, accept it. Keep the priority the Step 3 rule derives' "$RESOLVE_AUDIT"
+  grep -qF 'Never adjust the result, even when Step 4.0 accepts the finding as over-rated.' "$RESOLVE_AUDIT"
+  grep -qF "When Step 4.0 accepted the finding as over-rated, fill \`Resolver's Rating Evidence\` with the evidence from the executive summary." "$RESOLVE_AUDIT"
+}
+
+@test "resolve-audit lists escalations first in its final summary" {
+  local escalated_line processed_line
+
+  grep -qF 'When any finding was escalated, list the escalations first, before the counts' "$RESOLVE_AUDIT"
+  escalated_line=$(grep -nF -- '- Escalated - needs your decision' "$RESOLVE_AUDIT" | cut -d: -f1)
+  processed_line=$(grep -nF -- '- Findings processed count' "$RESOLVE_AUDIT" | cut -d: -f1)
+  [ "$escalated_line" -lt "$processed_line" ]
+}
