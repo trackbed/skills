@@ -484,7 +484,7 @@ Codebase, dependency, test-suite, and agent-practice audits that report findings
 
 | Skill | Invocation | Arguments | Description |
 | --- | --- | --- | --- |
-| `/trackbed:code:refactor-opportunities` | User, Auto | `[--subagent-model <model>] [full \| pr \| path <file-or-folder> \| feature <name>] [--for <spec-file \| description>] [--ranked [--solo] [--output <path>] [--max-findings N] [--base <ref>]]` | Find refactoring candidates and tech debt in a codebase, PR, path, or feature, or before a planned change (`--for`); `--ranked` ranks the biggest weaknesses. |
+| `/trackbed:code:refactor-opportunities` | User, Auto | `[--subagent-model <model>] [full \| pr \| path <file-or-folder> \| feature <name>] [--for <spec-file \| description>] [--ranked [--solo] [--output <path>] [--max-findings N] [--base <ref>]]` | Find refactoring candidates, tech debt, and implicit state machines in a repo, PR, path, or feature, or before a change (`--for`); `--ranked` ranks weaknesses. |
 | `/trackbed:code:outside-view` | User | `[--subagent-model <model>] [--raters N] [--output <path>] [--compare <report-path>] [--cross-model]` | Rate a codebase with unprimed raters to surface unknown-unknown quality problems, especially in AI-engineered code. |
 | `/trackbed:code:agent-readiness` | User | `[--subagent-model <model>] [--auto]` | Score how well a codebase suits AI coding agents across five dimensions and get a prioritized refactoring plan. |
 | `/trackbed:code:audit-agent-config` | User, Auto | `[scope-path]` | Audit the repository's agent instructions, skills, hooks, MCP servers, and permissions for redundant, outdated, or conflicting entries. Read-only. |

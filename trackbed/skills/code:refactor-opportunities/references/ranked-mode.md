@@ -18,7 +18,7 @@ Launch through the resumable fan-out resolved in `SKILL.md`: the active research
 
 ## Shared Workflow
 
-Read `${CLAUDE_PLUGIN_ROOT}/shared/codebase-audit/references/audit-workflow.md` and follow it. Supply Phase 3 steps 4-5 as the caller's rejection policy: filter against `KNOWN_OUT_OF_SCOPE` and `KNOWN_ADRS`, reopening only with concrete new evidence. The Governance & conventions reviewer retains its evidence-backed ADR exception. These filters run at the shared workflow's Filter Hard stage, before final ranking.
+Read `${CLAUDE_PLUGIN_ROOT}/shared/codebase-audit/references/audit-workflow.md` and follow it. Pass the resolved implicit-state-machine method from `SKILL.md` to the Correctness & invariants reviewer as its method for state transitions; with `--solo`, apply it in the correctness lens. Ranked candidates keep the shared workflow's fields, so put a machine's writers and owner in its evidence and its proposed owner in its smallest useful first fix. Supply Phase 3 steps 4-5 as the caller's rejection policy: filter against `KNOWN_OUT_OF_SCOPE` and `KNOWN_ADRS`, reopening only with concrete new evidence. The Governance & conventions reviewer retains its evidence-backed ADR exception. These filters run at the shared workflow's Filter Hard stage, before final ranking.
 
 After the shared workflow writes the report, mark the run complete. When results were reused, add the `Agents reused:` line from the resumable fan-out contract after its `Agents launched: N` line.
 

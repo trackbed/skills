@@ -65,6 +65,20 @@
 - **Tests:** {{tests that move to the new interface; old tests on the shallow pieces that get deleted}}
 - **Benefit:** {{locality or leverage gained}}
 
+## State Machines
+
+{{One block per implicit state machine finding (category 11), highest severity first. Outside PR scope, start with one line: `Inventory: N candidates found, M traced, K with a risk.`, using the scan agent's counts from before synthesis filtered any machine out. Write "None found." when no machine is reported below. Name each machine with the project's domain terms. Each machine also has a row in the severity tables and an `RO-NNN` block under Breakdown-Ready Finding Data.}}
+
+### {{RO-NNN}}: {{machine name}} — `{{where its state lives}}`
+
+- **Kind:** {{persisted enum / timestamp combination / flag combination / lease or claim / job or outbox / mirror / client state / …}}
+- **States:** {{reachable states; terminal ones marked}}
+- **Writers:** {{count}}: {{path:line from → to (guard)}}; …
+- **Owner today:** {{none / partial: what / bypassed: owner, n of m writers}}
+- **Risks:** {{shape, or the planned change under --for}}: {{path:line evidence}} ({{re-read / not re-read}})
+- **Proposed owner:** {{transition table, guard, or reducer}}, following {{exemplar path, or none in the repository}}
+- **Tests:** {{transition test; regression tests that fail today}}
+
 ## Recommended Refactor Order
 
 {{Ordered list of refactors to tackle first, considering: risk, blast radius, dependency between findings, and quick wins. Separate automation-candidate themes (edit size over 500 lines) from manual fixes.}}

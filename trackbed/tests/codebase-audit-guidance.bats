@@ -126,6 +126,55 @@ setup() {
 	grep -qF 'then Phase 4 step 10 with `WA-NNN` IDs to hand off one item' "$RANKED_MODE"
 }
 
+@test "refactor opportunities traces implicit state machines through one shared method" {
+	local method="shared/state-machines/references/implicit-state-machines.md"
+	local checklist="skills/code:refactor-opportunities/references/checklist.md"
+	local template="skills/code:refactor-opportunities/assets/report-template.md"
+	local shape
+	[ -f "$method" ]
+	grep -qF 'An implicit state machine is a value, or a combination of values, that:' "$method"
+	for shape in 'A terminal state can be left.' 'A queued state has no exit.' \
+		"Delayed work doesn't re-check its assumptions." 'An owner exists but writers bypass it.' \
+		"Fields that belong to a state don't move with it." 'Two machines on one record have no shared rule.' \
+		'A copy is kept in sync by hand.' 'One condition is restated in many places, with differences.' \
+		'Check-then-act races and repeated actions.' 'Client flows disagree, or reset at the wrong time.' \
+		'Old records are missing the field.'; do
+		grep -qF "**$shape**" "$method"
+	done
+	[ "$(sed -n '/^## Risk Shapes$/,/^## /p' "$method" | grep -cE '^[0-9]+\. \*\*')" -eq 11 ]
+	grep -qF 'A candidate that no shape applies to is not a finding.' "$method"
+	grep -qF "The exception is a candidate with no owner that the caller's planned change adds a writer or state to" "$method"
+	grep -qF "Do not introduce a state-machine library the repository doesn't already use." "$method"
+
+	grep -qxF '## 11. Implicit State Machines' "$checklist"
+	grep -qF "\${CLAUDE_PLUGIN_ROOT}/$method" "$checklist"
+	grep -qF '**In PR scope,** check only whether the PR does one of these, and record it under the risk shape in parentheses:' "$checklist"
+
+	grep -qF 'refactoring candidates and implicit state machines.' <(sed -n '/^description:/p' "$REFACTOR_SKILL")
+	grep -qF -- '- **Agent 5 — State & Lifecycle**: category 11 (Implicit State Machines) in full, path, and feature scopes' "$REFACTOR_SKILL"
+	grep -qF "Pass it the resolved path of \`\${CLAUDE_PLUGIN_ROOT}/$method\`" "$REFACTOR_SKILL"
+	grep -qF "each slice traces its machines' writers across the whole scope" "$REFACTOR_SKILL"
+	grep -qF 'With `--for`, it starts with the state the planned change adds to or writes.' "$REFACTOR_SKILL"
+	grep -qF 'In PR scope, skip Agent 5 and pass Agent 2 the same method path' "$REFACTOR_SKILL"
+	grep -qF 'so the refactor gate in review convergence launches no extra agent' "$REFACTOR_SKILL"
+	grep -qF "Category 11's PR checks are the exception" "$REFACTOR_SKILL"
+	sed -n '/^### Phase 3/,/^### Phase 4/p' "$REFACTOR_SKILL" |
+		grep -qF 'Keep category 11 PR-check findings active even when their fix updates an owner or readers the PR left unchanged'
+	grep -qF "go in the report's State Machines section as well as the severity tables" "$REFACTOR_SKILL"
+	grep -qF 'a category 11 machine counts as one location, however many writers it lists' "$REFACTOR_SKILL"
+	grep -qF 'For a category 11 item, add its State Machines block after that block' "$REFACTOR_SKILL"
+	grep -qF -- "- \`\${CLAUDE_PLUGIN_ROOT}/$method\` — the method the Correctness & invariants reviewer uses for state transitions." "$REFACTOR_SKILL"
+	local reread decide
+	reread=$(grep -nF 'Re-read the writer and guard behind each category 11 finding rated high' "$REFACTOR_SKILL" | cut -d: -f1)
+	decide=$(grep -nF '6. **Decide whether anything is worth changing.**' "$REFACTOR_SKILL" | cut -d: -f1)
+	[ -n "$reread" ] && [ -n "$decide" ] && [ "$reread" -lt "$decide" ]
+
+	grep -qxF '## State Machines' "$template"
+	grep -qF 'Inventory: N candidates found, M traced, K with a risk.' "$template"
+	grep -qF 'to the Correctness & invariants reviewer as its method for state transitions' "$RANKED_MODE"
+	grep -qF "put a machine's writers and owner in its evidence" "$RANKED_MODE"
+}
+
 @test "weakness audit is retired and its consumers route to ranked mode" {
 	[ ! -e "skills/kramme:code:weakness-audit" ]
 	run grep -rqF 'weakness-audit' skills shared
