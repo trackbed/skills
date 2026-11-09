@@ -221,7 +221,7 @@ Run before every commit when working near credential-handling code:
 git diff --cached -i -G 'password|secret|api_key|token' --name-only
 ```
 
-This case-insensitive check names files whose staged changes match; it never prints matching lines or values. Review flagged files locally without echoing credentials into terminal or agent logs. A nonzero exit is a failed check, not a clean scan. False positives are expected; extend the pattern with project-specific markers (`PRIVATE_KEY`, vendor prefixes). A pre-commit hook is a separate follow-up.
+This case-insensitive check names files whose staged changes match; it never prints matching lines or values. It searches changed text only, not file names or binary files, so a staged secret file whose content contains none of the patterns, or a binary keystore, stays unlisted. Review flagged files locally without echoing credentials into terminal or agent logs. A nonzero exit is a failed check, not a clean scan. False positives are expected; extend the pattern with project-specific markers (`PRIVATE_KEY`, vendor prefixes). A pre-commit hook is a separate follow-up.
 
 ### Secret lifecycle
 
