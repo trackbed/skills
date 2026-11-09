@@ -87,3 +87,11 @@ sources:
     last_reviewed_at: 2026-11-08
     baseline_commit: "6a8001ea31ccf72430ba0603a467ec6df9f69dd7"
     baseline_hash: "sha256:d1a64b8df61b7012a4fc112381b1946a8c98e125e92d1c21e05bc419b0fa6cdf"
+  - id: egm-style-persona
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/6efc127defc561e3a672b3d155b8216255a10e25/agents/style.md
+    title: "google/elephant-goldfish-model - style reviewer"
+    rationale: "Narrowing a PR description's claims about tested or supported behavior to what its Test plan exercises, through the shared rubric's Caveats and Claims test, is informed by this source's defensive-caveats check; reviewed at upstream commit 6efc127defc561e3a672b3d155b8216255a10e25."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "5382b17619be07811a14b2146c7672620b34a791"
+    baseline_hash: "sha256:9330780622baaef8dc683ea78efb3ff8e4583e3dde7ab6092b84df50e8c9ea58"
