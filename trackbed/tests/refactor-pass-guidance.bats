@@ -57,10 +57,43 @@ setup() {
   grep -qF "The default-mode loop owns baseline health, the Fence, scope, one-slice changes, unmodified tests, and recovery." "$skill"
 }
 
+@test "default mode reverts unclear slices and keeps working abstractions" {
+  local skill="skills/code:refactor-pass/SKILL.md"
+  local candidates
+  local apply_change
+  local verify_commit
+  local default_verification
+
+  candidates="$(sed -n '/^### 1. Pick one simplification$/,/^### 2. Emit a SIMPLICITY CHECK$/p' "$skill")"
+  apply_change="$(sed -n '/^### 3. Apply the change$/,/^### 4. Verify and commit$/p' "$skill")"
+  verify_commit="$(sed -n '/^### 4. Verify and commit$/,/^### 5. Refresh and move to the next simplification$/p' "$skill")"
+  default_verification="$(sed -n '/^The default-mode loop owns baseline health/,/^For rewrite mode, confirm the end state/p' "$skill")"
+
+  grep -qF "Exclude a layer that does a job today: a seam that tests swap out, a boundary around a volatile dependency, or an interface with more than one real implementation." <<<"$candidates"
+  grep -qF "Before verifying, judge the slice's diff: if it leaves the code no clearer, or introduces an idiom the surrounding code does not use, revert the slice" <<<"$apply_change"
+  grep -qF "do not re-pick this one during the pass" <<<"$apply_change"
+  grep -qF "when no slice was committed, say that no candidate earned a commit instead of declaring the pass complete" <<<"$apply_change"
+  grep -qF "log one line naming the candidate and why" <<<"$apply_change"
+  grep -qF "Only a slice that is clearer and uses only idioms the surrounding code already uses goes on to verification." <<<"$apply_change"
+  grep -qF "When verification passes, record" <<<"$verify_commit"
+  grep -qF "If the final diff fails this check, do not declare the pass complete" <<<"$default_verification"
+  grep -qF "name the slice commits that did not add clarity, or say that none can be singled out, and stop and ask the user how to proceed." <<<"$default_verification"
+}
+
+@test "slice reverts remove created paths and confirm a clean slice" {
+  local skill="skills/code:refactor-pass/SKILL.md"
+  local apply_change
+
+  apply_change="$(sed -n '/^### 3. Apply the change$/,/^### 4. Verify and commit$/p' "$skill")"
+
+  grep -qF 'To revert the slice, `git restore` the tracked paths in `SLICE_PATHS`, delete the paths the slice created, and require `git status --porcelain` limited to `SLICE_PATHS` to print nothing.' <<<"$apply_change"
+  grep -qF "do not pick another candidate on a dirty slice" <<<"$apply_change"
+}
+
 @test "failed verification and rewrite scope retain their recovery actions" {
   local skill="skills/code:refactor-pass/SKILL.md"
 
-  grep -qF "revert the slice" "$skill"
+  grep -qF "If a test fails, you changed behavior: revert the slice and either re-plan or reclassify it" "$skill"
   grep -qF "restore the recovery point or reclassify it as a behavior change" "$skill"
   grep -qF "Do not combine a rewrite with consistency renames." "$skill"
   grep -qF "handle the rename as a separate slice, often in a separate PR" "$skill"

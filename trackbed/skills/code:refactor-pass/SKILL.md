@@ -189,7 +189,7 @@ From the refreshed combined candidate queue, pick exactly one target. Candidates
 - Twisted logic that can be straightened.
 - Excessive parameters, flags that select behavior, options objects that are always the same shape.
 - Premature optimization that adds indirection for no measured gain.
-- Unnecessary abstraction layers — wrappers that forward with no logic.
+- Unnecessary abstraction layers — wrappers that forward with no logic. Exclude a layer that does a job today: a seam that tests swap out, a boundary around a volatile dependency, or an interface with more than one real implementation.
 - Obvious comments or docstrings that restate self-explanatory code.
 - Defensive checks that caller, type, test, and history evidence prove redundant.
 - Weak type workarounds, excessive logging, copy-paste residue, or style drift relative to the surrounding file.
@@ -208,9 +208,13 @@ Record the exact newline-delimited paths changed by this simplification as `SLIC
 
 If you notice something adjacent that also wants fixing, do not fix it — emit a `NOTICED BUT NOT TOUCHING` marker and continue.
 
+To revert the slice, `git restore` the tracked paths in `SLICE_PATHS`, delete the paths the slice created, and require `git status --porcelain` limited to `SLICE_PATHS` to print nothing. If it prints anything, stop and report the leftover paths; do not pick another candidate on a dirty slice.
+
+Before verifying, judge the slice's diff: if it leaves the code no clearer, or introduces an idiom the surrounding code does not use, revert the slice, log one line naming the candidate and why, and pick the next candidate; do not re-pick this one during the pass, and if none remains, report the rejected candidates and stop; when no slice was committed, say that no candidate earned a commit instead of declaring the pass complete. Only a slice that is clearer and uses only idioms the surrounding code already uses goes on to verification.
+
 ### 4. Verify and commit
 
-Run the project's verification battery via `trackbed:verify:run` — build, typecheck, lint, and existing tests must all pass. **Tests must pass unmodified.** If a test fails, you changed behavior: revert the slice (`git restore` the touched files) and either re-plan or reclassify it as a behavior change handled outside this skill.
+Run the project's verification battery via `trackbed:verify:run` — build, typecheck, lint, and existing tests must all pass. **Tests must pass unmodified.** If a test fails, you changed behavior: revert the slice and either re-plan or reclassify it as a behavior change handled outside this skill.
 
 If `trackbed:verify:run` cannot run (no test/lint/build configured, tool errors, etc.), stop and surface the gap. Do not declare the slice verified.
 
@@ -292,7 +296,7 @@ If you notice adjacent work outside the saved rewrite scope, emit the exact `NOT
 
 The default-mode loop owns baseline health, the Fence, scope, one-slice changes, unmodified tests, and recovery. Before declaring the pass complete, confirm:
 
-- The final diff is simpler and clearer than the input. Length alone is not decisive; any longer result needs a stated clarity gain.
+- The final diff is simpler and clearer than the input. Length alone is not decisive; any longer result needs a stated clarity gain. If the final diff fails this check, do not declare the pass complete: name the slice commits that did not add clarity, or say that none can be singled out, and stop and ask the user how to proceed.
 - Every observation outside the original scope has a `NOTICED BUT NOT TOUCHING` marker; none were silently fixed.
 
 For rewrite mode, confirm the end state rather than repeating each process gate:
