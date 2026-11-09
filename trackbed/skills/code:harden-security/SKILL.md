@@ -104,6 +104,8 @@ The load-bearing artifact of this skill. Classify every security decision into o
 
 Never use wildcard CORS for intranet, VPN-only, IP-allow-listed, or credential-protected resources. CORS configuration changes still require `ASK FIRST`, including the permitted public-read case.
 
+When a requirement, not a failing feature or test, genuinely needs a looser security-header policy, surface it as `ASK FIRST` with the exact directive and the behavior that requires it.
+
 If a draft contains any `Never Do` condition, stop and re-author it before continuing.
 
 Per-item rationale and exception notes live in `references/boundary-system.md`.

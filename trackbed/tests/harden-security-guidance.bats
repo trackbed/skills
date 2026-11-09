@@ -191,6 +191,7 @@ BOUNDARY_SYSTEM="skills/code:harden-security/references/boundary-system.md"
   tier_three="$(sed -n '/^## Tier 3 — Never Do$/,/^---$/p' "$BOUNDARY_SYSTEM")"
 
   grep -qF "Disable or loosen a security header to make a feature or test pass." <<<"$never_do"
+  grep -qF "genuinely needs a looser security-header policy, surface it as \`ASK FIRST\` with the exact directive" <<<"$never_do"
   grep -qF "**Disable or loosen a security header to make a feature or test pass**" <<<"$tier_three"
   grep -qF "surface it as \`ASK FIRST\` with the exact directive" <<<"$tier_three"
 }
