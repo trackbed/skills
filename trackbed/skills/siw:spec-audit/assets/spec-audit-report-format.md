@@ -145,7 +145,7 @@ Compare these with what the spec is meant to say. A wrong restatement means the 
 
 {If strategy context found:} Strategy: {target users, active tracks, relevant metrics, non-goals, and every marker and label the strategy reader returns}
 
-{If pulse reports found:} Recent pulse signals: {usage, quality, errors, performance, customer signals, followups relevant to this spec}
+{If pulse reports found:} Recent pulse signals: {for each report used, its label as `<filename> (<window>)`, whose filename shows the report date and time, then the headlines, usage, system performance, and followups relevant to this spec}
 
 {If missing:} MISSING PRODUCT CONTEXT: {which strategy or pulse artifacts were unavailable}
 
