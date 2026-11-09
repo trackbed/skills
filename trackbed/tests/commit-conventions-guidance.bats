@@ -197,7 +197,7 @@ import sys
 
 plan_to_pr, issue_to_pr, pr_create = (pathlib.Path(path).read_text() for path in sys.argv[1:])
 
-commit_step = plan_to_pr.split("### Implementation Commit Boundary", 1)[1].split("\n6. ", 1)[0]
+commit_step = plan_to_pr.split("### Implementation Commit Boundary", 1)[1].split("\n7. ", 1)[0]
 for rule in (
     "with `{history-ref}` set to the validated `{base-source-ref}`",
     "Commit with a subject in that convention that contains `{execution-label}`",
