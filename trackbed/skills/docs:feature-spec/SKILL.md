@@ -1,18 +1,28 @@
 ---
 name: docs:feature-spec
 description: Author a lightweight PRD-style feature spec before implementation. Produces a single reviewable markdown artifact covering objective, scope, boundaries, assumptions, non-goals, and testing strategy. Use when starting a feature that needs written alignment before coding but does NOT warrant the full siw/ tracked workflow. Pass --synthesize, --auto, or say "draft straight from context" to skip the assumptions block when the current conversation already grounds enough of the spec. For tracked initiatives (phased issues, LOG, audit) use trackbed:siw:init instead.
-argument-hint: "[feature name or brief description] [--synthesize|--auto]"
+argument-hint: "[feature name, brief description, or origin plan path] [--synthesize|--auto]"
 disable-model-invocation: true
 user-invocable: true
 ---
 
 # Feature Spec
 
-Author a one-page PRD-style spec before implementation. Emit an assumptions block first, draft the spec, then gate implementation on explicit user approval.
+Author a one-page PRD-style spec before implementation. Emit an assumptions block first, draft the spec, then end the turn and gate implementation on explicit user approval.
 
 **Arguments:** "$ARGUMENTS"
 
 Parse `$ARGUMENTS` for a `--synthesize` or `--auto` flag (anywhere in the string). Strip it from the remaining text before deriving the slug or feature name. Treat either flag as activating Synthesize mode (see below). The trigger phrase "draft straight from context" (or close paraphrase) in the user's most recent turn activates Synthesize mode equivalently — no flag needed.
+
+## Origin documents
+
+When the remaining argument or the conversation names an existing document, such as a discovery plan, PRD, or brainstorm, read it as the spec's **origin** before Phase 0. `trackbed:code:work-from-plan` recommends this handoff, and a `trackbed:discovery:interview` plan can be passed the same way.
+
+- Write a new spec at the Phase 2 destination and never edit, overwrite, or move the origin. When the user asks to revise the named file, it is the spec under revision, not an origin: edit it in place.
+- When a path could be either the origin or the file to revise, such as an existing spec with the six areas and no revise request, emit `CONFUSION:` and ask before drafting.
+- Carry the origin's problem, scope, decisions and the options they beat, success criteria, and open questions into the matching spec areas. They count as grounded context in Phase 1 and Synthesize mode; flag anything the origin leaves out rather than inventing it.
+- Cite the origin by its repository-relative path on the template's `Origin:` line.
+- A path to the repository's `STRATEGY.md` is strategy context for Phase 0, never an origin or a destination.
 
 ## When to use this skill
 
@@ -22,7 +32,7 @@ Route elsewhere if:
 
 - **Multi-phase, multi-contributor, or needs an audit trail** → use `/trackbed:siw:init` for the full tracked workflow (siw/ dir, LOG.md, OPEN_ISSUES_OVERVIEW.md, issues/).
 - **Project-level rules** (package manager, commit style, coding conventions) → use `/trackbed:docs:update-agents-md`.
-- **Deep requirements unknown** (need a long adaptive interview) → use `/trackbed:discovery:interview`, then run this skill on the resulting plan.
+- **Deep requirements unknown** (need a long adaptive interview) → use `/trackbed:discovery:interview`, then pass the resulting plan's path to this skill as its origin.
 - **A prototype is already built** and the ship decision, metrics, rollout, and kill switch need recording → use `/trackbed:product:prd`.
 - **Security hardening depth** needed in the Boundaries section → this skill names the pattern (Always Do / Ask First / Never Do) but does not inline security content. Pair with a dedicated security-hardening skill if one exists.
 
@@ -30,8 +40,8 @@ Route elsewhere if:
 
 **This skill ONLY authors a single feature spec file.**
 
-- **DOES**: Emit an assumptions block, wait for correction, draft a six-area spec markdown, gate implementation on explicit approval.
-- **DOES NOT**: Create tracked SIW artifacts (no `siw/`, no `LOG.md`, no issue files). Does not decompose the spec into phases. Does not start implementation. Does not edit `AGENTS.md` or `CLAUDE.md`.
+- **DOES**: Emit an assumptions block, wait for correction, draft a six-area spec markdown, end the turn, and gate implementation on explicit approval.
+- **DOES NOT**: Create tracked SIW artifacts (no `siw/`, no `LOG.md`, no issue files). Does not decompose the spec into phases. Does not start implementation, even when the original request also asked for the build. Does not edit `AGENTS.md`, `CLAUDE.md`, `STRATEGY.md`, or an origin document.
 
 ### Artifact Readiness Contract
 
@@ -53,9 +63,9 @@ Phase 1: Assumptions
     ↓
 [User corrects or confirms]
     ↓
-Phase 2: Draft spec file
+Phase 2: Draft spec file, emit PLAN:, end the turn
     ↓
-Phase 3: Approval gate
+Phase 3: Approval gate (next user reply)
     ↓
 [User approves] → Spec complete, skill ends
 [User revises]  → Loop to Phase 2 (do not restart Phase 1)
@@ -105,7 +115,7 @@ When activated, evaluate the **preconditions** before skipping Phase 1.
 
 Synthesis is permitted only when **both** of the following hold:
 
-- At least **4 of the 6** spec areas can be populated with grounded content from the current conversation, AND
+- At least **4 of the 6** spec areas can be populated with grounded content from the current conversation or an origin document, AND
 - **Objective and Success Criteria are among the grounded areas.** These two carry the spec's substance; a bare count can otherwise be met by cheap-to-fill areas (Open Questions, Boundaries) while the spec has no real spine.
 
 The six areas:
@@ -117,7 +127,7 @@ The six areas:
 5. Open Questions
 6. Success Criteria _(required for synthesis)_
 
-A spec area is "grounded" when the conversation contains explicit user statements, decisions, or shared context that lets you fill the area without inventing facts. Grounding is not the same as "I can guess plausibly." If you would prefix the content `UNVERIFIED:`, the area is not grounded.
+A spec area is "grounded" when the conversation or an origin document contains explicit user statements, decisions, or shared context that lets you fill the area without inventing facts. Grounding is not the same as "I can guess plausibly." If you would prefix the content `UNVERIFIED:`, the area is not grounded.
 
 ### When preconditions are met
 
@@ -127,7 +137,7 @@ Skip Phase 1 entirely. Emit this marker before drafting:
 SYNTHESIZE: drafting from current context, areas grounded: <N> of 6
 ```
 
-Then proceed to Phase 2. Phase 3 approval gate stays — synthesis only removes the assumptions round-trip, not the explicit approval.
+Then proceed to Phase 2. The turn still ends after the draft, and the Phase 3 approval gate stays — synthesis only removes the assumptions round-trip, not the explicit approval.
 
 ### When preconditions fail
 
@@ -149,14 +159,14 @@ Derive a slug from the feature name (lowercase, hyphenated, ~3–5 words). When 
 
 Write the spec to `<slug>-spec.md` in the repo root. This skill assumes a repository context: the repo root anchors both the default location and the path-safety check below. If no repository root resolves, fall back to the current working directory and state which directory was used.
 
-If the user passed an explicit path as the argument, honor it only when it still fits this skill's boundaries:
+A path argument that names an existing document is an origin (see Origin documents), not a destination. If the user named a destination path for a new spec, honor it only when it still fits this skill's boundaries:
 
 - The destination must be a markdown spec file.
 - The resolved path must stay inside the current repository root.
-- Reject reserved destinations: `AGENTS.md`, `CLAUDE.md`, and any path under `siw/`.
+- Reject reserved destinations: `AGENTS.md`, `CLAUDE.md`, the repository's `STRATEGY.md`, the origin document, and any path under `siw/`.
 - If the path is reserved or otherwise unclear, emit `CONFUSION:` and ask for a different destination before writing.
 
-Before writing, check whether the destination file already exists. If it does, do not overwrite it blindly — emit `CONFUSION:` naming the existing path and ask the user to choose: overwrite it, revise it in place, or write to a different slug. This guard runs before the Phase 3 approval gate, so an existing spec is never clobbered without an explicit user choice.
+Before writing, check whether the destination file already exists. If it does, do not overwrite it blindly — emit `CONFUSION:` naming the existing path and ask the user to choose: overwrite it, revise it in place, or write to a different slug. Never offer an origin document or `STRATEGY.md` as a file to overwrite. This guard runs before the Phase 3 approval gate, so an existing spec is never clobbered without an explicit user choice.
 
 Copy the six-area structure from `assets/feature-spec-template.md` and fill each area. The areas are:
 
@@ -169,9 +179,9 @@ Copy the six-area structure from `assets/feature-spec-template.md` and fill each
 
 Consider user experience (UX: clear, reliable task completion), developer experience (DX: understanding, changing, testing, and debugging), and agent experience (AX: discovering context, executing predictably, recovering, and verifying). Prefer outcomes that improve all three within scope; unchanged or inapplicable dimensions are acceptable. Put relevant measurable outcomes in Success Criteria, record established behavior and contracts outside the intended change plus the intentional changes themselves in Boundaries, and put regression coverage in Testing Strategy. Make material tradeoffs explicit without inventing requirements or adding a seventh area.
 
-Record every approach the conversation, assumptions, or grounded context weighed and turned down under Rejected approaches, one line each with the reason. Implementation often runs in a later session that cannot recover why an option lost, so the spec is the only place that keeps it. Do not invent alternatives to fill the subsection; omit it when none were weighed.
+Record every approach the conversation, assumptions, or grounded context weighed and turned down under Rejected approaches, one line each with the reason and who rejected it. Implementation often runs in a later session that cannot recover why an option lost, so the spec is the only place that keeps it. Do not invent alternatives to fill the subsection; omit it when none were weighed. A rejection is the user's call by default: credit someone else only when the user says so or a linked issue, PR, or decision record names them.
 
-When the feature adds or changes a module's public interface, record that under Boundaries as an Ask First rule naming the module and its interface impact (`new` or `changed`), so the interface stays a human decision while the implementation behind it proceeds. Name modules by their domain names, not file paths, and add no such rule for implementation-only work.
+When the feature adds or changes a module's public interface, record that under Boundaries as an Ask First rule naming the module and its interface impact (`new` or `changed`), so the interface stays a human decision while the implementation behind it proceeds. Name modules by their domain names, not file paths, and add no such rule for implementation-only work. For each module Ask First flags this way, Testing Strategy names the behavior that tests verify through that module's interface.
 
 Replace every angle-bracket template placeholder with concrete content and delete the author note comment block before treating the draft as reviewable.
 
@@ -205,11 +215,13 @@ PLAN: Drafted <slug>-spec.md with:
 Review the file, then approve or request revisions.
 ```
 
+End the turn after the `PLAN:` block, in every mode. Do not start implementation, scaffold code, or ask a follow-up in the same turn.
+
 ## Phase 3: Approval gate
 
 **Implementation does not start until the spec is explicitly approved.**
 
-This is a single checkpoint — the entire spec is reviewed and approved (or revised) in one go. If the user asks to start coding before approving, refuse and point back to this gate.
+This is a single checkpoint — the entire spec is reviewed and approved (or revised) in one go. Approval counts only from a user reply after the draft. A request that asked for the spec and the build together, or said "go ahead" before the draft existed, is not approval. If the user asks to start coding before approving, refuse and point back to this gate.
 
 On revision:
 
@@ -230,10 +242,10 @@ On approval:
 | --- | --- |
 | `ASSUMPTIONS I'M MAKING:` | Phase 1, before drafting (skipped only in Synthesize mode when preconditions are met). |
 | `SYNTHESIZE:` | When `--synthesize`, `--auto`, or the trigger phrase activates synthesis — emitted before drafting (success) or before fallback to Phase 1 (insufficient grounding). |
-| `CONFUSION:` | Phase 1 or 2, when user input is ambiguous — including when the resolved destination is reserved, unclear, or already exists. |
+| `CONFUSION:` | Before Phase 0, Phase 1, or Phase 2, when user input is ambiguous — including when a path could be the origin or the file to revise, or the resolved destination is reserved, unclear, or already exists. |
 | `MISSING REQUIREMENT:` | Phase 2, when a required area cannot be filled. |
 | `UNVERIFIED:` | Phase 2, inline on any inferred claim inside the spec. |
 | `POTENTIAL CONCERNS:` | Phase 2, inside Open Questions for risks worth flagging. |
-| `PLAN:` | Phase 3, summary block before the approval gate. |
+| `PLAN:` | Phase 2, after writing the file; the turn ends after it, and the Phase 3 approval gate takes the next reply. |
 
 These markers are deliberate. Keep them verbatim — tooling and downstream skills may parse them.
