@@ -18,7 +18,7 @@ Do NOT use for dashboards — CSS Grid card layouts with Chart.js look better fo
 </script>
 ```
 
-**With ELK layout** (required for `layout: 'elk'` — it's a separate package, not bundled in core):
+**With ELK layout** (Mermaid 11: required for `layout: 'elk'` — it's a separate package, not bundled in core):
 
 ```html
 <script type="module">
@@ -30,7 +30,7 @@ Do NOT use for dashboards — CSS Grid card layouts with Chart.js look better fo
 </script>
 ```
 
-Without the ELK import and registration, `layout: 'elk'` silently falls back to dagre. Only import ELK when you actually need it — it adds significant bundle weight. Most simple diagrams render fine with dagre.
+In Mermaid 11, without the ELK import and registration, `layout: 'elk'` silently falls back to dagre. Only import ELK when you actually need it — it adds significant bundle weight. Most simple diagrams render fine with dagre.
 
 Keep the add-on on its `@0.2` line, which is the one built for Mermaid 11. Its 1.x releases require Mermaid 12, and an unpinned import now resolves to 1.x, which breaks against `mermaid@11`.
 
@@ -49,8 +49,8 @@ Always use `theme: 'base'` — it's the only theme where all `themeVariables` ar
     look: "classic",
     themeVariables: {
       // Background and surfaces
-      primaryColor: isDark ? "#2d1b69" : "#ede9fe",
-      primaryBorderColor: isDark ? "#7c3aed" : "#8b5cf6",
+      primaryColor: isDark ? "#3b0d1c" : "#ffe4e6",
+      primaryBorderColor: isDark ? "#fb7185" : "#e11d48",
       primaryTextColor: isDark ? "#e6edf3" : "#1a1a2e",
       secondaryColor: isDark ? "#1c2333" : "#f0fdf4",
       secondaryBorderColor: isDark ? "#059669" : "#16a34a",
@@ -75,7 +75,7 @@ Always use `theme: 'base'` — it's the only theme where all `themeVariables` ar
 
 ### Hand-Drawn Mode
 
-Add `look: 'handDrawn'` for a sketchy, whiteboard-style aesthetic. Combines well with the `elk` layout engine for better positioning (requires the ELK import — see CDN section above):
+Add `look: 'handDrawn'` for a sketchy, whiteboard-style aesthetic. Combines well with the `elk` layout engine for better positioning (with Mermaid 11, this requires the ELK import — see CDN section above):
 
 ```html
 <script type="module">
@@ -111,7 +111,7 @@ graph TD
 
 ### CSS Overrides on Mermaid SVG
 
-Mermaid renders SVG. Override its classes for pixel-perfect control that `themeVariables` can't reach:
+Mermaid renders SVG. Override its classes for pixel-perfect control that `themeVariables` can't reach. Mermaid injects its own styles scoped to each diagram's ID, and those selectors outrank a page-level class rule, so every rule below that targets Mermaid's SVG carries `!important`; without it, Mermaid's value silently wins:
 
 ```css
 /* Container — see css-patterns.md "Mermaid Zoom Controls" for the full zoom pattern */
@@ -144,12 +144,12 @@ Mermaid renders SVG. Override its classes for pixel-perfect control that `themeV
 .mermaid .node rect,
 .mermaid .node circle,
 .mermaid .node polygon {
-  stroke-width: 1.5px;
+  stroke-width: 1.5px !important;
 }
 
 /* Edge paths */
 .mermaid .edge-pattern-solid {
-  stroke-width: 1.5px;
+  stroke-width: 1.5px !important;
 }
 
 /* Edge labels — smaller than node labels for visual hierarchy */
@@ -166,7 +166,7 @@ Mermaid renders SVG. Override its classes for pixel-perfect control that `themeV
 
 /* Sequence diagram actors */
 .mermaid .actor {
-  stroke-width: 1.5px;
+  stroke-width: 1.5px !important;
 }
 
 /* Sequence diagram messages */
@@ -177,12 +177,12 @@ Mermaid renders SVG. Override its classes for pixel-perfect control that `themeV
 
 /* ER diagram entities */
 .mermaid .er.entityBox {
-  stroke-width: 1.5px;
+  stroke-width: 1.5px !important;
 }
 
 /* Mind map nodes */
 .mermaid .mindmap-node rect {
-  stroke-width: 1.5px;
+  stroke-width: 1.5px !important;
 }
 ```
 
@@ -380,9 +380,9 @@ Use for bar charts, line charts, pie/doughnut charts, radar charts, and other da
           label: "Feedback Items",
           data: [45, 62, 78, 91, 120],
           backgroundColor: isDark
-            ? "rgba(129, 140, 248, 0.6)"
-            : "rgba(79, 70, 229, 0.6)",
-          borderColor: isDark ? "#818cf8" : "#4f46e5",
+            ? "rgba(45, 212, 191, 0.6)"
+            : "rgba(13, 148, 136, 0.6)",
+          borderColor: isDark ? "#2dd4bf" : "#0d9488",
           borderWidth: 1,
           borderRadius: 4,
         },
@@ -428,15 +428,37 @@ Wrap the canvas in a styled container:
 
 Use when a diagram has 10+ elements and you want a choreographed entrance sequence (staggered reveals, path drawing, count-up numbers). For simpler diagrams, CSS `animation-delay` staggering is sufficient.
 
+Never hide content with plain CSS and rely on the script to reveal it: a failed CDN load, disabled scripts, or a preview that runs no scripts would leave the diagram invisible. Instead, load anime.js in `<head>` and mark the document only once the library is present and motion is allowed. Because the mark is set before the body renders, nothing flashes:
+
 ```html
-<script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js"></script>
+  <script>
+    if (
+      typeof anime === "function" &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      document.documentElement.classList.add("anime-ready");
+    }
+  </script>
+</head>
+```
 
+Scope every hidden starting state to that mark, and to screens only, so pages without scripts, printouts, and reduced-motion settings all show the complete content:
+
+```css
+@media screen and (prefers-reduced-motion: no-preference) {
+  .anime-ready .node {
+    opacity: 0;
+  }
+}
+```
+
+Run the animations before `</body>`, only when the mark is set:
+
+```html
 <script>
-  const prefersReduced = window.matchMedia(
-    "(prefers-reduced-motion: reduce)",
-  ).matches;
-
-  if (!prefersReduced) {
+  if (document.documentElement.classList.contains("anime-ready")) {
     anime({
       targets: ".node",
       opacity: [0, 1],
@@ -471,19 +493,7 @@ Use when a diagram has 10+ elements and you want a choreographed entrance sequen
 </script>
 ```
 
-When using anime.js, set initial opacity to 0 in CSS so elements don't flash before the animation:
-
-```css
-.node {
-  opacity: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .node {
-    opacity: 1 !important;
-  }
-}
-```
+Write the final number as the text of each `[data-count]` element, so the page shows the real value when the count-up never runs.
 
 ## Google Fonts — Typography
 

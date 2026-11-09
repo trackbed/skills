@@ -73,7 +73,7 @@ Vary the choice each time. If the last diagram was dark and technical, make the 
 | Timeline | CSS (central line + cards) | Simple linear layout doesn't need a layout engine |
 | Dashboard | CSS Grid + Chart.js | Card grid with embedded charts |
 
-**Mermaid theming:** Always use `theme: 'base'` with custom `themeVariables` so colors match your page palette. Use `look: 'handDrawn'` for sketch aesthetic or `look: 'classic'` for clean lines. Use `layout: 'elk'` for complex graphs (requires the `@mermaid-js/layout-elk` package — see `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/libraries.md` for the CDN import). Override Mermaid's SVG classes with CSS for pixel-perfect control. See `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/libraries.md` for full theming guide.
+**Mermaid theming:** Always use `theme: 'base'` with custom `themeVariables` so colors match your page palette. Use `look: 'handDrawn'` for sketch aesthetic or `look: 'classic'` for clean lines. Use `layout: 'elk'` for complex graphs (with the pinned Mermaid 11, this requires the separate `@mermaid-js/layout-elk` package — see `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/libraries.md` for the CDN import). Override Mermaid's SVG classes with CSS for pixel-perfect control. See `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/libraries.md` for full theming guide.
 
 **Mermaid syntax guardrails:** Keep these parser and integration gotchas in mind before rendering:
 
@@ -236,11 +236,12 @@ Every diagram is a single self-contained `.html` file. No external assets except
     <style>
       /* CSS custom properties, theme, layout, components — all inline */
     </style>
+    <!-- Optional: anime.js and its ready-mark script go here (see libraries.md) -->
   </head>
   <body>
     <!-- Semantic HTML: sections, headings, lists, tables, inline SVG -->
     <!-- No script needed for static CSS-only diagrams -->
-    <!-- Optional: <script> for Mermaid, Chart.js, or anime.js when used -->
+    <!-- Optional: <script> for Mermaid or Chart.js when used -->
   </body>
 </html>
 ```
