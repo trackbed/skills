@@ -21,7 +21,7 @@ Manage a **stack**: an ordered chain of branches where each branch builds on the
 
 Read `references/cli-agent-rules.md` before running any `gh stack` command — every invocation must be non-interactive (branch names as arguments, `submit --auto`, `view --json`, never `modify`).
 
-Also read `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-operations.md` before any `gh stack` command. It holds the gh-stack exit codes and the rules for other worktrees. Before every `gh stack rebase` and `gh stack sync` in this skill, run its other-workspace preflight with `${CLAUDE_PLUGIN_ROOT}/scripts/list-stack-worktrees.sh`. It also governs conflicts, paused rebases, and `--accept-base-change`.
+Also read `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-operations.md` before any `gh stack` command. It holds the gh-stack exit codes, the rules for other worktrees, and the **Sync outcomes** and **Merge outcomes** checks. Before every `gh stack rebase` and `gh stack sync` in this skill, run its other-workspace preflight with `${CLAUDE_PLUGIN_ROOT}/scripts/list-stack-worktrees.sh`. It also governs conflicts, paused rebases, and `--accept-base-change`.
 
 ## When to use
 
@@ -143,12 +143,7 @@ env -u GH_STACK_NO_ATOMIC gh stack push                             # all branch
 
 **Routine sync (trunk moved, PRs merged, stack changed on GitHub):**
 
-First read `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-rewrite-safety.md` and run its complete preflight. Stop before syncing if any open branch diverged; allow behind-only branches. Use its resolved `STACK_REMOTE` for sync and any recovery rebase:
-
-```bash
-env -u GH_STACK_NO_ATOMIC gh stack sync --remote "$STACK_REMOTE"         # fetch, cascade-rebase, push, sync PR state
-env -u GH_STACK_NO_ATOMIC gh stack sync --remote "$STACK_REMOTE" --prune # also delete local branches for merged PRs
-```
+First read `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-rewrite-safety.md` and run its complete preflight. Stop before syncing if any open branch diverged; allow behind-only branches. Use its resolved `STACK_REMOTE` for sync and any recovery rebase. Run the sync through the shared reference's **Sync outcomes** block, which runs `env -u GH_STACK_NO_ATOMIC gh stack sync --remote "$STACK_REMOTE"` (fetch, cascade-rebase, push, and sync PR state) and checks its outcome in the same Bash call; add `--prune` to delete local branches for merged PRs. Report the stack as synced only when the block prints `STACK_SYNCED=true`.
 
 Sync handles squash-merged parents automatically. The shared preflight stops divergent active branches with the integrate-first message; gh-stack alone does not reconcile that divergence. Clearing `GH_STACK_NO_ATOMIC` makes Git ref updates all-or-nothing; PR/API updates remain separate.
 
@@ -205,7 +200,7 @@ Select the **highest PR the user intends to land**: use the top PR to land the e
 
 Read `references/merge-target.md` and run its target resolution before merging. It resolves the selected PR's stack number, uses that number for a whole-stack merge, and allows a partial PR target only after proving that no stack has the same number. If the PR is in no stack or its stack number cannot be determined, report that and stop. On a partial-target collision, stop and ask the user how to proceed; never substitute the whole stack or a PR URL.
 
-Run the merge headlessly with the resolved `MERGE_TARGET`, confirmation flag, and validated method:
+Run the merge headlessly with the resolved `MERGE_TARGET`, confirmation flag, and validated method. Run the merge-target resolution, this block, and the shared **Merge outcomes** check in one Bash call with the maximum Bash timeout, so the variables they share stay set and a slow merge is not cut off:
 
 ```bash
 MERGE_ARGS=(--yes)
@@ -218,10 +213,15 @@ case "$MERGE_METHOD" in
     exit 1
     ;;
 esac
-gh stack merge "$MERGE_TARGET" "${MERGE_ARGS[@]}"
+echo "MERGE_STARTED=true"
+MERGE_OUTPUT=$(gh stack merge "$MERGE_TARGET" "${MERGE_ARGS[@]}" 2>&1)
+MERGE_STATUS=$?
+printf '%s\nMERGE_STATUS=%s\n' "$MERGE_OUTPUT" "$MERGE_STATUS"
 ```
 
-`gh stack merge` atomically lands every eligible PR through the target; if any cannot merge, none do. A repository merge queue controls its own method, so gh-stack ignores the supplied method there. GitHub re-targets and rebases PRs above a partial merge. After completion, repeat the routine-sync preflight and run `env -u GH_STACK_NO_ATOMIC gh stack sync --remote "$STACK_REMOTE" --prune`.
+`gh stack merge` atomically lands every eligible PR through the target; if any cannot merge, none do. A repository merge queue controls its own method, so gh-stack ignores the supplied method there, and the PRs are only queued. GitHub re-targets and rebases PRs above a partial merge.
+
+Whatever `MERGE_STATUS` is, follow the shared reference's **Merge outcomes** section next: report merged and queued PRs separately, and handle the printed `MERGE_STATUS` of 3 or 4 as it says. Only when every PR through the target shows as merged, repeat the routine-sync preflight and run **Routine sync** with `--prune`.
 
 ## Verification
 

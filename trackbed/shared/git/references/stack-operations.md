@@ -6,11 +6,11 @@
 
 | Code | Meaning | Response |
 | --- | --- | --- |
-| 0 | Success | Continue. |
+| 0 | The command finished | After `sync` or `merge`, check the outcome under **Sync outcomes** or **Merge outcomes** below before reporting success; both can exit 0 without syncing or landing anything. Otherwise continue. |
 | 1 | Generic error | Read stderr. A `rerun with --accept-base-change` message is a base change; follow **Base changes** below. |
 | 2 | Not in a stack, or stack not found | Report the missing stack. Never guess a PR number or a stack number. |
-| 3 | Rebase conflict | Follow **Conflicts** below. |
-| 4 | GitHub API failure | Check `gh auth status` and retry once. |
+| 3 | Rebase conflict, or a merge conflict on GitHub | After `rebase` or `sync`, follow **Conflicts** below. After `merge`, follow **Merge outcomes** instead. |
+| 4 | GitHub API failure | After `merge`, never retry; follow **Merge outcomes**. Otherwise check `gh auth status` and retry once. |
 | 5 | Invalid arguments | Fix the invocation. |
 | 6 | The branch belongs to several stacks, or the remote is ambiguous | Check out a branch that belongs to one stack, or pass `--remote`. |
 | 7 | A rebase is already paused | Follow **Paused rebases** below. |
@@ -63,3 +63,93 @@ When GitHub retargets a stack because its base branch was deleted, `gh stack reb
 
 - Pass `--accept-base-change` only when the user explicitly approves it for this stack in this run, after you name the old base and the new base and explain that the old base's unmerged commits leave the stack. This applies in every mode, including auto and `--force-push`; a non-interactive run stops and reports.
 - Record the trunk before every `rebase` or `sync` with `gh stack view --json | jq -er '.trunk | select(type == "string" and length > 0)'` and read it again afterwards. If either read fails, report the trunk as unknown instead of comparing. When it changed, report the old and the new trunk, whether or not the flag was passed: gh-stack also moves a stack whose old base did merge.
+
+## Sync outcomes
+
+`gh stack sync` can exit 0 without syncing. It aborts without pushing when the local and GitHub branch lists have diverged (neither extends the other), and a failed push prints only a warning. Run the sync and its outcome check together in one Bash call, because shell variables do not carry over to the next call:
+
+```bash
+: "${STACK_REMOTE:?Resolve the gh-stack remote first}"
+SYNC_OUTPUT=$(env -u GH_STACK_NO_ATOMIC gh stack sync --remote "$STACK_REMOTE" 2>&1)
+SYNC_STATUS=$?
+printf '%s\n' "$SYNC_OUTPUT"
+if [ "$SYNC_STATUS" -ne 0 ]; then
+  echo "Not synced: gh stack sync exited $SYNC_STATUS." >&2
+  printf 'SYNC_STATUS=%s\n' "$SYNC_STATUS"
+  exit 1
+fi
+NOT_SYNCED=0
+if printf '%s\n' "$SYNC_OUTPUT" | grep -qF 'Sync aborted'; then
+  echo "Not synced: gh-stack aborted because the local and GitHub branch lists diverged." >&2
+  NOT_SYNCED=1
+fi
+if printf '%s\n' "$SYNC_OUTPUT" | grep -qF 'Push failed'; then
+  echo "Not synced: gh-stack could not push the stack branches." >&2
+  NOT_SYNCED=1
+fi
+if printf '%s\n' "$SYNC_OUTPUT" | grep -qF 'No active branches to push (all merged)'; then
+  ACTIVE_STACK_BRANCHES=""
+else
+  STACK_VIEW=$(gh stack view --json) || exit 2
+  ACTIVE_STACK_BRANCHES=$(printf '%s' "$STACK_VIEW" | jq -er '
+    if (.branches | type) != "array" then error("Invalid stack inventory")
+    else [.branches[] | select((.isMerged == true or .isQueued == true) | not) | .name]
+      | if all(.[]; type == "string" and length > 0 and (test("[\\r\\n]") | not))
+        then join("\n") else error("Invalid stack branch") end
+    end') || exit 2
+fi
+while IFS= read -r STACK_BRANCH; do
+  [ -n "$STACK_BRANCH" ] || continue
+  git check-ref-format --branch "$STACK_BRANCH" > /dev/null || exit 2
+  LOCAL_HEAD=$(git rev-parse --verify "refs/heads/$STACK_BRANCH^{commit}") || exit 2
+  REMOTE_REFS=$(git ls-remote --heads "$STACK_REMOTE" "refs/heads/$STACK_BRANCH") || exit 2
+  REMOTE_HEAD=$(printf '%s\n' "$REMOTE_REFS" | cut -f1)
+  if [ "$REMOTE_HEAD" != "$LOCAL_HEAD" ]; then
+    echo "Not synced: $STACK_REMOTE/$STACK_BRANCH is at ${REMOTE_HEAD:-no branch}, but the local branch is at $LOCAL_HEAD." >&2
+    NOT_SYNCED=1
+  fi
+done <<< "$ACTIVE_STACK_BRANCHES"
+[ "$NOT_SYNCED" -eq 0 ] || exit 1
+echo "STACK_SYNCED=true"
+```
+
+Add `--prune` or `--accept-base-change` to the `gh stack sync` command only where the owning skill allows it. When every branch has merged or is queued, gh-stack reports no active branches and a `--prune` sync may move the checkout to the trunk, so the check has no branch left to compare and skips the stack inventory.
+
+Report the stack as synced only when the block prints `STACK_SYNCED=true`. Exit 1 means not synced: report each `Not synced` line and gh-stack's own messages, and do not run a follow-up step that needs a synced stack. When it also printed `SYNC_STATUS`, gh stack sync itself failed: handle that code under the exit-code table above. When gh-stack aborted because the branch lists diverged, ask the user how to reconcile them, because gh-stack resolves that only in an interactive terminal. Exit 2 means the outcome is unknown: report that, never treat it as synced, and never treat it as proof that the sync failed.
+
+## Merge outcomes
+
+A `gh stack merge` that exits 0 may only have added the PRs to a merge queue, and one that exits 4 may still be running on GitHub. The owning skill captures the merge's output as `MERGE_OUTPUT` and prints its exit code as `MERGE_STATUS`. After every merge, whatever its exit code, read the state of each PR through the target. Run this check in the same Bash call as the merge-target resolution and the merge, because it reads their `TARGET_STACK_JSON` and `TARGET_PR_NUMBER` and shell variables do not carry over to the next call:
+
+```bash
+: "${TARGET_STACK_JSON:?Run the merge-target resolution in this Bash call first}"
+: "${TARGET_PR_NUMBER:?Run the merge-target resolution in this Bash call first}"
+MERGE_PRS=$(printf '%s\n' "$TARGET_STACK_JSON" | jq -er --argjson pr "$TARGET_PR_NUMBER" '
+  .[0].pull_requests | (map(.number) | index($pr)) as $i
+  | if $i == null then error("Target PR is not in the stack") else .[:$i + 1][].number end
+  | if type == "number" and . > 0 and floor == . then . else error("Invalid PR number") end') || exit 2
+MERGED_PRS="" QUEUED_PRS="" OPEN_PRS=""
+while IFS= read -r PR_NUMBER; do
+  PR_STATE=$(gh api graphql -F owner='{owner}' -F repo='{repo}' -F number="$PR_NUMBER" -f query='
+    query($owner: String!, $repo: String!, $number: Int!) {
+      repository(owner: $owner, name: $repo) { pullRequest(number: $number) { state isInMergeQueue } }
+    }' --jq '.data.repository.pullRequest | if .state == "MERGED" then "merged"
+      elif .state == "OPEN" and .isInMergeQueue == true then "queued"
+      elif .state == "OPEN" then "open" else "closed" end') || exit 2
+  case "$PR_STATE" in
+    merged) MERGED_PRS="$MERGED_PRS #$PR_NUMBER" ;;
+    queued) QUEUED_PRS="$QUEUED_PRS #$PR_NUMBER" ;;
+    open) OPEN_PRS="$OPEN_PRS #$PR_NUMBER" ;;
+    *) OPEN_PRS="$OPEN_PRS #$PR_NUMBER($PR_STATE)" ;;
+  esac
+done <<< "$MERGE_PRS"
+printf 'MERGED_PRS=%s\nQUEUED_PRS=%s\nOPEN_PRS=%s\n' "${MERGED_PRS# }" "${QUEUED_PRS# }" "${OPEN_PRS# }"
+```
+
+Report the merged and the queued PRs separately; never call a queued PR merged. A nonzero exit from this block means the states are unknown: report that and stop without a retry or a sync. Then act on the states and `MERGE_STATUS`:
+
+- **Every PR merged:** the merge landed, whatever the exit code. Run the owning skill's pruning sync and its **Sync outcomes** check.
+- **Some PRs queued, none open:** the merge queue owns them now. Do not run the pruning sync; tell the user to run it once the queue has merged them.
+- **Exit 3:** GitHub reported a merge conflict, and stack merges are atomic, so nothing landed. Restack before merging again: run the owning skill's routine sync and its **Sync outcomes** check, resolve any conflicts under **Conflicts**, then resolve the merge target again.
+- **Exit 4 with PRs still open:** a merge may still be running on GitHub, and running it again can submit it twice. Never re-run the merge yourself: report the states and gh-stack's message, and tell the user to check the PRs on GitHub before merging again. A Merging call that printed `MERGE_STARTED=true` but ends without printing `MERGE_STATUS`, for example because the Bash tool timed out, counts as exit 4: never re-run it, and read the states by running the merge-target resolution and this check alone in a fresh call. A call that stopped before printing `MERGE_STARTED=true` never ran the merge: follow the stop message from the target resolution or method check.
+- **Any other open PR:** report gh-stack's message and the open PRs, and stop.
