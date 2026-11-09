@@ -51,10 +51,10 @@
     {
       "path": "trackbed/skills/git:recreate-commits/SKILL.md",
       "rule_id": "TM1",
-      "reason": "Re-reviewed on 2026-10-08 after workbench guidance edits: this user-triggered history-recreation skill creates a recovery ref before reset, revalidates branch, tip, worktree, and stack membership at the rewrite boundary, and requires the final tree to match the original tip. --auto authorizes only one unstacked branch; stack-wide rewriting requires separate authorization. Publication freezes one URL, ref, and exact lease, disables tag following, and rejects remote-only commits. The flagged reset and force-with-lease instructions remain guarded workflow operations.",
+      "reason": "Re-reviewed on 2026-10-08 after workbench guidance edits: this user-triggered history-recreation skill creates a recovery ref before reset, revalidates branch, tip, worktree, and stack membership at the rewrite boundary, and requires the final tree to match the original tip. --auto authorizes only one unstacked branch; stack-wide rewriting requires separate authorization. Publication freezes one URL, ref, and exact lease, disables tag following, and rejects remote-only commits. The flagged reset and force-with-lease instructions remain guarded workflow operations. Re-reviewed on 2026-11-09 after #1013, #1064, #1096, and #1102: the single-commit fast path rewords or soft-resets only after the same revalidation and still requires an empty final-tree diff, with git reset --hard to the recovery ref as the only hard-reset fallback; --no-verify is limited to commit-time hooks on known-failing intermediate commits and never applies to pushes; stack rewrites re-check the frozen stack inventory before reset, restack, and push; and every flagged reset and push keeps its guard.",
       "owner": "kramme",
       "accepted_at": "2026-08-03",
-      "review_after": "2026-11-08"
+      "review_after": "2026-12-09"
     },
     {
       "path": "trackbed/skills/git:commit-message/SKILL.md",
@@ -99,10 +99,10 @@
     {
       "path": "trackbed/skills/git:fixup/SKILL.md",
       "rule_id": "TM1",
-      "reason": "Re-reviewed on 2026-10-08 after workbench guidance edits: this user-triggered fixup skill limits rewrites to the current feature branch, requires explicit flags for unattended or validation-skip modes, and aborts unattended on upstream divergence, merge commits, validation failures, stale locks, or unsafe stack state. It does not publish automatically; collaborator-coordinated force-with-lease or stack publication remains a separate step. The flagged history operations retain those guards.",
+      "reason": "Re-reviewed on 2026-10-08 after workbench guidance edits: this user-triggered fixup skill limits rewrites to the current feature branch, requires explicit flags for unattended or validation-skip modes, and aborts unattended on upstream divergence, merge commits, validation failures, stale locks, or unsafe stack state. It does not publish automatically; collaborator-coordinated force-with-lease or stack publication remains a separate step. The flagged history operations retain those guards. Re-reviewed on 2026-11-09 after #1096 and #1102: --no-confirm still aborts instead of asking on upstream divergence, pre-existing fixup commits, validation failures, and stale index locks, and only auto-skips orphan files; the --skip-* flags remain explicit user opt-ins; remote-only stack membership stops the run; and a local stack is restacked locally without publishing, leaving gh stack push to the user after collaborator coordination.",
       "owner": "kramme",
       "accepted_at": "2026-08-03",
-      "review_after": "2026-11-08"
+      "review_after": "2026-12-09"
     },
     {
       "path": "trackbed/skills/visual:check-slop/references/rules.md",
