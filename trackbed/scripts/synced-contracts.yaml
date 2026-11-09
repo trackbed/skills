@@ -1783,7 +1783,7 @@
       "trackbed:docs:track-rejected-enhancements": "(experimental) Record rejected enhancement ideas in `.out-of-scope/` and check new requests against them.",
       "trackbed:docs:ubiquitous-language": "Extract a DDD-style glossary of domain terms from the conversation into `UBIQUITOUS_LANGUAGE.md`, flagging ambiguous terms.",
       "trackbed:docs:update-agents-md": "Add or update guidelines in AGENTS.md, such as a no-compatibility-code policy, in a structured, keyword-based style.",
-      "trackbed:git:commit-message": "Write commit messages that follow the repository's commit convention, with a pre-commit checklist and AI-attribution rules.",
+      "trackbed:git:commit-message": "Write commit messages that follow the repository's commit convention, with names-only secret and stray-file checks and AI-attribution rules.",
       "trackbed:git:fixup": "Fold unstaged changes into the commits they belong to on the current branch, validate, and autosquash.",
       "trackbed:git:recreate-commits": "Rewrite unpublished branch history into narrative commits behind a backup ref, unattended unless `--manual`. Not for merged or shared branches.",
       "trackbed:hooks:toggle": "Enable, disable, list, or reset this plugin's hooks.",
