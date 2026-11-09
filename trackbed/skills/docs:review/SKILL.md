@@ -1,6 +1,6 @@
 ---
 name: docs:review
-description: "Review one Markdown document outside tracked SIW workflows: requirements, implementation plans, strategy drafts, README/docs drafts, proposals, and decision drafts. Classifies the document, tests it with a fresh reader, selects focused review lenses, and returns severity-ordered findings inline by default or in a requested report file. Not for source-code review, PR diffs, live-product review, or documents under siw/; use SIW audit skills for tracked SIW artifacts."
+description: "Review one Markdown document outside tracked SIW workflows: requirements, implementation plans, strategy drafts, README/docs drafts, proposals, and decision drafts. Classifies the document, tests it with a fresh reader, selects focused review lenses, and returns a verdict with severity-ordered findings inline by default or in a requested report file. Not for source-code review, PR diffs, live-product review, or documents under siw/; use SIW audit skills for tracked SIW artifacts."
 argument-hint: "[markdown-path] [--inline|--file|--output <path>]"
 disable-model-invocation: true
 user-invocable: true
@@ -49,7 +49,7 @@ This skill reviews document quality only.
 4. **Read the document with locations**
    - Read the full document with line numbers.
    - Build a section map from Markdown headings, including heading text and start line.
-   - Do not inspect source-code files to verify implementation claims. If a claim requires codebase verification, mark it as a coverage gap or `UNVERIFIED` rather than silently expanding scope.
+   - Do not inspect source-code files to verify implementation claims. If a claim requires codebase verification, handle it as step 8 and the Error Handling table direct rather than silently expanding scope.
 
 5. **Classify the document**
    - Choose exactly one primary type:
@@ -79,10 +79,11 @@ This skill reviews document quality only.
 8. **Review for findings**
    - Findings must be grounded in the document. Cite the nearest section heading and line number when available.
    - Admit a finding above `Nit` only when the document's instructions contradict each other or its stated goal, or when a reader who follows it as written (plus what it references) would do the wrong thing or measurably avoidable work. Judge omissions against what a competent reader or implementer can already infer: a missing section, extra detail, a finer threshold, or a restated point is not a finding by itself.
+   - Keep an omission, even one a careful implementer might catch, when following the document as written could cost or misdirect money, expose the system to attack, or damage persisted data, unless the document or something it references already prevents that harm. If that prevention would depend on code this skill does not read, keep the finding and mark it `UNVERIFIED`.
    - Before reporting something as missing or contradictory, search the rest of the document and drop the finding if another section already answers it. Do not reopen a decision the document records as settled (a decision log, non-goals, a cited ADR) unless that decision itself causes a concrete defect. When two lenses disagree, resolve it against the document's stated goal, and report a tradeoff only when the text leaves the choice open.
    - State each problem independently of its fix; a plausible addition does not prove something is missing. The concrete fix is the smallest edit that removes the stated consequence.
    - "No findings" is a normal result for a sound document, not a failed review.
-   - Do not report taste preferences, speculative concerns, or items that require reviewing source code.
+   - Do not report taste preferences, speculative concerns, or items that require reviewing source code, except a costly omission kept under the rule above.
    - Deduplicate findings by root cause. If one issue appears in multiple places, cite the strongest location and mention repeats in the body.
    - Severity definitions:
      - `Critical`: the document could drive materially wrong work, unsafe behavior, a major product misdecision, or an irreversible execution mistake.
@@ -91,7 +92,15 @@ This skill reviews document quality only.
      - `Nit`: small wording or structure edit with a concrete reader benefit; drop pure preferences.
 
 9. **Synthesize the report**
-   - Lead with findings ordered by severity, then by document order.
+   - When there are findings, open the report with a verdict before the first finding, so the author can act on its first lines:
+
+   ```text
+   ## Verdict
+
+   <Whether the author can use the document as it stands.> <The one or two problems that matter most, with their IDs.> <What the author still has to decide, or "Nothing is left for you to decide.">
+   ```
+
+   - Then, under `## Findings`, list findings ordered by severity, then by document order.
    - Use stable IDs: `DOC-001`, `DOC-002`, etc.
    - Each finding must use this structure:
 
@@ -99,6 +108,7 @@ This skill reviews document quality only.
    ### DOC-001: <short finding title> [<Severity>]
    Location: `<path>` - <section heading or "front matter">, line <line-or-range>
    Lens: <lens>
+   UNVERIFIED: <the code that could rule this out; include only when step 8 marks the finding>
 
    Problem: <what is wrong, stated concretely>
 
@@ -122,7 +132,7 @@ This skill reviews document quality only.
    **Document type:** <primary type; secondary: ... if applicable>
    **Lenses reviewed:** <comma-separated list>
    **Comprehension read:** <status from the reference>
-   **Residual risk:** <unverified assumptions, source-code claims not checked, missing context, or "None identified">
+   **Residual risk:** <open unknowns, or "None identified">
    ```
 
    - If there are no findings, say the following, again omitting the Comprehension Read section when the read did not run:
@@ -142,12 +152,14 @@ This skill reviews document quality only.
    **Document type:** <primary type>
    **Lenses reviewed:** <comma-separated list>
    **Comprehension read:** <status from the reference>
-   **Residual risk:** <coverage caveats or "None identified">
+   **Residual risk:** <open unknowns, or "None identified">
    ```
+
+   - Under Residual risk, list only open unknowns that no finding covers, such as an unverified assumption, an unchecked source-code claim, or missing context. Do not repeat a finding, list a check that passed, or bring back a concern step 8 rejected.
 
 10. **Deliver output**
     - If `OUTPUT_MODE=inline`, return the report in the final response.
-    - If `OUTPUT_MODE=file`, write the report to `OUTPUT_PATH` and return a brief summary with the path and finding counts by severity.
+    - If `OUTPUT_MODE=file`, write the report to `OUTPUT_PATH` and return a brief summary with the path, the verdict when there is one, and finding counts by severity.
     - Treat `DOC_REVIEW.md` as a working artifact that should not be committed and can be cleaned up by `/trackbed:workflow:cleanup-artifacts`.
 
 ## Error Handling
@@ -160,7 +172,7 @@ This skill reviews document quality only.
 | Non-Markdown input | Route to `/trackbed:docs:to-markdown` first, then review the resulting Markdown. |
 | Path under `siw/` | Route to the relevant SIW audit skill and do not run this generic review. |
 | Output path equals input path | Reject and ask for a different output path or use inline output. |
-| Source-code verification needed | Mark as residual risk or `UNVERIFIED`; do not inspect code as part of this skill. |
+| Source-code verification needed | Keep a costly omission from step 8 as a finding marked `UNVERIFIED`; list any other unchecked source-code claim under Residual risk. Do not inspect code as part of this skill. |
 | Comprehension read cannot run or fails | Record the status under Coverage, omit the Comprehension Read section, and finish the other lenses. Never write the restatements yourself. |
 
 ## Examples
