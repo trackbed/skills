@@ -66,7 +66,7 @@ Spawn teammates based on applicable review categories. Each teammate receives:
 - The teammate's file scope: the UI-relevant changed files, or every changed file for the product reviewer
 - For the product reviewer, the reviewer brief from `references/product-lens.md`, verbatim
 - Project conventions extracted from the project instruction files (explicitly mention stack requirements like Tailwind or Material Design 3 when present)
-- If `app_url` provided: the URL and browser MCP type
+- If `app_url` provided: the URL, browser MCP type, and the base skill's Step 7 `Browser evidence` reporting instruction
 - Instructions to **message other teammates** when they find cross-cutting product or UX issues
 
 Use the same agent-selection logic as `/trackbed:pr:product-review` Step 5 (always-launch set, conditional a11y detection, and `--categories` filter) — substitute "spawn the teammate" for "launch the agent". Mission files: `agents/ux-reviewer.md`, `agents/product-reviewer.md`, `agents/visual-reviewer.md`, and `agents/a11y-auditor.md`.
@@ -112,12 +112,14 @@ Then aggregate:
 
 If `INLINE_MODE=true`, reply with the aggregated audit inline using the same format as `/trackbed:pr:product-review` Step 11, with team metadata, and do **not** create or update `PRODUCT_REVIEW_OVERVIEW.md`.
 
-Otherwise, write the aggregated audit to `PRODUCT_REVIEW_OVERVIEW.md` using the same format as `/trackbed:pr:product-review` Step 11, with team metadata:
+Otherwise, write the aggregated audit to `PRODUCT_REVIEW_OVERVIEW.md` using the same format as `/trackbed:pr:product-review` Step 11, with team metadata. In both modes, set `Mode` and `Visual evidence` by the base skill's Step 7 Mode field rule, from the teammates' `Browser evidence` lines:
 
 ```markdown
 # Product Review Summary (Team Review)
 
 **Mode:** {Code-only | Visual + Code} **Agents Run:** {list of agents that ran} **Categories:** {list of categories audited}
+
+**Visual evidence:** {app URL (provided | detected | entered by user[, serving checkout unconfirmed | served from <checkout root>]) | none — reason}
 
 ## Team
 

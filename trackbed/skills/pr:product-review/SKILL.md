@@ -180,6 +180,8 @@ After applying the filter, drop `ux`, `visual`, and `a11y` when Step 3 found no 
 
 ### Step 6: Detect Browser Automation (If URL Provided)
 
+Track where the visual evidence comes from in `VISUAL_SOURCE`: `provided` for an `http` argument, `detected` for a detector URL, `entered by user` for a URL the user typed in this step. Whenever this step clears `app_url`, record the reason as `VISUAL_SKIP_REASON` for the report.
+
 If `app_url` was provided and `CONDUCTOR_IS_LOCAL` is `0`, emit `Warning: Conductor cloud workspace detected (no browser MCP); continuing in code-only mode. Confirm with /trackbed:setup.`, clear `app_url`, and continue directly to Step 7 without detecting browser automation.
 
 If `app_url` was provided:
@@ -194,18 +196,20 @@ If `app_url` was provided:
    fi
    ```
 
-   - `http://...` or `https://...` — replace `app_url` with the resolved URL.
+   - `http://...` or `https://...` — replace `app_url` with the resolved URL. In an interactive session, ask the user to confirm it before use, offering to enter another URL or to continue in code-only mode; if non-interactive, use it.
    - `__MULTIPLE_URLS__` — list candidates and ask the user to choose one; if non-interactive, clear `app_url`, warn, and continue in code-only mode.
-   - `__NO_RUNNING_SERVER__` — clear `app_url`, warn, and continue in code-only mode.
-   - `__FOREIGN_SERVER__` — another Git checkout serves every server found, so screenshots would show code that is not on this branch. List each URL with the directory that serves it and ask the user whether to use one; if non-interactive, clear `app_url`, warn, and continue in code-only mode.
-   - `__UNCONFIRMED_OWNER__` — replace `app_url` with the URL on the next line, and note in the review that the serving checkout could not be confirmed.
+   - `__NO_RUNNING_SERVER__` — in an interactive session, say that no dev server answered and ask the user for this checkout's dev-server URL or to continue in code-only mode; if non-interactive, clear `app_url`, warn, and continue in code-only mode.
+   - `__FOREIGN_SERVER__` — another Git checkout serves every server found, so screenshots would show code that is not on this branch. List each URL with the directory that serves it and ask the user whether to use one, replacing `app_url` with the chosen URL; if non-interactive, clear `app_url`, warn, and continue in code-only mode.
+   - `__UNCONFIRMED_OWNER__` — replace `app_url` with the URL on the next line; the report marks it `serving checkout unconfirmed` (Step 7). In an interactive session, confirm it with the user as for a resolved URL, saying that its serving checkout is unknown.
    - `__DETECTOR_UNAVAILABLE__` — ask the user for the dev-server URL; if non-interactive, clear `app_url`, warn that the shared detector is unavailable, and continue in code-only mode.
+
+   Accept a URL the user enters only when it starts with `http://` or `https://`.
 
 1. Check for available browser MCP tools in the priority order `trackbed:browse` uses for the target. For a local `app_url` (`localhost`, `127.0.0.1`, or `[::1]`), that order prefers providers that run their own browser profile:
    - `mcp__chrome-devtools__*` tools, then `mcp__playwright__*` tools, then `mcp__claude-in-chrome__*` tools for a local `app_url`
    - `mcp__claude-in-chrome__*` tools, then `mcp__chrome-devtools__*` tools, then `mcp__playwright__*` tools otherwise
 2. If found → pass `app_url` and browser MCP type to agents so they can take screenshots
-3. If none found:
+3. If none found, clear `app_url` and warn:
 
    ```
    Warning: No browser automation MCP detected. Using code-only analysis.
@@ -230,7 +234,7 @@ For each applicable agent, launch the reviewer using the platform's agent-invoca
 - Staged local diff: `git diff --cached`
 - Unstaged local diff: `git diff`
 - Untracked local files list: `git ls-files --others --exclude-standard` (agents should treat these as new files and review full file content)
-- The `app_url` and browser MCP type (if visual mode)
+- The `app_url` and browser MCP type (if visual mode), plus the instruction to end its output with `Browser evidence: yes` when it inspected `app_url` in the browser, or `Browser evidence: no`
 - When `STACK_CONTEXT` reports `stacked`: the stack context JSON and the `Reviewer rules` section of the stacked Pull Request reference
 - No report threshold: each agent reports every finding with its confidence, and Step 8 applies the threshold
 
@@ -271,7 +275,7 @@ diff "$TREE_MANIFEST_BEFORE" "$TREE_MANIFEST_AFTER"
 
 Parse both manifests using the record contract in `references/shared-working-tree.md`. Compare the `@head` metadata records before deriving `MUTATED_PATHS`. If the commits differ, discard the complete finding batch, stop without writing `PRODUCT_REVIEW_OVERVIEW.md`, and require a fresh scope capture and audit; do not attribute an unknown concurrent commit or branch switch to a reviewer. Only when the commits match may you compare the remaining path records. An empty path-record `diff` means the tree is intact; continue. Any path-record difference means a reviewer mutated the shared tree: collect those differing paths as `MUTATED_PATHS` and apply the mutation handling in `references/shared-working-tree.md` — re-verify every finding citing a mutated path against the text now on disk, drop the ones that no longer reproduce, report the paths in `## Coverage Status`, and never revert or clean them. If `MUTATED_PATHS` covers most of the audited scope, stop without writing `PRODUCT_REVIEW_OVERVIEW.md` and report the mutation instead.
 
-**Mode field:** If `app_url` was provided, set `Mode` to `Visual + Code` in the output template; otherwise `Code-only`.
+**Mode field:** Set `Mode` to `Visual + Code` only when at least one reviewer that completed reports `Browser evidence: yes`; otherwise set `Code-only`, even when an `app_url` was requested. Fill the report's `Visual evidence` field with `app_url` and `VISUAL_SOURCE`, adding `serving checkout unconfirmed` after an `__UNCONFIRMED_OWNER__` result, or `served from <checkout root>` when the user chose a `__FOREIGN_SERVER__` URL. When no reviewer captured browser evidence, write `none` with `VISUAL_SKIP_REASON`, `no app URL requested`, or `reviewers captured no browser evidence`.
 
 **Agent failure handling.** If a selected reviewer agent is unavailable, times out, or returns output that cannot be parsed as findings, record the failed agent name and what was attempted. Continue only if at least one selected reviewer succeeded, and include a degraded-coverage banner in the final report: `Coverage degraded: <agent names> failed; findings below exclude <categories>.` If all selected reviewers fail, or if the relevance validator fails, stop without writing `PRODUCT_REVIEW_OVERVIEW.md`. Do not fabricate findings or present a partial audit as complete.
 
