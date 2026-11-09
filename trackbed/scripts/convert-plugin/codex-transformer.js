@@ -275,6 +275,15 @@ function sharedRuntimeFor(plugin) {
         sourceFile: path.join(
           plugin.root,
           "scripts",
+          "list-stack-worktrees.sh",
+        ),
+        targetPath: path.join("scripts", "list-stack-worktrees.sh"),
+      },
+      {
+        executable: true,
+        sourceFile: path.join(
+          plugin.root,
+          "scripts",
           "verify-rewrite-state.sh",
         ),
         targetPath: path.join("scripts", "verify-rewrite-state.sh"),
