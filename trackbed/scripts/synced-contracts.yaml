@@ -1776,7 +1776,7 @@
       "trackbed:discovery:wayfinder": "Chart a huge or foggy initiative as a local decision map and resolve one open question per session until it is ready for planning.",
       "trackbed:docs:adr": "Write an Architecture Decision Record for a significant, long-lived decision, following the project's existing ADR format.",
       "trackbed:docs:feature-spec": "Write a lightweight PRD-style feature spec before coding, for features that need written alignment but not the full SIW workflow.",
-      "trackbed:docs:review": "Review one Markdown document, such as a plan, proposal, or README draft, and get severity-ordered findings.",
+      "trackbed:docs:review": "Review one Markdown document, such as a plan, proposal, or README draft, and get a verdict with severity-ordered findings.",
       "trackbed:docs:solution-note": "Record a solved problem in `docs/solutions/` after a fix, migration, or lesson; `--refresh` audits existing notes against the code.",
       "trackbed:docs:sync-release": "Compare install, usage, architecture, and contract docs against a release range and report drift; `--apply` fixes it.",
       "trackbed:docs:to-markdown": "Convert PDF, Office, HTML, image, audio, and other files to Markdown with MarkItDown.",

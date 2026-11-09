@@ -541,7 +541,7 @@ Decision records, specs, solution notes, document review and conversion, and pla
 | `/trackbed:docs:adr` | User, Auto | `[decision title]` | Write an Architecture Decision Record for a significant, long-lived decision, following the project's existing ADR format. |
 | `/trackbed:docs:feature-spec` | User | `[feature name or brief description] [--synthesize\|--auto]` | Write a lightweight PRD-style feature spec before coding, for features that need written alignment but not the full SIW workflow. |
 | `/trackbed:docs:track-rejected-enhancements` | User | `<record\|check\|append\|reconsider> <concept>` | (experimental) Record rejected enhancement ideas in `.out-of-scope/` and check new requests against them. |
-| `/trackbed:docs:review` | User | `[markdown-path] [--inline\|--file\|--output <path>]` | Review one Markdown document, such as a plan, proposal, or README draft, and get severity-ordered findings. |
+| `/trackbed:docs:review` | User | `[markdown-path] [--inline\|--file\|--output <path>]` | Review one Markdown document, such as a plan, proposal, or README draft, and get a verdict with severity-ordered findings. |
 | `/trackbed:docs:solution-note` | User | `[problem, lesson, or context] \| --refresh [solution-note-path\|--all] [--apply]` | Record a solved problem in `docs/solutions/` after a fix, migration, or lesson; `--refresh` audits existing notes against the code. |
 | `/trackbed:docs:sync-release` | User | `[<base>...<ref>\|--base <rev> [--ref <rev>]\|--current] [--apply]` | Compare install, usage, architecture, and contract docs against a release range and report drift; `--apply` fixes it. |
 | `/trackbed:docs:to-markdown` | User, Auto | — | Convert PDF, Office, HTML, image, audio, and other files to Markdown with MarkItDown. |
