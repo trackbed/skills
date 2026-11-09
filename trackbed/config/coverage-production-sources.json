@@ -562,6 +562,14 @@
       ]
     },
     {
+      "kind": "executable",
+      "suite": "trackbed/tests/list-stack-worktrees.bats",
+      "skills": [
+        "trackbed/skills/pr:rebase/SKILL.md",
+        "trackbed/skills/pr:stack/SKILL.md"
+      ]
+    },
+    {
       "kind": "guidance",
       "suite": "trackbed/tests/session-automate-repeats-guidance.bats",
       "skills": ["trackbed/skills/session:automate-repeats/SKILL.md"]
@@ -737,6 +745,9 @@
       ],
       "trackbed/scripts/install-codex.sh": [
         "trackbed/tests/convert-plugin.bats"
+      ],
+      "trackbed/scripts/list-stack-worktrees.sh": [
+        "trackbed/tests/list-stack-worktrees.bats"
       ],
       "trackbed/scripts/resolve-base.sh": ["trackbed/tests/resolve-base.bats"],
       "trackbed/scripts/resolve-stack-membership.sh": [
