@@ -189,7 +189,7 @@ for term in ["reviewThreads(first: 100, after: $cursor)", "pageInfo { hasNextPag
              "Skipped N inline review threads", "`no matching review thread` or `root comment not fetched`",
              "If skipped threads leave no candidates, stop and report those lines instead of the no-review message",
              "`path` alone when both `line` and `original_line` are null",
-             "A review summary or general comment uses the `path:line`, or `path` alone, that its body names, otherwise `review-scope`",
+             "A review summary or general comment uses the `path:line`, or `path` alone, that its body names, otherwise no location, so Step 1 finds its target",
              "repository-relative with no empty, `.`, or `..` segment",
              "lists several distinct findings into one candidate per finding",
              "`trackbed:pr:github-review-reply` owns posting"]:

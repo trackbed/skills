@@ -13,7 +13,7 @@ user-invocable: true
 ### Model Invocation Contract
 
 - Invoke automatically only when the user clearly asked in this session to resolve review findings, or when an active parent explicitly delegates remediation under the recorded hand-off repair exception:
-  - `trackbed:pr:github-review-reply` Step 5 passes exactly `--implement-only` plus its caller-scoped structured findings payload (a stable `source_id`, location, and comment body per item), only after its user enabled implementation and only for items it classified `needs-code-change`, never a PR URL as the review source.
+  - `trackbed:pr:github-review-reply` Step 5 passes exactly `--implement-only` plus its caller-scoped structured findings payload (a stable `source_id`, location when present, and comment body per item), only after its user enabled implementation and only for items it classified `needs-code-change`, never a PR URL as the review source.
   - `trackbed:pr:review-convergence` batch remediation passes exactly `--implement-only` plus a caller-scoped payload of the batch's accepted code-changing findings, at most once per batch while the worktree is clean, and never in validation-only mode.
 - Do not infer authorization from the presence of a review report, Conductor diff comment, or GitHub thread.
 - Delegating parents never add `--team`, `--granular`, `--source`, `--severity`, or a URL review source, and never delegate without findings. A direct user request keeps every flag and discovery mode unchanged.
@@ -60,7 +60,7 @@ If the payload contains both review content and direction, treat the bulk as the
 If `IMPLEMENT_ONLY=true`, require an explicit caller-scoped findings payload. The payload must contain at least one finding and, for each finding:
 
 - a stable source identifier (`source_id`, `thread_id`, `comment_id`, or equivalent)
-- file path and line or broader scope
+- file path and line, or a broader scope; an item with no file anchor, such as a review summary or general PR comment, may carry no location, and Step 1's rule for comments without a file anchor finds its target
 - reviewer comment, finding text, or equivalent issue body
 
 Empty input, a PR URL by itself, metadata-only input, or plain direction without findings is invalid. Stop with:
@@ -112,7 +112,7 @@ When parsing these files, accept the structured `- Location:` field, `**Location
 
 If no review is found for the selected mode, ask the user to provide review content, provide a PR URL, or choose a different mode.
 
-Then **list all findings** with location (`file:line` when applicable, otherwise a broader scope label such as `review-scope`) and content. For old `REVIEW_OVERVIEW.md` files without an explicit location field, fall back to inline `[location]` text when present.
+Then **list all findings** with location (`file:line` when applicable, otherwise the scope label the review set, such as `review-scope`; leave a comment without a file anchor unlabeled for the rule below) and content. For old `REVIEW_OVERVIEW.md` files without an explicit location field, fall back to inline `[location]` text when present.
 
 For structured review content from any transport, also parse the report-level `Review producer` marker and each finding's `Finding ID`, `Location`, `Verdict`, `Action class`, `Confidence`, `Owner`, `Resolution status`, `Depends on`, `Evidence`, `Manual blocker`, and `Next human decision`. Also parse these canonical lifecycle fields when present: `Recommended resolution`, `Alternatives`, `To proceed`, `Process handoff`, `Waiting on`, `Selected resolution`, and `Decision outcome`.
 
@@ -121,6 +121,7 @@ For structured review content from any transport, also parse the report-level `R
 - `Action class: gated_auto` with a concrete `path/to/file:line` location is eligible for implementation.
 - `Action class: manual` is not auto-implementable, even when it has a file location. Defer it through the manual-proposal flow in Step 2d, which preserves the manual blocker and next human decision when present, unless the user supplied a separate explicit implementation payload that changes the scope.
 - `Action class: advisory` is optional. Implement it only when it passes the safe-advisory test in Step 2d; acknowledge the rest. Step 2d also defines the explicit-request path that widens candidacy.
+- A review comment without a file anchor, such as a review summary or general PR comment, is not process-level just because it lacks one; only a non-file location the review itself recorded, such as `review-scope` or `PR description`, keeps the route below. Find its target from the comment text and the branch diff against its base, and use that `path:line` as its location, noting that the comment had no file anchor. Treat it as process-level only when it asks for a branch, PR, or process action. When its target stays unclear, defer it through the Step 2d manual-proposal flow and name the candidate locations; under `--implement-only`, return `deferred`.
 - `review-scope`, `PR description`, and other non-file locations are process-level findings. Defer them through the same manual-proposal flow in Step 2d; there the recommendation is a concrete process action (proposed PR-description text, a branch-split plan), not a code edit. If the user accepts that recommendation, use the process-handoff path in Step 2d instead of sending the finding through code implementation again.
 - Legacy local findings without an action class keep the previous location/severity behavior, but do not infer `gated_auto` from a file location when an action class is present.
 - When the source is `OVERENGINEERING_REVIEW_OVERVIEW.md` or carries the exact structured marker `Review producer: trackbed:pr:overengineering-review`, classify it as an overengineering review regardless of transport. Exclude both `Justified` and `Previously Processed` from the active finding set: those sections retain rationale and lifecycle history, not current resolver work. Map active verdicts at this consumer boundary: treat `Verdict: JUDGMENT CALL` as `Action class: manual` and route it through Step 2d's accept-or-simplify proposal flow; treat `Verdict: OVERDONE` as `Action class: gated_auto` only when it has a concrete file location, otherwise apply the normal process-level manual flow. Do not infer the producer or either mapping from headings or other free-form prose. Chat-supplied reviews remain external for Step 2b validity assessment even when the producer marker is present.
@@ -162,7 +163,7 @@ Then, for each finding, ask: **"Is this within the PR's scope?"**
 
 - Small fixes in adjacent code that make the PR's changes cleaner
 - Consistency improvements that affect a few lines near the PR's changes
-- If unclear, **ask the user** whether to include or defer
+- If unclear, **ask the user** whether to include or defer; under `--implement-only`, return `deferred` with that choice as the decision needed
 
 #### 2b. Assess validity (for in-scope findings only)
 
@@ -170,7 +171,7 @@ For external reviews:
 
 - **Assess validity** — Read `${CLAUDE_PLUGIN_ROOT}/shared/findings/references/disputing-findings.md`, then decide whether the finding holds. This is a safety net that also runs under `--implement-only`.
 - **If you can contest it** — The finding is wrong and you can cite evidence the reviewer could have read. Skip it, and record that evidence as the reason. Under `--implement-only`, return `disagreed` with the evidence as the `rationale`.
-- **If only unrecorded knowledge says it is wrong** — Do not skip it on your own. Ask the user. Under `--implement-only`, return `blocked-implementation` with a `rationale` that starts `Needs author decision:` and names the unrecorded fact, so the parent stops and asks instead of drafting a disagreement.
+- **If only unrecorded knowledge says it is wrong** — Do not skip it on your own. Ask the user, and record the outcome as `references/resolution-output.md` § Escalations describes. Under `--implement-only`, return `blocked-implementation` with a `rationale` that starts `Needs author decision:` and names the unrecorded fact, so the parent stops and asks instead of drafting a disagreement.
 - **If it is a matter of preference** — You may still implement it, or dismiss it under Step 2e. A preference is not a dispute. Under `--implement-only`, implement it, because the parent already accepted the change.
 - **If you agree** — Proceed with the fix
 
@@ -211,6 +212,7 @@ When a finding came from a structured local review and includes an action class,
   - It does not touch code covered by an unresolved Critical/Important finding in the same review
 - Acknowledge the remaining `advisory` findings with **Resolution status: acknowledged** and **Action taken: Acknowledged — advisory.**, naming which part of the safe-advisory test failed. An explicit user request — asking in chat to resolve suggestions or naming the finding; a `--severity` filter is scoping only and never counts — widens candidacy to every in-scope advisory finding, still subject to the Step 2e nitpick judgment and to the low-confidence-dead-code and unresolved-Critical/Important conditions above, which no request path bypasses.
 - Never treat `manual`, `review-scope`, or `PR description` findings as implementation candidates just because they are critical or important.
+- Under `--implement-only`, the parent's payload is the explicit request that widens advisory candidacy, and Step 2e dismisses nothing, because the parent already accepted each change. Every finding this step would defer or acknowledge without a change, including an advisory finding stopped by a condition no request path bypasses, returns `deferred` with its proposal in the `decision` fields instead of a review-file entry.
 
 #### 2e. Dismiss nitpicks with judgment
 
@@ -312,16 +314,24 @@ Record the files each fix changes; Step 4 stages from these lists. The run's cha
         "thread_id": "optional GitHub review thread id",
         "comment_id": "optional root comment id",
         "location": "path/to/file.ts:123",
-        "status": "implemented|already-addressed|skipped-out-of-scope|skipped-invalid|disagreed|blocked-implementation|blocked-validation",
+        "status": "implemented|already-addressed|skipped-out-of-scope|skipped-invalid|disagreed|deferred|blocked-implementation|blocked-validation",
         "action": "specific code change, or none",
         "rationale": "one-line rationale; required for every non-implemented status",
-        "files_changed": ["path/to/file.ts"]
+        "files_changed": ["path/to/file.ts"],
+        "decision": {
+          "blocker": "why the skill could not act on its own",
+          "decision_needed": "the question the parent must answer",
+          "recommendation": "the recommended answer and why it wins",
+          "alternatives": [
+            "option: one-line trade-off against the recommendation"
+          ]
+        }
       }
     ]
   }
   ```
 
-  `blocked-implementation` means the fix could not be completed, or, with a `rationale` that starts `Needs author decision:`, that it needs a fact only the author can settle. `blocked-validation` means a fix was attempted but validation still reports a new failure after the repair attempt. `pre-existing-failure` is a validation status only; findings keep their own status. Then skip the Generate summary bullet below.
+  `blocked-implementation` means the fix could not be completed, or, with a `rationale` that starts `Needs author decision:`, that it needs a fact only the author can settle. `deferred` means the finding needs a decision before any code change. Only a `deferred` finding carries `decision`, and every field in it is optional: omit a field the skill cannot fill, and the object when none applies. `blocked-validation` means a fix was attempted but validation still reports a new failure after the repair attempt. `pre-existing-failure` is a validation status only; findings keep their own status. Return exactly one entry per payload finding. Before writing the summary, read `references/resolution-output.md` § Implement-only statuses, which maps every path to its status and says how to fill `decision`. Then skip the Generate summary bullet below.
 
 - **Generate summary** — Write resolutions back to the source review file (see Output format below). If the source was `PRODUCT_REVIEW_OVERVIEW.md`, `COPY_REVIEW_OVERVIEW.md`, `CONVENTION_REVIEW_OVERVIEW.md`, or `OVERENGINEERING_REVIEW_OVERVIEW.md`, update that file in place. A chat or payload review carrying `Review producer: trackbed:pr:overengineering-review` writes to `OVERENGINEERING_REVIEW_OVERVIEW.md`; other external, chat, and Conductor-sourced reviews write to `REVIEW_OVERVIEW.md`.
   - Use `Resolution status: addressed` only when the finding was implemented, already satisfied by the current code, or otherwise fully resolved.
@@ -364,7 +374,7 @@ Record the files each fix changes; Step 4 stages from these lists. The run's cha
 - **Choose fixes across UX/DX/AX** — For eligible in-scope findings, consider user experience (clear, reliable task completion), developer experience (understanding, maintenance, testing, and debugging), and agent experience (context discovery, predictable execution, recovery, and verification). Prefer fixes that improve all three while preserving established behavior and contracts outside the intended change; when a finding requires an intentional behavior or contract change, make it explicit. Unchanged or inapplicable dimensions are acceptable. Explain material tradeoffs and verify relevant regressions. Apply the same reasoning to manual proposals without bypassing action-class eligibility or expanding scope.
 - **Write clear, maintainable code** — prioritize readability and simplicity; prefer straightforward solutions over clever ones.
 - **Add comments where needed** — if a fix involves non-obvious logic or trade-offs, include concise comments explaining the reasoning.
-- **Ask questions if unsure** — if any aspect of the fix or the related business logic is unclear, seek clarification before proceeding.
+- **Ask questions if unsure** — if any aspect of the fix or the related business logic is unclear, seek clarification before proceeding; under `--implement-only`, return `deferred` with the question as the decision needed.
 - **Follow project conventions** — ensure fixes align with the best practices outlined in the target project's AGENTS.md (when present).
 - **Stay focused** — limit changes to what's necessary for the fix; avoid unrelated refactors or improvements.
 
