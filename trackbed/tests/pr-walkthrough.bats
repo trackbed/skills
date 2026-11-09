@@ -207,6 +207,19 @@ PY
   [ "$status" -eq 0 ]
 }
 
+@test "walkthrough report holds contrast, names diagrams, and shows only what the change supports" {
+  grep -qF 'at 4.5:1 contrast or higher in both the light and dark schemes' "$SKILL"
+  grep -qF 'Show every state with a word or a line style as well as color' "$SKILL"
+  grep -qF 'Check that every diagram has an accessible name' "$SKILL"
+  grep -qF 'carries `role="img"` and an `aria-label` that states the diagram'"'"'s claim' "$SKILL"
+  grep -qF 'Render a section only when the fact sheet gives it something to show. Omit an empty section' "$SKILL"
+  grep -qF 'Only alternatives that a commit, PR, document, or conversation names' "$SKILL"
+  grep -qF 'Never infer an alternative. When none is recorded, write `None recorded`.' "$SKILL"
+  grep -qF 'Record each added, removed, or upgraded dependency and each build-configuration change in the fact sheet as data.' "$SKILL"
+  grep -qF 'Keep every text color at 4.5:1 contrast or higher in both schemes' "$ROOT/shared/visual/references/css-patterns.md"
+  grep -qF '**Name every diagram.**' "$ROOT/shared/visual/references/libraries.md"
+}
+
 @test "PR walkthrough validator rejects unsafe URL schemes" {
   if ! command -v python3 >/dev/null 2>&1; then
     skip "python3 is required for PR walkthrough tests"
