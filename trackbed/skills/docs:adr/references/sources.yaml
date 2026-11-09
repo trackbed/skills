@@ -23,3 +23,11 @@ sources:
     last_reviewed_at: 2026-11-06
     baseline_commit: "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
     baseline_hash: "sha256:152e2c97239affb12a60c5f4a7e74ab546a49ae169688c81f4e2ccc42dafa579"
+  - id: egm-rejection-attribution
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/de27902a154c4a92dd52aac50082d53873e6ac91/skills/egm-draft/SKILL.md
+    title: "google/elephant-goldfish-model - egm-draft rejection attribution (#249)"
+    rationale: "Taking deciders only from the user, a linked record, or a stated project convention, and never crediting a role no source names, is informed by this source's rule that a rejection is the author's unless a linked issue, discussion, or PR shows otherwise; reviewed at upstream commit de27902a154c4a92dd52aac50082d53873e6ac91."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "de27902a154c4a92dd52aac50082d53873e6ac91"
+    baseline_hash: "sha256:2c107ecd3751635df1eedef261c7e14a79e7bb9429d20753c3f0df5834e1dbec"

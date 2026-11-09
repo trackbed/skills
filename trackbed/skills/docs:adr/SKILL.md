@@ -127,6 +127,14 @@ Gate drafting if any of these are absent:
 - Context framing (what problem forced the choice).
 - At least one rejected alternative.
 
+Take deciders only from these sources:
+
+- The user's words in this session.
+- A linked issue, Pull Request, or decision record that shows who decided.
+- A convention the project's instructions state, such as a named team that approves every ADR.
+
+Deciders in earlier ADRs are a suggestion to confirm with the user, never a source. When no source names a decider, stop at this gate and ask the user who decided. Never fill the field with a role such as "repository maintainers" from habit or precedent; the record would credit people who never made the decision.
+
 ```
 MISSING REQUIREMENT: no deciders named
 Cannot proceed past draft until resolved
@@ -213,7 +221,7 @@ If `ADR_DIR` does not exist yet, create the folder pre-flight chose, or `docs/de
 - If a project template was detected in pre-flight, match it.
 - Otherwise, use `assets/adr-template.md` verbatim.
 
-Populate: Status (PROPOSED to start), Date (today — the date of writing, not the decision date), Deciders, Context, Decision, Consequences (positive / negative / neutral-or-follow-on), Alternatives considered (at least one; implicit alternatives such as "do nothing" or "keep what we have" count).
+Populate: Status (PROPOSED to start), Date (today — the date of writing, not the decision date), Deciders (only from a source the `MISSING REQUIREMENT` gate allows), Context, Decision, Consequences (positive / negative / neutral-or-follow-on), Alternatives considered (at least one; implicit alternatives such as "do nothing" or "keep what we have" count).
 
 Keep the Decision no longer than the Context — a decision without problem framing is a preference, not an ADR. If you must stop before the ADR is complete, revert what you already wrote (delete the new file, undo any predecessor edit) rather than leave a half-written successor.
 
