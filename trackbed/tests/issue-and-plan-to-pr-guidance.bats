@@ -575,8 +575,8 @@
 	    grep -qF "capture every authoritative linked source" "$report"
 	    grep -qF "Copy Markdown specs into siw/supporting-specs/" "$report"
 	    grep -qF "Copy non-Markdown sources under siw/" "$report"
-	    grep -qF "If any linked source cannot be captured, stop" "$report"
-	    grep -qF "only after transfer verifies every linked source'"'"'s disposition" "$report"
+	    grep -qF "If any of these sources cannot be captured, stop" "$report"
+	    grep -qF "only after transfer verifies the disposition of each of these sources" "$report"
 	  '
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }

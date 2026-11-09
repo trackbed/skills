@@ -43,7 +43,7 @@ sources:
   - id: addy-spec-driven-development
     url: https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/spec-driven-development/SKILL.md
     title: "Addy Osmani agent-skills - spec-driven development"
-    rationale: "The spec-first initialization shape and implementation-gating conventions are informed by this source."
+    rationale: "The spec-first initialization shape and implementation-gating conventions are informed by this source, and its External spec tools note informs keeping a linked spec that another spec tool manages in that tool's format and location."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"

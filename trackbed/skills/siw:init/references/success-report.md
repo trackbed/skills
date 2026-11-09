@@ -15,6 +15,10 @@ Created:
   siw/issues/                  - Individual issue files (temporary)
 
 Artifact readiness: {product-only|requirements-only|planning-ready} - {one-line reason}
+Strategy: {used|flagged stale|missing} - {source files read, or "no STRATEGY.md or fallback file"}
+  Unresolved conflicts: {each entry in strategy_conflicts | none}
+  {If strategy_status is missing and the work is broad product-direction work:}
+  Run /trackbed:product:strategy to create STRATEGY.md for later SIW runs
 
 Next Steps:
   {If product-only or requirements-only:}
@@ -34,15 +38,19 @@ Tips:
 
 ```
 Linked Specifications:
-  {If kept in place:}
+  {If managed by another spec tool:}
+  - {file} (managed by {owner})
+  {owner} keeps owning this file's format and location. Leave it in place and never copy it into siw/. The SIW spec links to its path. siw:transfer-to-linear does not migrate the file and reports its path as an unresolved local reference.
+
+  {If kept in place and owner is none:}
   - {file1} (external)
   - {file2} (external)
   Until captured for transfer, these files remain the local source of truth. The SIW spec references them.
-  Before transfer, capture every authoritative linked source:
+  Before transfer, capture every authoritative linked source that no spec tool manages:
     - Copy Markdown specs into siw/supporting-specs/ and update the SIW links.
     - Copy non-Markdown sources under siw/ so transfer can require relocation or upload before cleanup.
-  If any linked source cannot be captured, stop and keep the local SIW source of truth.
-  Treat Linear as authoritative only after transfer verifies every linked source's disposition.
+  If any of these sources cannot be captured, stop and keep the local SIW source of truth.
+  Treat Linear as authoritative only after transfer verifies the disposition of each of these sources.
 
   {If moved to siw/:}
   - siw/{file1} (moved)
