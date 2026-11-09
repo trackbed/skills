@@ -31,10 +31,10 @@ For all other work types, continue to P2.
 
 Load optional product-loop context:
 
-- If repo-root `STRATEGY.md` exists, read it and extract target problem, approach, who it is for, key metrics, active tracks, milestones if present, and non-goals.
-- If its `last_updated` frontmatter is older than 90 days, mark relevant context as `STALE:` in the report.
+- Read the repository's product strategy as `${CLAUDE_PLUGIN_ROOT}/shared/product/references/strategy-reader.md` describes, and extract target problem, approach, who it is for, key metrics, active tracks, milestones if present, and non-goals.
+- Keep every marker and label the strategy reader returns in the report.
 - If `docs/pulse-reports/` exists, read the 1-3 most recent reports and extract usage, quality, error, performance, customer-signal, and followup highlights that relate to the audited spec.
-- If neither exists, continue. Missing strategy or pulse coverage is report context, not a finding by itself unless the spec makes broad product-direction claims that cannot be evaluated without that context.
+- If the reader returns no strategy context and no pulse reports exist, continue. Missing strategy or pulse coverage is report context, not a finding by itself unless the spec makes broad product-direction claims that cannot be evaluated without that context.
 
 Store the result as `PRODUCT_LOOP_CONTEXT` for the reviewer agent and the report.
 

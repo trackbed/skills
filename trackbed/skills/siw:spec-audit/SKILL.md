@@ -28,7 +28,7 @@ If `$ARGUMENTS` contains `--team`, remove that flag, read `references/team-mode.
 
 ## Product Mode
 
-If `$ARGUMENTS` contains `--product`, set `PRODUCT_MODE=true`, read `references/product-mode.md` before Step 2, and run its sections at the steps named there. Product mode adds a Product dimension whose `PROD-NNN` findings share this report but are never auto-applied. It combines with every other flag, including `--team`.
+If `$ARGUMENTS` contains `--product`, set `PRODUCT_MODE=true`, read `references/product-mode.md` before Step 2, and run its sections at the steps named there. Its strategy step reads `STRATEGY.md` through the shared reader at `${CLAUDE_PLUGIN_ROOT}/shared/product/references/strategy-reader.md`. Product mode adds a Product dimension whose `PROD-NNN` findings share this report but are never auto-applied. It combines with every other flag, including `--team`.
 
 ## Process Overview
 
