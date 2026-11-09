@@ -308,6 +308,11 @@
     },
     {
       "kind": "guidance",
+      "suite": "trackbed/tests/docs-update-agents-md-guidance.bats",
+      "skills": ["trackbed/skills/docs:update-agents-md/SKILL.md"]
+    },
+    {
+      "kind": "guidance",
       "suite": "trackbed/tests/discovery-delegation-guidance.bats",
       "skills": [
         "trackbed/skills/discovery:interview/SKILL.md",
