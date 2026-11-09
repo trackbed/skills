@@ -1,7 +1,7 @@
 ---
 name: docs:review
 description: "Review one Markdown document outside tracked SIW workflows: requirements, implementation plans, strategy drafts, README/docs drafts, proposals, and decision drafts. Classifies the document, tests it with a fresh reader, selects focused review lenses, and returns a verdict with severity-ordered findings inline by default or in a requested report file. Not for source-code review, PR diffs, live-product review, or documents under siw/; use SIW audit skills for tracked SIW artifacts."
-argument-hint: "[markdown-path] [--inline|--file|--output <path>]"
+argument-hint: "[markdown-path] [--trade-offs] [--inline|--file|--output <path>]"
 disable-model-invocation: true
 user-invocable: true
 ---
@@ -18,6 +18,7 @@ This skill reviews document quality only.
 
 - **Does:** Review one Markdown document for comprehension, coherence, scope, feasibility, product fit, security/privacy risk, design implications, and reader usefulness when those lenses apply.
 - **Does:** Return findings inline by default, or write a generated report only when `--file` or `--output <path>` is present.
+- **Does:** With `--trade-offs`, also look for trade-offs an implementation plan, proposal, or decision draft accepts as unavoidable, and report them as advisory options in their own section.
 - **Does not:** Edit the source document, review source code, inspect PR diffs, test running software, or create tracking issues.
 - **Does not:** Replace SIW audits. Documents under `siw/` route to `/trackbed:siw:spec-audit`, with `--product` for product judgment.
 
@@ -25,7 +26,8 @@ This skill reviews document quality only.
 
 1. **Parse arguments**
    - Extract exactly one Markdown path from `$ARGUMENTS`.
-   - Recognize `--inline`, `--file`, and `--output <path>`.
+   - Recognize `--trade-offs`, `--inline`, `--file`, and `--output <path>`.
+   - If `--trade-offs` is present, set `TRADE_OFFS=true`; otherwise set `TRADE_OFFS=false`. The false-compromise read in step 7 runs only when it is `true`.
    - If no path is provided, ask for one Markdown document path.
    - If more than one path is provided, stop and ask the user to choose one document. Do not batch documents.
    - If `--inline` is present, set `OUTPUT_MODE=inline`.
@@ -75,6 +77,7 @@ This skill reviews document quality only.
 7. **Run the comprehension read**
    - Read `${CLAUDE_PLUGIN_ROOT}/shared/writing/references/comprehension-read.md` and launch one cold reader as `${CLAUDE_PLUGIN_ROOT}/shared/agents/references/cold-reader.md` describes, with the document's absolute path as `{document-paths}`. The rest of this review shares your context, so this reader is the only part that shows what the document gets across without it.
    - You may continue with step 8 while it runs. Add its findings with the `comprehension` lens before step 9, using the rules in that reference, and record its status for the report.
+   - When `TRADE_OFFS=true`, also run the false-compromise read. Read `references/false-compromise-read.md`. When the primary type from step 5 is `implementation-plan` or `proposal-decision`, launch a second, separate cold reader the same way with that reference's prompt, the document's absolute path as `{document-path}`, and nothing else. For any other type, record `skipped (<type> is not a proposal, decision draft, or implementation plan)`. Turn the reply into false-compromise findings and record the read's status under that reference's rules, before step 9.
 
 8. **Review for findings**
    - Findings must be grounded in the document. Cite the nearest section heading and line number when available.
@@ -117,7 +120,7 @@ This skill reviews document quality only.
    Concrete fix: <specific edit or decision that would resolve it>
    ```
 
-   - After findings, include the following. Omit the Comprehension Read section when the read did not run:
+   - After findings, include the following. Omit the Comprehension Read section when the read did not run. Omit the False Compromises section and its Coverage line when `TRADE_OFFS=false`, and omit only the section when the false-compromise read was skipped or failed:
 
    ```text
    ## Comprehension Read
@@ -127,15 +130,26 @@ This skill reviews document quality only.
 
    Compare these with what you meant. A wrong restatement means the document misleads its first reader.
 
+   ## False Compromises
+
+   <Include only when TRADE_OFFS=true and the false-compromise read ran: "No false compromise found." or its findings, each in this form:>
+
+   ### FC-001: <short trade-off title> [Minor]
+   Location: `<path>` - <section heading>, line <line-or-range>
+   Trade-off: <what the document gives up> for <what it gains>
+   Pattern: <pattern name>: <how it could remove the conflict>
+   Pattern cost: <what the pattern itself costs>
+
    ## Coverage
 
    **Document type:** <primary type; secondary: ... if applicable>
    **Lenses reviewed:** <comma-separated list>
    **Comprehension read:** <status from the reference>
+   **False-compromise read:** <status from its reference; include only when TRADE_OFFS=true>
    **Residual risk:** <open unknowns, or "None identified">
    ```
 
-   - If there are no findings, say the following, again omitting the Comprehension Read section when the read did not run:
+   - If there are no findings, say the following, with the same omissions. False-compromise findings are advisory and never count as findings here:
 
    ```text
    No findings.
@@ -147,11 +161,22 @@ This skill reviews document quality only.
 
    Compare these with what you meant. A wrong restatement means the document misleads its first reader.
 
+   ## False Compromises
+
+   <Include only when TRADE_OFFS=true and the false-compromise read ran: "No false compromise found." or its findings, each in this form:>
+
+   ### FC-001: <short trade-off title> [Minor]
+   Location: `<path>` - <section heading>, line <line-or-range>
+   Trade-off: <what the document gives up> for <what it gains>
+   Pattern: <pattern name>: <how it could remove the conflict>
+   Pattern cost: <what the pattern itself costs>
+
    ## Coverage
 
    **Document type:** <primary type>
    **Lenses reviewed:** <comma-separated list>
    **Comprehension read:** <status from the reference>
+   **False-compromise read:** <status from its reference; include only when TRADE_OFFS=true>
    **Residual risk:** <open unknowns, or "None identified">
    ```
 
@@ -174,6 +199,7 @@ This skill reviews document quality only.
 | Output path equals input path | Reject and ask for a different output path or use inline output. |
 | Source-code verification needed | Keep a costly omission from step 8 as a finding marked `UNVERIFIED`; list any other unchecked source-code claim under Residual risk. Do not inspect code as part of this skill. |
 | Comprehension read cannot run or fails | Record the status under Coverage, omit the Comprehension Read section, and finish the other lenses. Never write the restatements yourself. |
+| False-compromise read cannot run, fails, or does not apply to the document type | Record the status under Coverage, omit the False Compromises section, and finish the review. Never report "No false compromise found." for a read that did not run. |
 
 ## Examples
 
@@ -181,4 +207,5 @@ This skill reviews document quality only.
 /trackbed:docs:review docs/proposal.md
 /trackbed:docs:review README.md --file
 /trackbed:docs:review docs/strategy.md --output STRATEGY_REVIEW.md
+/trackbed:docs:review docs/proposal.md --trade-offs
 ```

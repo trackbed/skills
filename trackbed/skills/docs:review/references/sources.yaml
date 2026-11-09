@@ -29,3 +29,11 @@ sources:
     usage: inspiration
     last_reviewed_at: 2026-11-08
     baseline_hash: "sha256:d1a64b8df61b7012a4fc112381b1946a8c98e125e92d1c21e05bc419b0fa6cdf"
+  - id: egm-inventive-catalyst
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/6a8001ea31ccf72430ba0603a467ec6df9f69dd7/agents/inventive_catalyst.md
+    title: "google/elephant-goldfish-model - inventive catalyst reviewer"
+    rationale: "The opt-in false-compromise read, which asks whether a trade-off a design accepts as unavoidable could be removed, treats a clean result as normal, excludes physical, mathematical, and theoretical limits, and requires every suggested pattern to state its own cost, is informed by this source. Its pattern catalog is not copied; the read uses trackbed's own list. Reviewed at upstream commit 6a8001ea31ccf72430ba0603a467ec6df9f69dd7."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "6a8001ea31ccf72430ba0603a467ec6df9f69dd7"
+    baseline_hash: "sha256:e766638298dfa42859172df62d1c0a4faa9ade143bcfc92837b5843a684e1da4"
