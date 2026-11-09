@@ -325,14 +325,25 @@ Always record SIW dependencies as text:
 
 **Native relations** (when Phase 1 capability discovery found relation parameters such as `blockedBy` / `blocks` / `relatedTo` on the issue write tool):
 
-Plan a two-phase issue migration. Create all issues first, collecting the SIW-ID-to-Linear-ID map from the transfer ledger, then run a relation pass driven by each issue file's `Blocked by:` / `Blocks:` lines:
+Plan a two-phase issue migration. Create all issues first, collecting the SIW-ID-to-Linear-ID map from the transfer ledger, then run one relation pass. Blocking edges need `blockedBy` or `blocks`; related links need `relatedTo`. Run each part only when its parameter exists, and record the other as text only.
+
+Blocking edges, driven by each issue file's `Blocked by:` / `Blocks:` lines:
 
 - Expand ranges like `P3-002..P3-007` into individual edges.
 - Write each `Blocked by:` edge as `blockedBy` on the downstream issue (or as an inverted `blocks`, depending on which parameters the tool exposes). Deduplicate edges that appear on both sides.
-- Relation parameters are append-only — re-running the pass cannot remove or corrupt existing relations, so it is retry-safe.
-- Report edges that reference SIW IDs absent from the ledger (for example, dependencies on issues excluded by `--skip-done`) instead of failing.
 
-When no relation parameters exist, text is the only record. For reference, relations can be added later via raw GraphQL (`issueRelationCreate`, requiring a separate Linear API key); that enum is `blocks` / `related` / `similar` / `duplicate` — there is no `blockedBy` (invert a `blocks` relation) and no `relatedTo` (use `related`).
+Related links, driven by each issue's `Related:` metadata value:
+
+- Take only the SIW issue IDs (`Pn-NNN`, `G-NNN`) the value names, expanding ranges the same way. Ignore every other value, such as register codes, paths, or prose; it stays text only.
+- Write each resolvable pair once as `relatedTo`, from the issue whose `Related:` value names the other. A pair that both issues name is still one link.
+- Skip a pair that a blocking edge already joins, in either direction, so the same two issues never carry both a blocking and a related relation.
+
+For both parts:
+
+- Relation parameters are append-only — re-running the pass cannot remove or corrupt existing relations, so it is retry-safe.
+- Report edges and links that reference SIW IDs absent from the ledger (for example, dependencies on issues excluded by `--skip-done`) instead of failing.
+
+**Text-only fallback:** when an edge type has no relation parameter, the issue text is its only record. An identifier mentioned in a description creates no Linear relation, though Linear may show the mention as a backlink on the named issue. The rewritten `{LINEAR-ID} ({SIW-ID})` text therefore links nothing natively, and the Phase 7 read-back expects no relations from text alone. Relations can be added later via raw GraphQL (`issueRelationCreate`, requiring a separate Linear API key); that enum is `blocks` / `related` / `similar` / `duplicate` — there is no `blockedBy` (invert a `blocks` relation) and no `relatedTo` (use `related`).
 
 ## Markdown Fidelity
 

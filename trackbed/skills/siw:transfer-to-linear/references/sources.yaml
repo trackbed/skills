@@ -18,7 +18,7 @@ sources:
   - id: linear-issue-relations
     url: https://linear.app/docs/issue-property#issue-relations
     title: "Linear — Issue properties: Issue relations"
-    rationale: "The Issue relations section's blocked, blocking, related, and duplicate relation types ground the native-relation pass in references/linear-mapping.md (Dependencies), which writes each SIW Blocked by and Blocks edge as a blocking relation when capability discovery finds relation parameters on the issue write tool and keeps text-only dependencies otherwise."
+    rationale: "The Issue relations section's blocked, blocking, related, and duplicate relation types ground the native-relation pass in references/linear-mapping.md (Dependencies), which writes each SIW Blocked by and Blocks edge as a blocking relation and each SIW Related link as a related relation when capability discovery finds the matching parameter on the issue write tool, and keeps text-only dependencies otherwise. The text-only fallback does not rely on identifier mentions creating relations: on 2026-11-09, issue descriptions written through the Linear API that named other issues carried no relations."
     usage: inspiration
     last_reviewed_at: 2026-11-09
     baseline_hash: ""

@@ -609,6 +609,11 @@
       "skills": ["trackbed/skills/siw:generate-phases/SKILL.md"]
     },
     {
+      "kind": "guidance",
+      "suite": "trackbed/tests/siw-transfer-to-linear-guidance.bats",
+      "skills": ["trackbed/skills/siw:transfer-to-linear/SKILL.md"]
+    },
+    {
       "kind": "evaluation",
       "suite": "trackbed/tests/skillopt-candidate-review.bats",
       "skills": ["trackbed/skills/skill:review/SKILL.md"]
