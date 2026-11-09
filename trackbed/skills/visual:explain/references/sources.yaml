@@ -6,7 +6,7 @@ sources:
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "9d5f880b7e8e0a9a80c890b8e1bb6918b68481ad"
-    baseline_hash: "8f1d0e38ab0f265632a31d2fd032f7b730c98c15"
+    baseline_hash: ""
   - id: mermaid-flowchart-docs
     url: https://raw.githubusercontent.com/mermaid-js/mermaid/develop/docs/syntax/flowchart.md
     title: "Mermaid Flowcharts Syntax"
