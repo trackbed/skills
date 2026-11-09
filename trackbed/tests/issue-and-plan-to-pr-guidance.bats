@@ -904,3 +904,54 @@
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
+
+@test "breakdown findings keeps multi-PR plan sets merge-safe" {
+	run bash -c '
+		set -e
+		cd "'"$BATS_TEST_DIRNAME"'/.."
+		dir="skills/code:breakdown-findings"
+		split="$dir/references/split-mode.md"
+		clustering="$dir/references/clustering.md"
+		rubric="$dir/references/plan-quality-rubric.md"
+		sources="$dir/references/sources.yaml"
+
+		grep -qF "Would the slice'"'"'s capability, such as an endpoint, command, tool, or job, reach users before the control that limits it lands" "$split"
+		grep -qF "make the control a hard dependency of this slice" "$split"
+		grep -qF "ships the capability disabled, or, for an authorization check, limited to callers that check would admit" "$split"
+		grep -qF "so the control'"'"'s slice depends on this slice and also carries the file that holds the restriction" "$split"
+		grep -qF "When the control is left out of the split, the restriction stays" "$split"
+		grep -qF "Exactly one slice introduces it, and every other slice that uses it depends on that slice." "$split"
+
+		grep -qF "the control theme blocks the capability theme" "$clustering"
+		grep -qF "put both findings in one theme instead of creating a dependency cycle" "$clustering"
+		grep -qF "The capability theme then blocks the control theme, which lifts the restriction" "$clustering"
+		grep -qF "**Deferred controls keep the surface restricted**" "$clustering"
+		grep -qF "recorded in \`PR_PLAN_REJECTIONS.md\` instead of planned" "$clustering"
+		grep -qF "carries a \`MISSING REQUIREMENT:\` naming the deferred control and a STOP condition that blocks widening access until the control exists" "$clustering"
+		grep -qF "every other theme that uses it is blocked by the introducer" "$clustering"
+		grep -qF "Add every dependency that rules 6 and 8 require, even when the themes share no files." "$clustering"
+		grep -qF "For a pre-clustered handoff, stop for a corrected handoff when its declared dependencies omit or contradict one of these" "$clustering"
+		grep -qE "^6\. \*\*Controls land with or before the capabilities they limit\*\*" "$clustering"
+		grep -qE "^8\. \*\*Single introducer for each new shared artifact\*\*" "$clustering"
+
+		grep -qF "### Plan-set merge safety" "$rubric"
+		grep -qF "Check these across the complete draft set, not one plan at a time" "$rubric"
+		grep -qF "A fix that adds or reverses a dependency changes execution labels, so route it like a scope-closure boundary change in \`references/scope-closure.md\`" "$rubric"
+		grep -qF "including either order for same-wave plans" "$rubric"
+		grep -qF "reaches users before its limiting control" "$rubric"
+		grep -qF "Either the control'"'"'s plan blocks the capability'"'"'s plan" "$rubric"
+		grep -qF "the capability'"'"'s plan then blocks the control'"'"'s plan, which lifts the restriction" "$rubric"
+		grep -qF "The same applies to a deferred control" "$rubric"
+		grep -qF "a STOP condition that blocks widening access." "$rubric"
+		grep -qF "is introduced by exactly one plan" "$rubric"
+		grep -qF "Every other plan that uses it names the introducer as a blocker" "$rubric"
+		grep -qF "if any draft, or the draft set as a whole, has:" "$rubric"
+		grep -qF "A plan set where some allowed merge order lets a capability reach users before its limiting control, including a control deferred to \`PR_PLAN_REJECTIONS.md\`" "$rubric"
+		grep -qF "A new shared artifact that no plan or more than one plan introduces, or that a plan uses without depending on its introducer" "$rubric"
+
+		awk "/id: compound-ce-plan-structure/{f=1} f&&/usage:/{print; exit}" "$sources" | grep -qF "usage: inspiration"
+		grep -qF "upstream_path: \"skills/ce-plan/references/structure.md\"" "$sources"
+	'
+
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
