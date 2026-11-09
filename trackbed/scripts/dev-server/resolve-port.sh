@@ -7,7 +7,8 @@
 #
 # Resolve the intended dev-server port for a project. Explicit caller input
 # wins, then framework config, Rails/Procfile/Docker/package metadata, env
-# files, and finally framework defaults.
+# files, and finally framework defaults. With --no-default, print nothing
+# instead of a framework default, including a named port equal to it.
 
 set -euo pipefail
 
@@ -20,6 +21,7 @@ source "$SCRIPT_DIR/framework-registry.sh"
 PROJECT_ROOT=""
 PROJ_TYPE=""
 EXPLICIT_PORT=""
+NO_DEFAULT=false
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -32,6 +34,10 @@ while [ $# -gt 0 ]; do
       require_value "$1" "${2-}" 1 "ERROR: "
       EXPLICIT_PORT="${2:-}"
       shift 2
+      ;;
+    --no-default)
+      NO_DEFAULT=true
+      shift
       ;;
     *)
       if [ -z "$PROJECT_ROOT" ]; then
@@ -66,6 +72,11 @@ is_port() {
 emit_if_port() {
   local value="$1"
   if is_port "$value"; then
+    # A named port equal to the framework default, such as Rails'
+    # ENV.fetch("PORT", 3000), is still the default port --no-default skips.
+    if [ "$NO_DEFAULT" = true ] && [ "$value" = "$(framework_default_port "$PROJ_TYPE" || true)" ]; then
+      exit 0
+    fi
     echo "$value"
     exit 0
   fi
@@ -272,6 +283,10 @@ if framework_probe_is_allowed "$PROJ_TYPE" "env"; then
     env_port=$(parse_env_port "$envfile")
     emit_if_port "$env_port"
   done
+fi
+
+if [ "$NO_DEFAULT" = true ]; then
+  exit 0
 fi
 
 if framework_probe_is_allowed "$PROJ_TYPE" "default"; then

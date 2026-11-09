@@ -8,7 +8,7 @@ These scripts provide one detection contract for browser-facing workflows. They 
 - `detect-project-type.sh` detects `rails`, `next`, `vite`, `nuxt`, `astro`, `remix`, `sveltekit`, `procfile`, `multiple`, or `unknown`.
 - `resolve-package-manager.sh` detects the JS package manager from lockfiles and emits the dev command tail.
 - `read-launch-json.sh` reads `.claude/launch.json` and emits a selected config as JSON.
-- `resolve-port.sh` resolves the intended dev-server port.
+- `resolve-port.sh` resolves the intended dev-server port. With `--no-default`, it prints nothing when only a framework default applies, including a port that project files name but that equals the default.
 
 ## URL Detection Contract
 
@@ -49,9 +49,11 @@ Port resolution uses this order:
 6. `docker-compose.yml` port mappings.
 7. `package.json` `dev` or `start` script flags.
 8. `.env.local`, `.env.development`, then `.env` `PORT=`.
-9. Framework defaults.
-10. The Conductor workspace range, `CONDUCTOR_PORT` through `CONDUCTOR_PORT+9`, when the base port is valid.
+9. The Conductor workspace range, `CONDUCTOR_PORT` through `CONDUCTOR_PORT+9`, when the base port is valid. It comes before framework defaults because another workspace's server often holds a default port.
+10. Framework defaults. A monorepo with several apps stops here.
 11. Common-port listener scan as a final running-server fallback.
+
+A monorepo with several apps tries the Conductor range first, then every app's port from steps 3-8 and 10 together, so one app's named port cannot hide another app's server.
 
 Do not scan prose files such as `AGENTS.md`, `CLAUDE.md`, READMEs, or issue text for ports. Those files often contain examples and stale troubleshooting notes.
 
