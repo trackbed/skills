@@ -2,7 +2,7 @@ sources:
   - id: addy-code-simplification
     url: https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/code-simplification/SKILL.md
     title: "Addy Osmani agent-skills - code simplification"
-    rationale: "Commit 761ca6a ported Addy-style simplification rigor into this skill; the Chesterton's Fence gate, one-simplification-at-a-time slice pass, and scrap-and-rewrite mode are adapted from this source. Reviewed against upstream commit 5e262b20e0cd88dba39e558f42f5c0b6d766d4b4."
+    rationale: "Commit 761ca6a ported Addy-style simplification rigor into this skill and the former rewrite-clean skill. Adapted from this source: the When NOT to proceed cases for code that is already clean, not yet understood, performance-critical, or about to be rewritten; the Chesterton's Fence gate; the one-simplification-at-a-time slice pass; and the rule that rejects any change requiring modified tests. The scrap-and-rewrite mode itself is not: it came from the former rewrite-clean skill, which commit 1b34b775 folded into this skill. Reviewed against upstream commit 5e262b20e0cd88dba39e558f42f5c0b6d766d4b4."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
