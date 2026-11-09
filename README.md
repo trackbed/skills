@@ -847,6 +847,7 @@ Copied prose, scripts, templates, and substantial assets must be permitted by a 
 - `trackbed:docs:feature-spec`: Adapted from [spec-driven-development](https://github.com/addyosmani/agent-skills/tree/main/skills/spec-driven-development).
 - `trackbed:docs:adr`: Adapted from [documentation-and-adrs](https://github.com/addyosmani/agent-skills/tree/main/skills/documentation-and-adrs).
 - `trackbed:code:deprecate`: Adapted from [deprecation-and-migration](https://github.com/addyosmani/agent-skills/tree/main/skills/deprecation-and-migration).
+- `trackbed:code:encode-constraint` bypass guards, shrink-only baselines, entry-point red runs, and check-script exit statuses: Informed by [constraint-driven-development](https://github.com/addyosmani/agent-skills/tree/main/skills/constraint-driven-development).
 - `trackbed:debug:triage-to-issue` Prove-It regression-test conventions: Adapted from [test-driven-development](https://github.com/addyosmani/agent-skills/tree/main/skills/test-driven-development).
 - `trackbed:debug:investigate` and `trackbed:debug:triage-to-issue` shared root-cause procedure (reproduce, isolate, trace, and bisect guidance): Adapted from [debugging-and-error-recovery](https://github.com/addyosmani/agent-skills/tree/main/skills/debugging-and-error-recovery).
 - `trackbed:browse` security boundaries, JavaScript constraints, content boundary markers, and Addy marker conventions: adapted from [browser-testing-with-devtools](https://github.com/addyosmani/agent-skills/tree/main/skills/browser-testing-with-devtools).

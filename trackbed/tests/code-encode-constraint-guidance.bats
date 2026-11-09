@@ -49,7 +49,7 @@ setup() {
   grep -qF '7. **Draft an instruction rule** as the fallback when no mechanism can decide the invariant.' "$SKILL"
   grep -qF 'Do not edit instruction files; include the drafted rule in the report and suggest the user add it with `/trackbed:docs:update-agents-md`.' "$SKILL"
   grep -qF 'Then skip Steps 4 and 5, since prose has no failure message or red run, and continue at Step 6.' "$SKILL"
-  grep -qF 'For an instruction fallback, omit Diagnostic, Proof, and Existing violations.' "$SKILL"
+  grep -qF 'For an instruction fallback, omit Diagnostic, Proof, Existing violations, and Bypass guards.' "$SKILL"
   grep -qF 'When rung 1 needs a broad refactor, do not start it here.' "$SKILL"
   grep -qF 'Record one clause per rejected stronger rung that explains why it was rejected.' "$SKILL"
 }
@@ -79,9 +79,53 @@ setup() {
   grep -qF 'report the check as unverified and do not claim the red or green run' "$SKILL"
 }
 
+@test "encode constraint proves rejection through the commands that actually run" {
+  grep -qF 'Then run the same mistake through the exact local verification entry point named in the Wired step, and through the CI command too when it can run locally, and require a non-zero exit from each with the Step 4 diagnostic in its output; a failure from another check does not count.' "$SKILL"
+  grep -qF 'a wrapper that swallows exit codes, a path filter, or a warning-level severity can let the mistake through' "$SKILL"
+  grep -qF 'Run one legitimate exception from the Step 1 scope through the same entry point; it must pass.' "$SKILL"
+  grep -qF 'If the check fails directly but the entry point passes, fix the wiring before continuing.' "$SKILL"
+  grep -qF 'If the invariant has no legitimate exception, say so in the report.' "$SKILL"
+  wired_line="$(grep -n '^2\. \*\*Wired:\*\*' "$SKILL" | cut -d: -f1)"
+  red_line="$(grep -n '^3\. \*\*Red:\*\*' "$SKILL" | cut -d: -f1)"
+  [ -n "$wired_line" ] && [ -n "$red_line" ] && [ "$wired_line" -lt "$red_line" ]
+}
+
+@test "encode constraint blocks or reports every way a check can pass without a fix" {
+  grep -qF '**Guarded:** list the ways the check could pass without a fix: an inline disable comment, a new baseline entry, a widened exclude or path filter, a lowered severity, and a deleted or emptied fixture.' "$SKILL"
+  grep -qF '**Bypass guards:** each way the check could pass without a fix, with the mechanism that blocks it or `unguarded`.' "$SKILL"
+  grep -qF 'unguarded bypasses' "$SKILL"
+  grep -qF 'For each one, name the existing mechanism that blocks it from the bypass catalog in `references/mechanisms.md`, or report it as a follow-up.' "$SKILL"
+  grep -qF '## Guard the Check Against Bypass' "$MECHANISMS"
+  grep -qF 'but none rejects a new disable of the rule that is in use' "$MECHANISMS"
+  grep -qF 'A rule-unit test such as `RuleTester` never reads the configuration, so it does not count.' "$MECHANISMS"
+  for route in 'Inline disable' 'New baseline entry' 'Widened exclude or path filter' 'Lowered severity' 'Deleted or emptied fixture'; do
+    grep -qF -- "- **${route}:**" "$MECHANISMS"
+  done
+  [ "$(grep -c '^- \*\*Suppression guard:\*\*' "$MECHANISMS")" -ge 4 ]
+}
+
+@test "encode constraint keeps baselines shrink-only" {
+  grep -qF 'Record the count so it can only shrink.' "$SKILL"
+  grep -qF 'compare the baseline with its copy at the merge base and fail when it holds an entry that copy lacks, more entries than it, or a higher count for any entry' "$SKILL"
+  grep -qF 'When the merge base resolves but has no copy, this change introduces the baseline and sets its starting point, so pass.' "$SKILL"
+  grep -qF 'Treat a missing merge base as a could-not-judge case' "$SKILL"
+  grep -qF 'make the CI job fetch that base, such as `fetch-depth: 0` in `actions/checkout`' "$SKILL"
+  grep -qF 'with the baseline location and what keeps it shrink-only' "$SKILL"
+  grep -qF -- '- **New baseline entry:** the shrink-only check from Step 2.' "$MECHANISMS"
+}
+
+@test "encode constraint check scripts never pass vacuously" {
+  grep -qF 'A check script written for rung 5 must not pass by reading nothing.' "$SKILL"
+  grep -qF 'a distinct status such as `2` when it could not judge, because nothing matched its scope, an input was unreadable, or the git base it diffs against is missing' "$SKILL"
+  grep -qF 'Its scope is the governed paths, not the diff: a diff that touches none of them is a clean `0`.' "$SKILL"
+  grep -qF 'make sure every wrapper that runs it treats any non-zero status as a failure' "$SKILL"
+  grep -qF 'confirm the distinct status fails the entry point' "$SKILL"
+}
+
 @test "encode constraint reports superseded instruction rules without editing them" {
   grep -qF 'for rules that the new check now enforces. Do not edit them.' "$SKILL"
   grep -qF '**Proof:** the red command with its failure excerpt' "$SKILL"
+  grep -qF 'the entry-point and CI commands with their non-zero exits and diagnostic excerpts (or why the CI command could not run locally), the could-not-judge run and its status for a rung 5 script, the green command, the legitimate exception that passed or that none exists' "$SKILL"
   grep -qF '**Existing violations:** how many were fixed and how many were baselined' "$SKILL"
 }
 
@@ -109,4 +153,10 @@ setup() {
 @test "encode constraint declares its inspiration source" {
   grep -qF 'url: https://x.com/poteto/status/2109699980248408574' "$SOURCES"
   grep -qF 'usage: inspiration' "$SOURCES"
+}
+
+@test "encode constraint declares constraint-driven development as inspiration" {
+  grep -qF 'url: https://github.com/addyosmani/agent-skills/tree/main/skills/constraint-driven-development' "$SOURCES"
+  grep -A3 'id: addy-constraint-driven-development' "$SOURCES" | grep -qF 'rationale: "The post-wiring review of ways a check can pass without a fix'
+  grep -A5 'id: addy-constraint-driven-development' "$SOURCES" | grep -qF 'usage: inspiration'
 }

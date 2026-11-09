@@ -25,6 +25,7 @@ Then confirm which of these the standard verification command and CI actually ex
 - **Structural rule:** a local ESLint rule registered as an inline plugin in the flat config and tested with `RuleTester`, or an ast-grep or Semgrep rule.
 - **Tests:** a type test that marks the forbidden usage with `// @ts-expect-error`, which fails the build once the line stops erroring, or `expectTypeOf`; an invariant test in the existing runner.
 - **Baseline:** ESLint 9.24+ bulk suppressions (`eslint --suppress-rule <rule>` or `--suppress-all` writes `eslint-suppressions.json`), otherwise per-path overrides in the config.
+- **Suppression guard:** set `linterOptions.reportUnusedDisableDirectives` to `"error"` so a stale `eslint-disable` fails; set `linterOptions.noInlineConfig` when inline disables should not work at all. With bulk suppressions, ESLint already exits non-zero on unused entries, so treat `--pass-on-unpruned-suppressions` in a script as a bypass. typescript-eslint `ban-ts-comment` reports `@ts-ignore` and, by default, a `@ts-expect-error` without a description.
 
 ## Python
 
@@ -34,6 +35,7 @@ Then confirm which of these the standard verification command and CI actually ex
 - **Structural rule:** Ruff has no plugin API, so use ast-grep or Semgrep, a Pylint or Flake8 plugin when the repository already runs one, or a pytest test that walks the `ast` module.
 - **Tests:** pytest invariant tests and architecture tests through import-linter or an `ast` walk.
 - **Baseline:** `ruff check --add-noqa` for existing sites, Ruff `per-file-ignores`, mypy per-module overrides, or basedpyright `--writebaseline`.
+- **Suppression guard:** Ruff `RUF100` reports unused `noqa` directives and `PGH004` reports blanket `noqa` without a rule code; mypy `warn_unused_ignores` reports unneeded `# type: ignore` comments, and enabling the `ignore-without-code` error code through `enable_error_code` requires each one to name a code.
 
 ## Go
 
@@ -43,6 +45,7 @@ Then confirm which of these the standard verification command and CI actually ex
 - **Structural rule:** a custom `go/analysis` analyzer loaded as a golangci-lint module plugin or run through `go vet -vettool`.
 - **Tests:** table tests, or an architecture test that reads `go list -deps -json` output.
 - **Baseline:** golangci-lint `issues.new-from-rev` or `issues.new-from-merge-base` reports only new issues; use `//nolint:<linter> // <reason>` for individual sites.
+- **Suppression guard:** the `nolintlint` linter with `allow-unused: false`, `require-specific: true`, and `require-explanation: true` rejects unused, blanket, and unexplained `//nolint` directives.
 
 ## Rust
 
@@ -52,6 +55,7 @@ Then confirm which of these the standard verification command and CI actually ex
 - **Structural rule:** a Dylint library or an ast-grep rule.
 - **Tests:** `trybuild` compile-fail tests or `compile_fail` doctests pin that the mistake does not compile.
 - **Baseline:** `#[expect(clippy::<lint>, reason = "...")]` at existing sites (Rust 1.81+), which warns once the suppression becomes unnecessary.
+- **Suppression guard:** set Clippy `allow_attributes` and `allow_attributes_without_reason` and the rustc lint `unfulfilled_lint_expectations` to `deny`, so every outer suppression is an `#[expect]` with a `reason` and a stale one fails the build. `allow_attributes` does not flag an inner `#![allow]`, which only `forbid` blocks.
 
 ## Java and Kotlin
 
@@ -86,6 +90,16 @@ Use a test or script when no single file shows the mistake:
 - **Generated artifacts match their source:** regenerate in CI and fail on `git diff --exit-code`.
 - **Paired files exist:** assert that every X has its Y, such as a rollback for every migration or a test for every route.
 - **Registries stay complete:** enumerate implementations and assert that each one is registered.
+
+## Guard the Check Against Bypass
+
+Use this catalog in Step 5 to block each way a check can go green without a fix. Prefer a guard the repository already runs, and report a route with no guard as a follow-up.
+
+- **Inline disable:** ESLint `noInlineConfig` or `@eslint-community/eslint-comments/no-restricted-disable` naming the rule, Ruff `--ignore-noqa` in the entry point, a `forbid` lint level in Rust, or a check that fails when a suppression naming the new rule appears. The suppression guards above, enabled and raised to error, prune stale suppressions and, depending on the tool, require a rule code or a reason, but none rejects a new disable of the rule that is in use. When the baseline itself is inline suppressions, such as `#[expect]`, `//nolint`, or `--add-noqa` comments, these blockers would void it, so use the check that counts suppressions naming the rule against the merge base instead.
+- **New baseline entry:** the shrink-only check from Step 2.
+- **Widened exclude or path filter:** a test that places violating input at a path inside the governed scope, for example by copying a fixture into place, runs the real entry point with the repository's configuration, and expects a non-zero exit with the diagnostic. It catches only an exclude that covers that path. A rule-unit test such as `RuleTester` never reads the configuration, so it does not count.
+- **Lowered severity:** an assertion that the rule is configured at error level, or the entry-point test above, which requires a non-zero exit rather than a warning.
+- **Deleted or emptied fixture:** a test that names the fixture paths it expects and fails when one is missing or no longer fails the check.
 
 ## Agent Hooks
 
