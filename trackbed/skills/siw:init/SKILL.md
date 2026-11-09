@@ -43,7 +43,7 @@ Use this shared vocabulary in setup summaries and handoffs:
     ↓
 [Brief interview OR Confirm imported content]
     ↓
-[Read STRATEGY.md if present]
+[Read product strategy (shared reader)]
     ↓
 [Select work context] -> Profile for downstream tool adaptation
     ↓
@@ -152,7 +152,7 @@ If user provides empty response or selects "Skip", use a generic description der
 
 ## Phase 2.8: Work Context Selection
 
-Before selecting the work context, check for repo-root `STRATEGY.md`. If it exists, read it, store concise `strategy_context`, mark stale context with `STALE:` when `last_updated` is older than 90 days, and surface conflicts with active tracks or non-goals without blocking initialization. If no strategy exists, stay silent for narrow work; for broad product-direction work, include `MISSING PRODUCT CONTEXT: no STRATEGY.md found` in the generated spec's strategy context note and suggest `/trackbed:product:strategy` after initialization.
+Before selecting the work context, read the repository's product strategy as `${CLAUDE_PLUGIN_ROOT}/shared/product/references/strategy-reader.md` describes. When it returns context, including fallback `PRODUCT.md` or `VISION.md` context, store a concise `strategy_context` that keeps every marker and label the strategy reader returns, and surface conflicts with active tracks or non-goals without blocking initialization. If no `STRATEGY.md` exists and the work is broad product-direction work, include `MISSING PRODUCT CONTEXT: no STRATEGY.md found` in the generated spec's strategy context note, name any fallback file read, and suggest `/trackbed:product:strategy` after initialization. For narrow work with no strategy or fallback context, stay silent.
 
 Select a work context profile that tells downstream tools (spec-audit, product-review, discovery, generate-phases) how to adapt their rigor and focus.
 

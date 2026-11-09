@@ -27,7 +27,7 @@ Use when `linked_spec_files` exists. The SIW spec acts as a lightweight coordina
 
 ## Product Strategy Context
 
-{If strategy_context exists: summarize target problem, primary users, active tracks, relevant metrics, and applicable non-goals. If no strategy context exists and the work is broad product-direction work: `MISSING PRODUCT CONTEXT: no STRATEGY.md found`. For narrow work with no strategy context, omit this section.}
+{If strategy_context exists: summarize target problem, primary users, active tracks, relevant metrics, and applicable non-goals. Keep every marker and label the strategy reader returns. If no `STRATEGY.md` exists and the work is broad product-direction work: `MISSING PRODUCT CONTEXT: no STRATEGY.md found`, naming any fallback file read, before any fallback summary. For narrow work with no strategy context, omit this section.}
 
 ## Linked Specifications
 
@@ -79,7 +79,7 @@ Use when `discovered_content` exists. Discovery mode generates content through i
 
 ## Product Strategy Context
 
-{If strategy_context exists: summarize target problem, primary users, active tracks, relevant metrics, and applicable non-goals. Include `STALE:` markers if strategy frontmatter is old. If no strategy context exists and the work is broad product-direction work: `MISSING PRODUCT CONTEXT: no STRATEGY.md found`. For narrow work with no strategy context, omit this section.}
+{If strategy_context exists: summarize target problem, primary users, active tracks, relevant metrics, and applicable non-goals. Keep every marker and label the strategy reader returns. If no `STRATEGY.md` exists and the work is broad product-direction work: `MISSING PRODUCT CONTEXT: no STRATEGY.md found`, naming any fallback file read, before any fallback summary. For narrow work with no strategy context, omit this section.}
 
 ## Problem Statement
 
@@ -209,7 +209,7 @@ Use when no linked files or discovered content (current default behavior).
 
 ## Product Strategy Context
 
-{If strategy_context exists: summarize target problem, primary users, active tracks, relevant metrics, and applicable non-goals. Include strategy conflicts as open questions rather than resolving them silently. If no strategy context exists and the work is broad product-direction work: `MISSING PRODUCT CONTEXT: no STRATEGY.md found`. For narrow work with no strategy context, omit this section.}
+{If strategy_context exists: summarize target problem, primary users, active tracks, relevant metrics, and applicable non-goals. Keep every marker and label the strategy reader returns. Include strategy conflicts as open questions rather than resolving them silently. If no `STRATEGY.md` exists and the work is broad product-direction work: `MISSING PRODUCT CONTEXT: no STRATEGY.md found`, naming any fallback file read, before any fallback summary. For narrow work with no strategy context, omit this section.}
 
 ## Why Now
 
