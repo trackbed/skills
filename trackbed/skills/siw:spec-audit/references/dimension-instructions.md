@@ -204,8 +204,10 @@ Check for:
 
 6. **Technology choice justification.** Are technology selections explained? Are there known limitations that affect the design?
 
+7. **Failure signals, rollback, and running cost.** When the spec adds a runtime path, stored data, or a paid or rate-limited dependency, does it say how someone will notice the new path failing and what they will look at to find out why; how a half-finished migration or rollout is undone and what happens to data written in between; and what the feature costs to run at expected load, including quotas and LLM token spend? A docs-only or refactor-only change gets no finding here.
+
 **Severity guide:**
 
 - Critical: Fundamental design flaws (circular dependencies, missing entities for core flows, no auth on sensitive endpoints)
-- Major: Design gaps that will require rework (missing error contracts, unclear component boundaries, scalability blind spots)
-- Minor: Suboptimal choices, missing non-critical constraints
+- Major: Design gaps that will require rework (missing error contracts, unclear component boundaries, scalability blind spots, a change to stored data with no way back)
+- Minor: Suboptimal choices, missing non-critical constraints, a missing failure signal or running-cost estimate

@@ -37,3 +37,12 @@ sources:
     last_reviewed_at: 2026-11-09
     baseline_commit: "6a8001ea31ccf72430ba0603a467ec6df9f69dd7"
     baseline_hash: "sha256:e766638298dfa42859172df62d1c0a4faa9ade143bcfc92837b5843a684e1da4"
+  - id: egm-brainstorm-lenses
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/403d8881d62022490637d740657b33f01e321ea8/skills/egm-brainstorm/SKILL.md
+    title: "google/elephant-goldfish-model - egm-brainstorm lenses"
+    rationale: "The feasibility lens's questions about failure signals, rollback, and running cost are informed by this source's cost and quota, migration and backward-compatibility, and observability lenses; reviewed at upstream commit 403d8881d62022490637d740657b33f01e321ea8."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "6a8001ea31ccf72430ba0603a467ec6df9f69dd7"
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:fb594315b47dca4bbea878fc77cec42a1a3ef8c75a8b903b1812260391a13ed9"

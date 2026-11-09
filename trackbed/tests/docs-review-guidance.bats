@@ -77,3 +77,11 @@ setup() {
 	! grep -qF 'Blessing in Disguise' "$FC_READ" || false
 	! grep -qF 'Beforehand Cushioning' "$FC_READ" || false
 }
+
+@test "feasibility asks about failure signals, rollback, and running cost only for runtime changes" {
+	grep -qF 'When the document adds a runtime path, stored data, or a paid or rate-limited dependency, `feasibility` also asks how someone will notice the new path failing and find out why' "$SKILL"
+	grep -qF 'how a half-finished migration or rollout is undone and what happens to data written in between' "$SKILL"
+	grep -qF 'including quotas and LLM token spend' "$SKILL"
+	grep -qF 'A docs-only or refactor-only document gets no finding from these questions.' "$SKILL"
+	grep -qF 'id: egm-brainstorm-lenses' "skills/docs:review/references/sources.yaml"
+}

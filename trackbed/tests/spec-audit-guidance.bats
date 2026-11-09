@@ -88,3 +88,13 @@ setup() {
 @test "a contested finding stays settled across re-audits until its evidence changes" {
   grep -qF 'A finding that matches one marked `**Status:** [Contested]` in the previous report stays settled unless the spec text or the cited evidence has changed' "$SKILL"
 }
+
+@test "technical design asks about failure signals, rollback, and running cost only for runtime changes" {
+  grep -qF '**Failure signals, rollback, and running cost.** When the spec adds a runtime path, stored data, or a paid or rate-limited dependency' "$DIMENSIONS"
+  grep -qF 'how a half-finished migration or rollout is undone and what happens to data written in between' "$DIMENSIONS"
+  grep -qF 'including quotas and LLM token spend' "$DIMENSIONS"
+  grep -qF 'A docs-only or refactor-only change gets no finding here.' "$DIMENSIONS"
+  grep -F -- '- Major:' "$DIMENSIONS" | grep -qF 'a change to stored data with no way back'
+  grep -F -- '- Minor:' "$DIMENSIONS" | grep -qF 'a missing failure signal or running-cost estimate'
+  grep -qF 'id: egm-brainstorm-lenses' "skills/siw:spec-audit/references/sources.yaml"
+}
