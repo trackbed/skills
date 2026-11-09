@@ -6,7 +6,7 @@ Synced Conductor diff-comment contract (keep aligned across review producers):
 - Canonical output: `OVERENGINEERING_REVIEW_OVERVIEW.md` or the equivalent inline report
 - Current finding IDs: `OE-NNN`
 - Location field: `Location: path/to/file.ext:line`; `scope:` locations are unanchored and ineligible
-- Body classification: the finding's `OVERDONE` or `JUDGMENT CALL` verdict
+- Body classification: the finding's `OVERDONE` or `JUDGMENT CALL` verdict; `JUDGMENT CALL` marks optional work
 - Active anchored set: anchored findings in Confirmed Overdoing and Judgment Calls are eligible only when Resolution status is `open` or absent. Justified findings, Previously Processed findings, and findings with any other resolution status are not eligible.
 
 ## Synced contract

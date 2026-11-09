@@ -26,3 +26,8 @@ setup() {
     grep -qF "end that paragraph by saying the comment is optional and can be dismissed without a code change" "$contract"
   done
 }
+
+@test "overengineering judgment-call comments are marked optional" {
+  grep -qF -- '- Body classification: the finding'"'"'s `OVERDONE` or `JUDGMENT CALL` verdict; `JUDGMENT CALL` marks optional work' \
+    "skills/pr:overengineering-review/references/conductor-diff-comments.md"
+}
