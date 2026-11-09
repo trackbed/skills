@@ -733,8 +733,7 @@ run_documented_stack_checkout() {
 	! grep -F 'Merging from the CLI is not supported' "$stack_skill" "$rules"
 	grep -F 'After `env -u GH_STACK_NO_ATOMIC gh stack sync`, all branches were restored' "$stack_skill"
 	grep -F 'After `gh stack rebase`, a rebase session remains active' "$stack_skill"
-	grep -F '`sync` restores all branches' "$rules"
-	grep -F '`rebase` leaves its session active' "$rules"
+	grep -F '`gh stack sync` restores every branch before it returns exit 3' "$REPO_ROOT/shared/git/references/stack-operations.md"
 }
 
 @test "rebase verification keeps the revision range in one shell argument" {

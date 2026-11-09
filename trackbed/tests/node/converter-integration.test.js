@@ -182,6 +182,7 @@ test("canonical plugin build preserves runtime path dependency closure", async (
 
     for (const sharedFile of [
       ["scripts", "siw-issue-reservation.sh"],
+      ["scripts", "list-stack-worktrees.sh"],
       ["shared", "visual", "assets", "mermaid-flowchart.html"],
       ["shared", "visual", "references", "css-patterns.md"],
     ]) {
@@ -199,6 +200,15 @@ test("canonical plugin build preserves runtime path dependency closure", async (
       ).mode & 0o111,
       0o111,
       "the shared SIW reservation helper stays executable",
+    );
+    assert.equal(
+      (
+        await stat(
+          path.join(built.pluginRoot, "scripts", "list-stack-worktrees.sh"),
+        )
+      ).mode & 0o111,
+      0o111,
+      "the stack worktree preflight helper stays executable",
     );
 
     const policy = await readText(

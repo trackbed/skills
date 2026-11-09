@@ -23,3 +23,27 @@ sources:
     last_reviewed_at: 2026-11-08
     baseline_commit: "bd0a32504f9ae9f795875a9e6bb90ff7408fda08"
     baseline_hash: "sha256:ac9b7ac2972602f0f0039c56a43df0b8fe2aeb4dbe31636796285318743ee568"
+  - id: github-gh-stack-v0.3.0-worktree-rebase
+    url: https://raw.githubusercontent.com/github/gh-stack/2a49e6751238633db504655d8a8eba3e433e827d/cmd/rebase.go
+    title: "gh-stack v0.3.0 worktree-scoped rebase"
+    rationale: "The shared stack-operations reference follows how rebase runs each stack branch in the worktree that has it checked out, names the conflict worktree, accepts --continue from any worktree, keeps one paused-rebase record for the clone, and requires --accept-base-change to drop an unmerged old base."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "2a49e6751238633db504655d8a8eba3e433e827d"
+    baseline_hash: "sha256:be5c462c9bde91f90620461b5c7fd0288a600721ca35a7c705bab3d9d74927d6"
+  - id: github-gh-stack-v0.3.0-worktree-sync
+    url: https://raw.githubusercontent.com/github/gh-stack/2a49e6751238633db504655d8a8eba3e433e827d/cmd/sync.go
+    title: "gh-stack v0.3.0 worktree-scoped sync"
+    rationale: "The other-workspace preflight follows how sync fast-forwards and rebases stack branches and the trunk in the worktrees that have them checked out, and restores every branch before it returns a conflict."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "2a49e6751238633db504655d8a8eba3e433e827d"
+    baseline_hash: "sha256:4f1fb9c8ace2c206c673c9f2a49fc76a480be4feadd177cf40a99f6e0721f3fe"
+  - id: github-gh-stack-v0.3.0-exit-codes
+    url: https://raw.githubusercontent.com/github/gh-stack/2a49e6751238633db504655d8a8eba3e433e827d/cmd/utils.go
+    title: "gh-stack v0.3.0 exit codes and base retargeting"
+    rationale: "The shared exit-code table, written in local words, follows the exit codes this file defines, including the clone-wide lock (exit 8), and its retarget check that stops without --accept-base-change."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "2a49e6751238633db504655d8a8eba3e433e827d"
+    baseline_hash: "sha256:20b15a58d16fecd76e965f3571b1274cad9eda5d0bf8cacf4e2da31b45794aec"

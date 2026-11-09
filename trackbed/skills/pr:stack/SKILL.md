@@ -21,6 +21,8 @@ Manage a **stack**: an ordered chain of branches where each branch builds on the
 
 Read `references/cli-agent-rules.md` before running any `gh stack` command — every invocation must be non-interactive (branch names as arguments, `submit --auto`, `view --json`, never `modify`).
 
+Also read `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-operations.md` before any `gh stack` command. It holds the gh-stack exit codes and the rules for other worktrees. Before every `gh stack rebase` and `gh stack sync` in this skill, run its other-workspace preflight with `${CLAUDE_PLUGIN_ROOT}/scripts/list-stack-worktrees.sh`. It also governs conflicts, paused rebases, and `--accept-base-change`.
+
 ## When to use
 
 - New work that naturally lands as an ordered sequence of small, dependently-reviewable PRs (foundation → API → UI).
@@ -150,12 +152,12 @@ env -u GH_STACK_NO_ATOMIC gh stack sync --remote "$STACK_REMOTE" --prune # also 
 
 Sync handles squash-merged parents automatically. The shared preflight stops divergent active branches with the integrate-first message; gh-stack alone does not reconcile that divergence. Clearing `GH_STACK_NO_ATOMIC` makes Git ref updates all-or-nothing; PR/API updates remain separate.
 
-**Conflicts (exit code 3) are command-specific:**
+**Conflicts (exit code 3) are command-specific.** Resolve them in the worktree gh-stack names, under the shared reference's **Conflicts** rules:
 
-- After `env -u GH_STACK_NO_ATOMIC gh stack sync`, all branches were restored before the command returned. Repeat the shared preflight, then start a fresh `gh stack rebase --remote "$STACK_REMOTE"`, resolve markers file by file, `git add` each, then run `gh stack rebase --continue`.
+- After `env -u GH_STACK_NO_ATOMIC gh stack sync`, all branches were restored before the command returned. Repeat the shared preflight and the other-workspace preflight, then start a fresh `gh stack rebase --remote "$STACK_REMOTE"`, resolve markers file by file, `git add` each, then run `gh stack rebase --continue`.
 - After `gh stack rebase`, a rebase session remains active. Resolve markers file by file, `git add` each, then run `gh stack rebase --continue` directly — do not start a second rebase.
 
-Repeat per conflict round. `gh stack rebase --abort` restores all branches if the resolution stops being mechanical; then escalate to the user.
+Repeat per conflict round. `gh stack rebase --abort` restores all branches if the resolution stops being mechanical; then escalate to the user. Continue or abort only a rebase this session started.
 
 **After any history rewrite on a stack branch** (`trackbed:git:fixup`, `trackbed:git:recreate-commits`, fix-ci consolidation): the branches above are orphaned until you restack. Never push a single stack branch with plain `git push --force-with-lease`; `env -u GH_STACK_NO_ATOMIC gh stack push` updates every branch atomically:
 
