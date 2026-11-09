@@ -59,6 +59,7 @@ Paths passed through file variables are relative to `trackbed/`.
 | Live skill-review adapters, credit failover, and checkpoints | `evals/skill-review/{providers,credit-pool,eval-state,review-profile,live-predict,claude-predict,openai-predict,run-live-eval,ci-checkpoint}.js`, `.github/workflows/skill-review-live-eval.yml` | `make -C trackbed test-skill-review-live-eval` (fake SDK and Responses endpoint, no credentials); closest Node suites are `credit-pool`, `eval-state`, `claude-predict`, `openai-predict`, `run-live-eval`, and `ci-checkpoint`; workflow/CLI contracts are in `tests/skill-review-live-eval.bats` |
 | SkillOpt adapter | `trackbed/evals/skillopt/` | `bats trackbed/tests/skillopt-adapter.bats trackbed/tests/skillopt-candidate-review.bats` |
 | Shared skill resources | `trackbed/shared/`, plugin-level helpers in `trackbed/scripts/` that skills reference through `${CLAUDE_PLUGIN_ROOT}` | `bats trackbed/tests/skill-resource-references.bats`, `make -C trackbed test-convert` |
+| Shared visual palettes and examples | `trackbed/shared/visual/` | `make -C trackbed test-python-file PYTHON_TEST_FILE=tests/python/test_shared_visual_accessibility.py`, `bats trackbed/tests/visual-explain-guidance.bats`, `bats trackbed/tests/pr-walkthrough.bats` |
 
 ## Skill Contract Lookup
 

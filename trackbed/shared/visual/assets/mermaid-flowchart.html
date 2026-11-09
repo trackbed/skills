@@ -22,36 +22,49 @@
         --border: rgba(0, 0, 0, 0.07);
         --border-bright: rgba(0, 0, 0, 0.14);
         --text: #134e4a;
-        --text-dim: #5f8a85;
+        --text-dim: #496a66;
 
-        --primary: #0d9488;
-        --primary-dim: rgba(13, 148, 136, 0.08);
-        --secondary: #4d7c0f;
-        --secondary-dim: rgba(77, 124, 15, 0.08);
-        --tertiary: #d97706;
-        --tertiary-dim: rgba(217, 119, 6, 0.08);
-        --danger: #dc2626;
-        --danger-dim: rgba(220, 38, 38, 0.08);
+        --primary: #0a7168;
+        --primary-dim: rgba(10, 113, 104, 0.08);
+        --secondary: #456e0d;
+        --secondary-dim: rgba(69, 110, 13, 0.08);
+        --tertiary: #985404;
+        --tertiary-dim: rgba(152, 84, 4, 0.08);
+        --danger: #c21f1f;
+        --danger-dim: rgba(194, 31, 31, 0.08);
+        /* Status colors for the shared chip and before/after panel patterns */
+        --green: #456e0d;
+        --green-dim: rgba(69, 110, 13, 0.08);
+        --red: #c21f1f;
+        --red-dim: rgba(194, 31, 31, 0.08);
+        --orange: #985404;
+        --orange-dim: rgba(152, 84, 4, 0.08);
       }
 
       @media (prefers-color-scheme: dark) {
         :root {
           --bg: #042f2e;
           --surface: #0a3d3a;
-          --surface2: #115e59;
+          --surface2: #0c4844;
           --border: rgba(255, 255, 255, 0.08);
           --border-bright: rgba(255, 255, 255, 0.14);
           --text: #ccfbf1;
           --text-dim: #5eead4;
 
-          --primary: #2dd4bf;
-          --primary-dim: rgba(45, 212, 191, 0.14);
+          --primary: #62dfcf;
+          --primary-dim: rgba(98, 223, 207, 0.14);
           --secondary: #a3e635;
           --secondary-dim: rgba(163, 230, 53, 0.12);
           --tertiary: #fbbf24;
           --tertiary-dim: rgba(251, 191, 36, 0.12);
-          --danger: #f87171;
-          --danger-dim: rgba(248, 113, 113, 0.12);
+          --danger: #fbaeae;
+          --danger-dim: rgba(251, 174, 174, 0.12);
+          --green: #a3e635;
+          --green-dim: rgba(163, 230, 53, 0.12);
+          --red: #fbaeae;
+          --red-dim: rgba(251, 174, 174, 0.12);
+          --orange: #fbbf24;
+          --orange-dim: rgba(251, 191, 36, 0.12);
         }
       }
 
@@ -398,20 +411,20 @@
         layout: "elk",
         themeVariables: {
           primaryColor: isDark ? "#115e59" : "#ccfbf1",
-          primaryBorderColor: isDark ? "#2dd4bf" : "#0d9488",
+          primaryBorderColor: isDark ? "#62dfcf" : "#0a7168",
           primaryTextColor: isDark ? "#ccfbf1" : "#134e4a",
           secondaryColor: isDark ? "#1a2e05" : "#ecfccb",
-          secondaryBorderColor: isDark ? "#a3e635" : "#4d7c0f",
+          secondaryBorderColor: isDark ? "#a3e635" : "#456e0d",
           secondaryTextColor: isDark ? "#ccfbf1" : "#134e4a",
           tertiaryColor: isDark ? "#2e2618" : "#fffbeb",
-          tertiaryBorderColor: isDark ? "#fbbf24" : "#d97706",
+          tertiaryBorderColor: isDark ? "#fbbf24" : "#985404",
           tertiaryTextColor: isDark ? "#ccfbf1" : "#134e4a",
-          lineColor: isDark ? "#5eead4" : "#5f8a85",
+          lineColor: isDark ? "#5eead4" : "#496a66",
           fontSize: "16px",
           fontFamily: "'Bricolage Grotesque', system-ui, sans-serif",
           noteBkgColor: isDark ? "#115e59" : "#fefce8",
           noteTextColor: isDark ? "#ccfbf1" : "#134e4a",
-          noteBorderColor: isDark ? "#fbbf24" : "#d97706",
+          noteBorderColor: isDark ? "#fbbf24" : "#985404",
         },
       });
     </script>

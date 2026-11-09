@@ -6,6 +6,8 @@ Reusable patterns for layout, connectors, theming, and visual effects in self-co
 
 Always define both light and dark palettes via custom properties. Start with whichever fits the chosen aesthetic, ensure both work.
 
+Keep every text color at 4.5:1 contrast or higher in both schemes, measured against each surface it can sit on, including tinted chip and header backgrounds. This covers dim text, status chips, and panel headers, not only body text. When you change a palette value, recheck both schemes.
+
 ```css
 :root {
   --font-body: "Outfit", system-ui, sans-serif;
@@ -17,16 +19,23 @@ Always define both light and dark palettes via custom properties. Start with whi
   --border: rgba(0, 0, 0, 0.08);
   --border-bright: rgba(0, 0, 0, 0.15);
   --text: #1a1a2e;
-  --text-dim: #6b7280;
-  --accent: #0891b2;
-  --accent-dim: rgba(8, 145, 178, 0.1);
+  --text-dim: #5f6672;
+  --accent: #066f89;
+  --accent-dim: rgba(6, 111, 137, 0.1);
   /* Semantic accents for diagram elements */
-  --node-a: #0891b2;
-  --node-a-dim: rgba(8, 145, 178, 0.1);
-  --node-b: #059669;
-  --node-b-dim: rgba(5, 150, 105, 0.1);
-  --node-c: #d97706;
-  --node-c-dim: rgba(217, 119, 6, 0.1);
+  --node-a: #066f89;
+  --node-a-dim: rgba(6, 111, 137, 0.1);
+  --node-b: #047351;
+  --node-b-dim: rgba(4, 115, 81, 0.1);
+  --node-c: #9b5504;
+  --node-c-dim: rgba(155, 85, 4, 0.1);
+  /* Status colors for chips, KPI trends, and before/after headers */
+  --green: #047351;
+  --green-dim: rgba(4, 115, 81, 0.1);
+  --red: #c21f1f;
+  --red-dim: rgba(194, 31, 31, 0.1);
+  --orange: #9b5504;
+  --orange-dim: rgba(155, 85, 4, 0.1);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -37,7 +46,7 @@ Always define both light and dark palettes via custom properties. Start with whi
     --border: rgba(255, 255, 255, 0.06);
     --border-bright: rgba(255, 255, 255, 0.12);
     --text: #e6edf3;
-    --text-dim: #8b949e;
+    --text-dim: #9ca3ac;
     --accent: #22d3ee;
     --accent-dim: rgba(34, 211, 238, 0.12);
     --node-a: #22d3ee;
@@ -46,6 +55,12 @@ Always define both light and dark palettes via custom properties. Start with whi
     --node-b-dim: rgba(52, 211, 153, 0.12);
     --node-c: #fbbf24;
     --node-c-dim: rgba(251, 191, 36, 0.12);
+    --green: #34d399;
+    --green-dim: rgba(52, 211, 153, 0.12);
+    --red: #f87171;
+    --red-dim: rgba(248, 113, 113, 0.12);
+    --orange: #fbbf24;
+    --orange-dim: rgba(251, 191, 36, 0.12);
   }
 }
 ```
@@ -594,7 +609,7 @@ Use real `<table>` elements for tabular data. Wrap in a scrollable container for
 
 #### Status Indicators
 
-Styled spans for match/gap/warning states. Never use emoji.
+Styled spans for match/gap/warning states. Never use emoji. Every status shows a word such as Match, Gap, or Partial; color only reinforces it.
 
 ```css
 .status {
@@ -610,18 +625,18 @@ Styled spans for match/gap/warning states. Never use emoji.
 }
 
 .status--match {
-  background: var(--green-dim, rgba(5, 150, 105, 0.1));
-  color: var(--green, #059669);
+  background: var(--green-dim, rgba(4, 115, 81, 0.1));
+  color: var(--green, #047351);
 }
 
 .status--gap {
-  background: var(--red-dim, rgba(239, 68, 68, 0.1));
-  color: var(--red, #ef4444);
+  background: var(--red-dim, rgba(194, 31, 31, 0.1));
+  color: var(--red, #c21f1f);
 }
 
 .status--warn {
-  background: var(--orange-dim, rgba(217, 119, 6, 0.1));
-  color: var(--orange, #d97706);
+  background: var(--orange-dim, rgba(155, 85, 4, 0.1));
+  color: var(--orange, #9b5504);
 }
 
 .status--info {
@@ -629,7 +644,7 @@ Styled spans for match/gap/warning states. Never use emoji.
   color: var(--accent);
 }
 
-/* Dot variant (compact, no text) */
+/* Dot variant: always beside a visible status word, never alone */
 .status-dot {
   width: 8px;
   height: 8px;
@@ -638,13 +653,13 @@ Styled spans for match/gap/warning states. Never use emoji.
 }
 
 .status-dot--match {
-  background: var(--green, #059669);
+  background: var(--green, #047351);
 }
 .status-dot--gap {
-  background: var(--red, #ef4444);
+  background: var(--red, #c21f1f);
 }
 .status-dot--warn {
-  background: var(--orange, #d97706);
+  background: var(--orange, #9b5504);
 }
 ```
 
@@ -718,7 +733,9 @@ For totals, counts, or aggregate status at the bottom:
 Down arrow SVG (reuse inline):
 
 ```html
-<svg viewBox="0 0 20 20"><path d="M10 4 L10 16 M6 12 L10 16 L14 12" /></svg>
+<svg viewBox="0 0 20 20">
+  <path d="M10 4 L10 16 M6 12 L10 16 L14 12" />
+</svg>
 ```
 
 ### CSS Arrow (horizontal, between inline steps)
@@ -1041,10 +1058,10 @@ Large hero number with trend indicator and label. For dashboards, review summari
 }
 
 .kpi-card__trend--up {
-  color: var(--node-b, #059669);
+  color: var(--green, #047351);
 }
 .kpi-card__trend--down {
-  color: var(--red, #ef4444);
+  color: var(--red, #c21f1f);
 }
 ```
 
@@ -1061,7 +1078,7 @@ Large hero number with trend indicator and label. For dashboards, review summari
 
 ## Before / After Panels
 
-Two-column comparison with diff-colored headers. For review pages, migration docs, and feature comparisons.
+Two-column comparison with diff-colored headers. For review pages, migration docs, and feature comparisons. The header words and the dashed or solid rule mark each side, so the panels still read without color.
 
 ```css
 .diff-panels {
@@ -1088,15 +1105,15 @@ Two-column comparison with diff-colored headers. For review pages, migration doc
 }
 
 .diff-panel__header--before {
-  background: var(--red-dim, rgba(239, 68, 68, 0.08));
-  color: var(--red, #ef4444);
-  border-bottom: 2px solid var(--red, #ef4444);
+  background: var(--red-dim, rgba(194, 31, 31, 0.08));
+  color: var(--red, #c21f1f);
+  border-bottom: 2px dashed var(--red, #c21f1f);
 }
 
 .diff-panel__header--after {
-  background: var(--green-dim, rgba(5, 150, 105, 0.08));
-  color: var(--green, #059669);
-  border-bottom: 2px solid var(--green, #059669);
+  background: var(--green-dim, rgba(4, 115, 81, 0.08));
+  color: var(--green, #047351);
+  border-bottom: 2px solid var(--green, #047351);
 }
 
 .diff-panel__body {

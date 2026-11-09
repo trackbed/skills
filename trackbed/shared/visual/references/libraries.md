@@ -364,7 +364,7 @@ Use for bar charts, line charts, pie/doughnut charts, radar charts, and other da
 
 <script>
   const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const textColor = isDark ? "#8b949e" : "#6b7280";
+  const textColor = isDark ? "#9ca3ac" : "#5f6672";
   const gridColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
   const fontFamily =
     getComputedStyle(document.documentElement)
