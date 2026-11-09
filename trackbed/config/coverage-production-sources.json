@@ -309,6 +309,11 @@
     },
     {
       "kind": "guidance",
+      "suite": "trackbed/tests/docs-track-rejected-enhancements-guidance.bats",
+      "skills": ["trackbed/skills/docs:track-rejected-enhancements/SKILL.md"]
+    },
+    {
+      "kind": "guidance",
       "suite": "trackbed/tests/docs-update-agents-md-guidance.bats",
       "skills": ["trackbed/skills/docs:update-agents-md/SKILL.md"]
     },
