@@ -36,6 +36,6 @@ Before reporting Phase 7, verify:
 - If every task is size L or every group is "Must be sequential", decomposition and parallelization were re-checked before reporting.
 - The Phase 5 `PLAN:` block shows every issue size and every group-level `Parallelization:` note.
 - Existing append-mode issue IDs were preserved, with new work assigned to the next unused number in each prefix group.
-- Risk signals were checked; Phase 4.5 ran when triggered, did not run unconditionally for small, clear plans, and looped back through Phase 4 if it changed, split, deleted, or reordered tasks.
+- Risk signals were checked; Phase 4.5 ran when triggered, did not run unconditionally for small, clear plans, and looped back through Phase 4 if it added, changed, split, deleted, or reordered tasks.
 - Generated issue files preserve each issue's approved size, Mode, and parallelization guidance. For tracker schema rules (modern 7-column, pre-Mode 6-column, legacy 5-column) see Phase 6.2 in `SKILL.md`.
 - Generated issue files use repo-relative paths for affected files, tests, and pattern references.

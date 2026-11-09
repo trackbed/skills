@@ -22,6 +22,7 @@ THINGS I DIDN'T TOUCH:
 
 POTENTIAL CONCERNS:
   • {Any subagent-flagged risks that survived user approval}
+  • {Any Phase 4.5 deepening findings declined under the finding threshold, with the reason}
   • {Any CONFUSION or MISSING REQUIREMENT markers from Phase 2 that were resolved by assumption — worth re-checking before implementation}
   • {If empty, state: "None"}
 
