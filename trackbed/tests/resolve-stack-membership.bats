@@ -20,7 +20,7 @@ setup() {
 	git remote add origin https://github.com/acme/demo.git
 
 	export MOCK_EXTENSION_STATUS=0
-	export MOCK_EXTENSION_VERSION=0.1.0
+	export MOCK_EXTENSION_VERSION=0.3.0
 	export MOCK_STACK_VIEW_STATUS=2
 	export MOCK_PR_LIST_STATUS=0
 	export MOCK_PR_NUMBER=""
@@ -51,7 +51,7 @@ write_mock_gh() {
 
 if [ "$1" = "stack" ] && [ "$2" = "--version" ]; then
   [ "${MOCK_EXTENSION_STATUS:-0}" -eq 0 ] || exit "$MOCK_EXTENSION_STATUS"
-  printf 'gh stack version %s\n' "${MOCK_EXTENSION_VERSION:-0.1.0}"
+  printf 'gh stack version %s\n' "${MOCK_EXTENSION_VERSION:-0.3.0}"
   exit 0
 fi
 
@@ -242,6 +242,31 @@ load_assignments() {
 	[[ "$output" == *"gh extension upgrade stack"* ]]
 	! grep -q 'command \[stack\] \[view\]' "$GH_LOG"
 	! grep -q 'command \[pr\] \[list\]' "$GH_LOG"
+}
+
+@test "rejects gh-stack older than v0.3.0 with an upgrade instruction" {
+	export MOCK_EXTENSION_VERSION=0.2.1
+
+	run "$SCRIPT"
+
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"gh-stack v0.2.1 is unsupported; upgrade to v0.3.0 or newer with 'gh extension upgrade stack'."* ]]
+	! grep -q 'command \[stack\] \[view\]' "$GH_LOG" || false
+	! grep -q 'command \[pr\] \[list\]' "$GH_LOG"
+}
+
+@test "accepts gh-stack versions above the v0.3.0 floor" {
+	export MOCK_STACK_VIEW_STATUS=0
+
+	for version in 0.10.0 1.0.0; do
+		export MOCK_EXTENSION_VERSION="$version"
+		run "$SCRIPT"
+
+		[ "$status" -eq 0 ]
+		load_assignments
+		[ "$STACK_MEMBERSHIP" = "local" ]
+		[ "$STACK_CLI_AVAILABLE" = "1" ]
+	done
 }
 
 @test "fails closed when the gh-stack version cannot be parsed" {

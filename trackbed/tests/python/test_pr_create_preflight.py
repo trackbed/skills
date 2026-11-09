@@ -47,7 +47,7 @@ if args[:2] == ["pr", "list"]:
     sys.stdout.write(os.environ.get("FAKE_GH_PR_LIST", "[]"))
     sys.exit(int(os.environ.get("FAKE_GH_PR_LIST_EXIT", "0")))
 if args[:2] == ["stack", "--version"] and os.environ.get("FAKE_GH_STACK_JSON"):
-    print("gh stack version 0.1.0")
+    print("gh stack version 0.3.0")
     sys.exit(0)
 if args[:3] == ["stack", "view", "--json"]:
     print(os.environ["FAKE_GH_STACK_JSON"])
