@@ -4,7 +4,7 @@ Use this prompt when an upstream source has changed since the last baseline. Run
 
 ## Inputs to gather before prompting
 
-- The freshly fetched, normalized content of the source.
+- The freshly fetched, normalized content of the source. For a GitHub directory, this is every file `scripts/github_directory.py` included, each under its `==> <path> <==` header; the report lists the paths it skipped once, on the upstream's **Directory files** line, not in this prompt's output. For a raw `SKILL.md` entry whose group fetched the directory, it is only that file's section.
 - The consuming skill's directory text: its `SKILL.md` and every text file under its `references/`, `assets/`, and `scripts/` directories, each preceded by its skill-relative path, plus every plugin-level shared file its `SKILL.md` names through `${CLAUDE_PLUGIN_ROOT}/shared/...`, resolved against the skill's plugin directory and preceded by its repository-relative path. Skip `references/sources.yaml`, license and notice files, binary files, minified or vendored files, and any file larger than 100 KB, and name the skipped paths in the report.
 - The source's `rationale` field from that skill's `sources.yaml` (what the skill derives from this source).
 - The names and rationales of the other skills that consume the same upstream, so each suggestion lands in the skill where it fits best.

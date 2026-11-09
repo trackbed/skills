@@ -59,6 +59,7 @@ A hash is only as stable as its input. The audit fetches every hashed source in 
 | --- | --- | --- |
 | `curl-markdown` | `curl -fsSL` of the URL; the final response is not HTML | `--type markdown` |
 | `curl-html` | `curl -fsSL` of the URL; the final `Content-Type` starts with `text/html` or `application/xhtml+xml` | `--type html` |
+| `github-directory` | `scripts/github_directory.py` reads a GitHub directory's text files at one commit through `gh api` and writes them in path order under `==> <path> <==` headers | `--type markdown` |
 | `graphql-helper` | `scripts/extract_graphql_definitions.py` fetches the schema in-process and prints only the named definitions | `--type markdown` |
 | `docs-mcp` | A docs MCP's Markdown output for a `context7_library` entry | `--type markdown` |
 | `availability` | An immutable post: an HTTP status check only | not hashed |
