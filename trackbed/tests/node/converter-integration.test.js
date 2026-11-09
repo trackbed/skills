@@ -265,6 +265,11 @@ test("canonical plugin build preserves runtime path dependency closure", async (
       /\*\*Do all reading yourself\.\*\* Never launch, delegate to/,
       "on Codex the written rule is the only guard against delegation",
     );
+    assert.match(
+      coldReaderSkill,
+      /If your host loaded instruction files for you anyway, such as `AGENTS\.md` or `CLAUDE\.md` files from a project or from user settings, ignore them\./,
+      "on Codex the written rule is the only guard against instruction files the host loads",
+    );
     for (const name of [
       "code-review",
       "convention-review",

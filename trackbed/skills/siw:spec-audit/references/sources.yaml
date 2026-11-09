@@ -47,3 +47,17 @@ sources:
     last_reviewed_at: 2026-11-06
     baseline_commit: "6a8001ea31ccf72430ba0603a467ec6df9f69dd7"
     baseline_hash: "sha256:d8d2b680c76073d58522db07f7ff5c54772fa259eb421395555e2187201fadf3"
+  - id: egm-claude-integration
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/403d8881d62022490637d740657b33f01e321ea8/docs/claude.md
+    title: "google/elephant-goldfish-model - Claude Code integration"
+    rationale: "Running the comprehension read in a plugin agent that starts without the project's instruction files is informed by this source's omitClaudeMd reviewer adapters; reviewed at upstream commit 403d8881d62022490637d740657b33f01e321ea8."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_hash: "sha256:b2723722b419b1c368db423885a4421dda71278cf1f22b9928c7b722a0ab6730"
+  - id: egm-codex-integration
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/4ac6b173c15704339bcd654f22a16b4c30120385/docs/codex.md
+    title: "google/elephant-goldfish-model - Codex integration"
+    rationale: "Starting the comprehension reader on Codex without the conversation, recording that it may still receive project and user-level instruction files, and telling it to ignore them are informed by this source; reviewed at upstream commit 4ac6b173c15704339bcd654f22a16b4c30120385."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_hash: "sha256:d1a64b8df61b7012a4fc112381b1946a8c98e125e92d1c21e05bc419b0fa6cdf"

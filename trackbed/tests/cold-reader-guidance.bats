@@ -23,7 +23,12 @@ setup() {
   grep -qF 'A new agent starts with the project'"'"'s instruction files loaded' "$AGENT"
   grep -qF 'prior reports, memory stores, earlier sessions, or anything else' "$AGENT"
   grep -qF 'Its `tools: Read, Grep, Glob` allowlist leaves it no shell, web, connector, or agent-launch tool' "$CONTRACT"
-  grep -qF 'only the agent'"'"'s written rule keeps it from delegating' "$CONTRACT"
+  grep -qF 'only the agent'"'"'s written rules keep it from delegating and tell it to ignore those files' "$CONTRACT"
+}
+
+@test "cold reader ignores instruction files its host loaded anyway" {
+  grep -qF 'If your host loaded instruction files for you anyway, such as `AGENTS.md` or `CLAUDE.md` files from a project or from user settings, ignore them.' "$AGENT"
+  grep -qF 'They describe how to work in some codebase, not what the material says.' "$AGENT"
 }
 
 @test "cold reader reports unreadable material instead of answering" {
@@ -78,9 +83,16 @@ setup() {
 
 @test "github-review clarity readers keep project instructions" {
   local check="skills/pr:github-review/references/clarity-check.md"
+  local skill="skills/pr:github-review/SKILL.md"
 
   grep -qF 'launch them as ordinary agents that keep the project'"'"'s instructions, not as the `trackbed:cold-reader` agent' "$check"
   grep -qF 'or `fork_context: false` when the spawn tool exposes that field instead' "$check"
+  grep -qF '## Step 10a: Check the Draft Comments With Clarity Readers' "$skill"
+  grep -qF '## 4. Two clarity readers in parallel' "$check"
+  if grep -niF 'cold reader' "$skill" "$check"; then
+    echo "these readers keep project instructions, so call them clarity readers, not cold readers"
+    return 1
+  fi
 }
 
 @test "reviewers that check project rules do not drop project instructions" {

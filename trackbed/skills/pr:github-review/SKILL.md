@@ -325,7 +325,7 @@ Follow the humanization section of `references/comment-drafting.md`. Humanizatio
 
 Save this step's result per `references/resume.md`.
 
-## Step 10a: Check the Draft Comments With Cold Readers
+## Step 10a: Check the Draft Comments With Clarity Readers
 
 Find the drafted inline comments: fresh actionable items with a `path:line` location and a `Draft comment` body, not replies to existing threads. Run the clarity check when `CLARITY_CHECK=on` and at least one is drafted. Otherwise set `CLARITY_CHECK_STATUS` to `not run — --no-clarity-check` or `not run — no inline comments drafted`, and continue to Step 11.
 

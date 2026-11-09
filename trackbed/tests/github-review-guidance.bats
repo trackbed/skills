@@ -987,7 +987,7 @@ import sys
 
 skill, readme, review_guide = [pathlib.Path(path).read_text() for path in sys.argv[1:]]
 humanize = skill.index("## Step 10: Humanize the Draft Comments")
-clarity = skill.index("## Step 10a: Check the Draft Comments With Cold Readers")
+clarity = skill.index("## Step 10a: Check the Draft Comments With Clarity Readers")
 materialize = skill.index("## Step 11: Materialize the Markdown Report")
 assert humanize < clarity < materialize, "the clarity check must run between humanizing and the eligibility count"
 drafting = skill[skill.index("## Step 9: Draft the Review Comments"):humanize]
