@@ -576,6 +576,14 @@
       ]
     },
     {
+      "kind": "executable",
+      "suite": "trackbed/tests/stack-outcomes.bats",
+      "skills": [
+        "trackbed/skills/pr:rebase/SKILL.md",
+        "trackbed/skills/pr:stack/SKILL.md"
+      ]
+    },
+    {
       "kind": "guidance",
       "suite": "trackbed/tests/session-automate-repeats-guidance.bats",
       "skills": ["trackbed/skills/session:automate-repeats/SKILL.md"]
