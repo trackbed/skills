@@ -49,6 +49,7 @@ CONSUMERS=(
     grep -qF "id: vuk97-forward-implementation-first" "$sources"
     grep -qF "baseline_commit: 2d4dd7eacb4c41a31d85501f6f44d33fef21017a" "$sources"
     grep -qF "The shared forward-progress reference's context-recovery paragraph retains its idea" "$sources"
+    grep -qF "Two divergences from this source are deliberate: when a workflow stage is blocked and no documented recovery path exists, the convention reports the exact blocker and stops rather than running the stage by hand, and it treats locks as protected concurrency controls rather than bookkeeping to avoid." "$sources"
     test ! -e "$consumer/references/sources-snapshot"
   done
 }

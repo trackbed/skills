@@ -36,7 +36,7 @@ sources:
   - id: vuk97-forward-implementation-first
     url: https://raw.githubusercontent.com/Vuk97/forward-implementation-first/main/SKILL.md
     title: "Forward implementation first"
-    rationale: "The distinction between implementation, correctness evidence, and advisory bookkeeping, together with smallest-dependency-cone replay, inspired this repository-specific forward-progress convention."
+    rationale: "The distinction between implementation, correctness evidence, and advisory bookkeeping, together with smallest-dependency-cone replay, inspired this repository-specific forward-progress convention. Two divergences from this source are deliberate: when a workflow stage is blocked and no documented recovery path exists, the convention reports the exact blocker and stops rather than running the stage by hand, and it treats locks as protected concurrency controls rather than bookkeeping to avoid. Source audits should treat both as settled decisions, not drift."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: 2d4dd7eacb4c41a31d85501f6f44d33fef21017a
