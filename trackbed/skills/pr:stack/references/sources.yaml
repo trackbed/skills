@@ -2,7 +2,7 @@ sources:
   - id: github-gh-stack-agent-skill
     url: https://raw.githubusercontent.com/github/gh-stack/main/skills/gh-stack/SKILL.md
     title: "GitHub gh-stack — official agent skill"
-    rationale: "SKILL.md and references/cli-agent-rules.md adapt the stack definition, diagram, non-interactive agent rules, exit-code recovery table, view --json schema, and mid-stack workflows from GitHub's official gh-stack agent skill."
+    rationale: "SKILL.md and references/cli-agent-rules.md adapt the stack definition, diagram, non-interactive agent rules, exit-code recovery table, view --json schema, and mid-stack workflows from GitHub's official gh-stack agent skill. Passages that went stale against gh-stack v0.3.0 (availability, view --short, merge limits, restructuring, and worktree adoption) are rewritten in local words; the remaining copied passages and tables keep this notice."
     usage: copied
     license: "MIT"
     notice: references/github-gh-stack-LICENSE
@@ -14,7 +14,7 @@ sources:
   - id: github-stacked-prs-docs
     url: https://docs.github.com/en/pull-requests/get-started/about-stacked-prs
     title: "GitHub Docs — About stacked pull requests"
-    rationale: "The stack model (server-side stacks, branch protection and CI evaluated against the stack base, cascading merges) and lifecycle workflow are derived from the official documentation."
+    rationale: "The stack model (server-side stacks, branch protection and CI evaluated against the stack base, cascading merges, and support for merge-commit, squash, and rebase merges) and lifecycle workflow are derived from the official documentation."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     fetch_mode: curl-html
@@ -30,7 +30,7 @@ sources:
   - id: github-gh-stack-v0.1.0-merge
     url: https://raw.githubusercontent.com/github/gh-stack/v0.1.0/cmd/merge.go
     title: "gh-stack v0.1.0 merge implementation"
-    rationale: "The minimum supported CLI version and non-interactive gh stack merge workflow follow the tagged implementation's explicit target, confirmation, and merge-method handling."
+    rationale: "The non-interactive gh stack merge workflow follows the tagged implementation's explicit target, confirmation, and merge-method handling."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "bd0a32504f9ae9f795875a9e6bb90ff7408fda08"
@@ -99,3 +99,25 @@ sources:
     last_reviewed_at: 2026-11-08
     baseline_commit: "bd0a32504f9ae9f795875a9e6bb90ff7408fda08"
     baseline_hash: "sha256:60d11935bfe51154682c4738eb212c678a7b6cb9ec9fc91a2b9238ef125ea083"
+  - id: github-gh-stack-v0.3.0-release
+    url: https://github.com/github/gh-stack/releases/tag/v0.3.0
+    title: "gh-stack v0.3.0 release notes"
+    rationale: "The v0.3.0 minimum version follows the release's atomic-push default, its fix for replaying already-merged commits after a merge, and its handling of a base branch that GitHub retargets."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    fetch_mode: availability
+    baseline_hash: ""
+  - id: github-gh-stack-v0.3.0-troubleshooting
+    url: https://raw.githubusercontent.com/github/gh-stack/v0.3.0/skills/gh-stack/references/troubleshooting.md
+    title: "gh-stack v0.3.0 agent skill — troubleshooting reference"
+    rationale: "The rebase-before-rebuild restructure steps, init adoption of worktree chains through the shared local catalog, and link for branches that other tools manage follow this reference."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_hash: ""
+  - id: github-gh-stack-v0.3.0-commands
+    url: https://raw.githubusercontent.com/github/gh-stack/v0.3.0/skills/gh-stack/references/commands.md
+    title: "gh-stack v0.3.0 agent skill — command reference"
+    rationale: "The view --short correction (never a TUI, but human-formatted, so parse --json) and the shared worktree tracking that makes link unnecessary for worktree chains follow this reference."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_hash: ""
