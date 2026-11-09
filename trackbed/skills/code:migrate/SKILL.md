@@ -86,7 +86,7 @@ options:
   - Abort — leave artifacts untouched, stop here
 ```
 
-- On **Resume**: load the existing plan, check out the branch, ask the user for the phase number to start from, then jump to Step 6 with that phase.
+- On **Resume**: load the existing plan, check out the branch, ask the user for the phase number to start from, confirm the new endpoints still marked `pending review` as the RECORD section of `references/source-grounding.md` requires, then jump to Step 6 with that phase.
 - On **Restart**: confirm branch deletion explicitly before deleting; then continue to Step 1.
 
 ---
@@ -177,7 +177,7 @@ Files affected: {N}
 
 ## Step 4: Generate Migration Plan
 
-Read the template from `assets/migration-plan.md`.
+Read the template from `assets/migration-plan.md`. Fill its source lines, Evidence Gaps, and New Network Endpoints sections as the RECORD section of `references/source-grounding.md` requires.
 
 Create a phased plan:
 
@@ -240,7 +240,9 @@ Refuse to write outside the project root. If a file already exists at the target
 
 ## Step 5: User Review
 
-If `AUTO_MODE=true`, skip this prompt and choose **Execute full plan — all phases with verification gates**.
+Before the question, show the plan's Evidence Gaps and New Network Endpoints sections and confirm each new endpoint as the RECORD section of `references/source-grounding.md` requires.
+
+If `AUTO_MODE=true`, skip this prompt and the endpoint confirmation, and choose **Execute full plan — all phases with verification gates**.
 
 Otherwise, ask the user:
 
@@ -271,13 +273,13 @@ For each phase:
    Effort: {estimate}
    ```
 
-2. **Execute** migration steps (codemods, code changes, config updates).
+2. **Execute** migration steps (codemods, code changes, config updates), skipping every step the plan's Evidence Gaps or New Network Endpoints section marks blocked. If `AUTO_MODE=true`, before applying a step that adds a New Network Endpoints row still marked `pending review`, set its Confirmed value to `not reviewed (--auto)` as the RECORD section of `references/source-grounding.md` requires.
 
 3. **Run verification gate** — invoke `/trackbed:verify:run` via the Skill tool for comprehensive checks, or fall back to the project's build/lint/test commands if the skill is unavailable.
 
 4. **If verification fails:** attempt fix (max 3 iterations), then escalate:
 
-If `AUTO_MODE=true`, skip the prompt below after the 3 failed attempts, print the errors, and abort while keeping changes made so far.
+If `AUTO_MODE=true`, skip the prompt below after the 3 failed attempts, print the errors and the Step 7 `Evidence:` block, and abort while keeping changes made so far.
 
 Otherwise, ask the user:
 
@@ -308,6 +310,8 @@ options:
 
 ## Step 7: Completion Report
 
+Fill the `Evidence:` block as the RECORD section of `references/source-grounding.md` requires.
+
 ```
 Migration Complete
 
@@ -327,6 +331,12 @@ Verification:
   Build: {PASS/FAIL}
   Lint:  {PASS/FAIL}
   Tests: {PASS/FAIL} ({passed}/{total})
+
+Evidence:
+  Unverified claims (unresolved): {claim — missing evidence | none}
+  Conflicts: {source A vs source B → resolution or BLOCKED | none}
+  Blocked: {phase and step — blocking gap, conflict, or declined endpoint | none}
+  New network endpoints: {endpoint — location — citation — yes at review | declined — step blocked | not reviewed (--auto) | pending review (step not run) | none}
 
 Manual Steps Remaining:
   - {list if any}
@@ -349,6 +359,6 @@ Next Steps:
 | Current version not detected | If `AUTO_MODE=true`, abort with a clear error. Otherwise ask the user for the current version |
 | Codemod fails | Capture error, skip to manual approach, log failure |
 | Codemod produces invalid code | Revert affected files, fall back to manual |
-| Verification gate fails 3 times | If `AUTO_MODE=true`, print errors and abort while keeping changes so far. Otherwise escalate to user with options |
+| Verification gate fails 3 times | If `AUTO_MODE=true`, print errors and the Step 7 `Evidence:` block, and abort while keeping changes so far. Otherwise escalate to user with options |
 | Conflicting peer dependencies | Report conflicts, suggest resolution order |
 | Migration branch exists | If `AUTO_MODE=true`, abort with a clear error. Otherwise ask the user: use existing, create new, or abort |
