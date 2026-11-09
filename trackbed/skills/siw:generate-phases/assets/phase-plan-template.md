@@ -1,6 +1,6 @@
 # Phase Plan Template
 
-Present the proposed structure clearly, prefixed with the `PLAN:` output marker so downstream tooling can parse this block as the generated plan. Show each issue's size and Mode inline, and include one `Parallelization:` line per task group. HITL tasks include the one-line reason in the bracket.
+Present the proposed structure clearly, prefixed with the `PLAN:` output marker so downstream tooling can parse this block as the generated plan. Show each issue's size and Mode inline, and include one `Parallelization:` line per task group. HITL tasks include the one-line reason in the bracket. End the block with the `Declined deepening findings:` list only when Phase 4.5 declined at least one finding.
 
 Status legend: `READY | IN PROGRESS | IN REVIEW | DONE`.
 
@@ -37,4 +37,7 @@ Phase 2: {Goal} ({N} tasks)
 
 Total: {X} issues across {Y} phases + {Z} general
 AUTO: {n} | HITL: {m}
+
+Declined deepening findings:
+  • {Concern} — {why it failed the finding threshold}
 ```

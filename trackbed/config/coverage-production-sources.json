@@ -591,6 +591,11 @@
       "skills": ["trackbed/skills/session:automate-repeats/SKILL.md"]
     },
     {
+      "kind": "guidance",
+      "suite": "trackbed/tests/siw-generate-phases-guidance.bats",
+      "skills": ["trackbed/skills/siw:generate-phases/SKILL.md"]
+    },
+    {
       "kind": "executable",
       "suite": "trackbed/tests/siw-issue-reservation.bats",
       "skills": ["trackbed/skills/siw:generate-phases/SKILL.md"]

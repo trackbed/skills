@@ -330,7 +330,7 @@ options:
     description: "I'll describe what needs to be adjusted"
 ```
 
-**If "Need changes":** Gather feedback and revise the plan. Repeat Phase 5.
+**If "Need changes":** Gather feedback and revise the plan. Repeat Phase 5. If the change promotes a declined deepening finding, loop back through Phase 4 first.
 
 If `AUTO_MODE=true`, do not ask for approval. Print the same `PLAN:` block, add `AUTO: creating issue files from this phase plan`, and continue directly to Phase 6.
 
