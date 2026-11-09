@@ -45,7 +45,7 @@ This changes the default question from "does anything still call this?" to "what
 
 ## The Churn Rule
 
-> "If you own the infrastructure being deprecated, you are responsible for migrating your users — or providing backward-compatible updates that require no migration."
+Whoever owns the system being retired also owns moving its callers off it. Either do that migration work yourself, or ship a compatible change that leaves callers nothing to migrate.
 
 Ownership means the migration is your work, not theirs. "We announced deprecation six months ago" is not coverage for a removal if callers still exist — the announcement did not migrate anyone. Either migrate them, ship a backward-compatible shim that makes migration invisible, or do not remove.
 

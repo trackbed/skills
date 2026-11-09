@@ -211,7 +211,7 @@ Escape **at output**, validate **at input**, and the two disciplines compose saf
 
 Uploads are `Ask First` territory by default.
 
-> Don't trust the file extension — check magic bytes if critical.
+A filename extension is a claim the uploader chose, not evidence of what the file contains. When the type matters, read the file's leading signature bytes and decide from those.
 
 A `.jpg` extension on a PHP file is a five-second attack. If the upload feeds into any content-sniffing path (serving, thumbnailing, AV scanning, executing), the MIME decision must come from the file's bytes, not its filename. Additionally: enforce a size cap, strip EXIF for user-uploaded images, store outside the web root, and generate server-side filenames (never echo the user's).
 

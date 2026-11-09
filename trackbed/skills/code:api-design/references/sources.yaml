@@ -55,3 +55,12 @@ sources:
     last_reviewed_at: 2026-11-08
     baseline_commit: "6e7655a1ccf359e9e82cdcbdf38fa37a4ec680e1"
     baseline_hash: "sha256:14ab1bcd8aaad6cfce80e66151b41e97c76734c2c8cea38d8882d10a774939b3"
+  - id: addy-api-and-interface-design
+    url: https://github.com/addyosmani/agent-skills/tree/main/skills/api-and-interface-design
+    title: "Addy Osmani agent-skills - API and interface design"
+    rationale: "The skill's overall structure is modeled on this source: the Hyrum's Law framing, contract-first design, validation at trust boundaries only, one error shape with a fixed HTTP status mapping, the naming-convention table, paginated list responses, the REST resource, filtering, and PATCH-versus-PUT patterns, and the TypeScript discriminated-union, input/output separation, and branded-ID patterns."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
+    fetch_mode: github-directory
+    baseline_hash: "sha256:30239adc1f19d612afa722e7b2e77b5957eb2c254bba3ed2160ec4ba98fa7fd7"
