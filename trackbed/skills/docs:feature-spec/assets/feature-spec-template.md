@@ -2,6 +2,8 @@
 
 <One-sentence hook: what is this feature and who is it for?>
 
+Origin: <repository-relative path of the plan, PRD, or brainstorm this spec was drafted from. Delete this line when there is none.>
+
 ## 1. Objective
 
 <One paragraph — the problem this feature solves and the intended outcome. Concrete, not aspirational.>
@@ -22,7 +24,7 @@
 
 Approaches weighed and turned down, so a later session or reviewer does not propose them again. Omit this subsection when no real alternative was weighed.
 
-- <Approach> — <why it was rejected.>
+- <Approach> — <why it was rejected>; rejected by <the user, unless the user or a linked issue, PR, or decision record names someone else>.
 
 ## 3. Boundaries
 
@@ -54,7 +56,7 @@ What gets covered and at which tier. Do not prescribe test code — name the cov
 | Integration | <module boundaries, data flow, contracts>  |
 | E2E         | <user-visible flows, critical paths>       |
 
-Mark any tier deliberately skipped with one line explaining why.
+Mark any tier deliberately skipped with one line explaining why. For each module Ask First flags as new or changed, name the behavior that tests verify through that module's interface.
 
 ## 5. Open Questions
 

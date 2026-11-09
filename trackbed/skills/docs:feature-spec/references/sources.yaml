@@ -2,7 +2,7 @@ sources:
   - id: addy-spec-driven-development
     url: https://github.com/addyosmani/agent-skills/tree/main/skills/spec-driven-development
     title: "Addy Osmani agent-skills - spec-driven development"
-    rationale: "The lightweight feature-spec workflow and implementation-gating conventions are adapted from this source."
+    rationale: "The lightweight feature-spec workflow and implementation-gating conventions, including ending the turn after the draft so approval comes from a later reply, are adapted from this source."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
@@ -10,7 +10,7 @@ sources:
   - id: pocock-to-spec
     url: https://raw.githubusercontent.com/mattpocock/skills/main/skills/engineering/to-spec/SKILL.md
     title: "Matt Pocock skills - to-spec"
-    rationale: "The no-interview synthesize-from-current-context workflow, repo/domain grounding, and testing-seam check before drafting the spec are adapted from this source."
+    rationale: "The synthesize-from-current-context mode, which drafts the spec without an assumptions round-trip, is adapted from this source."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
@@ -26,7 +26,7 @@ sources:
   - id: compound-ce-plan
     url: https://github.com/EveryInc/compound-engineering-plugin/tree/main/skills/ce-plan
     title: "EveryInc compound-engineering-plugin - ce-plan"
-    rationale: "The strategy-aware transition from product context into scoped planning artifacts is informed by this source."
+    rationale: "The strategy-aware transition from product context into scoped planning artifacts, and reading a user-named plan or requirements document first as the origin, are informed by this source."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "7dc50943bbf959dbe6a93a175e41e5fff8395e00"
@@ -34,7 +34,7 @@ sources:
   - id: aihero-codebases-ai-agents-love
     url: https://www.aihero.dev/how-to-make-codebases-ai-agents-love
     title: "AI Hero - How To Make Codebases AI Agents Love"
-    rationale: "The Ask First rule for new or changed module interfaces, which keeps interfaces a human decision while implementation proceeds behind them, follows this article's advice to design module boundaries from the PRD onward."
+    rationale: "The Ask First rule for new or changed module interfaces, which keeps interfaces a human decision while implementation proceeds behind them, follows this article's advice to design module boundaries from the PRD onward; naming the behavior that tests verify through each such interface follows its point that tests pin the interfaces people own."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     fetch_mode: curl-html
@@ -42,7 +42,7 @@ sources:
   - id: egm-draft
     url: https://raw.githubusercontent.com/google/elephant-goldfish-model/403d8881d62022490637d740657b33f01e321ea8/skills/egm-draft/SKILL.md
     title: "google/elephant-goldfish-model - egm-draft"
-    rationale: "Writing rejected alternatives into the spec, because a later session cannot recover them from memory, is informed by this source; reviewed at upstream commit 403d8881d62022490637d740657b33f01e321ea8."
+    rationale: "Writing rejected alternatives into the spec, because a later session cannot recover them from memory, are informed by this source, and crediting each rejection to the user by default follows its rule that the owner, not the agent, decides between design options; reviewed at upstream commit 403d8881d62022490637d740657b33f01e321ea8."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "6a8001ea31ccf72430ba0603a467ec6df9f69dd7"

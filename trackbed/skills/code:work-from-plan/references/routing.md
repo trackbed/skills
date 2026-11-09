@@ -54,7 +54,7 @@ Recommend the smallest next SIW action:
 
 - `trackbed:siw:init` when there is a spec or durable project to track.
 - `trackbed:linear:issue-define` when there is one coherent issue that needs durable tracking; implementation then runs from Linear.
-- `trackbed:docs:feature-spec` when the plan lacks enough product or technical definition to become an issue.
+- `trackbed:docs:feature-spec <plan-path>` when the plan lacks enough product or technical definition to become an issue.
 
 Do not create SIW files as part of this adapter unless the user explicitly asks for that follow-up.
 
