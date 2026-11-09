@@ -1,6 +1,6 @@
 ---
 name: git:commit-message
-description: Create commit messages for branch commits. Use when committing code changes or writing commit messages. Follows the repository's commit-subject convention (plain English when none is found), with a pre-commit checklist and AI-attribution rules. Not for PR titles or merge commits.
+description: Create commit messages for branch commits. Use when committing code changes, writing commit messages, or drafting a message for a pasted diff or change summary. Follows the repository's commit-subject convention (plain English when none is found), with a pre-commit checklist, a names-only secret scan, a stray-file check, and AI-attribution rules. Not for PR titles or merge commits.
 user-invocable: false
 disable-model-invocation: false
 ---
@@ -8,6 +8,10 @@ disable-model-invocation: false
 # Commit Messages
 
 Follow these conventions when creating commits. These cover branch commits only — PR titles and merge commits use Conventional Commits and are out of scope here.
+
+## Drafting only
+
+When the user only wants a message drafted for a diff or change summary pasted into the conversation, nothing is being committed. Skip the Prerequisites branch check and the checklist items that inspect the repository: verification, the secret scan, the stray-file check, and the working-state check. Still apply the format, the commit convention, the body guidelines, and the AI-attribution rules, and point out a diff that spans two concerns. Resolve the convention from the current repository only when the pasted change belongs to it; otherwise use plain English unless the user names a convention. Never paste a credential you notice in the pasted diff back into the message or your reply; tell the user which file holds it instead.
 
 ## Prerequisites
 
@@ -42,15 +46,36 @@ Plain English stays the default narrative format. Never impose Conventional Comm
 
 ## Pre-commit checklist
 
-Before running `git commit`, confirm all five:
+Before running `git commit`, confirm all seven:
 
 - [ ] **One logical change, independently reviewable.** If the diff spans two concerns, split it now — not "in a follow-up".
 - [ ] **Verified the change.** Tests, typecheck, or lint ran against the staged state; failures were resolved or are deliberately called out in the body.
 - [ ] **Subject follows the resolved convention:** imperative mood, about 72 characters or fewer when the convention's prefix allows, no trailing period, and never a placeholder such as `WIP`, `temp`, `fixup`, or `misc`.
 - [ ] **Body explains the _why_** when non-obvious — motivation, previous behavior, constraint that forced the shape. Omit the body if the subject is self-explanatory.
 - [ ] **Repository left in a working state.** This commit should not break the target workbench branch if it were the tip.
+- [ ] **No credentials staged.** Run the names-only secret scan below and settle every path it lists.
+- [ ] **No stray files staged.** Review the staged file list for build output, dependency directories, local env and private key files, and personal editor and OS settings.
 
 Two things need explicit user approval before `git commit`: passing `--no-verify` to get past failing hooks (fix the hook failure first) and amending a commit that has already been pushed to a shared branch.
+
+### Secret scan
+
+```bash
+git diff --cached -i -G 'password|secret|api_key|token' --name-only
+```
+
+This case-insensitive check names files whose staged changes match; it never prints matching lines or values. Settle each listed path before committing: unstage or remove the credential, or confirm a false positive by reviewing the file locally without echoing credentials into terminal or agent logs. Never print, quote, or repeat a matched value in the terminal, the commit message, or your reply. A nonzero exit is a failed check, not a clean scan. Extend the pattern with project-specific markers (`PRIVATE_KEY`, vendor prefixes) when the project has them.
+
+### Stray-file check
+
+List the staged paths with `git diff --cached --name-only` and unstage anything that should not be versioned:
+
+- Build output, such as `dist/`, `build/`, `out/`, `coverage/`, or compiled binaries.
+- Dependency directories, such as `node_modules/`, `.venv/`, or `vendor/`.
+- Local env files, such as `.env` or `.env.local`, and private key files, such as `*.pem` or `id_rsa`. Committed templates such as `.env.example` are fine.
+- Personal editor and OS settings, such as `.idea/`, personal `.vscode/` files, swap files, or `.DS_Store`.
+
+A generated file is allowed only when the project already versions it, which means the path or a peer of the same kind is tracked on the base branch. Otherwise unstage it.
 
 ## Body Guidelines
 

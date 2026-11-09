@@ -577,7 +577,7 @@ Auto-triggered by the host based on context. These don't appear in the `/` menu.
 
 | Skill | Invocation | Arguments | Description |
 | --- | --- | --- | --- |
-| `trackbed:git:commit-message` | Background | — | Write commit messages that follow the repository's commit convention, with a pre-commit checklist and AI-attribution rules. |
+| `trackbed:git:commit-message` | Background | — | Write commit messages that follow the repository's commit convention, with names-only secret and stray-file checks and AI-attribution rules. |
 
 <!-- END SOURCE-SYNCED SKILL ROWS -->
 

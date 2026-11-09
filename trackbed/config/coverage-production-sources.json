@@ -499,6 +499,14 @@
     },
     {
       "kind": "guidance",
+      "suite": "trackbed/tests/commit-message-guidance.bats",
+      "skills": [
+        "trackbed/skills/code:harden-security/SKILL.md",
+        "trackbed/skills/git:commit-message/SKILL.md"
+      ]
+    },
+    {
+      "kind": "guidance",
       "suite": "trackbed/tests/pr-create-guidance.bats",
       "skills": [
         "trackbed/skills/git:recreate-commits/SKILL.md",
