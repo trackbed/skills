@@ -10,8 +10,8 @@ Use this reference when you decide whether a review or audit finding is wrong. Y
 
 ## Rules
 
-- "This was intentional" is not evidence. Neither is your memory of why the work looks the way it does.
-- Do not contest a comprehension gap. If a fresh reader could not follow the material, it is missing something, even when you know the answer. When a reader misread code, check whether the code invited it, and make the code or its comment clearer if a careful reader could make the same mistake.
+- A claim that the choice was deliberate is not checkable evidence. Neither is your memory of why the work looks the way it does.
+- A comprehension gap is never grounds for a contest. Material that a reader without your context cannot follow is missing something, even when you could supply it yourself. When a reader misread code, check whether the code invited it, and make the code or its comment clearer if a careful reader could make the same mistake.
 - Do not add text only to satisfy a reviewer that lacked context. Add it when a human reader needs it. When you believe only the reviewer needs it, escalate, even for a comprehension gap.
 - Do not lower a severity to make a finding go away. A real problem rated too high is still a real problem: accept the finding, and record your evidence for the lower rating alongside it.
 - A difference of taste is not a dispute. Use the skill's path for nits and preferences.
