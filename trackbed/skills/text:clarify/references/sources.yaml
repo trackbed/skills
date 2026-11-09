@@ -24,7 +24,7 @@ sources:
     fetch_mode: curl-html
     baseline_hash: "sha256:c0c04c9c1900ab67897f8d79b15b52b416908d4c9f057196e7a7e56d7ef20fdb"
   - id: govuk-a-to-z-style-guide
-    url: https://www.gov.uk/guidance/style-guide/a-to-z
+    url: https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/
     title: "GOV.UK content and publishing guidance - A to Z style guide"
     rationale: "Its guidance on accessible headings, lists, links, terminology, and formatting informed the locale-neutral mechanics in the editing rubric."
     usage: inspiration

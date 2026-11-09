@@ -12,7 +12,7 @@ Defines what `scripts/normalize.py` strips and keeps when turning a transient fe
 
 ### Always
 
-- `<script>`, `<style>`, `<noscript>`, `<iframe>`, `<svg>` blocks (entire element including content).
+- `<script>`, `<style>`, `<noscript>`, `<template>`, `<iframe>`, `<svg>` blocks (entire element including content). A `<template>` is inert markup the browser never renders; docs sites such as Mintlify embed per-deploy build and deployment IDs there, so keeping it would change the hash on every deploy.
 - HTML comments (`<!-- ... -->`).
 - Navigation: `<nav>`, `<header>`, `<footer>`, `<aside>`, and elements whose class or id has a plain name token matching `nav|navigation|sidebar|topbar|header|footer|cookie|banner|breadcrumb|menu|toc-fixed` as a whole `-` or `_` separated part. Utility tokens with framework syntax, such as brackets, parentheses, or colons, are ignored: Tailwind's `[--fd-header-height:0px]` on a docs layout wrapper names a CSS variable, and matching it would drop the whole page body.
 - Forms and inputs: `<form>`, `<input>`, `<button>`, `<select>`.
