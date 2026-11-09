@@ -130,3 +130,91 @@ setup() {
   processed_line=$(grep -nF -- '- Findings processed count' "$RESOLVE_AUDIT" | cut -d: -f1)
   [ "$escalated_line" -lt "$processed_line" ]
 }
+
+@test "resolve-review ends every escalation with a recorded outcome and counts disputes" {
+  local resolution="skills/pr:resolve-review/references/resolution-output.md"
+
+  grep -qF 'record the outcome as `references/resolution-output.md` § Escalations describes' "$RESOLVE_REVIEW"
+  grep -qxF '## Escalations' "$resolution"
+  grep -qF 'Record **Escalation:** on the entry and end it with exactly one outcome:' "$resolution"
+  grep -qF '**Action taken:** `Skipped — disagreement confirmed by the user.`' "$resolution"
+  grep -qF '**The user corrects or does not confirm the fact:** process the finding through the normal path' "$resolution"
+  grep -qF '**Action taken:** `Open — escalated; awaiting the user'"'"'s decision.`' "$resolution"
+  grep -qF 'The accepted write is an implementation candidate, so Step 2.5 creates its checkpoint' "$resolution"
+  grep -qF 'The **Rationale** cites the user'"'"'s decision as its evidence' "$resolution"
+  grep -qF 'offer once to write it where later reviewers will see it' "$resolution"
+  grep -qF '**Escalation:** [Only for a finding Step 2b escalated' "$resolution"
+  grep -qF -- '- Contested and escalated findings: count each, and list every one with a pointer to its evidence.' "$resolution"
+}
+
+@test "every resolve-review implement-only path has exactly one defined status" {
+  run python3 - "$RESOLVE_REVIEW" "skills/pr:resolve-review/references/resolution-output.md" "skills/pr:github-review-reply/SKILL.md" <<'PY'
+import pathlib
+import re
+import sys
+
+skill, output, reply = [pathlib.Path(path).read_text() for path in sys.argv[1:]]
+enum = re.search(r'"status": "(implemented\|[^"]+)"', skill).group(1).split("|")
+assert "deferred" in enum, enum
+table = output[output.index("## Implement-only statuses"):output.index("## Dependent findings")]
+rows = [line for line in table.splitlines() if line.startswith("| ") and not line.startswith(("| Path", "| ---"))]
+pairs = []
+for row in rows:
+    path, status_cell = [cell.strip() for cell in row.strip().strip("|").split("|")]
+    statuses = [token for token in re.findall(r"`([a-z-]+)`", status_cell) if token in enum]
+    assert len(statuses) == 1, row
+    pairs.append((path, statuses[0]))
+assert {status for _, status in pairs} == set(enum), (sorted(pairs), sorted(enum))
+
+
+def status_of(fragment):
+    matches = [status for path, status in pairs if fragment in path]
+    assert len(matches) == 1, (fragment, matches)
+    return matches[0]
+
+
+assert status_of("Escalated (Step 2b)") == "blocked-implementation"
+assert status_of("Contested with evidence") == "disagreed"
+assert status_of("A dependency that is missing") == "blocked-implementation"
+assert status_of("a comment without a file anchor whose target stays unclear") == "deferred"
+reconcile = reply[reply.index("- `implemented` → reclassify"):reply.index("- Record the validation commands and outcomes resolve-review reported.")]
+for status in enum:
+    assert re.search(rf"`{re.escape(status)}`(?: or `[a-z-]+`)? →", reconcile), f"github-review-reply does not handle {status}"
+for field in ['"blocker"', '"decision_needed"', '"recommendation"', '"alternatives"']:
+    assert field in skill, f"decision object lost {field}"
+assert "Only a `deferred` finding carries `decision`, and every field in it is optional" in skill
+assert "Return exactly one entry per payload finding" in skill
+assert "an item with no file anchor, such as a review summary or general PR comment, may carry no location, and Step 1's rule for comments without a file anchor finds its target" in skill
+assert "only a non-file location the review itself recorded, such as `review-scope` or `PR description`, keeps the route below" in skill
+order = re.findall(r"`([a-z-]+)`", re.search(r"in this order: (.*?)\. ", output).group(1))
+assert sorted(order) == sorted(enum), order
+assert order == ["blocked-validation", "blocked-implementation", "deferred", "disagreed", "skipped-invalid", "skipped-out-of-scope", "implemented", "already-addressed"], order
+assert "When the unaddressed asks mix escalations and deferrals and no other ask is blocked, return `deferred` instead" in output
+assert "When its `rationale` names an escalated fact, ask them to confirm or correct that fact too" in reply
+assert set(re.findall(r"[Rr]eturns? `([a-z-]+)`", skill)) <= set(enum)
+assert "Any status other than `implemented` with a non-empty `files_changed`" in reply
+assert "leave a comment without a file anchor unlabeled for the rule below" in skill
+assert "A payload item that asks for several changes, such as a review summary, still gets one entry. Give it the worst status among its asks" in output
+assert "name each ask left unaddressed in `rationale`" in output
+assert "Find its target from the comment text and the branch diff against its base" in skill
+assert "When its target stays unclear, defer it" in skill
+assert "Every finding this step would defer or acknowledge without a change, including an advisory finding stopped by a condition no request path bypasses, returns `deferred`" in skill
+PY
+  [ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
+@test "resolve-review team-mode agents return one result per finding and the lead re-judges blocked ones" {
+  local team="skills/pr:resolve-review/references/team-mode.md"
+
+  grep -qF 'Each resolver agent returns exactly one result per assigned finding:' "$team"
+  grep -qF -- '- `outcome`: `implemented`, `already-addressed`, `disagreed`, or `blocked`' "$team"
+  grep -qF -- '- `files_changed`: the files the fix changed, or `none`' "$team"
+  grep -qF 'Treat a missing or duplicate result as `blocked`.' "$team"
+  grep -qF 'Re-judge every `blocked` finding through the standard Step 2 and Step 3 path' "$team"
+}
+
+@test "resolve-review parents handle a deferred implement-only result" {
+  grep -qF -- '- `deferred` → a decision the fix needs first, not a failed fix. Keep the item as `needs-code-change`' "skills/pr:github-review-reply/SKILL.md"
+  grep -qF '| Implementation status | one of `not needed`, `implemented`, `not attempted`, `blocked`, `deferred` |' "skills/pr:github-review-reply/SKILL.md"
+  grep -qF 'including `deferred` and its `decision` fields, as evidence for this skill'"'"'s own disposition rather than as one' "skills/pr:review-convergence/references/review-convergence.md"
+}

@@ -31,6 +31,8 @@ Use this format for each comment:
 
 **Rationale:** [Why you agree or disagree with this feedback. A disagreement cites evidence the reviewer could have read, such as a file and line, a test, or a recorded decision.]
 
+**Escalation:** [Only for a finding Step 2b escalated: the unrecorded fact, the user's answer, and where the fact was written, or `not written`]
+
 **Resolution status:** open | addressed | deferred | acknowledged | skipped
 
 **Action taken:** [Description of the fix implemented, deferral/acknowledgement/skip, or why the finding remains open]
@@ -115,6 +117,39 @@ After the finding is completed, remove the decision-pending fields and any `Proc
 
 Do not leave proposal-only fields on an addressed or acknowledged finding.
 
+## Escalations
+
+Step 2b escalates a finding when only unrecorded knowledge says it is wrong. Record **Escalation:** on the entry and end it with exactly one outcome:
+
+- **The user confirms the fact:** set **Assessment:** Disagree, **Resolution status:** skipped, and **Action taken:** `Skipped — disagreement confirmed by the user.` The **Rationale** cites the user's decision as its evidence, in their words where possible, and the **Draft reply** states it.
+- **The user corrects or does not confirm the fact:** process the finding through the normal path and record that outcome.
+- **The user defers the decision:** keep **Resolution status:** open with **Action taken:** `Open — escalated; awaiting the user's decision.`
+
+After a confirmed fact, offer once to write it where later reviewers will see it: a code comment at the finding's location when the fact explains that code, otherwise the place the project already keeps such rules, such as its agent instructions file or a decision record. Write it only when the user accepts. The accepted write is an implementation candidate, so Step 2.5 creates its checkpoint and Step 3 writes it even when no other fix remains. The written file is a fix file for Step 4, and **Escalation:** names where it went.
+
+## Implement-only statuses
+
+Under `--implement-only`, every payload finding gets exactly one status in `implement-only-summary.json`:
+
+| Path | Status |
+| --- | --- |
+| Fix made and validation passed, shows only pre-existing failures, or could not run (`validation.status` is `not-run`) | `implemented` |
+| The current code already does what the finding asks | `already-addressed` |
+| Out of scope (Step 2a) | `skipped-out-of-scope` |
+| The finding names code or behavior that is not in the current tree | `skipped-invalid` |
+| Contested with evidence the reviewer could have read (Step 2b) | `disagreed` |
+| Escalated (Step 2b) | `blocked-implementation`, `rationale` starting `Needs author decision:` |
+| A preference (Step 2b), a nitpick (Step 2e), or a manual finding with **Selected resolution** | implement it, then `implemented` |
+| Gray-area scope (Step 2a), a manual or process-level finding (Step 2d), an advisory finding stopped by a condition no request path bypasses (Step 2d), a comment without a file anchor whose target stays unclear (Step 1), or an unclear fix or business rule | `deferred` |
+| A fallback dependent whose dependency was addressed (Step 3) | `already-addressed` |
+| A dependency that is missing, malformed, cyclic, or still awaiting its outcome (Step 2d, Step 3) | `blocked-implementation` |
+| The fix could not be completed | `blocked-implementation` |
+| A new validation failure remains after the repair attempt | `blocked-validation` |
+
+A `deferred` finding's `decision` fields carry the manual proposal Step 2d would write: `blocker` from **Manual blocker**, `decision_needed` from **Next human decision**, `recommendation` from **Recommended resolution**, and `alternatives` from **Alternatives**. For any other deferral, `blocker` says why the skill stopped and `decision_needed` names the question it would have asked.
+
+A payload item that asks for several changes, such as a review summary, still gets one entry. Give it the worst status among its asks, in this order: `blocked-validation`, `blocked-implementation`, `deferred`, `disagreed`, `skipped-invalid`, `skipped-out-of-scope`, `implemented`, `already-addressed`. When the unaddressed asks mix escalations and deferrals and no other ask is blocked, return `deferred` instead, fill `decision` for the deferred asks, and name each escalated fact in `rationale`. List every file changed for any of its asks in `files_changed`, and name each ask left unaddressed in `rationale`, with the decision it needs. Start `rationale` with `Needs author decision:` only when every unaddressed ask is an escalation.
+
 ## Dependent findings
 
 Preserve `Depends on` on every lifecycle update so later runs retain the ordering and activation condition. When a dependent finding is not yet active, keep `Resolution status: open` and record which dependency outcome it awaits. When a fallback dependency is addressed, use `Resolution status: acknowledged` with `Action taken: Acknowledged — dependency addressed; conditional cleanup is no longer needed.`
@@ -127,6 +162,7 @@ At the end, include:
 
 - Summary of changes made, with each fix commit SHA, or the reason no commit was made.
 - Each validation command and its outcome: passed, failed with the new failure that blocked the commit, or pre-existing failure with the failing files.
+- Contested and escalated findings: count each, and list every one with a pointer to its evidence. For a contested finding, give its entry heading and the file and line, test, or recorded decision its **Rationale** cites. For an escalated finding, give its entry heading, the user's decision or `awaiting decision`, and where the fact was written or `not written`. Count an escalated finding only as escalated, and write `0` for an empty count.
 - Count of findings: N addressed, M deferred as out-of-scope, R open selected-resolution retries or blocked implementations, A manual findings awaiting a user decision, P accepted process handoffs awaiting completion, and X manual findings waiting on an external owner, approval, or access.
 - Any breaking changes to API contracts or config behavior.
 - Areas that need manual verification due to potential edge cases or risk.
