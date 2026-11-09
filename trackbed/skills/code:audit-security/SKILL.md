@@ -151,6 +151,16 @@ Assign every candidate exactly one state:
 
 Route `COVERAGE GAP` items only to `## Coverage Gaps`; keep them out of the ranked findings list. Keep `NOT A FINDING` items out of the ranked findings list and preserve a short filtered-candidates section so readers can understand material false positives.
 
+Credit a control or an unreachable path only on repository evidence:
+
+- An unset SameSite attribute is no observed control. Neither is `Lax` when the state change is reachable through a safe method such as GET, because browsers send `Lax` cookies on such cross-site top-level navigations.
+- SameSite never counts as an observed control for a candidate authenticated by HTTP authentication, because browsers attach those credentials regardless of cookie attributes.
+- When a cookie that authenticates the request is issued outside the repository, such as by an identity provider or gateway, record its SameSite value as unknown, not as a control.
+- Internal-only placement, such as a private network, VPN, or admin-only host, does not make a CSRF candidate unreachable or lower its exposure: the victim's browser sits inside that boundary and sends the forged request.
+- Protection credited to a provider, vendor, or contract counts as an observed control only when repository configuration shows it enabled for the affected boundary. Otherwise record the control, not the candidate, as a dated assumption under `## Scope and Limitations` or as a coverage gap; transferring a risk does not remove it.
+
+An unknown or assumed control never makes a candidate `NOT A FINDING` or `COVERAGE GAP`: classify the candidate on its other evidence and name that control as its missing proof.
+
 For `VERIFIED` and `SUSPECTED`, assign:
 
 - severity: `CRITICAL`, `HIGH`, `MEDIUM`, or `LOW` based on plausible impact and exposure;
@@ -158,8 +168,9 @@ For `VERIFIED` and `SUSPECTED`, assign:
 - evidence: repository-relative path and line or configuration key, expressed without secret material;
 - affected boundary and STRIDE/category mapping;
 - verification state and the missing proof, if any;
-- remediation owner; and
-- exact remediation route.
+- remediation owner;
+- exact remediation route; and
+- closure check: the configuration value, enforced check, or test whose presence would show the finding fixed. For secret exposure, keep it generic, such as the owner confirming rotation and the tracked exposure being removed.
 
 Never raise severity to compensate for low confidence. A pattern match cannot become `VERIFIED` without concrete evidence. Do not report a theoretical weakness with no repository-specific trace as a finding.
 
@@ -208,7 +219,7 @@ Render these sections in order:
 ## Method and Disclaimer
 ```
 
-The coverage table must include every inventory surface and its status. The ranked findings table must include ID, severity, confidence, verification state, category, location, and remediation owner. Each detail must include evidence, boundary, impact, missing proof, and route.
+The coverage table must include every inventory surface and its status. The ranked findings table must include ID, severity, confidence, verification state, category, location, and remediation owner. Each detail must include evidence, boundary, impact, missing proof, route, and closure check.
 
 When there are no verified findings, say `No verified findings in inspected surfaces`; do not say the repository is secure. When there are no findings at all, still include coverage gaps and limitations.
 

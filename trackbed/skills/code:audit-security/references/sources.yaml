@@ -10,7 +10,7 @@ sources:
   - id: owasp-threat-modeling
     url: https://cheatsheetseries.owasp.org/cheatsheets/Threat_Modeling_Cheat_Sheet.html
     title: "OWASP Threat Modeling Cheat Sheet"
-    rationale: "The model-first workflow, trust-boundary and data-flow inventory, threat identification, ranking, and review stages inform the audit sequence."
+    rationale: "The model-first workflow, trust-boundary and data-flow inventory, threat identification, ranking, and review stages inform the audit sequence. Its limits on risk transfer inform the rule that a provider, vendor, or contract counts as a control only when repository configuration shows it enabled, and its review-and-validation stage informs each finding's closure check."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     fetch_mode: curl-html
@@ -34,7 +34,7 @@ sources:
   - id: owasp-csrf-testing
     url: https://raw.githubusercontent.com/OWASP/wstg/master/document/4-Web_Application_Security_Testing/06-Session_Management/05-Cross_Site_Request_Forgery.md
     title: "OWASP Web Security Testing Guide - Testing for Cross Site Request Forgery"
-    rationale: "The browser-ambient credential model, including cookies and HTTP authentication, informs the trust-boundary requirement to assess CSRF beyond cookie-authenticated state changes."
+    rationale: "The browser-ambient credential model, including cookies and HTTP authentication, informs the trust-boundary requirement to assess CSRF beyond cookie-authenticated state changes and the rule that SameSite never counts as an observed control for an HTTP-authenticated candidate. Its SameSite considerations, including checking the cookie's actual Set-Cookie header, inform the unset and Lax rules and recording a cookie issued outside the repository as unknown, and its point that CSRF reaches intranet servers behind a firewall informs the internal-only placement rule."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "b2d226e9b53b56814919fbef90392aa48198711c"
