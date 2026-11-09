@@ -911,3 +911,22 @@ docs/Pull_Request_Template/Feature.MD"
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
+
+@test "generate-description narrows tested-behavior claims to the Test plan or marks them UNVERIFIED" {
+	run bash -c '
+    set -euo pipefail
+    cd "'"$BATS_TEST_DIRNAME"'/.."
+    skill="skills/pr:generate-description"
+    checklist="$skill/references/verification-checklist.md"
+
+    grep -qF "No claim about tested or supported behavior" "$checklist"
+    grep -qF "reaches past what the Test plan covers. Narrow the claim to what the Test plan covers." "$checklist"
+    grep -qF "keep the claim, say in the body what the Test plan doesn'"'"'t cover, and emit \`UNVERIFIED:\` for the claim in the run output" "$checklist"
+    grep -qF "or a claim about tested or supported behavior that you kept beyond what the Test plan covers" "$skill/SKILL.md"
+    grep -qF "UNVERIFIED: the body says the hook works on Codex — the Test plan covers only Claude Code" "$skill/SKILL.md"
+    grep -qF "id: egm-style-persona" "$skill/references/sources.yaml"
+    grep -qF "elephant-goldfish-model/6efc127defc561e3a672b3d155b8216255a10e25/agents/style.md" "$skill/references/sources.yaml"
+  '
+
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}

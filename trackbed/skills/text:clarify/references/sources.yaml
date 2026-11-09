@@ -55,3 +55,11 @@ sources:
     last_reviewed_at: 2026-11-06
     baseline_commit: "0ef9fe5bc3572734fd3ae6c448fe00a30cd5dcf0"
     baseline_hash: "sha256:5643ec5e931b54175146e140d74b4eb2f0819d1dc03fd96786450c41f525a2e1"
+  - id: egm-style-persona
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/6efc127defc561e3a672b3d155b8216255a10e25/agents/style.md
+    title: "google/elephant-goldfish-model - style reviewer"
+    rationale: "The Caveats and Claims test in the shared plain-language rubric, which drops, narrows, moves, or keeps each caveat and claim, is informed by this source's defensive-caveats check; reviewed at upstream commit 6efc127defc561e3a672b3d155b8216255a10e25."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "5382b17619be07811a14b2146c7672620b34a791"
+    baseline_hash: "sha256:9330780622baaef8dc683ea78efb3ff8e4583e3dde7ab6092b84df50e8c9ea58"

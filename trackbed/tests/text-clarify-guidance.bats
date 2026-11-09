@@ -105,3 +105,27 @@ setup() {
 @test "the Linear reviewer summary keeps clarify's default mode" {
 	! grep -qF -- "--humanize" skills/linear:issue-to-pr/SKILL.md || false
 }
+
+@test "the shared rubric tests caveats and claims with four outcomes" {
+	local rubric="shared/writing/references/plain-language-rubric.md"
+	grep -qxF "## Caveats and Claims" "$rubric"
+	grep -qF -- "- **Drop** a caveat that no reader decision depends on" "$rubric"
+	grep -qF -- "- **Narrow** a claim to the scope that was verified." "$rubric"
+	grep -qF -- "- **Move** a caveat to the step where the reader makes the choice it affects." "$rubric"
+	grep -qF -- "- **Keep** a caveat that evidence backs and a reader decision needs, and a claim the evidence fully supports." "$rubric"
+	grep -qF -- "- **Your own draft**, such as a PR description you are writing: apply all four." "$rubric"
+	grep -qF -- "- **Someone else's text**: apply only Move. Leave each Drop and Narrow candidate in place and list it for the author" "$rubric"
+	grep -qF "Keep ordinary qualifiers" "$rubric"
+	grep -qF "Put warnings immediately before the action that creates the risk. This is the Move outcome" "$rubric"
+	grep -qF "Did every factual claim, caveat, citation, and uncertainty survive accurately? In your own draft, the only exceptions are caveats you dropped and claims you narrowed under Caveats and Claims." "$rubric"
+}
+
+@test "clarify moves caveats but lists Drop and Narrow candidates for the author" {
+	grep -qF "Apply its Caveats and Claims test as an editor of someone else's text" "$CLARIFY/SKILL.md"
+	grep -qF "move a caveat to the step where the reader decides" "$CLARIFY/SKILL.md"
+	grep -qF "never drop a caveat or narrow a claim yourself" "$CLARIFY/SKILL.md"
+	grep -qF "In default mode, after the rewrite, list each Drop and Narrow candidate from Step 3 for the author" "$CLARIFY/SKILL.md"
+	grep -qF "In default mode, always follow it with the Drop and Narrow candidates for the author" "$CLARIFY/SKILL.md"
+	grep -qF "id: egm-style-persona" "$CLARIFY/references/sources.yaml"
+	grep -qF "elephant-goldfish-model/6efc127defc561e3a672b3d155b8216255a10e25/agents/style.md" "$CLARIFY/references/sources.yaml"
+}

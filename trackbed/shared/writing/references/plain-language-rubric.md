@@ -59,6 +59,22 @@ The first paragraph should let a scanning reader identify why the document matte
 
 No individual word is forbidden. Judge wording by accuracy, audience, and context.
 
+## Caveats and Claims
+
+Test every caveat, and every claim that something was tested, works, or is supported, against the reader contract. Give each one outcome:
+
+- **Drop** a caveat that no reader decision depends on, such as a blanket disclaimer about a failure the text gives no reason to expect.
+- **Narrow** a claim to the scope that was verified. When only Claude Code was run, "works on Claude Code and Codex" becomes "works on Claude Code".
+- **Move** a caveat to the step where the reader makes the choice it affects. In a procedure, that is immediately before the action that creates the risk.
+- **Keep** a caveat that evidence backs and a reader decision needs, and a claim the evidence fully supports.
+
+Who wrote the text decides which outcomes you apply:
+
+- **Your own draft**, such as a PR description you are writing: apply all four.
+- **Someone else's text**: apply only Move. Leave each Drop and Narrow candidate in place and list it for the author with the reason, because only the author knows whether evidence or a decision you can't see depends on it.
+
+Keep ordinary qualifiers such as "usually" or "in most cases". This test weighs whole caveats and claims, not word-level hedging.
+
 ## Headings, Lists, and Links
 
 - Use headings that describe the section's content or outcome, not generic labels such as "Overview" when a more specific heading is available.
@@ -82,7 +98,7 @@ No individual word is forbidden. Judge wording by accuracy, audience, and contex
 
 - State the outcome and prerequisites before the steps.
 - Use numbered steps for the sequence the reader must follow.
-- Put warnings immediately before the action that creates the risk.
+- Put warnings immediately before the action that creates the risk. This is the Move outcome in [Caveats and Claims](#caveats-and-claims).
 - State the expected result when it helps the reader verify success.
 
 ### Technical Documentation
@@ -127,7 +143,7 @@ Before returning the rewrite, verify:
 - Can the intended reader identify the point or next action from the opening?
 - Does the information arrive in the order the reader needs it?
 - Are actors, actions, quantities, dates, and conditions concrete where the source supports them?
-- Did every factual claim, caveat, citation, and uncertainty survive accurately?
+- Did every factual claim, caveat, citation, and uncertainty survive accurately? In your own draft, the only exceptions are caveats you dropped and claims you narrowed under Caveats and Claims.
 - Did any wording become simpler but less precise?
 - Did any protected text or link destination change?
 - Does the structure help scanning without adding decorative formatting?

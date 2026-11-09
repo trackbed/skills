@@ -369,7 +369,7 @@ Read the platform-specific notes from `references/platform-notes.md`. Covers mag
 
 Use these uppercase markers when reasoning about the description generation. They do NOT appear in the final PR body — they go in the skill's conversation output so the user can track decisions.
 
-- **UNVERIFIED** — a claim in the draft body you couldn't confirm from the diff. `UNVERIFIED: the migration is reversible — no down-migration present in the diff`.
+- **UNVERIFIED** — a claim in the draft body you couldn't confirm from the diff, or a claim about tested or supported behavior that you kept beyond what the Test plan covers. `UNVERIFIED: the migration is reversible — no down-migration present in the diff`. `UNVERIFIED: the body says the hook works on Codex — the Test plan covers only Claude Code`.
 - **NOTICED BUT NOT TOUCHING** — diff contents you deliberately left out of the description. `NOTICED BUT NOT TOUCHING: a test-only rename in an adjacent file — not part of this PR's narrative`.
 - **CONFUSION** — diff evidence that contradicts the commit log or Linear issue. `CONFUSION: commits say "add feature flag", but the diff toggles it on by default`.
 - **MISSING REQUIREMENT** — context the user must provide before a faithful description can be generated. The exact no-Linear-ID advisory is non-blocking; every other marker is blocking. Example: `MISSING REQUIREMENT: no Linear ID in branch name and no issue mentioned in commits — confirm the intended ticket or proceed without one`.
