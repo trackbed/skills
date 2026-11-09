@@ -27,7 +27,7 @@ from urllib.parse import quote, unquote, urlsplit
 
 GH_TIMEOUT_SECONDS = 60
 PAGE_SIZE = 100
-DEFAULT_MAX_COMMITS = 20
+DEFAULT_MAX_COMMITS = PAGE_SIZE
 MAX_TITLE_LENGTH = 120
 MAX_MOVE_CANDIDATES = 5
 SHA_RE = re.compile(r"[0-9a-f]{40}")
