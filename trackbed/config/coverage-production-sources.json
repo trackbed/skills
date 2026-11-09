@@ -687,6 +687,14 @@
     },
     {
       "kind": "guidance",
+      "suite": "trackbed/tests/strategy-reader-guidance.bats",
+      "skills": [
+        "trackbed/skills/siw:init/SKILL.md",
+        "trackbed/skills/siw:spec-audit/SKILL.md"
+      ]
+    },
+    {
+      "kind": "guidance",
       "suite": "trackbed/tests/finding-disputes-guidance.bats",
       "skills": [
         "trackbed/skills/pr:github-review-reply/SKILL.md",

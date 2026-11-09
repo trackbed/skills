@@ -7,6 +7,15 @@ sources:
     last_reviewed_at: 2026-11-06
     baseline_commit: "7dc50943bbf959dbe6a93a175e41e5fff8395e00"
     baseline_hash: "sha256:a8c17c0ba2240fce618d344f595f2a6b3ea1bc2d1db3c87fef2e34d70af05da5"
+  - id: compound-ce-strategy-references
+    url: https://github.com/EveryInc/compound-engineering-plugin/tree/main/skills/ce-strategy/references
+    title: "EveryInc compound-engineering-plugin - ce-strategy references"
+    rationale: "The shared strategy reader this skill follows, which accepts compound's current and legacy strategy headings as aliases, reads hand-written files by meaning, and treats a root PRODUCT.md or VISION.md as fallback context, is informed by these reference files."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "7dc50943bbf959dbe6a93a175e41e5fff8395e00"
+    fetch_mode: github-directory
+    baseline_hash: "sha256:f91e63ca227728f053bf084f66a4b2b18f6b5c21fc67435396080591c6c0ae4b"
   - id: compound-ce-plan
     url: https://raw.githubusercontent.com/EveryInc/compound-engineering-plugin/main/skills/ce-plan/SKILL.md
     title: "EveryInc compound-engineering-plugin - ce-plan"

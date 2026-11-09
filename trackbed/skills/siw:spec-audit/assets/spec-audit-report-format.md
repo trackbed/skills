@@ -143,7 +143,7 @@ Compare these with what the spec is meant to say. A wrong restatement means the 
 
 ### Product Loop Context
 
-{If STRATEGY.md found:} Strategy: {target users, active tracks, relevant metrics, non-goals, and any STALE markers}
+{If strategy context found:} Strategy: {target users, active tracks, relevant metrics, non-goals, and every marker and label the strategy reader returns}
 
 {If pulse reports found:} Recent pulse signals: {usage, quality, errors, performance, customer signals, followups relevant to this spec}
 
