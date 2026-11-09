@@ -71,6 +71,28 @@ setup() {
 	grep -qF '## Step 10: Humanize the Draft Comments' "$GITHUB_REVIEW/SKILL.md"
 }
 
+@test "clarify continues a calling workflow instead of ending the turn on a delegated rewrite" {
+	local step8 delegated otherwise
+	step8="$(awk '/^8\. \*\*Present and optionally save\.\*\*/{inside = 1} /^## Error Handling/{inside = 0} inside' "$CLARIFY/SKILL.md")"
+	grep -qF "**Delegated run:** when this skill runs as one step of another skill's workflow, the rewrite is input to that workflow, not your reply." <<< "$step8"
+	grep -qF "continue with the calling workflow's next step without ending the turn" <<< "$step8"
+	grep -qF "end the turn only where that workflow ends or pauses" <<< "$step8"
+	grep -qF "Otherwise, return the complete clarified text in a copy-ready block." <<< "$step8"
+	delegated="$(grep -nF '**Delegated run:**' "$CLARIFY/SKILL.md" | cut -d: -f1)"
+	otherwise="$(grep -nF 'Otherwise, return the complete clarified text in a copy-ready block.' "$CLARIFY/SKILL.md" | cut -d: -f1)"
+	[ "$delegated" -lt "$otherwise" ]
+	grep -qF "In a delegated run, follow Step 8 instead: the calling workflow decides what the user sees and when the turn ends." "$CLARIFY/SKILL.md"
+}
+
+@test "clarify's callers keep going after its output instead of ending the turn" {
+	grep -qF "and that the rewrite is one step of this review, which continues after it." "$GITHUB_REVIEW/references/comment-drafting.md"
+	grep -qF "When the clarify skill finishes, never end the turn on its output" "$GITHUB_REVIEW/references/comment-drafting.md"
+	grep -qF "Do this in the same response as the clarify output, without ending the turn, then continue to stage 7." "$GITHUB_REVIEW/references/clarity-check.md"
+	grep -qF "The clarify output is input to this step, not a reply to the user." "$REPLY"
+	grep -qF "make the calling step's next tool call: saving Step 10's result, or the next action of the clarity-check stage or Step 12 edit that sent these bodies." "$GITHUB_REVIEW/references/comment-drafting.md"
+	grep -qF "then apply the resolve rules below and continue to Step 7." "$REPLY"
+}
+
 @test "GitHub review reply humanizes replies only on request" {
 	grep -E '^argument-hint:' "$REPLY" | grep -qF -- "--humanize"
 	grep -qF 'trackbed:text:clarify --humanize' "$REPLY"

@@ -105,7 +105,7 @@ Send only the bodies changed since Step 10 to `/trackbed:text:clarify --humanize
 - add no fact or claim, and give no sentence more identifiers than the densest sentence you sent;
 - never replace an explicit reference with a pronoun.
 
-Map the results back by index. Reject any output that drops a clarifying detail or breaks one of these constraints. A body may grow from splitting sentences or paragraphs.
+Map the results back by index. Reject any output that drops a clarifying detail or breaks one of these constraints. A body may grow from splitting sentences or paragraphs. Do this in the same response as the clarify output, without ending the turn, then continue to stage 7.
 
 ## 7. Anchor re-check
 

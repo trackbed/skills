@@ -287,6 +287,8 @@ Apply the humanized output back into each `Draft reply:` field, preserving:
 
 If the humanize pass changes meaning, adds unsupported warmth, removes necessary technical detail, or weakens a disagreement, keep the original wording for that part and make the smallest manual edit needed to remove AI-sounding phrasing.
 
+The clarify output is input to this step, not a reply to the user. Apply it in the same response, without ending the turn, then apply the resolve rules below and continue to Step 7.
+
 **Resolve rules:**
 
 - Resolve after posting only when the item is an inline thread, status is `already-addressed`, and the reply explains the completed fix or existing behavior.

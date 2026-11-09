@@ -130,6 +130,28 @@ PY
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
+@test "github review continues past delegated skill output instead of ending the turn" {
+	run python3 - "$SKILL" <<'PY'
+import pathlib
+import sys
+
+skill = pathlib.Path(sys.argv[1]).read_text()
+assert skill.index("## GitHub Write Gate") < skill.index("## Workflow Contract") < skill.index("## Step 0: Parse Arguments")
+contract = skill[skill.index("## Workflow Contract"):skill.index("## Step 0: Parse Arguments")]
+for term in [
+    "Continue from each delegated skill to the next step without ending the turn or waiting for acknowledgement",
+    "is input to this review, not your reply to the user, even when that skill says to present it. Never end the turn on it.",
+    "End the turn only to wait for agents you launched, or where this skill stops or asks the user",
+    "the Step 12 offer",
+]:
+    assert term in contract, f"workflow contract lost: {term}"
+humanize = skill[skill.index("## Step 10: Humanize the Draft Comments"):skill.index("## Step 10a:")]
+assert "The clarify output is this step's input, not the end of the review." in humanize
+assert "In the same response, map it back, save the result as below, and continue to Step 10a without ending the turn." in humanize
+PY
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
 @test "github review reply hands resolve-review only its guarded implement-only payload" {
 	run python3 - "$PLUGIN_ROOT/skills/pr:github-review-reply/SKILL.md" "$PLUGIN_ROOT/skills/pr:resolve-review/SKILL.md" <<'PY'
 import pathlib
