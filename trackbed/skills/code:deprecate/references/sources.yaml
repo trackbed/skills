@@ -2,7 +2,7 @@ sources:
   - id: addy-deprecation-and-migration
     url: https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/deprecation-and-migration/SKILL.md
     title: "Addy Osmani agent-skills - deprecation and migration"
-    rationale: "The deprecation decision workflow, migration framing, and removal guardrails are adapted from this source."
+    rationale: "The deprecation decision workflow, migration framing, and removal guardrails are adapted from this source. Its Deprecation Decision section supplies keeping and maintaining code that still provides unique value and weighing total migration effort against the cost of keeping the old code; the skill records these as Keep and maintain and Defer outcomes with revisit triggers. Its Compulsory vs Advisory Deprecation section and its Red Flags about new features on deprecated systems and about Advisory deprecations that drag on supply the freeze on new functionality once a deprecation is announced and the Advisory progress check, which logs remaining callers and escalates a stalled or expired window."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"

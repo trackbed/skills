@@ -8,15 +8,17 @@ Assumes the surface (compile-time / internal-only, runtime / internal, or extern
 
 ## 1. Does this code still provide unique value?
 
-**Clear YES** — the code implements a capability no other module covers, no replacement exists in the codebase, and removing it would remove user-facing or developer-facing functionality.
+**Clear YES** — callers still need a capability that no existing or committed replacement is meant to provide, and removing the code would remove user-facing or developer-facing functionality.
 
-**Clear NO** — a replacement module already covers the same surface, usage has shifted to the replacement, and the old code only persists because nobody deleted it.
+**Clear NO** — a replacement already covers the same surface or is committed to cover it, and the old code persists only until callers move to it. Question 3 decides whether the replacement still has to be built.
 
 **"Not yet — gather more data" signals:**
 
 - You can name the replacement but haven't verified it covers edge cases (error handling, null inputs, specific formats).
 - Two modules do overlapping work but each covers cases the other misses.
 - The code is branded "legacy" but the team can't agree on what replaces it.
+
+**Outcome:** a clear YES means keep and maintain the code. Record `Outcome: Keep and maintain` with a revisit trigger and stop; this is neither a deprecation nor a feature deletion. A clear NO continues to question 3.
 
 **Escalation when unknown:** read the tests. Tests are the documented contract — if the tests only exist for the old code, the replacement probably doesn't cover parity yet.
 
@@ -49,15 +51,16 @@ If more than one surface applies, use the stricter evidence set.
 
 **Clear YES** — you can name the replacement module/endpoint/feature, and its contract covers the documented surface of the old code.
 
-**Clear NO** — no replacement, and the plan acknowledges that Step 4.1 (Build the replacement) must happen _before_ announcement. Deprecating without a replacement is "delete the feature" — a different decision with a different stakeholder set.
+**Committed, not built** — name it. Step 4.1 (Build the replacement) builds and verifies it _before_ any announcement, and that work counts toward the question 4 migration effort.
+
+**Clear NO** — no replacement exists or is committed. Removing the code is "delete the feature" — a different decision with a different stakeholder set; tell the user, delete the plan, and stop.
 
 **"Not yet — gather more data" signals:**
 
-- A replacement exists in scope but hasn't shipped.
 - A replacement exists but covers the happy path only — edge cases still use the old module.
 - "We'll build the replacement as part of the deprecation PR" — pushes Step 4.1 work into Step 4.4, a common cause of rollback.
 
-**Escalation when unknown:** block the deprecation until the replacement ships. Do not start announcements before the replacement is merged and verified; runtime or public replacements must also be deployed before announcement.
+**Escalation when unknown:** do not start announcements before the replacement is merged and verified; runtime or public replacements must also be deployed before announcement.
 
 ---
 
@@ -92,7 +95,7 @@ If more than one surface applies, use the stricter evidence set.
 - Cognitive overhead in code review when adjacent code is modified.
 - Platform compatibility (Node major bumps, Python EOL).
 
-A short list means deferring is fine — Advisory classification, long window. A long or growing list means the deprecation has a clock — Compulsory classification when a specific forcing function is named.
+A short list makes a Defer outcome likely in the weighing step below; if migration still wins, expect Advisory classification and a long window. A long or growing list means the deprecation has a clock — Compulsory classification when a specific forcing function is named.
 
 **"Not yet — gather more data" signals:**
 
@@ -100,59 +103,43 @@ A short list means deferring is fine — Advisory classification, long window. A
 - List exists but no item has a concrete forcing event (date, CVE, version bump).
 - The list is growing across multiple evaluations but no deprecation is being planned.
 
-**Escalation when unknown:** log the list in the deprecation plan. Revisit quarterly if deferring — a growing list is the signal to escalate Advisory → Compulsory.
+**Escalation when unknown:** log the list in the deprecation plan. Under a Defer outcome, a growing list is a revisit trigger; under an Advisory deprecation, it is the signal to escalate to Compulsory.
+
+---
+
+## Weigh migration against keeping
+
+Run the weighing in SKILL.md Step 1: question 4's total migration effort, plus any replacement build from question 3, against question 5's cost of keeping the old code over the same horizon. When keeping is cheaper, record `Outcome: Defer` with a revisit trigger and stop before any announcement; otherwise record `Outcome: Deprecate`.
+
+**"Not yet — gather more data" signals:** either side is an unenumerated guess, or the two sides cover different horizons.
 
 ---
 
 ## Decision tree
 
 ```
-                       ┌─────────────────────────────┐
-                       │ Q1: Still provides unique   │
-                       │ value?                      │
-                       └───────────┬─────────────────┘
-                                   │
-                           YES     │     NO
-              ┌────────────────────┼────────────────────┐
-              │                    │                    │
-              ▼                    │                    ▼
-  ┌────────────────────┐           │     ┌──────────────────────────┐
-  │ Different decision │           │     │ Q3: Replacement exists?  │
-  │ (delete feature,   │           │     └───┬──────────────────────┘
-  │ not deprecate)     │           │         │
-  └────────────────────┘           │         │ NO → Block until replacement ships
-                                   │         │
-                                   │         │ YES
-                                   │         ▼
-                                   │     ┌──────────────────────────┐
-                                   │     │ Q2: Dependents audited   │
-                                   │     │ from the required        │
-                                   │     │ sources for the surface? │
-                                   │     └───┬──────────────────────┘
-                                   │         │
-                                   │         │ NO  → UNVERIFIED; gather data
-                                   │         │
-                                   │         │ YES
-                                   │         ▼
-                                   │     ┌──────────────────────────┐
-                                   │     │ Zombie-code gate:        │
-                                   │     │ owner identified?        │
-                                   │     └───┬──────────────────────┘
-                                   │         │
-                                   │         │ NO  → ASK FIRST; establish owner
-                                   │         │
-                                   │         │ YES
-                                   │         ▼
-                                   │     ┌──────────────────────────┐
-                                   │     │ Q4 (cost) + Q5 (no-dep   │
-                                   │     │ cost) → pick pattern     │
-                                   │     │ and classification       │
-                                   │     └───┬──────────────────────┘
-                                   │         │
-                                   │         ▼
-                                   │     Proceed to Step 4 (build
-                                   │     replacement → announce →
-                                   │     migrate → remove).
+Q1: Still provides unique value?
+ ├─ YES → Keep and maintain; record revisit trigger; stop
+ └─ NO
+     ▼
+Q3: Replacement exists?
+ ├─ NO, but committed → build it in Step 4.1 before any announcement; continue
+ ├─ NO, none committed → "delete the feature" is a different decision; delete the plan; stop
+ └─ YES
+     ▼
+Q2: Dependents audited from the required sources for the surface?
+ ├─ NO  → UNVERIFIED; gather data
+ └─ YES
+     ▼
+Zombie-code gate: owner identified?
+ ├─ NO  → ASK FIRST; establish owner
+ └─ YES
+     ▼
+Q4 (migration effort) vs Q5 (cost of keeping): keeping cheaper?
+ ├─ YES → Defer; record revisit trigger; stop
+ └─ NO  → Deprecate: pick pattern and classification
+     ▼
+Proceed to Step 4 (build replacement → announce → migrate → remove).
 ```
 
 If any answer is `UNVERIFIED` at the point the decision tree asks for it, stop and resolve the gap. Proceeding with an unverified answer is the most common source of "the deprecation broke production".
