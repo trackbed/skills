@@ -14,15 +14,15 @@ type APIError = {
 
 Rules for each field:
 
-- **`code`** — a stable identifier callers can branch on. Kebab-case or snake_case, consistent across the whole API. Examples: `invalid-email`, `task-not-found`, `rate-limited`. Never change an existing code; add a new one and deprecate the old one if needed. Hyrum's Law applies: someone is branching on this string.
+- **`code`** — a stable identifier callers can branch on. `UPPER_SNAKE`, following the enum rule in `references/naming-conventions.md`, across the whole API. Examples: `INVALID_EMAIL`, `TASK_NOT_FOUND`, `RATE_LIMITED`. Never change an existing code; add a new one and deprecate the old one if needed. Hyrum's Law applies: someone is branching on this string.
 - **`message`** — free-form human text. Safe to show to end-users; never contains stack traces, internal paths, user IDs from other accounts, or database column names.
-- **`details`** — optional. Used when a client benefits from structured context. Most common shape is field-level validation errors: `{ fields: { email: "invalid-format", password: "too-short" } }`.
+- **`details`** — optional. Used when a client benefits from structured context. Most common shape is field-level validation errors: `{ fields: { email: "INVALID_FORMAT", password: "TOO_SHORT" } }`.
 
 Minimal error response body:
 
 ```json
 {
-  "code": "task-not-found",
+  "code": "TASK_NOT_FOUND",
   "message": "No task exists with that ID."
 }
 ```
@@ -31,12 +31,12 @@ With `details`:
 
 ```json
 {
-  "code": "validation-failed",
+  "code": "VALIDATION_FAILED",
   "message": "Some fields were invalid.",
   "details": {
     "fields": {
-      "email": "invalid-format",
-      "dueDate": "must-be-future-date"
+      "email": "INVALID_FORMAT",
+      "dueDate": "MUST_BE_FUTURE_DATE"
     }
   }
 }
@@ -63,7 +63,7 @@ POST /tasks
 { "title": }           ← malformed JSON
 
 → 400
-{ "code": "invalid-request", "message": "Request body could not be parsed." }
+{ "code": "INVALID_REQUEST", "message": "Request body could not be parsed." }
 ```
 
 **401 — Not authenticated.** No credentials, expired credentials, or invalid credentials.
@@ -72,7 +72,7 @@ POST /tasks
 GET /me                ← no Authorization header
 
 → 401
-{ "code": "not-authenticated", "message": "Authentication required." }
+{ "code": "NOT_AUTHENTICATED", "message": "Authentication required." }
 ```
 
 **403 — Not authorized.** Credentials are valid but this user is not allowed to do this.
@@ -81,7 +81,7 @@ GET /me                ← no Authorization header
 Request targets /tasks/abc with the removal method, but the task belongs to another user.
 
 → 403
-{ "code": "forbidden", "message": "You do not have permission to delete this task." }
+{ "code": "FORBIDDEN", "message": "You do not have permission to delete this task." }
 ```
 
 Note: returning 404 instead of 403 for resources the caller should not even know exist is a valid pattern (prevents resource-enumeration). Pick one per resource class and stay consistent.
@@ -92,7 +92,7 @@ Note: returning 404 instead of 403 for resources the caller should not even know
 GET /tasks/does-not-exist
 
 → 404
-{ "code": "task-not-found", "message": "No task exists with that ID." }
+{ "code": "TASK_NOT_FOUND", "message": "No task exists with that ID." }
 ```
 
 **409 — Conflict.** The request conflicts with the current server state. Classic case: unique-constraint violation, optimistic-concurrency mismatch.
@@ -102,7 +102,7 @@ POST /users
 { "email": "a@example.com" }   ← already registered
 
 → 409
-{ "code": "email-already-registered", "message": "An account with that email already exists." }
+{ "code": "EMAIL_ALREADY_REGISTERED", "message": "An account with that email already exists." }
 ```
 
 **422 — Validation failed.** The request was parsed successfully, but the values do not satisfy the schema's semantic constraints.
@@ -113,10 +113,10 @@ POST /tasks
 
 → 422
 {
-  "code": "validation-failed",
+  "code": "VALIDATION_FAILED",
   "message": "Some fields were invalid.",
   "details": {
-    "fields": { "title": "must-not-be-empty", "dueDate": "must-be-future-date" }
+    "fields": { "title": "MUST_NOT_BE_EMPTY", "dueDate": "MUST_BE_FUTURE_DATE" }
   }
 }
 ```
@@ -125,7 +125,7 @@ POST /tasks
 
 ```
 → 500
-{ "code": "internal-error", "message": "An unexpected error occurred.", "details": { "requestId": "req_abc123" } }
+{ "code": "INTERNAL_ERROR", "message": "An unexpected error occurred.", "details": { "requestId": "req_abc123" } }
 ```
 
 The `requestId` is safe because it is meaningless without server-side logs.

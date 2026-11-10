@@ -11,6 +11,8 @@ Reference material for Rule 4 of `trackbed:code:api-design`. The default convent
 | Response fields | `camelCase` | `{ "createdAt": "...", "assigneeId": "..." }` | `{ "created_at": "...", "AssigneeId": "..." }` |
 | Boolean prefixes | `is` / `has` / `can` | `isArchived`, `hasPermission`, `canEdit` | `archived`, `permission`, `editable`, `edit` |
 | Enum values | `UPPER_SNAKE` | `"STATUS_ACTIVE"`, `"PRIORITY_HIGH"` | `"active"`, `"Active"`, `"statusActive"`, `"status-active"` |
+| Error codes | `UPPER_SNAKE` (the enum rule) | `"INVALID_EMAIL"`, `"TASK_NOT_FOUND"` | `"invalid-email"`, `"task_not_found"`, `"TaskNotFound"` |
+| Union tag values | `UPPER_SNAKE` (the enum rule) | `type: "SUCCESS"`, `type: "TASK_CREATED"` | `type: "success"`, `type: "task-created"` |
 
 ## Why these specifically
 
@@ -18,6 +20,7 @@ Reference material for Rule 4 of `trackbed:code:api-design`. The default convent
 - **camelCase for params and fields**: matches idiomatic JavaScript/TypeScript property access without mapping layers. Consumers can `response.data.assigneeId` directly.
 - **`is` / `has` / `can` on booleans**: makes the field self-describing at the call site. `if (user.archived)` reads like a noun ("the user's archived"); `if (user.isArchived)` reads like a predicate.
 - **`UPPER_SNAKE` enum values**: distinguishes enum values from user-entered strings and object keys at a glance. Also resists accidental i18n — an `UPPER_SNAKE` value is obviously a code, not display copy.
+- **Error codes and union tags follow the enum rule**: an error `code` and a discriminated-union tag sent over the wire are both closed sets of machine-readable values that callers branch on, which is what an enum is. One casing for all three means callers never have to remember which kind of code uses which style. This applies to new surfaces; an existing API keeps the casing found during convention detection.
 
 ## Boolean nuance
 
@@ -31,7 +34,7 @@ Avoid `shouldX` on response fields — "should" belongs in the UI layer's decisi
 
 ## Per-ecosystem deviations
 
-The default table assumes the dominant case: JSON over HTTP, JS/TS callers. Other ecosystems have their own idioms — when the caller language is fixed and consistent, align with the language's expectations instead.
+The default table assumes the dominant case: JSON over HTTP, JS/TS callers. Other ecosystems have their own idioms — when the caller language is fixed and consistent, align with the language's expectations instead. These deviations cover field and parameter names; enum values, error codes, and union tags stay `UPPER_SNAKE`.
 
 - **Python**: `snake_case` for fields and params. If the API serves a Python client library, ship `snake_case` fields; the mapping-to-JS tax lives in the small number of JS callers, not the many Python callers.
 - **Go**: exported struct fields are `PascalCase` in source, typically serialized to `camelCase` or `snake_case` via struct tags. The on-wire convention is a separate decision from the Go source convention.

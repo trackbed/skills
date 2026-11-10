@@ -8,11 +8,11 @@ A value that can be one of several shapes gets a tag field whose type is a liter
 
 ```ts
 type TaskResult =
-  | { type: "success"; task: Task }
-  | { type: "error"; error: APIError };
+  | { type: "SUCCESS"; task: Task }
+  | { type: "ERROR"; error: APIError };
 
 function render(result: TaskResult) {
-  if (result.type === "success") {
+  if (result.type === "SUCCESS") {
     return result.task.title; // result.error is not accessible here
   }
   return result.error.message; // result.task is not accessible here
@@ -23,9 +23,9 @@ Why this matters for contract stability: a union without a tag forces callers to
 
 Use this shape for:
 
-- API results (`success` | `error`).
+- API results (`SUCCESS` | `ERROR`).
 - Webhook payloads (`event.type` determines `event.data` shape).
-- State machines (`"loading"` | `"loaded"` | `"error"`).
+- State machines (`"LOADING"` | `"LOADED"` | `"ERROR"`).
 - Any response that returns different shapes based on a request parameter.
 
 ## Input / Output type separation

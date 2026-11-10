@@ -1,6 +1,6 @@
 ---
 name: code:api-design
-description: "(experimental) Design stable APIs and module boundaries. Covers contract-first approach, Hyrum's Law, validation placement (at boundaries, not between internal functions), consistent error shapes with HTTP status mapping, naming conventions, and TypeScript patterns for interface stability. Use when adding HTTP endpoints, public modules, SDK surfaces, or any interface with external or cross-team callers. Includes a Design It Twice mode (opt-in via --design-twice or the phrase 'design it twice') that drafts radically different shapes, in fresh-context sub-agents where the host allows, and verifies the pick before recommending it."
+description: "(experimental) Design stable APIs and module boundaries. Covers contract-first approach, Hyrum's Law, retry safety and idempotency keys, validation at boundaries, consistent error shapes with HTTP status mapping, naming conventions, and TypeScript patterns for interface stability. Use when adding HTTP endpoints, public modules, SDK surfaces, or any interface with external or cross-team callers. Includes a Design It Twice mode (opt-in via --design-twice or the phrase 'design it twice') that drafts radically different shapes, in fresh-context sub-agents where the host allows, and verifies the pick before recommending it."
 argument-hint: "[--design-twice]"
 disable-model-invocation: false
 user-invocable: true
@@ -8,7 +8,7 @@ user-invocable: true
 
 # API and Interface Design
 
-Design stable APIs and module boundaries with a contract-first workflow. Decide the shape, validation points, error cases, and naming _before_ writing the handler, so the interface does not have to be rediscovered or reshaped once callers exist — the contract is surface area you can never take back.
+Design stable APIs and module boundaries with a contract-first workflow. Decide the shape, validation points, error cases, naming, and retry behavior _before_ writing the handler, so the interface does not have to be rediscovered or reshaped once callers exist — the contract is surface area you can never take back.
 
 ## When to use
 
@@ -42,7 +42,7 @@ Within that scope, consider user experience (UX: clear, reliable task completion
 
 ### Rule 1 — Contract first
 
-Design the contract before the handler. The contract is: input type, output type, error cases, HTTP status mapping, and naming. Write it down — as a TypeScript type, an OpenAPI stub, a comment block, whatever the project reads — _before_ writing implementation code. Keep internal-only fields (`user_internal_id`, `debug_payload`) out of the output type.
+Design the contract before the handler. The contract is: input type, output type, error cases, HTTP status mapping, naming, and retry behavior. Write it down — as a TypeScript type, an OpenAPI stub, a comment block, whatever the project reads — _before_ writing implementation code. Keep internal-only fields (`user_internal_id`, `debug_payload`) out of the output type.
 
 Signs the contract is not first:
 
@@ -51,6 +51,8 @@ Signs the contract is not first:
 - Input validation is being sprinkled in as you hit edge cases.
 
 If any of these are happening, stop. Write the contract, then continue.
+
+**Retry safety.** Clients retry after timeouts, proxies resend requests, and queues redeliver messages, so every state-changing operation's contract states whether repeating the call is safe and what the repeat returns. Where a duplicate is costly (a second charge, email, or created record), the contract uses an idempotency key and covers five cases: a key reused with a different body, a duplicate arriving while the first call runs, an unknown outcome after a timeout, how long keys are kept, and at-least-once delivery for webhook and queue consumers. Read `references/retry-safety.md` for the per-operation statement, the idempotency-key contract, and the response for each case.
 
 ### Rule 2 — Validate at boundaries, not between internals
 
@@ -74,6 +76,7 @@ Quick reference for REST/JSON surfaces:
 - **Query params and response fields** — `camelCase`.
 - **Booleans** — prefix with `is`, `has`, or `can` (`isArchived`, `hasPermission`).
 - **Enum values** — `UPPER_SNAKE` (`STATUS_ACTIVE`, not `active` or `Active`).
+- **Error codes and union tag values** — sent over the wire, so they follow the enum rule: `UPPER_SNAKE` (`INVALID_EMAIL`, `type: "SUCCESS"`), never kebab-case or lowercase.
 
 Full table plus worked good/bad examples and per-ecosystem deviations (Python `snake_case`, Go `PascalCase` for exported fields) live in `references/naming-conventions.md`.
 
