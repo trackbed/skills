@@ -19,6 +19,16 @@ This rewrites history and requires a force-push to sync any existing remote hist
 - The model must never invent `--force-backup`. It may pass `--backup-ref` automatically only with the exact retry-safe value supplied by `trackbed:pr:create`; outside that delegation, the user must have supplied the exact `--backup-ref` value. These flags can create or repoint a local branch before the reset confirmation, so a general request to recreate commits is not authorization to originate them.
 - Model invocation changes routing only. It does not relax backup creation, branch and stack validation, final-tree identity, or lease-protected publication.
 
+### Resume After Compaction
+
+If context compaction happens before the Step 8 summary appears, the re-attached copy of this skill can be truncated. Before doing anything else:
+
+1. Re-read this skill in full from `${CLAUDE_PLUGIN_ROOT}/skills/git:recreate-commits/SKILL.md`. Take the flags from the earlier `PARSED ARGS:` line, never by parsing the file again: the copy on disk holds no arguments. It also leaves `${CLAUDE_PLUGIN_ROOT}` unsubstituted, so replace that placeholder with the plugin root shown in the path above before running any command from it.
+2. Recover the Step 1 assignments, the selected granularity, and the `PLAN` storyline from the conversation. If `ORIGINAL_TIP` was lost, read it from the recovery backup with `git rev-parse --verify "refs/heads/$BACKUP_REF^{commit}"`; without a parsed `--backup-ref`, `BACKUP_REF` is `<ORIGINAL_BRANCH>-recreate-backup`.
+3. Continue the step that was in progress. During the rebuild, compare `git log --oneline "$RESET_POINT..HEAD"` with the plan to find the next planned commit.
+
+Never rerun Step 1 after it succeeded: once the branch has moved, it either refuses because the backup no longer matches `HEAD` or, with `--force-backup`, moves the backup onto the partly rebuilt branch. If the `PARSED ARGS:` line, the selected granularity, or another Step 1 value cannot be recovered, stop and report `git reset --hard "$BACKUP_REF"` as the recovery, because guessing could drop `--no-push` or `--require-unstacked`.
+
 **When not to use:** Don't run this on a branch that is already merged, on a protected or shared base branch, or on a branch other contributors have based active work on without coordinating first — the recreation rewrites history and the remote can only be updated with a force-push.
 
 Auto mode is the default: skip the granularity question, automatically choose the best granularity based on diff size and complexity unless `--coarse` or `--granular` pins it, and authorize one backup-protected unstacked history rewrite. Unless `--no-push` is also set, it authorizes that branch's lease-protected force-push too. A stacked rewrite additionally requires `--authorize-history-rewrite`; auto mode never authorizes stack-wide mutation by itself. No mode bypasses backup creation, branch validation, final-tree identity, or force-with-lease. Ignore a leftover `--auto`: auto mode is already the default.
@@ -36,6 +46,24 @@ Auto mode is the default: skip the granularity question, automatically choose th
 - `--require-unstacked` — Require the branch to remain outside every local or server-side stack when membership is resolved immediately before rewrite authorization. Set `REQUIRE_UNSTACKED=true` when present and stop before reset if membership is anything other than `none`. `trackbed:pr:create` always passes this flag to preserve its earlier unstacked-only authorization across delegation.
 - `--no-push` — Rewrite and verify the local branch but do not mutate its remote. Report that synchronization is delegated to the caller. `trackbed:pr:create` always uses this mode so description generation and confirmation finish before the only remote update.
 - `--authorize-history-rewrite` — Explicit authorization to skip the reset confirmation and, unless `--no-push` is also set, the publication confirmation. It is optional for an unstacked auto-mode invocation but required before auto mode may rewrite or publish a stack. It never bypasses backup creation, branch validation, final-tree identity, or force-with-lease.
+
+### Parse Arguments
+
+**Arguments:** "$ARGUMENTS"
+
+Before Step 1, parse the arguments above once as shell-style tokens:
+
+- Boolean flags: `--manual`, `--coarse`, `--granular`, `--force-backup`, `--require-unstacked`, `--no-push`, and `--authorize-history-rewrite`. Ignore a leftover `--auto`.
+- Valued flags: `--base <branch>`, `--base-commit <oid>`, `--backup-ref <branch>`, and `--after <commit>`. Each takes the next token as its value.
+- Stop before Step 1 and name the offending token on an unknown flag, a duplicate flag, a valued flag whose value is missing or starts with `--`, a positional token, or `--coarse` combined with `--granular`.
+
+Then restate the result as one line, writing `unset` for an absent value and `AUTO_MODE=false` for `--manual` or any invocation the Model Invocation Contract runs as `--manual`:
+
+```text
+PARSED ARGS: AUTO_MODE=<true|false> GRANULARITY=<unpinned|coarse|atomic> BASE_FLAG=<branch|unset> BASE_COMMIT_FLAG=<oid|unset> BACKUP_REF_FLAG=<branch|unset> AFTER_ARG=<commit|unset> FORCE_BACKUP=<0|1> REQUIRE_UNSTACKED=<true|false> NO_PUSH=<true|false> AUTHORIZE_HISTORY_REWRITE=<true|false>
+```
+
+Every later step reads its flags from this line. An `unset` value leaves the matching Step 1 shell variable empty.
 
 ## Steps
 
@@ -159,7 +187,7 @@ Synced Conductor workspace boundary contract (keep aligned across git-mutating w
 
    **Assess diff size and determine granularity.** After analyzing the diff, assess whether the PR is large (many files changed, significant lines added/removed, multiple distinct features or areas touched).
 
-   If `--coarse` was combined with `--granular`, stop and ask the caller to choose one fixed granularity. `--coarse` selects **Coarse** granularity unconditionally and skips the granularity question. `--granular` selects **Atomic** granularity unconditionally and skips the granularity question. In auto mode, either fixed-granularity flag replaces automatic granularity selection and every other auto-mode behavior remains in effect. Auto mode without a fixed-granularity flag selects the most appropriate granularity based on diff size and complexity and skips the question. Otherwise, with `--manual` and no fixed-granularity flag, if the diff is large, ask the user which granularity level they want before planning:
+   `--coarse` selects **Coarse** granularity unconditionally and skips the granularity question. `--granular` selects **Atomic** granularity unconditionally and skips the granularity question. In auto mode, either fixed-granularity flag replaces automatic granularity selection and every other auto-mode behavior remains in effect. Auto mode without a fixed-granularity flag selects the most appropriate granularity based on diff size and complexity and skips the question. Otherwise, with `--manual` and no fixed-granularity flag, if the diff is large, ask the user which granularity level they want before planning:
    - **Coarse** — One commit per major grouping (~5-15 commits)
    - **Medium (recommended)** — Break each major grouping into several commits (~15-30 commits)
    - **Fine** — Recursively break down until each commit is a significant, self-standing change (~30-60+ commits)
