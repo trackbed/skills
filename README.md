@@ -711,6 +711,8 @@ Usage records from before the rename count toward the new names. Your settings c
 
 ## Documentation
 
+Browse the documentation at [trackbed.dev](https://trackbed.dev). It has search and a page for every skill and agent, and it is republished with each release.
+
 Guides in this repository:
 
 - [Review Workflows](trackbed/docs/review.md) — reviewer models, review convergence, stacked PRs, GitHub review rules, and resuming runs

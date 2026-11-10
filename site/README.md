@@ -43,12 +43,25 @@ The sync runs when `npm run dev` starts, so restart it to pick up a change to th
 
 The site is deployed when a release Pull Request merges. The [Create Release Tag](../.github/workflows/release-tag.yml) workflow tags the release and then calls [Deploy Docs Site](../.github/workflows/deploy-docs-site.yml), which triggers a Vercel Deploy Hook, and Vercel builds `main` and publishes it. Nothing else deploys: [vercel.json](vercel.json) turns off Vercel's automatic Git deployments, so pushes and Pull Requests build nothing there. The [Docs Site](../.github/workflows/site.yml) workflow builds the site on every Pull Request instead.
 
-One-time setup:
+The site is at <https://trackbed.dev>, served by the `trackbed-docs` Vercel project. `www.trackbed.dev` redirects there, and the project's own `trackbed-docs.vercel.app` address still serves the site. The domain is registered and has its DNS at Vercel, so adding it to the project needed no DNS records. The project holds settings that are not in this repository. To recreate it, apply all of them:
 
-1. Import `trackbed/skills` as a new Vercel project.
-2. Set **Root Directory** to `site`. Leave "Include files outside the root directory in the Build Step" on, because the build reads the repository's README, guides, and components.
-3. Keep access to System Environment Variables enabled under **Environment Variables**. The sitemap and the commit-pinned links read `VERCEL_PROJECT_PRODUCTION_URL` and `VERCEL_GIT_COMMIT_SHA`.
-4. Under **Settings**, **Git**, **Deploy Hooks**, create a hook for the `main` branch and save its URL as the repository secret `VERCEL_DEPLOY_HOOK_URL`. Treat the URL as a password: anyone who has it can deploy the project.
+1. **Root Directory** is `site`, with "Include files outside the root directory in the Build Step" left on, because the build reads the repository's README, guides, and components.
+2. Access to System Environment Variables is on. The sitemap and the commit-pinned links read `VERCEL_PROJECT_PRODUCTION_URL` and `VERCEL_GIT_COMMIT_SHA`. The first is the project's shortest production domain, so after a domain change the canonical links and the sitemap keep the old address until the next deployment.
+3. A Deploy Hook for the `main` branch exists, and its URL is the repository secret `VERCEL_DEPLOY_HOOK_URL`. Treat the URL as a password: anyone who has it can deploy the project. The hook's ID together with the project ID is enough to rebuild the URL, so keep both out of logs.
+4. Preview deployments are disabled, and Vercel's Pull Request comments, commit statuses, and GitHub deployment events are off.
+
+The fourth setting protects other Pull Requests. `vercel.json` only stops deployments for commits that contain it, so a branch cut before the site existed would otherwise get a failing preview build and a red Vercel status.
+
+```bash
+vercel project update trackbed-docs --root-directory site --framework astro --node-version 24.x
+vercel project update trackbed-docs --no-git-pr-comments --no-git-commit-status --no-github-deployment-events
+vercel git connect https://github.com/trackbed/skills --project trackbed-docs
+vercel deploy-hooks create release-workflow --git-branch main --project trackbed-docs
+vercel domains add trackbed.dev trackbed-docs
+vercel domains add www.trackbed.dev trackbed-docs --redirect trackbed.dev --redirect-status-code 308
+```
+
+The CLI has no flag for disabling preview deployments; set `previewDeploymentsDisabled` to `true` with `PATCH /v9/projects/trackbed-docs` on the Vercel REST API. Connecting the repository needs the Vercel GitHub app installed on the organization, which only an organization owner can do.
 
 To deploy outside a release, for the first deployment or for a fix to the site itself, run the Deploy Docs Site workflow from the Actions tab or with `gh workflow run deploy-docs-site.yml`.
 
@@ -56,3 +69,4 @@ Two things to know:
 
 - **Without the secret, nothing deploys.** The workflow warns and succeeds, so a fork or a repository that has not set up Vercel still gets a green release.
 - **The hook builds `main` as it is when it fires.** That is the release commit unless another Pull Request merges in the minute between the release merge and the hook.
+- **A failed build is not reported on GitHub.** With commit statuses off, the workflow only confirms that Vercel accepted the request. Vercel emails the failure, and the project's deployment list shows it.
