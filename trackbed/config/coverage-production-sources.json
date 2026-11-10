@@ -97,6 +97,7 @@
       "trackbed/skills/linear:issue-to-pr/scripts/preflight.py",
       "trackbed/skills/linear:next/scripts/cloud-launch.py",
       "trackbed/skills/pr:create/scripts/pr-create-preflight.py",
+      "trackbed/skills/workflow:suggest-next/scripts/inventory.py",
       "trackbed/skills/pr:github-review/scripts/review-delta.py",
       "trackbed/skills/pr:github-review/scripts/stack-overview.py",
       "trackbed/skills/pr:review-convergence/scripts/convergence-state.py",
@@ -275,6 +276,11 @@
         "trackbed/skills/debug:find-sibling-bugs/SKILL.md",
         "trackbed/skills/docs:update-agents-md/SKILL.md"
       ]
+    },
+    {
+      "kind": "guidance",
+      "suite": "trackbed/tests/workflow-suggest-next-guidance.bats",
+      "skills": ["trackbed/skills/workflow:suggest-next/SKILL.md"]
     },
     {
       "kind": "guidance",
@@ -469,6 +475,11 @@
       "kind": "executable",
       "suite": "trackbed/tests/python/test_issue_to_pr_preflight.py",
       "skills": ["trackbed/skills/linear:issue-to-pr/SKILL.md"]
+    },
+    {
+      "kind": "executable",
+      "suite": "trackbed/tests/python/test_suggest_next_inventory.py",
+      "skills": ["trackbed/skills/workflow:suggest-next/SKILL.md"]
     },
     {
       "kind": "executable",
