@@ -34,6 +34,114 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 - `/kramme:text:clarify --humanize` now ships the MIT notice for the text its AI-writing pattern catalog retains from `blader/humanizer`, and credits humanizer as a copied source instead of an inspiration.
 - `/kramme:pr:generate-description` now finds repository PR templates when the agent's shell is zsh. The lookup looped over a variable named `path`, which zsh ties to `PATH`, so every later command in the lookup failed and it reported no template.
 
+## [1.0.0] - 2026-11-10
+
+### Added
+
+- Add a documentation site deployed with each release (#1175)
+- Add retry-safety rules and UPPER_SNAKE codes (#1174)
+- Add shape-up skill to get an open PR ready to merge (#1173)
+- Add read-only suggest-next skill (#1171)
+- Re-sync AI-writing catalog and guard humanize facts (#1170)
+- Add decision and migration guardrails (#1169)
+- Write Related links as native Linear relations (#1164)
+- Honor linear:next launch confirmation for To-do issues (#1166)
+- Show citations, evidence gaps, and new endpoints (#1160)
+- Check rollback, failure signals, and cost in specs (#1151)
+- Record escalations, disputes, and deferrals (#1158)
+- Gate deepening work and check issue blockers (#1156)
+- Add an opt-in false-compromise read (#1154)
+- Read STRATEGY.md through one shared reader (#1148)
+- Wait for approval and read plans as input (#1143)
+- Calibrate caveats and claims (#1140)
+- Document MarkItDown 0.1.9 endpoint and stdin (#1141)
+- Vary hedging lead-ins in comments (#1137)
+- Keep the audit's severity in every issue (#1133)
+- Lead with a verdict and keep costly omissions (#1135)
+- Require file boundaries and caveat remedies (#1129)
+- Trace implicit state machines (#1128)
+- Compare GitHub directory sources (#1122)
+- Add CSRF, security-header, and leak rules (#1123)
+- Draft Design It Twice blind and verify the pick (#1121)
+- Check commits for secrets and stray files (#1120)
+- Add merge-safety checks to multi-PR plans (#1118)
+- Adopt upstream fixes for QA, browse, debug, setup (#1091)
+- Add a report of PRs waiting on your review (#1085)
+- **BREAKING:** Finish the trackbed rename for settings, identifiers, and the source folder (#1083)
+- **BREAKING:** Namespace skills and agents through the trackbed plugin (#1081)
+- Require evidence and isolate adversarial reviews (#1080)
+- Make web source hashes reproducible (#1079)
+- Check each upstream once across skills (#1078)
+- Add cold readers and evidence-based finding disputes (#1077)
+- Let the model write ADRs and announce each write (#1075)
+- Add opt-in cross-provider review (#1074)
+- Detect GitHub changes from commit history (#1070)
+
+### Changed
+
+- **BREAKING:** Remove the check-slop skill (#1177)
+- Link the live documentation site and record its Vercel settings (#1176)
+- Record each cold-reader isolation probe run (#1150)
+- Say where this repository's Linear issues live (#1084)
+- Repoint Compound sources to upstream root (#1069)
+
+### Fixed
+
+- Count only the current request as a direct invocation (#1172)
+- Fix env writes and let the model offer wizards (#1167)
+- Reword copied lines and declare api-design's source (#1165)
+- Keep guard flags and coarse commits buildable (#1168)
+- Read compound pulse reports from docs_root (#1162)
+- Align siw:init strategy rules and routing advice (#1163)
+- Reword dispute rules and declare ce-resolve-pr-feedback (#1161)
+- Check gh-stack outcomes instead of exit codes (#1159)
+- Repoint moved sources and correct their rationales (#1155)
+- Make reports accessible and evidence-only (#1157)
+- List a full page of commits by default (#1149)
+- Correct refactor and forward-progress rationales (#1152)
+- Name deciders only from the user or a linked record (#1147)
+- Keep docs-page hashes stable across deploys (#1146)
+- Keep note dates and route enforceable lessons (#1144)
+- Match reworded records by similarity (#1145)
+- Keep shared diagram pages visible without scripts (#1142)
+- Continue after the nested clarify rewrite (#1138)
+- Weigh deleted files by use, not size (#1139)
+- Render the Run History template table (#1132)
+- Verify cited pointers and stop listing skills (#1136)
+- Checkpoint fully committed --continue runs (#1134)
+- Confirm before gh-stack rewrites other workspaces (#1131)
+- Skip deleted file bodies (#1130)
+- Restore the dropped slice revert gates (#1126)
+- Match gh-stack v0.3 and require v0.3.0 (#1127)
+- Use the workspace's own server for visual review (#1125)
+- Keep new checks from passing without a fix (#1124)
+- Note the secret check blind spots (#1117)
+- Require repository evidence for controls (#1115)
+- Make every cold reader ignore instruction files Codex loads (#1116)
+- End dropped HTML regions at their closing tag (#1114)
+- Harden issue implementation and context recovery (#1107)
+- Follow the generated PR plan contract (#1113)
+- Lint the dev-server scripts' source manifest (#1105)
+- Close github-review conversation and submit gaps (#1106)
+- Commit fixes and flag pre-existing failures (#1110)
+- Resume issue-define from comments and open assumptions (#1111)
+- Find the real ADR log and gate unrequested writes (#1112)
+- Clarify Rule of 500, allow empty scans (#1108)
+- Correct outdated gh-stack recipe details (#1109)
+- Add posting guards to github-review-reply (#1103)
+- Stop secret-check leaks and align hardening rules (#1104)
+- Ship humanizer's MIT notice with the humanize catalog (#1099)
+- Disambiguate gh-stack command targets (#1102)
+- Match PR templates in any case and close description gaps (#1101)
+- Fetch every unresolved GitHub review thread (#1100)
+- Locate GitHub review threads correctly (#1098)
+- Limit the cold reader to read-only file tools (#1097)
+- Guard stack rewrites and enforce atomic pushes (#1096)
+- Check intake and detect Conductor workspaces (#1095)
+- Keep manual-only skills out of implicit selection (#1073)
+- Keep long reviews alive past host time limits (#1072)
+- Repoint dead source links to live upstream paths (#1071)
+
 ## [0.91.0] - 2026-11-02
 
 ### Added
@@ -1231,6 +1339,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 
 - Preserve skill resources in conversion (#222)
 
+[1.0.0]: https://github.com/trackbed/skills/compare/v0.91.0...v1.0.0
 [0.91.0]: https://github.com/Abildtoft/kramme-cc-workflow/compare/v0.90.0...v0.91.0
 [0.90.0]: https://github.com/Abildtoft/kramme-cc-workflow/compare/v0.89.0...v0.90.0
 [0.89.0]: https://github.com/Abildtoft/kramme-cc-workflow/compare/v0.88.0...v0.89.0
