@@ -128,6 +128,26 @@ These remain hard blockers: non-current branches, open Pull Requests, ambiguous,
 
 A direct invocation on a fresh branch keeps unpublished commits that already follow the repository's commit conventions instead of rewriting them. `trackbed:code:plan-to-pr` and `trackbed:linear:issue-to-pr` always get the narrative rewrite.
 
+## Shaping Up an Open Pull Request
+
+`/trackbed:pr:shape-up` gets the current branch's open Pull Request ready to merge in one run. It reads the Pull Request first and runs only the passes it needs; a Pull Request that is already in shape gets a report and nothing else.
+
+| Need | What starts it | What handles it |
+| --- | --- | --- |
+| Rebase | The branch is behind the Pull Request's target branch | The first `trackbed:pr:fix-ci --rebase --no-consolidate` pass, which rebases through `trackbed:pr:rebase --force-push` |
+| Green CI | A check that was not skipped failed, was cancelled, or is still running | The `trackbed:pr:fix-ci` pass, which fixes and pushes until the checks are green; later rounds pass `--no-rebase` instead of `--rebase` |
+| AI review comments | An unresolved inline thread from a bot or app reviewer, such as CodeRabbit or Copilot, that you have not answered | The `trackbed:pr:fix-ci` pass makes the valid code changes, then `trackbed:pr:github-review-reply --bot-only` posts replies and resolves the threads they settle |
+
+- The skill takes no arguments and never edits, commits, pushes, or posts by itself. The two delegated skills keep every gate they have when you run them directly, and their questions and blockers reach you unchanged.
+- The rebase keeps its conflict, red-flag, verification, and lease gates. The pass's `[FIX PIPELINE]` commits stay as they are; run `/trackbed:pr:fix-ci` afterwards to consolidate them.
+- It never answers a person. The `trackbed:pr:fix-ci` pass still validates all review feedback, so it may fix a valid request from a person; reply to people with `/trackbed:pr:github-review-reply`.
+- Feedback an AI reviewer left only in a review summary or a Pull Request comment does not start a run by itself. When the reply pass runs, it covers those too.
+- Your checkout must match the Pull Request head. Push or pull first when it does not.
+- It repeats for at most three rounds, for checks that are not green or AI threads that arrived during the run. Only the first round may rebase, so a target branch that moves during the run is reported, not chased.
+- The final report says `in shape` only when a fresh read of the Pull Request shows no need left.
+
+The delegation is recorded in the [orchestration-children decision](decisions/2026-08-29-model-invocable-orchestration-children.md#pull-request-shape-up-delegations).
+
 ## Rewriting History
 
 By default, `/trackbed:git:recreate-commits` authorizes one backup-protected unstacked history rewrite and any required lease-protected force-push. Before it resets anything, it:
