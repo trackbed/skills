@@ -14,6 +14,7 @@
 - **PREFER** the generated [component catalog](trackbed/docs/component-catalog.json) over the full README when locating a shipped skill, agent, or hook; regenerate it with `python3 trackbed/scripts/generate-component-reference.py --write` after component changes.
 - **ALWAYS** use [.agents/skills/](.agents/skills/) or [Local Repository Maintenance](README.md#local-repository-maintenance) to locate repository-maintenance skills, which are intentionally absent from the shipped component catalog.
 - **ALWAYS** read [agent-portability.md](trackbed/docs/agent-portability.md) before changing converter, hook, MCP, or host-adapter behavior.
+- **ALWAYS** treat the documentation site in `site/` as a rendering of `README.md`, the user-facing guides under `trackbed/docs/`, and component frontmatter: change the source, **NEVER** write page content under `site/`, and place each new README `##` section or guide in `site/scripts/lib/config.mjs`, per [site/README.md](site/README.md).
 - **NOTE** `CLAUDE.md` imports this file so every host receives the same repository instructions.
 
 ## Issue Tracking
@@ -33,6 +34,7 @@ trackbed/            # Canonical plugin source
   shared/                      # References and assets used by more than one skill
   hooks/hooks.json             # Event handlers configuration
 .agents/skills/                # Local repository-maintenance skills
+site/                          # Documentation site rendered from the README, guides, and components
 ```
 
 ## Adding Components
@@ -163,3 +165,4 @@ make -C trackbed verify     # Release-candidate gate
 - **ALWAYS** use [docs/code-map.md](trackbed/docs/code-map.md) to map changed files to the closest focused tests.
 - **PREFER** pinning behavior wording in tests against the owning `SKILL.md` or the docs guide that documents it; pin `README.md` only for component existence, generated rows, migration entries, and links.
 - **ALWAYS** regenerate the component reference after changing a skill, agent, or hook with `python3 trackbed/scripts/generate-component-reference.py --write`.
+- **ALWAYS** run `npm --prefix site test` and `npm --prefix site run build` after changing `site/`, and after moving, renaming, or deleting a file or heading that `README.md` or a guide under `trackbed/docs/` links to: the site build fails on dead links and on README sections or guides that are not placed, the Docs Site CI job runs it on every Pull Request, and `pr-verify` does not.

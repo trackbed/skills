@@ -9,6 +9,7 @@ This repo packages a personal workflow plugin for Claude Code and includes a Cod
 - `README.md` documents install, requirements, short workflow guides, configuration, the skill, agent, and hook reference, testing entry points, and releases. Deep usage reference lives in linked guides such as `docs/review.md`, `docs/shipping.md`, `docs/siw.md`, and `docs/hooks.md`.
 - `AGENTS.md` records local contribution conventions; `CLAUDE.md` imports it for Claude Code.
 - `.agents/skills/` contains repository-maintenance skills that are not shipped as part of the public plugin.
+- `site/` builds the documentation site. It renders README sections, the user-facing guides, and one page per skill and agent from their sources, holds no page content of its own, and sits outside `trackbed/` so it is never installed with the plugin. See its [README](../../site/README.md).
 
 ## Plugin Subsystems
 
