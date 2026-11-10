@@ -1,0 +1,36 @@
+name: Docs Site
+
+# No path filter: the build fails when a file that a README section or guide
+# links to is moved or deleted, so any Pull Request can break it.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Test and build the docs site
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: site/package.json
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test the content sync
+        run: npm test
+
+      - name: Build the site and validate its links
+        run: npm run build

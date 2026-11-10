@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.astro/
+.vercel/
+
+# Written by `npm run sync` from the README, the docs guides, and component sources
+src/content/docs/
+src/generated/
