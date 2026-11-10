@@ -100,7 +100,8 @@ These five skills run in auto mode when you type them. Pass `--manual` to keep t
 - `/trackbed:pr:rebase --force-push` is the safe unattended option: it skips only the final confirmation and keeps every other gate. Both skills that delegate a rebase use it.
 - `/trackbed:pr:fix-ci --no-consolidate` also turns off auto mode, so `--ship` never rebases an open Pull Request without asking.
 - `--check`, `--all-open`, and `--scope-plan` keep their own gates.
-- The default covers typed slash commands, `$` mentions, requests that name the skill, and the parent delegations each skill names. When the model picks one of these skills for a request that does not name it, the skill behaves as `--manual`, or as `--no-update` for `trackbed:pr:generate-description`.
+- The default covers only the message being answered: a slash command or `$` mention at its start, or the skill's name later in it when your wording asks for a run. A saved prompt your host sends as your message counts too. The parent delegations each skill names keep the gates their own flags select.
+- A mention that only discusses the skill, a request from an earlier message, and a request that arrives through another agent, including a subagent that preloads the skill, do not. In those cases, and when the model picks one of these skills for a request that does not name it, the skill behaves as `--manual`, or as `--no-update` for `trackbed:pr:generate-description`.
 
 The [decision record](decisions/2026-10-31-unattended-default-for-shipping-skills.md) covers the tradeoffs.
 
