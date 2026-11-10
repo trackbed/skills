@@ -60,6 +60,7 @@ The workflow will:
 - Create a Pull Request to main
 - After PR merge, automatically create git tag and GitHub Release
 - Publish the generated Codex marketplace for that exact release tag
+- Deploy the documentation site by triggering its Vercel Deploy Hook, when the `VERCEL_DEPLOY_HOOK_URL` repository secret is set
 
 ### Option 2: Local Script
 
@@ -148,7 +149,7 @@ gh pr create --base main --head release/vX.Y.Z --title "Release vX.Y.Z"
 
 ### 7. After PR Merge
 
-The tag and GitHub Release will be created automatically by the `release-tag.yml` workflow.
+The tag and GitHub Release will be created automatically by the `release-tag.yml` workflow. The same workflow then publishes the Codex marketplace and deploys the documentation site.
 
 To create manually:
 
@@ -158,7 +159,10 @@ git pull
 git tag vX.Y.Z
 git push origin vX.Y.Z
 gh release create vX.Y.Z --title "vX.Y.Z" --generate-notes
+gh workflow run deploy-docs-site.yml
 ```
+
+The last command deploys the documentation site, which only the `release-tag.yml` workflow does automatically.
 
 ## After Release
 

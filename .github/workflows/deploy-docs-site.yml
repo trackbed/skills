@@ -1,0 +1,32 @@
+name: Deploy Docs Site
+
+# Asks Vercel to build `main` and deploy it as the documentation site. The
+# release tag workflow calls this when a release Pull Request merges; run it
+# by hand for the first deployment or to publish a fix between releases.
+on:
+  workflow_dispatch:
+  workflow_call:
+    secrets:
+      VERCEL_DEPLOY_HOOK_URL:
+        description: "Vercel Deploy Hook URL for the docs site's main branch"
+        required: false
+
+permissions: {}
+
+jobs:
+  deploy:
+    name: Trigger the Vercel deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger the Deploy Hook
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "$VERCEL_DEPLOY_HOOK_URL" ]; then
+            echo "::warning::The docs site was not deployed: the VERCEL_DEPLOY_HOOK_URL secret is not set. See site/README.md."
+            exit 0
+          fi
+          curl --fail --silent --show-error --retry 3 --max-time 30 \
+            --request POST --output /dev/null "$VERCEL_DEPLOY_HOOK_URL"
+          echo "Vercel accepted the deployment request."
