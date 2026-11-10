@@ -34,19 +34,19 @@ sources:
   - id: wikipedia-signs-of-ai-writing
     url: https://en.wikipedia.org/w/index.php?title=Wikipedia:Signs_of_AI_writing&action=raw
     title: "Wikipedia - Signs of AI writing"
-    rationale: "The AI writing pattern catalog and editing checklist are based on this page maintained by WikiProject AI Cleanup."
+    rationale: "The AI writing pattern catalog, including its older-model grouping, is adapted from this page maintained by WikiProject AI Cleanup, re-synced to revision 1383697236. The page also informs humanize mode's list of human-typical constructions to keep."
     usage: copied
     license: "CC BY-SA 4.0"
     notice: references/WIKIPEDIA-CONTENT-LICENSE.md
     upstream_path: "Wikipedia:Signs of AI writing"
-    upstream_revision: "1366684471"
-    last_reviewed_at: 2026-11-06
+    upstream_revision: "1383697236"
+    last_reviewed_at: 2026-11-09
     fetch_mode: curl-markdown
     baseline_hash: "sha256:3be6c7024505738d2f032caa73891116074362dffcbd35f02df8f4ccdb059b52"
   - id: blader-humanizer
     url: https://github.com/blader/humanizer
     title: "blader/humanizer"
-    rationale: "The AI writing pattern catalog retains adapted text from the project's SKILL.md, and the humanization workflow and pattern-removal framing are modeled on it."
+    rationale: "The AI writing pattern catalog retains adapted text from the project's SKILL.md at upstream_commit, including the false-ranges entry, and humanize mode's pattern-removal framing is modeled on it. Humanize mode's cluster weighting and two-way fact check also follow the SKILL.md at baseline_commit."
     usage: copied
     license: "MIT"
     notice: references/blader-humanizer-LICENSE
@@ -63,3 +63,12 @@ sources:
     last_reviewed_at: 2026-11-09
     baseline_commit: "5382b17619be07811a14b2146c7672620b34a791"
     baseline_hash: "sha256:9330780622baaef8dc683ea78efb3ff8e4583e3dde7ab6092b84df50e8c9ea58"
+  - id: compound-ce-noslop
+    url: https://raw.githubusercontent.com/EveryInc/compound-engineering-plugin/main/skills/ce-noslop/SKILL.md
+    title: "EveryInc compound-engineering-plugin - ce-noslop"
+    rationale: "Humanize mode's rule that a low-confidence pattern needs other patterns in the same passage, and its check that the rewrite keeps every input fact and adds none, follow this source's density test and done criterion."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "7dc50943bbf959dbe6a93a175e41e5fff8395e00"
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:094ed83e1e8e67cede30bf0d7e43cb7850f63247b5b2796c722b126231be3286"
