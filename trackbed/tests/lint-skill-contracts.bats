@@ -1499,12 +1499,13 @@ EOF
 @test "fix-ci --rebase and auto mode settle the rebase question without asking by default" {
   local skill_text
   local rebase_line
+  local no_rebase_line
   local auto_line
   local choice_line
   local delegate_line
   skill_text="$(cat "$BATS_TEST_DIRNAME/../skills/pr:fix-ci/SKILL.md")"
 
-  grep -qE '^argument-hint: .*\[--rebase\]' <<<"$skill_text"
+  grep -qE '^argument-hint: .*\[--rebase\|--no-rebase\]' <<<"$skill_text"
   [[ "$skill_text" == *'- `--rebase` - When the branch is behind its base, rebase and push through `trackbed:pr:rebase --force-push` before fixing CI, without asking.'* ]]
   [[ "$skill_text" == *'if `--rebase` is present, set `REBASE_MODE=true`'* ]]
   [[ "$skill_text" == *'reject `--fixup` and `--rebase`, require `--no-consolidate`'* ]]
@@ -1514,6 +1515,7 @@ EOF
   [[ "$skill_text" == *'Choice 1, whether selected, requested with `--rebase`, or decided in auto mode, uses the rebase workflow'"'"'s safe unattended push mode'* ]]
 
   rebase_line="$(grep -nF 'When `PLAN_SCOPE_ACTIVE=false` and `REBASE_MODE=true`, the user already chose: take choice 1 below' <<<"$skill_text" | cut -d: -f1)"
+  no_rebase_line="$(grep -nF 'When `PLAN_SCOPE_ACTIVE=false` and `REBASE_MODE=false`, the caller already chose: take choice 2 below' <<<"$skill_text" | cut -d: -f1)"
   choice_line="$(grep -nF 'use `AskUserQuestion` and present exactly these choices:' <<<"$skill_text" | cut -d: -f1)"
   delegate_line="$(grep -nF 'Invoke `$trackbed:pr:rebase --force-push --base <BASE>` through the platform skill mechanism' <<<"$skill_text" | cut -d: -f1)"
 
@@ -1522,7 +1524,8 @@ EOF
   [[ "$skill_text" == *'unless `gh pr view --json reviewDecision` reports `APPROVED` or `gh pr checks` shows every check passing'* ]]
   [[ "$skill_text" == *'Ask only when in doubt, which includes that approved-or-green case.'* ]]
 
-  [ "$rebase_line" -lt "$auto_line" ]
+  [ "$rebase_line" -lt "$no_rebase_line" ]
+  [ "$no_rebase_line" -lt "$auto_line" ]
   [ "$auto_line" -lt "$choice_line" ]
   [ "$choice_line" -lt "$delegate_line" ]
 }
