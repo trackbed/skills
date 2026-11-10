@@ -1,14 +1,21 @@
 ---
 name: pr:github-review-reply
-description: Maps GitHub PR review feedback from humans, bots, and apps, including inline review threads, review-summary comments, and general PR comments; facilitates needed code changes; drafts action-based responses; and optionally posts replies or resolves addressed inline threads with gh. Use when reviewers left GitHub comments that need triage, implementation, or response. Not for fixing CI, generating internal review findings, or resolving local REVIEW_OVERVIEW.md findings.
-argument-hint: "[--auto] [--implement|--no-implement] [--post] [--resolve] [--inline] [--humanize] [--human-only|--include-bots] [--all] [--only <login>] [pr-url|instructions]"
-disable-model-invocation: true
+description: "Triage GitHub review threads, summaries, and comments on your own PR: make needed changes, draft replies, and optionally post them and resolve threads. Use when asked or when trackbed:pr:shape-up delegates its bot-only reply pass. Not for fixing CI, reviewing code, or resolving local review reports."
+argument-hint: "[--auto] [--implement|--no-implement] [--post] [--resolve] [--inline] [--humanize] [--human-only|--bot-only|--include-bots] [--all] [--only <login>] [pr-url|instructions]"
+disable-model-invocation: false
 user-invocable: true
 ---
 
 # GitHub Review Reply Handler
 
 Map GitHub pull request review feedback from humans, bots, and apps; facilitate needed code changes; draft clear action-based replies; and optionally post replies or resolve addressed inline threads.
+
+### Model Invocation Contract
+
+- Invoke automatically only when the user's current message asks to triage or answer review feedback on their Pull Request, or as the reply pass of `trackbed:pr:shape-up`.
+- The flags that edit code or write to GitHub (`--auto`, `--implement`, `--post`, `--resolve`) need the user's own request: typed on the command, asked for in the message being answered, or passed by the shape-up delegation. A model caller never adds one on its own initiative; without that request the run stays on the plan-only default and stops after Step 7.
+- `trackbed:pr:shape-up` passes exactly `--post --resolve --bot-only --no-implement --inline`, with no Pull Request URL and no instructions. Under that delegation this skill edits no file, never invokes `trackbed:pr:resolve-review`, and drafts no reply to a person. The user's request for shape-up is their request to post replies to bot and app reviewers now, which Step 8 requires.
+- No other parent workflow is authorized by this model-invocation exception. Model invocation changes routing only: keep the pending-review, fix-on-head, per-item re-check, human-confirmation, `answered-unresolved` confirmation, and rate-limit gates.
 
 ## Scope
 
@@ -35,14 +42,17 @@ Parse `$ARGUMENTS` before fetching data.
 - `--humanize` - run drafted reply bodies through `trackbed:text:clarify --humanize` before writing the plan. Off by default; `--auto` does not enable it.
 - `--include-bots` - include bot and app review comments. This is the default and the flag is retained for compatibility.
 - `--human-only` - exclude bot/app-only feedback. Keep mixed-origin items only for their human non-author feedback.
+- `--bot-only` - keep only items whose non-author feedback comes entirely from bots and apps. Drop every item that contains feedback from a person, so no reply to a person is drafted or posted.
 - `--all` - include resolved inline threads, comments already answered by the branch author, and older summary/general comments. Default: unresolved and awaiting-author feedback only.
 - `--only <login>` - include only feedback whose latest applicable non-author comment is from this login. With `--human-only`, "applicable" means the latest human non-author feedback; bot/app comments are context only.
 
 The remaining payload may be a PR URL, PR number, or additional instructions such as "only reply to Sarah" or "do not resolve design comments."
 
-Defaults: `AUTO=false`, `IMPLEMENT=plan-only`, `POST=false`, `RESOLVE=false`, `INLINE=false`, `HUMANIZE=false`, `INCLUDE_BOTS=true`, `HUMAN_ONLY=false`, `INCLUDE_ALL=false`.
+Defaults: `AUTO=false`, `IMPLEMENT=plan-only`, `POST=false`, `RESOLVE=false`, `INLINE=false`, `HUMANIZE=false`, `INCLUDE_BOTS=true`, `HUMAN_ONLY=false`, `BOT_ONLY=false`, `INCLUDE_ALL=false`.
 
 If `--human-only` is present, set `HUMAN_ONLY=true` and `INCLUDE_BOTS=false`. If both `--human-only` and `--include-bots` are present, stop and ask the user to choose one filter mode; bot and app comments are included by default.
+
+If `--bot-only` is present, set `BOT_ONLY=true`. If both `--bot-only` and `--human-only` are present, stop and ask the user to choose one filter mode.
 
 If `--humanize` is present, set `HUMANIZE=true`. It is independent of `--auto`, which does not enable humanization.
 
@@ -191,7 +201,7 @@ First apply the shared submission filter: exclude `PENDING` comments and reviews
 8. Mark comments GitHub shows as hidden: a general PR comment whose REST `minimized` is non-null, and an inline-thread comment whose GraphQL `isMinimized` is true. Keep the reason (`minimized.reason` or `minimizedReason`). Unless `--all` is set, drop hidden general-comment items and leave hidden comments out when finding the latest non-author comments below, so an inline thread whose non-author comments are all hidden drops out. With `--all`, keep them and show the reason in the plan's `Hidden` field. Never draft or post a reply to a comment hidden as `spam` or `abuse` (compare case-insensitively), even with `--all`.
 9. Identify the latest non-author comment in each item, where author means `PR_AUTHOR`. Also identify the latest human non-author comment separately, because `--human-only` keeps mixed-origin items for their human feedback while treating bot/app comments as context.
 10. Drop items whose only comments are from `SELF` or `PR_AUTHOR`. Keep items that contain reviewer feedback from any other human, bot, or app even when `SELF` or `PR_AUTHOR` also participated.
-11. If `HUMAN_ONLY=true`, exclude items with no human non-author feedback. For mixed-origin items, keep the item but answer only the human non-author feedback; use bot/app comments only as context when needed.
+11. If `HUMAN_ONLY=true`, exclude items with no human non-author feedback. For mixed-origin items, keep the item but answer only the human non-author feedback; use bot/app comments only as context when needed. If `BOT_ONLY=true`, exclude every item that contains human non-author feedback, including a bot-rooted thread a person replied in, and count them under **Skipped** with the reason `human feedback, excluded by --bot-only`. Every kept item then has `Human confirmation required: no`.
 12. Record each inline thread's `Thread state`: `resolved`, `unknown` in REST-only fallback, `answered-unresolved` when it is unresolved and a later reply from `PR_AUTHOR` follows its latest non-author comment, and `unresolved` otherwise. Unless `--all` is set, exclude `resolved` threads, and exclude `answered-unresolved` threads unless `RESOLVE=true`; exclude review-summary and general-comment items when a later author reply clearly answers them. Unless `--all` is set, a kept `answered-unresolved` thread gets no new reply (`Reply target: none`); it is a candidate for Step 10 only. In REST-only fallback, Step 2 has already excluded inline threads unless `--all` was set, so still apply the author-reply filter to review-summary and general-comment items.
 
     For every kept item, also record `Latest comment at drafting`: the `createdAt` of the thread's newest comment, hidden ones included, for an inline thread, or of the PR's newest issue comment for a review-summary or general-comment item (`none` when the PR has none). The Step 9 re-check counts only `SELF` comments newer than this as already posted.
@@ -395,7 +405,7 @@ List every `answered-unresolved` thread planned for resolution and ask for expli
 
 If any reply/comment has `Human confirmation required: yes`, always ask for explicit confirmation before posting that reply/comment. This applies to inline-thread replies, review-summary responses, and general PR comment responses, including mixed-origin inline threads where a bot/app opened the thread and a human added feedback later. The user's current message, `--post`, and `--auto` do not waive this confirmation. Show the exact reply body or bodies that would be posted for those items, wait for the user's approval, and only post the approved subset.
 
-For remaining bot/app-origin replies or comments, ask for explicit confirmation unless the user's current message clearly requested posting now and the flags include `--post` or `--auto`. For REST-only fallback, always ask for explicit confirmation before posting because resolution state is unknown; `--post` and `--auto` do not waive this confirmation.
+For remaining bot/app-origin replies or comments, ask for explicit confirmation unless the user's current message clearly requested posting now, directly or through a `trackbed:pr:shape-up` run, and the flags include `--post` or `--auto`. For REST-only fallback, always ask for explicit confirmation before posting because resolution state is unknown; `--post` and `--auto` do not waive this confirmation.
 
 Do not post replies for items classified as `needs-code-change` or with `Implementation status: blocked|not attempted` unless the user explicitly asks to post acknowledgement replies.
 
