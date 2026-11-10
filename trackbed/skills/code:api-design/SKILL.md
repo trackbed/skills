@@ -74,6 +74,7 @@ Quick reference for REST/JSON surfaces:
 - **Query params and response fields** — `camelCase`.
 - **Booleans** — prefix with `is`, `has`, or `can` (`isArchived`, `hasPermission`).
 - **Enum values** — `UPPER_SNAKE` (`STATUS_ACTIVE`, not `active` or `Active`).
+- **Error codes and union tag values** — sent over the wire, so they follow the enum rule: `UPPER_SNAKE` (`INVALID_EMAIL`, `type: "SUCCESS"`), never kebab-case or lowercase.
 
 Full table plus worked good/bad examples and per-ecosystem deviations (Python `snake_case`, Go `PascalCase` for exported fields) live in `references/naming-conventions.md`.
 
