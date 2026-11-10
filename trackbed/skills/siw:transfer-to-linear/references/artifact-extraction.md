@@ -105,6 +105,7 @@ For each issue file, extract:
 - Body sections: Problem, Context, Scope, Decision Boundaries, Acceptance Criteria, Validation, Edge Cases, Technical Notes, Resolution.
 - Raw substantive body content for duplicate-content preflight. Preserve the body sections separately from generated metadata and transfer markers so `references/linear-mapping.md` can fingerprint the planned Linear issue description before any issue is created.
 - Dependency edges from the `Blocked by:` / `Blocks:` lines (under `Technical Notes > Dependencies`), with `None` treated as empty and ranges like `P3-002..P3-007` expanded into individual SIW IDs. These drive the native-relation pass in `references/linear-mapping.md` > Dependencies.
+- Related links from the `Related:` metadata value: the SIW issue IDs it names, with ranges expanded. Keep the full value for the metadata block; other values, such as register codes or prose, are not issue IDs and stay text only. These drive the related-link part of the same pass.
 - Reference inventory from the body and metadata: SIW issue IDs, migrated markdown paths, register-code families, inline-code paths that must be unwrapped before linking, and table signatures with escaped pipes preserved.
 - Linear transfer marker, if a `## Linear Transfer` section exists:
   - Linear issue identifier and URL from `- Linear issue: ...`
