@@ -273,9 +273,12 @@ See [docs/siw.md](trackbed/docs/siw.md) for the full workflow reference.
 /trackbed:pr:resolve-review # fix the findings
 /trackbed:pr:create         # restructure commits and open the PR
 /trackbed:pr:fix-ci         # iterate until CI passes
+/trackbed:pr:shape-up       # later: rebase, fix CI, answer AI reviewers as needed
 ```
 
 `/trackbed:pr:create` and `/trackbed:pr:fix-ci` run unattended, including history rewrites and force-pushes; add `--manual` to keep their prompts. The [shipping guide](trackbed/docs/shipping.md#unattended-by-default) covers all five skills that work this way.
+
+`/trackbed:pr:shape-up` also runs without prompts of its own: it rebases with a lease, pushes CI fixes, and posts replies to AI reviewers, but never to people. See [shaping up an open Pull Request](trackbed/docs/shipping.md#shaping-up-an-open-pull-request).
 
 More review skills cover product, convention, UX, and GitHub-reviewer flows. Which one should you use?
 
@@ -292,6 +295,7 @@ More review skills cover product, convention, UX, and GitHub-reviewer flows. Whi
 | Which PRs wait on your review, and where each one stands | `/trackbed:pr:review-queue` |
 | Review someone else's GitHub PR as the assigned reviewer | `/trackbed:pr:github-review` |
 | Triage and respond to review comments on your own PR | `/trackbed:pr:github-review-reply` |
+| Rebase, fix CI, and answer AI reviewer comments on your open PR in one run | `/trackbed:pr:shape-up` |
 | Implement fixes from local review findings | `/trackbed:pr:resolve-review` |
 | Whether an open PR's title and body still match the branch diff | `/trackbed:pr:generate-description --check` |
 
@@ -373,6 +377,7 @@ Each row gives a one-line summary. The full description lives in the skill's `SK
 | Review my branch | `/trackbed:pr:code-review`, or see [which review to use](#review-and-ship-a-pr) |
 | Open a PR | `/trackbed:pr:create` |
 | Fix failing CI on my PR | `/trackbed:pr:fix-ci` |
+| Get my open PR ready to merge: rebase, green CI, and AI reviewer comments answered | `/trackbed:pr:shape-up` |
 | See which PRs wait on my review | `/trackbed:pr:review-queue` |
 | Review someone else's PR | `/trackbed:pr:github-review` |
 | Respond to review comments on my PR | `/trackbed:pr:github-review-reply` |
@@ -452,10 +457,11 @@ PR creation, review, iteration, and resolution. See the [review guide](trackbed/
 | `/trackbed:pr:code-review` | User, Auto | `[--subagent-model <model>] [aspects] [--emphasize <dim>...] [--base <branch>] [--previous-review <path>] [--no-cleanup] [--parallel] [parallel] [--team] [--inline] [--loop] [--no-diff-comments]` | Review branch changes for bugs, tests, errors, types, architecture, security, performance, and cleanup; writes `REVIEW_OVERVIEW.md`. |
 | `/trackbed:pr:review-convergence` | User, Auto | `[--subagent-model <model>] [--strict] [--rounds <1-5>] [--depth <balanced\|full>] [--adversarial-review [--adversarial-provider claude\|codex] [--adversarial-model <id>]] [--derive \| LINEAR-ISSUE \| --requirements <authoritative requirements>]` | Take a clean committed branch through ordered review gates, bounded fixes, and verification against frozen requirements. |
 | `/trackbed:pr:resolve-review` | User, Auto | `[--team] [--implement-only] [--granular] [--severity ...] [--source local\|online\|conductor] [review\|url\|instructions]` | Implement fixes for code-review or Conductor diff-comment findings as commits on the current branch. |
-| `/trackbed:pr:github-review-reply` | User | `[--auto] [--implement\|--no-implement] [--post] [--resolve] [--inline] [--humanize] [--human-only\|--include-bots] [--all] [--only <login>] [pr-url\|instructions]` | Triage review comments on your own PR, make the needed changes, and draft or post replies. |
+| `/trackbed:pr:github-review-reply` | User, Auto | `[--auto] [--implement\|--no-implement] [--post] [--resolve] [--inline] [--humanize] [--human-only\|--bot-only\|--include-bots] [--all] [--only <login>] [pr-url\|instructions]` | Triage review comments on your own PR, make the needed changes, and draft or post replies. |
 | `/trackbed:pr:github-review` | User | `[--subagent-model <model>] [pr-number\|pr-url] [--stack] [--draft-review] [--no-clarity-check] [--base <ref>] [--categories a11y,ux,product,visual] [--code-only] [--sequential] [--fresh] [--full] [--include-bots] [--all-threads] [--inline] [--keep-worktree]` | Review someone else's GitHub PR or its whole stack, including linked Linear issues. Report-only unless you ask for a pending review. |
 | `/trackbed:pr:review-queue` | User, Auto | `[--repo OWNER/NAME] [--since ISO-8601] [OWNER/NAME#N ...]` | See which PRs wait on your review and where each stands: your part, CI, merge state, and linked issue; rechecks report what changed. Read-only. |
-| `/trackbed:pr:fix-ci` | User, Auto | `[--fixup] [--manual] [--no-consolidate] [--rebase] [--scope-plan <archived-plan>]` | Repair failing CI checks and reviewer feedback on an open PR with targeted pushes until checks pass; `--manual` keeps the prompts. |
+| `/trackbed:pr:fix-ci` | User, Auto | `[--fixup] [--manual] [--no-consolidate] [--rebase\|--no-rebase] [--scope-plan <archived-plan>]` | Repair failing CI checks and reviewer feedback on an open PR with targeted pushes until checks pass; `--manual` keeps the prompts. |
+| `/trackbed:pr:shape-up` | User | — | Get an open PR ready to merge: rebase when behind its target, fix CI until checks are green, and fix and answer AI reviewer comments. Does only what is needed. |
 | `/trackbed:pr:generate-description` | User, Auto | `[--manual] [--no-update] [--check [--strict]] [--base <ref>] [--base-commit <oid>] [--linear-issue <ISSUE-ID>] [--independent-review-line <line>]` | Write a PR title and body from the diff, commits, and Linear context, updating an open PR unless `--manual`; `--check` reports drift. |
 | `/trackbed:pr:walkthrough` | User | `[--report [branch\|commit\|PR#\|range] \| --report --base <ref> \| --base <ref>] [--output <path>]` | Generate a visual HTML walkthrough of a branch or PR; `--report` produces a shareable before/after architecture report. |
 | `/trackbed:pr:gut-check` | User, Auto | `[--base <branch>] [--intent <text>]` | Get a fast first-reader reaction: does anything on this branch look strange, unusual, or unnecessary? |

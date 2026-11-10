@@ -1,7 +1,7 @@
 ---
 name: pr:fix-ci
-description: "Repair failing checks and reviewer feedback on an open PR with targeted pushes and retry limits. Use when asked or delegated by trackbed:linear:issue-to-pr, trackbed:code:plan-to-pr, or trackbed:pr:rebase."
-argument-hint: "[--fixup] [--manual] [--no-consolidate] [--rebase] [--scope-plan <archived-plan>]"
+description: "Repair failing checks and reviewer feedback on an open PR with targeted pushes and retry limits. Use when asked or delegated by trackbed:linear:issue-to-pr, trackbed:code:plan-to-pr, trackbed:pr:rebase, or trackbed:pr:shape-up."
+argument-hint: "[--fixup] [--manual] [--no-consolidate] [--rebase|--no-rebase] [--scope-plan <archived-plan>]"
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -12,8 +12,8 @@ Continuously iterate on the current branch until all CI checks pass and review f
 
 ### Model Invocation Contract
 
-- Invoke automatically only as a delegated child of `trackbed:linear:issue-to-pr`, `trackbed:code:plan-to-pr`, or `trackbed:pr:rebase`, with the parent's exact bounded flags: `--no-consolidate` for issue/plan shipping (plus a validated scope plan when supplied), or the rebase caller's no-flag auto mode or `--manual`.
-- No other parent workflow is authorized by this model-invocation exception. Model invocation changes routing only; retain the Pull Request identity, CI, review-feedback, scope, retry, and publication gates, and never invent `--rebase`, a scope plan, or a push destination.
+- Invoke automatically only as a delegated child of `trackbed:linear:issue-to-pr`, `trackbed:code:plan-to-pr`, `trackbed:pr:rebase`, or `trackbed:pr:shape-up`, with the parent's exact bounded flags: `--no-consolidate` for issue/plan shipping (plus a validated scope plan when supplied), exactly `--rebase --no-consolidate` for shape-up's first branch pass and exactly `--no-rebase --no-consolidate` for each later one, or the rebase caller's no-flag auto mode or `--manual`.
+- No other parent workflow is authorized by this model-invocation exception. Model invocation changes routing only; retain the Pull Request identity, CI, review-feedback, scope, retry, and publication gates, and never invent `--rebase`, a scope plan, or a push destination. Only `trackbed:pr:shape-up` passes `--rebase` as a parent, because its user asked for a Pull Request that is behind its target to be rebased.
 - Auto mode is reserved for a direct user invocation and for that `trackbed:pr:rebase` delegation. Every other invocation runs as `--manual`, whether or not it passes that flag, including one where the model picks this skill for a request that does not name it.
 - Synced direct-invocation contract (keep aligned across auto-default shipping skills): A direct user invocation is the user's current message asking for this skill, and it covers only the request that message makes. A saved prompt the host sends as that message, such as a host's PR-creation instructions, counts the same way. A slash command or `$` mention at the start of the message invokes this skill directly. The skill's name later in the message, written as its own word, permits a run for that message only, and only when the wording asks for one. A mention that only discusses the skill permits no run, and a request in an earlier message never authorizes a later run. A request that reaches this skill through another agent, including a subagent that preloads it, is not a direct request; only the guarded parent delegations this skill names are excepted, and each keeps only the authority this skill gives it.
 
@@ -37,9 +37,10 @@ Auto mode is the default: run the CI fix loop unattended where possible. When th
 - `--no-consolidate` - Skip consolidation after CI passes and turn off auto mode, so the user decides whether to rebase a branch that is behind its base. Use for scripting or when you want to keep `[FIX PIPELINE]` commits separate.
 - `--manual` - Turn off auto mode: ask before rebasing a branch that is behind its base, and offer the consolidation choices after CI passes.
 - `--rebase` - When the branch is behind its base, rebase and push through `trackbed:pr:rebase --force-push` before fixing CI, without asking. Does nothing when the branch is already in sync. Cannot be combined with `--scope-plan`.
+- `--no-rebase` - When the branch is behind its base, note the drift and fix CI on the current base without asking, and never rebase in this run. Cannot be combined with `--rebase` or `--scope-plan`.
 - `--scope-plan <archived-plan>` - Reconstruct and enforce a plan-to-PR mutation boundary from a validated archive. This mode requires `--no-consolidate`, rejects `--fixup` and `--rebase`, and persists a scoped recovery checkpoint after every pushed fix.
 
-Before Step 1, parse `$ARGUMENTS`. Initialize `AUTO_MODE=true`. If `--fixup` is present, set `FIXUP_MODE=true`; if `--manual` is present, set `AUTO_MODE=false`; if `--no-consolidate` is present, set `NO_CONSOLIDATE=true` and `AUTO_MODE=false`; if `--rebase` is present, set `REBASE_MODE=true`. Parse `--scope-plan <path>` at most once and store its raw value without using it in a command. Ignore a leftover `--auto`: auto mode is already the default. Reject other unknown flags, duplicate valued flags, missing values, and positional arguments.
+Before Step 1, parse `$ARGUMENTS`. Initialize `AUTO_MODE=true`. If `--fixup` is present, set `FIXUP_MODE=true`; if `--manual` is present, set `AUTO_MODE=false`; if `--no-consolidate` is present, set `NO_CONSOLIDATE=true` and `AUTO_MODE=false`; if `--rebase` is present, set `REBASE_MODE=true`; if `--no-rebase` is present, set `REBASE_MODE=false`, and reject it together with `--rebase` or `--scope-plan`. Parse `--scope-plan <path>` at most once and store its raw value without using it in a command. Ignore a leftover `--auto`: auto mode is already the default. Reject other unknown flags, duplicate valued flags, missing values, and positional arguments.
 
 When `--scope-plan` is present, reject `--fixup` and `--rebase`, require `--no-consolidate`, read `references/scoped-plan.md` completely, and follow it before Step 1 and at every edit, staging, commit, push, wait, blocker, and success boundary below. It validates the archive and sets `PLAN_SCOPE_ACTIVE=true`, `PLAN_SCOPE_MODE`, `VALIDATED_SCOPE_PATHS`, `{scope-base-commit}`, `{validated-scope-plan}`, `{validated-plan-branch}`, and `SCOPED_PLAN_LIFECYCLE=initial|post-create|recovery`. Otherwise set `PLAN_SCOPE_ACTIVE=false`.
 
@@ -85,6 +86,8 @@ If the left count is non-zero (the base has commits not in the branch), inspect 
 When `PLAN_SCOPE_ACTIVE=true`, fail closed without invoking `/trackbed:pr:rebase` or changing history if that movement plausibly affects CI: the recorded base and checkpoint remain part of the scoped provenance contract, so require a refreshed or explicitly re-authorized scoped plan before continuing. Otherwise note the drift and continue iterating.
 
 When `PLAN_SCOPE_ACTIVE=false` and `REBASE_MODE=true`, the user already chose: take choice 1 below for any non-zero left count without asking, whether or not the movement looks CI-relevant.
+
+When `PLAN_SCOPE_ACTIVE=false` and `REBASE_MODE=false`, the caller already chose: take choice 2 below for any non-zero left count without asking.
 
 When `PLAN_SCOPE_ACTIVE=false`, `REBASE_MODE` is unset, and `AUTO_MODE=true`, decide from that inspection instead of asking: take choice 2 when the base movement clearly cannot affect CI for this Pull Request (for example, only unrelated paths moved); take choice 1 when it plausibly does, unless `gh pr view --json reviewDecision` reports `APPROVED` or `gh pr checks` shows every check passing, because a force-push there restarts green CI and can dismiss approvals for no gain. State the decision and its evidence in one line. Ask only when in doubt, which includes that approved-or-green case.
 
@@ -304,7 +307,7 @@ If disablement is genuinely warranted — a confirmed false positive, a test tha
 - **`--manual`**: Working with others, want visible iteration history, prefer to choose how to consolidate at the end
 - **`--fixup`**: Working alone, want clean history throughout, comfortable with force push
 - **`--no-consolidate`**: Working in a context where history rewrite is undesirable and `[FIX PIPELINE]` commits should remain visible
-- **Behind the base**: `--rebase` and auto mode settle whether to rebase as described in Step 2; an unscoped `--manual` or `--no-consolidate` run asks
+- **Behind the base**: `--rebase`, `--no-rebase`, and auto mode settle whether to rebase as described in Step 2; an unscoped `--manual` or `--no-consolidate` run asks
 
 ---
 

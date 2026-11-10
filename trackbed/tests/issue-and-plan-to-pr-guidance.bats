@@ -241,7 +241,7 @@
     ! grep -qF "PLAN_SCOPE_ACTIVE" "$shipping"
     grep -qF "Set \`{fix-ci-invocation}\` to the exact scoped value" "$shipping"
     grep -qF "the same \`--scope-plan {validated-scope-plan}\`" "$shipping"
-    grep -qF "argument-hint: \"[--fixup] [--manual] [--no-consolidate] [--rebase] [--scope-plan <archived-plan>]\"" "$fix_ci"
+    grep -qF "argument-hint: \"[--fixup] [--manual] [--no-consolidate] [--rebase|--no-rebase] [--scope-plan <archived-plan>]\"" "$fix_ci"
     grep -qF "SCOPED_PLAN_LIFECYCLE=initial|post-create|recovery" "$fix_ci"
     grep -qF "SCOPED_PLAN_LIFECYCLE=post-create" "$fix_ci_scope"
     grep -qF "records \`Publication state: absent\` from non-ship completion" "$fix_ci_scope"

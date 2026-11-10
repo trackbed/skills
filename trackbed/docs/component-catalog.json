@@ -269,7 +269,7 @@
     },
     {
       "name": "trackbed:pr:github-review-reply",
-      "invocation": "User",
+      "invocation": "User, Auto",
       "path": "trackbed/skills/pr:github-review-reply/SKILL.md"
     },
     {
@@ -306,6 +306,11 @@
       "name": "trackbed:pr:review-queue",
       "invocation": "User, Auto",
       "path": "trackbed/skills/pr:review-queue/SKILL.md"
+    },
+    {
+      "name": "trackbed:pr:shape-up",
+      "invocation": "User",
+      "path": "trackbed/skills/pr:shape-up/SKILL.md"
     },
     {
       "name": "trackbed:pr:stack",

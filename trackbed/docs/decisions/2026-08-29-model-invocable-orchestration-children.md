@@ -2,7 +2,7 @@
 
 - Status: ACCEPTED
 - Date: 2026-08-29
-- Amended: 2026-10-15, 2026-10-21, 2026-10-27, 2026-10-31, 2026-11-02, 2026-11-09
+- Amended: 2026-10-15, 2026-10-21, 2026-10-27, 2026-10-31, 2026-11-02, 2026-11-09, 2026-11-10
 - Deciders: repository maintainers
 - First safety review: 2026-11-29
 
@@ -58,6 +58,17 @@ Amended 2026-11-09. `trackbed:linear:next` Step 10 does not invoke `trackbed:lin
 - `trackbed:linear:issue-to-pr` honors `--launch-confirmed` only when the state it resolves at its own gate has type exactly `unstarted`. Started, completed, and canceled issues still get the gate's question, and `backlog` needs no confirmation. The parent's race close still applies: if the state changes before delegation, the gate runs again on the new state.
 - The flag is accepted only from that launch message or from the user typing it. A model never adds it on its own initiative or infers it from an environment variable, a setting, or an earlier run. It has no effect with `--continue`, which never transitions the issue.
 - This changes only who answers the parent's confirmation. The `--set-in-progress` status handoff, the child's write, and its read-back verification are unchanged.
+
+### Pull Request shape-up delegations
+
+Amended 2026-11-10. `trackbed:pr:shape-up` is a user-only parent that gets an open Pull Request ready to merge: it rebases a branch that is behind its target, fixes failing CI, and fixes and answers comments from AI reviewers. It changes nothing itself and adds these exact edges. Direct user invocation of each child is unchanged.
+
+- `trackbed:pr:fix-ci` is also model-invocable as the branch pass of `trackbed:pr:shape-up`, which passes exactly `--rebase --no-consolidate` in its first round and exactly `--no-rebase --no-consolidate` in each later round. `--rebase` records that the user asked for a Pull Request behind its target to be rebased, and that rebase still runs through the existing `trackbed:pr:fix-ci` to `trackbed:pr:rebase --force-push` edge with every rebase gate. `--no-rebase` keeps a later round from rebasing again or asking, so a run rebases at most once. `--no-consolidate` turns off auto mode, so no pass rewrites history a second time. No other parent passes `--rebase` or `--no-rebase`.
+- `trackbed:pr:github-review-reply` becomes model-invocable as the reply pass of `trackbed:pr:shape-up`, which passes exactly `--post --resolve --bot-only --no-implement --inline`, with no Pull Request URL and no instructions. Under that delegation the child edits no file, never invokes `trackbed:pr:resolve-review`, and drafts no reply to a person, because `--bot-only` drops every item that contains feedback from a person. The user's shape-up request is the request to post replies to bot and app reviewers that the child's Step 8 requires. The child keeps its pending-review, fix-on-head, per-item re-check, `answered-unresolved` confirmation, and rate-limit gates.
+- Outside that delegation, a model caller of `trackbed:pr:github-review-reply` never adds `--auto`, `--implement`, `--post`, or `--resolve` on its own initiative, so a model-initiated run maps feedback and drafts replies only. Those flags need the user's own request, typed on the command or asked for in the message being answered.
+- `trackbed:pr:shape-up` invokes both children from its own session, never from a subagent, and never invokes `trackbed:pr:rebase` directly.
+
+Shape-up delegates instead of answering comments itself for the reason given under Alternatives Considered: a second copy of the reply workflow would drift. Letting the reply pass implement fixes was rejected because the reply skill never commits or pushes, so the parent would need its own stack-aware publish step; the branch pass already validates review feedback and pushes its fixes. This makes one more skill visible to the model, so its description stays short and names its parent. Focused tests pin both hand-offs and both child contracts.
 
 ## Consequences
 
