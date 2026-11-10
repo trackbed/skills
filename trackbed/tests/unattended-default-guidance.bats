@@ -20,22 +20,57 @@ setup() {
 }
 
 @test "auto mode is reserved for direct users and named delegations" {
-	local direct='A direct user invocation means the user typed the slash command or `$` mention, or asked for this skill by name in this session.'
 	local other='Every other invocation runs as `--manual`, whether or not it passes that flag, including one where the model picks this skill for a request that does not name it.'
 
 	for skill in "$RECREATE" "$CREATE" "$FIX_CI"; do
-		grep -qF "$direct" "$skill"
 		grep -qF "$other" "$skill"
 	done
 	grep -qF 'Auto mode is reserved for a direct user invocation and for that guarded delegation.' "$RECREATE"
 	grep -qF 'Auto mode is reserved for a direct user invocation and for those two parent delegations, which always pass `--require-generated-description`.' "$CREATE"
 	grep -qF 'Auto mode is reserved for a direct user invocation and for that `trackbed:pr:rebase` delegation.' "$FIX_CI"
 
-	grep -qF "$direct" "$REBASE"
 	grep -qF 'Every other invocation without `--force-push` runs as `--manual`, whether or not it passes that flag, including one where the model picks this skill for a request that does not name it.' "$REBASE"
 
-	grep -qF 'or asked for this skill by name in this session, because that mode may mutate an existing Pull Request.' "$DESCRIBE"
+	grep -qF 'Omitting `--no-update` is reserved for a direct user invocation, as defined below, because that mode may mutate an existing Pull Request.' "$DESCRIBE"
 	grep -qF 'Treat any other invocation that omits it as if it had passed `--no-update`, including one where the model picks this skill for a request that does not name it.' "$DESCRIBE"
+}
+
+@test "a direct invocation covers only the current request" {
+	local marker='Synced direct-invocation contract (keep aligned across auto-default shipping skills):'
+	local current="A direct user invocation is the user's current message asking for this skill, and it covers only the request that message makes."
+	local saved="A saved prompt the host sends as that message, such as a host's PR-creation instructions, counts the same way."
+	local start='A slash command or `$` mention at the start of the message invokes this skill directly.'
+	local later="The skill's name later in the message, written as its own word, permits a run for that message only, and only when the wording asks for one."
+	local discuss='A mention that only discusses the skill permits no run, and a request in an earlier message never authorizes a later run.'
+	local agent='A request that reaches this skill through another agent, including a subagent that preloads it, is not a direct request; only the guarded parent delegations this skill names are excepted, and each keeps only the authority this skill gives it.'
+
+	for skill in "${SHIPPING_SKILLS[@]}"; do
+		grep -qF "$marker $current $saved $start $later $discuss $agent" "$skill"
+		! grep -qF 'by name in this session' "$skill" || false
+	done
+
+	run python3 - "$REPO_ROOT/scripts/synced-contracts.yaml" <<'PY'
+import json, sys
+contracts = {c["name"]: c for c in json.load(open(sys.argv[1]))["text_contracts"]}
+contract = contracts["direct-invocation-scope"]
+assert contract["inventory"]["marker"] == "Synced direct-invocation contract (keep aligned across auto-default shipping skills):"
+assert sorted(contract["paths"]) == sorted(
+    f"trackbed/skills/{name}/SKILL.md"
+    for name in ("git:recreate-commits", "pr:create", "pr:fix-ci", "pr:generate-description", "pr:rebase")
+)
+PY
+	[ "$status" -eq 0 ]
+}
+
+@test "the direct-invocation amendment is recorded and documented" {
+	local adr="$REPO_ROOT/docs/decisions/2026-10-31-unattended-default-for-shipping-skills.md"
+
+	grep -qF '## Amendment (2026-11-10)' "$adr"
+	grep -qF 'Session-wide consent is retired.' "$adr"
+	grep -qF 'Counting only typed commands as direct stays rejected' "$adr"
+	grep -qF 'Keeping session-wide consent was rejected' "$adr"
+	grep -qF -- "- The default covers only the message being answered" "$REPO_ROOT/docs/shipping.md"
+	! grep -qF 'requests that name the skill, and the parent delegations' "$REPO_ROOT/docs/shipping.md"
 }
 
 @test "no component passes --auto to the shipping skills" {

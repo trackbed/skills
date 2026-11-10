@@ -13,7 +13,7 @@ The interactive default was also a safety property: a caller that forgot a flag 
 ## Decision
 
 - All five skills default to auto mode, the behavior `--auto` used to select, and take `--manual` to restore what the no-flag invocation used to do. `--auto` leaves their interfaces. A leftover `--auto` is ignored so saved prompts keep working.
-- Auto mode belongs to a direct user invocation, meaning a typed slash command or `$` mention or a request in the session that names the skill, and to the parent delegations each skill names. A saved PR-creation prompt that names `trackbed:pr:create` therefore gets auto mode. Every other invocation runs as `--manual`, whether or not it passes that flag, including one where the model picks the skill for a request that does not name it. `trackbed:pr:generate-description` instead treats such a call as `--no-update`, because its generated text has no side effect until it edits a Pull Request.
+- Auto mode belongs to a direct user invocation, meaning a typed slash command or `$` mention or a request in the session that names the skill, and to the parent delegations each skill names. A saved PR-creation prompt that names `trackbed:pr:create` therefore gets auto mode. Every other invocation runs as `--manual`, whether or not it passes that flag, including one where the model picks the skill for a request that does not name it. `trackbed:pr:generate-description` instead treats such a call as `--no-update`, because its generated text has no side effect until it edits a Pull Request. [Amended 2026-11-10](#amendment-2026-11-10): a direct invocation covers only the request being answered.
 - `trackbed:pr:rebase` takes its former `--auto` behavior in full, including continuing past red flags and pushing without verification. The maintainer chose this knowingly.
 - `--force-push` now overrides that default instead of losing to it, so `trackbed:pr:fix-ci` and `trackbed:pr:create --rebase`, which both pass it, keep every rebase gate.
 - `--no-consolidate` turns off auto mode in `trackbed:pr:fix-ci`. Otherwise `trackbed:linear:issue-to-pr --ship` and `trackbed:code:plan-to-pr --ship` would inherit an unattended rebase decision and break their promise not to rewrite an open Pull Request. Their invocations stay byte-identical.
@@ -50,3 +50,18 @@ Rejected because a saved prompt that names the skill, such as a host's PR-creati
 ### Let model callers inherit the default
 
 Rejected because a model call that dropped a flag would rewrite history or force-push with no human in the loop, which the guarded exceptions exist to prevent.
+
+## Amendment (2026-11-10)
+
+The Decision above counted a request "in the session" that names the skill as a direct invocation. That let an early by-name request authorize a later history rewrite or force-push that the model started on its own. The Claude Code [skills documentation](https://code.claude.com/docs/en/skills) ("Control who invokes a skill") limits the consent a skill name carries to the message that contains it, so the five skills now use the same narrower rule.
+
+- A direct invocation covers only the request being answered: the user's current message decides it. Session-wide consent is retired.
+- A slash command or `$` mention at the start of the message invokes the skill directly.
+- The skill's name later in the message, written as its own word, permits a run for that message only, and only when the wording asks for one.
+- A mention that only discusses the skill permits no run, and a request in an earlier message never authorizes a later run.
+- A saved prompt that the host sends as the user's message, such as a host's PR-creation instructions, is the current request and keeps auto mode. Counting only typed commands as direct stays rejected for the reason in Alternatives Considered.
+- A request that reaches a skill through another agent, including a subagent that preloads it, is not a direct request. The guarded parent delegations each skill names, such as the `trackbed:pr:create` handoff to `trackbed:git:recreate-commits`, remain the only exception and keep only the authority their contract gives them.
+
+Keeping session-wide consent was rejected because a by-name request early in a session would keep authorizing unattended history rewrites and force-pushes for the rest of it, long after the request it answered was done.
+
+All five skills carry this rule as one synced paragraph that the skill-contract linter keeps identical. Like the rest of the model-invocation contracts, it is advisory: focused tests pin the wording, but nothing enforces it at run time.

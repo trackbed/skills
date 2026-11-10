@@ -91,6 +91,21 @@
       ]
     },
     {
+      "name": "direct-invocation-scope",
+      "extract_regex": "Synced direct-invocation contract \\(keep aligned across auto-default shipping skills\\):\\s*(A direct user invocation is the user's current message asking for this skill, .*?each keeps only the authority this skill gives it\\.)",
+      "inventory": {
+        "glob": "trackbed/skills/**/*.md",
+        "marker": "Synced direct-invocation contract (keep aligned across auto-default shipping skills):"
+      },
+      "paths": [
+        "trackbed/skills/git:recreate-commits/SKILL.md",
+        "trackbed/skills/pr:create/SKILL.md",
+        "trackbed/skills/pr:fix-ci/SKILL.md",
+        "trackbed/skills/pr:generate-description/SKILL.md",
+        "trackbed/skills/pr:rebase/SKILL.md"
+      ]
+    },
+    {
       "name": "siw-spec-exclusion-list",
       "extract_regex": "Synced SIW spec-exclusion contract \\(keep aligned across SIW spec detectors\\):\\s*(LOG\\.md,\\s*OPEN_ISSUES_OVERVIEW\\.md,\\s*DISCOVERY_BRIEF\\.md,\\s*SPEC_STRENGTHENING_PLAN\\.md,\\s*AUDIT_\\*\\.md,\\s*PRODUCT_AUDIT\\.md,\\s*SIW_\\*\\.md\\.)",
       "inventory": {
