@@ -294,6 +294,11 @@
     },
     {
       "kind": "guidance",
+      "suite": "trackbed/tests/api-design-guidance.bats",
+      "skills": ["trackbed/skills/code:api-design/SKILL.md"]
+    },
+    {
+      "kind": "guidance",
       "suite": "trackbed/tests/debug-root-cause-guidance.bats",
       "skills": [
         "trackbed/skills/debug:investigate/SKILL.md",
