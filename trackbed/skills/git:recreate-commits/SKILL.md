@@ -203,6 +203,8 @@ Synced Conductor workspace boundary contract (keep aligned across git-mutating w
 
    Flatten the tree into a linear commit sequence that tells a coherent narrative — each step should reflect a logical stage of development, as if writing a tutorial. If two planned commits would need the same summary sentence, they are one commit.
 
+   **Build order.** At coarse and medium granularity, order the storyline so every commit builds: put definitions before their uses, and configuration before the code that reads it. Fine and atomic granularity may keep intermediate commits that do not build.
+
 5. **Reimplement the work**
    - Before resetting, unless `--authorize-history-rewrite` was passed or (auto mode is active and `IN_STACK=false`), obtain the applicable confirmation. The original tip is preserved at `BACKUP_REF`, so the reset is recoverable, but destructive to the working tree. Auto or explicit authorization skips only this prompt within the boundary described above, not the backup or validation requirements.
      - If `IN_STACK=false`, confirm that the user authorizes rewriting `ORIGINAL_BRANCH`.
@@ -236,6 +238,9 @@ Synced Conductor workspace boundary contract (keep aligned across git-mutating w
    - Rebuild the changes commit by commit. To guarantee a byte-identical end state, source the final content from `$ORIGINAL_TIP` rather than retyping it (retyping is how extra lines and drift creep in):
      - Whole-file commits: `git checkout "$ORIGINAL_TIP" -- <paths>`, then commit.
      - Sub-file (fine/atomic) commits: `git checkout -p "$ORIGINAL_TIP" -- <path>` (or `git restore -p --source "$ORIGINAL_TIP" <path>`) and stage only the hunks that belong to this commit.
+   - Before each commit, compare the staged change with that commit's planned summary: read `git diff --cached`, then unstage every hunk that belongs to another planned commit and drop it from the working tree with `git restore --staged --worktree --source=HEAD -p -- <path>`; that commit sources it from `$ORIGINAL_TIP` again. A staged hunk that no planned commit owns means the plan is incomplete; fix the plan before committing.
+   - Claude Code v2.1.286 and later tell Claude to run a session's `verify` or `simplify` skill right before each commit. Skip that run during this replay unless the user asks for it, because every commit replays content already in `$ORIGINAL_TIP`. Never keep edits such a run makes; restore the planned content from `$ORIGINAL_TIP` before committing.
+   - Commit-time hooks that auto-fix files can rewrite staged content. After each commit, require `git status --porcelain` to be empty and every path the commit completes to match `$ORIGINAL_TIP` (`git diff --quiet "$ORIGINAL_TIP" HEAD -- <paths>`), rather than leaving drift for the Step 6 identity check. On drift, source the planned content from `$ORIGINAL_TIP` again and amend the commit once; if a hook rewrites it again, treat that as a hook failure under Step 6.
    - Each commit must:
      - Introduce a single coherent idea.
      - Include a subject in the resolved convention and a body that explains why when non-obvious, per the shared reference.
@@ -243,9 +248,9 @@ Synced Conductor workspace boundary contract (keep aligned across git-mutating w
 
 6. **Verify correctness**
    - Confirm the final tree matches the original exactly: `git diff "$ORIGINAL_TIP" HEAD` must be empty. If it is non-empty, the recreation is wrong — fix it before continuing (recover with `git reset --hard "$BACKUP_REF"` if you need to start over).
-   - `git commit --no-verify` (skips commit-time hooks such as linters and formatters) is allowed only when necessary to get past a known-failing intermediate state. Individual commits need not pass tests, but this should be the exception, not the rule. Note this is distinct from `git push --no-verify`, which skips pre-push hooks (see the push step).
+   - At fine and atomic granularity only, an intermediate commit may fail to build, and `git commit --no-verify` (skips commit-time hooks such as linters and formatters) is allowed only when necessary to get past such a known-failing state or a hook that keeps rewriting a planned commit. This should be the exception, not the rule. At coarse and medium granularity, never use `--no-verify`: when a commit-time hook fails or keeps rewriting a planned commit, reorder or merge the planned commits until each one passes. If no order does, stop and report the failing hook, the planned commit it rejected, and `git reset --hard "$BACKUP_REF"` as the recovery. Note this is distinct from `git push --no-verify`, which skips pre-push hooks (see the push step).
 
-   It is essential that the end state of the branch be byte-identical to the original end state (`$ORIGINAL_TIP`); intermediate commits not building is tolerable, a wrong end state is not.
+   It is essential that the end state of the branch be byte-identical to the original end state (`$ORIGINAL_TIP`); at fine and atomic granularity intermediate commits not building is tolerable, a wrong end state never is.
 
 7. **Restack locally, then sync the remote** (remote sync only when enabled, with confirmation or explicit authorization)
    - If `IN_STACK=true`, the rewrite has orphaned every branch stacked above it. Restack the local chain immediately after final-tree verification and **before** any `--no-push` or local-only early exit:
@@ -295,10 +300,10 @@ Synced Conductor workspace boundary contract (keep aligned across git-mutating w
    - <anything noticed while rewriting that was deliberately left in its original shape; "None" if nothing>
 
    POTENTIAL CONCERNS:
-   - <risk items for the user: force-push needed, --no-verify usage, commits that individually don't build; "None" if nothing>
+   - <risk items for the user: force-push needed, --no-verify usage, commits known or suspected not to build, planned commits merged or reordered because of a hook; "None" if nothing>
    ```
 
-   Label casing must match exactly: `CHANGES MADE`, `THINGS I DIDN'T TOUCH`, `POTENTIAL CONCERNS`. All three blocks must be present even if one is "None".
+   Label casing must match exactly: `CHANGES MADE`, `THINGS I DIDN'T TOUCH`, `POTENTIAL CONCERNS`. All three blocks must be present even if one is "None". `POTENTIAL CONCERNS` names every commit known or suspected not to build, by short SHA and subject, at any granularity.
 
 ## Single-Commit Fast Path
 
@@ -322,6 +327,7 @@ fi
 
 - One non-merge commit directly on the reset point is reworded in place; amend keeps its author and tree. Any other range, including one that contains a merge, is squashed: `verify-rewrite-state.sh` proved a clean index and worktree, so after the soft reset the index still holds `$ORIGINAL_TIP`'s tree and the new commit carries it.
 - A rejected amend leaves HEAD unchanged. Recover from any failure after the soft reset with `git reset --hard "$BACKUP_REF"`.
+- The Step 5 rule that skips a pre-commit `verify` or `simplify` run applies to this commit too.
 - Never move or delete `BACKUP_REF`. Step 6's empty `git diff "$ORIGINAL_TIP" HEAD` check, Step 7's restack and publication rules, and Step 8's summary apply unchanged.
 - In Step 8's `CHANGES MADE`, name the path taken: "reworded the single commit in place" or "squashed N commits into one".
 

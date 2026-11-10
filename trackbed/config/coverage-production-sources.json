@@ -550,6 +550,11 @@
       "skills": ["trackbed/skills/qa:intake/SKILL.md"]
     },
     {
+      "kind": "guidance",
+      "suite": "trackbed/tests/recreate-commits-guidance.bats",
+      "skills": ["trackbed/skills/git:recreate-commits/SKILL.md"]
+    },
+    {
       "kind": "executable",
       "suite": "trackbed/tests/recreate-commits-push-target.bats",
       "skills": ["trackbed/skills/git:recreate-commits/SKILL.md"]
