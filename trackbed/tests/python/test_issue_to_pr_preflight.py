@@ -213,6 +213,7 @@ class ArgumentTests(HelperCase):
             "continue_mode": False,
             "strict_review": False,
             "adversarial_review": False,
+            "launch_confirmed": False,
             "ship_mode": False,
             "cycles": 2,
             "cycles_explicit": False,
@@ -230,7 +231,9 @@ class ArgumentTests(HelperCase):
         self.assertEqual(payload["issue_id"], "ABC-7")
         self.assertTrue(payload["continue_mode"] and payload["strict_review"] and payload["ship_mode"])
         self.assertIs(payload["adversarial_review"], True)
+        self.assertIs(payload["launch_confirmed"], False)
         self.assertEqual((payload["cycles"], payload["cycles_explicit"]), (5, True))
+        self.assertIs(self.invoke("args", "--", "DISC-1 --ship --launch-confirmed")["launch_confirmed"], True)
         self.assertIsNone(payload["depth"])
         for depth in ("balanced", "full"):
             self.assertEqual(self.invoke("args", "--", f"DISC-1 --depth {depth} --ship")["depth"], depth)
@@ -251,6 +254,7 @@ class ArgumentTests(HelperCase):
             "--continue DISC-1 --continue": "duplicate_flag",
             "DISC-1 --cycles 2 --cycles 3": "duplicate_flag",
             "DISC-1 --adversarial-review --adversarial-review": "duplicate_flag",
+            "DISC-1 --launch-confirmed --launch-confirmed": "duplicate_flag",
             "DISC-1 --force": "unknown_flag",
             "DISC-1 --cycles=3": "unknown_flag",
             "DISC-1 --STRICT": "unknown_flag",
@@ -297,6 +301,7 @@ class ArgumentTests(HelperCase):
                         "--cycles <1-5>",
                         "--depth <balanced|full>",
                         "--adversarial-review",
+                        "--launch-confirmed",
                         "--ship",
                     ],
                 )
