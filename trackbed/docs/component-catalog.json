@@ -444,7 +444,7 @@
     },
     {
       "name": "trackbed:workflow:wizard",
-      "invocation": "User",
+      "invocation": "User, Auto",
       "path": "trackbed/skills/workflow:wizard/SKILL.md"
     }
   ],
