@@ -359,6 +359,7 @@ Each row gives a one-line summary. The full description lives in the skill's `SK
 
 | I want to… | Use |
 | --- | --- |
+| Find which trackbed skill fits my task, or what to run next | `/trackbed:workflow:suggest-next` |
 | Turn a vague idea into clear requirements | `/trackbed:discovery:interview` |
 | Chart an initiative too big or foggy to plan in one session | `/trackbed:discovery:wayfinder` |
 | Get a cited answer from primary sources | `/trackbed:research` |
@@ -563,13 +564,14 @@ Create and review plugin skills.
 
 #### Workflow & Configuration
 
-Environment checks, verification, artifact cleanup, guided setup scripts, session review, and hook configuration.
+Environment checks, verification, next-skill suggestions, artifact cleanup, guided setup scripts, session review, and hook configuration.
 
 | Skill | Invocation | Arguments | Description |
 | --- | --- | --- | --- |
 | `/trackbed:setup` | User, Auto | `[--json\|--help]` | Run a read-only health check of the tools, repository context, plugin version, and workspace this plugin depends on. |
 | `/trackbed:verify:run` | User, Auto | `[--fast \| --full] [--force] [--base <branch> [--base-commit <oid>]]` | Run the project's tests, linting, formatting, builds, and type checks for affected code; `--fast` runs the quick tier. |
 | `/trackbed:workflow:cleanup-artifacts` | User, Auto | `[--auto \| --siw]` | Delete disposable workflow artifacts such as review, audit, and QA reports, plans, and diagrams; `--siw` retires the `siw/` workspace. |
+| `/trackbed:workflow:suggest-next` | User, Auto | `[question]` | Suggest at most three trackbed commands for a task or for the artifacts in your workspace, read from the installed skills. Read-only. |
 | `/trackbed:workflow:wizard` | User, Auto | `[procedure description or target script path]` | Generate an interactive Bash wizard for manual procedures such as third-party setup, one-off migrations, or CI secrets. |
 | `/trackbed:hooks:toggle` | User | `<status\|reset\|hook-name> [enable\|disable]` | Enable, disable, list, or reset this plugin's hooks. |
 | `/trackbed:session:automate-repeats` | User | `[session-paths or --recent N] [--effectiveness] [--create\|--auto]` | Review recent agent sessions for repeated work and friction, and suggest skill improvements or new automation. |
@@ -889,6 +891,7 @@ Reviewed at commit `403d8881d62022490637d740657b33f01e321ea8`, the Codex integra
 - The failure-signal, rollback, and running-cost checks in `trackbed:siw:spec-audit` and `trackbed:docs:review`: Informed by the cost, migration, and observability lenses in [egm-brainstorm](https://github.com/google/elephant-goldfish-model/blob/403d8881d62022490637d740657b33f01e321ea8/skills/egm-brainstorm/SKILL.md).
 - Rejected approaches in `trackbed:docs:feature-spec`: Informed by [egm-draft](https://github.com/google/elephant-goldfish-model/blob/403d8881d62022490637d740657b33f01e321ea8/skills/egm-draft/SKILL.md).
 - Where `trackbed:docs:adr` may take deciders from: Informed by the rejection-attribution change to [egm-draft](https://github.com/google/elephant-goldfish-model/blob/de27902a154c4a92dd52aac50082d53873e6ac91/skills/egm-draft/SKILL.md) in [#249](https://github.com/google/elephant-goldfish-model/pull/249), reviewed at commit `de27902a154c4a92dd52aac50082d53873e6ac91`.
+- `trackbed:workflow:suggest-next`: Informed by the draft [EGM Ask design](https://github.com/google/elephant-goldfish-model/blob/394aa38db6ceb641d4e37adc552e0a56535aa093/docs/designs/ask.md) from [#218](https://github.com/google/elephant-goldfish-model/pull/218), reviewed at commit `394aa38db6ceb641d4e37adc552e0a56535aa093`.
 - The contest and escalate rules in `trackbed:siw:resolve-audit` and `trackbed:pr:resolve-review`: Informed by [egm-resolve](https://github.com/google/elephant-goldfish-model/blob/403d8881d62022490637d740657b33f01e321ea8/skills/egm-resolve/SKILL.md).
 
 ### Other sources

@@ -1837,6 +1837,7 @@
       "trackbed:visual:check-slop": "Run a deterministic check for AI-style UI patterns in HTML screens; `--fix` applies safe fixes.",
       "trackbed:visual:explain": "Generate a self-contained HTML page that explains a system, change, plan, or data visually; `--onboarding` builds a codebase guide.",
       "trackbed:workflow:cleanup-artifacts": "Delete disposable workflow artifacts such as review, audit, and QA reports, plans, and diagrams; `--siw` retires the `siw/` workspace.",
+      "trackbed:workflow:suggest-next": "Suggest at most three trackbed commands for a task or for the artifacts in your workspace, read from the installed skills. Read-only.",
       "trackbed:workflow:wizard": "Generate an interactive Bash wizard for manual procedures such as third-party setup, one-off migrations, or CI secrets."
     }
   },

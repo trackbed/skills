@@ -443,6 +443,11 @@
       "path": "trackbed/skills/workflow:cleanup-artifacts/SKILL.md"
     },
     {
+      "name": "trackbed:workflow:suggest-next",
+      "invocation": "User, Auto",
+      "path": "trackbed/skills/workflow:suggest-next/SKILL.md"
+    },
+    {
       "name": "trackbed:workflow:wizard",
       "invocation": "User, Auto",
       "path": "trackbed/skills/workflow:wizard/SKILL.md"
