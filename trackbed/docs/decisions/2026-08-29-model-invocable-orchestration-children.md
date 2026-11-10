@@ -2,7 +2,7 @@
 
 - Status: ACCEPTED
 - Date: 2026-08-29
-- Amended: 2026-10-15, 2026-10-21, 2026-10-27, 2026-10-31, 2026-11-02
+- Amended: 2026-10-15, 2026-10-21, 2026-10-27, 2026-10-31, 2026-11-02, 2026-11-09
 - Deciders: repository maintainers
 - First safety review: 2026-11-29
 
@@ -48,6 +48,16 @@ These hand-off repairs need no side-effect exception:
 - `trackbed:docs:update-agents-md` becomes user-invocable and model-disabled, so the user routes in `trackbed:docs:adr` and `trackbed:docs:feature-spec` point at a command the user can run.
 
 `trackbed:pr:code-review --loop` is not an authorized parent of `trackbed:pr:resolve-review`. Its closeout loop fixes accepted findings directly and may recommend `/trackbed:pr:resolve-review` to the user.
+
+### Launch-time confirmation
+
+Amended 2026-11-09. `trackbed:linear:next` Step 10 does not invoke `trackbed:linear:issue-to-pr` through the Skill tool. It starts a new Conductor cloud workspace whose first message runs the parent, so nobody is in that workspace to answer the parent's confirmation before it moves a non-backlog issue to its started status. Without this amendment, every launched To-do issue stopped at that gate.
+
+- The user's yes to the launch question in `trackbed:linear:next` also answers `trackbed:linear:issue-to-pr`'s started-state confirmation, but only for issues whose state type is `unstarted`.
+- `cloud-launch.py` writes `--launch-confirmed` into the first message, and only for the confirmed issues the skill named as `unstarted` in that run. A model never composes or edits that message.
+- `trackbed:linear:issue-to-pr` honors `--launch-confirmed` only when the state it resolves at its own gate has type exactly `unstarted`. Started, completed, and canceled issues still get the gate's question, and `backlog` needs no confirmation. The parent's race close still applies: if the state changes before delegation, the gate runs again on the new state.
+- The flag is accepted only from that launch message or from the user typing it. A model never adds it on its own initiative or infers it from an environment variable, a setting, or an earlier run. It has no effect with `--continue`, which never transitions the issue.
+- This changes only who answers the parent's confirmation. The `--set-in-progress` status handoff, the child's write, and its read-back verification are unchanged.
 
 ## Consequences
 
