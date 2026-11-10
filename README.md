@@ -570,7 +570,7 @@ Environment checks, verification, artifact cleanup, guided setup scripts, sessio
 | `/trackbed:setup` | User, Auto | `[--json\|--help]` | Run a read-only health check of the tools, repository context, plugin version, and workspace this plugin depends on. |
 | `/trackbed:verify:run` | User, Auto | `[--fast \| --full] [--force] [--base <branch> [--base-commit <oid>]]` | Run the project's tests, linting, formatting, builds, and type checks for affected code; `--fast` runs the quick tier. |
 | `/trackbed:workflow:cleanup-artifacts` | User, Auto | `[--auto \| --siw]` | Delete disposable workflow artifacts such as review, audit, and QA reports, plans, and diagrams; `--siw` retires the `siw/` workspace. |
-| `/trackbed:workflow:wizard` | User | `[procedure description or target script path]` | Generate an interactive Bash wizard for manual procedures such as third-party setup, one-off migrations, or CI secrets. |
+| `/trackbed:workflow:wizard` | User, Auto | `[procedure description or target script path]` | Generate an interactive Bash wizard for manual procedures such as third-party setup, one-off migrations, or CI secrets. |
 | `/trackbed:hooks:toggle` | User | `<status\|reset\|hook-name> [enable\|disable]` | Enable, disable, list, or reset this plugin's hooks. |
 | `/trackbed:session:automate-repeats` | User | `[session-paths or --recent N] [--effectiveness] [--create\|--auto]` | Review recent agent sessions for repeated work and friction, and suggest skill improvements or new automation. |
 

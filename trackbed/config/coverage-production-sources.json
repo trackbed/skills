@@ -864,7 +864,8 @@
         "trackbed/tests/verify-run-discovery-cache.bats"
       ],
       "trackbed/skills/workflow:wizard/assets/template.sh": [
-        "trackbed/tests/skill-resource-references.bats"
+        "trackbed/tests/skill-resource-references.bats",
+        "trackbed/tests/workflow-wizard-template.bats"
       ]
     }
   }

@@ -1,14 +1,18 @@
 ---
 name: workflow:wizard
-description: "Generates an interactive Bash wizard script for human-run manual procedures: third-party setup, one-off migrations, A-to-B state transitions, local environment values, and GitHub Actions secrets or variables. Use when the user wants a guided setup script that opens URLs, captures values, confirms irreversible steps, and writes local or CI config. Not for running the procedure yourself, ordinary shell automation, or long-lived application code."
+description: "Generates an interactive Bash wizard that walks a human through steps only they can perform: third-party dashboards, credentials and CI secrets, infrastructure provisioning, one-off migrations, and cutovers. Use when a task reaches such a step or the user wants a guided setup script. Not for steps the agent can complete itself, ordinary shell automation, or long-lived application code."
 argument-hint: "[procedure description or target script path]"
-disable-model-invocation: true
+disable-model-invocation: false
 user-invocable: true
+permissions:
+  - env
 ---
 
 # Workflow Wizard
 
 Generate an interactive Bash wizard that guides a human through a manual procedure. The wizard opens URLs, gives concrete click/copy instructions, captures values, writes local environment-file entries through the template's `ENV_FILE`, sets GitHub Actions secrets or variables when appropriate, and confirms irreversible steps.
+
+When a task reaches a step only a human can perform, such as clicking through a dashboard, creating a credential, provisioning infrastructure, or running a cutover, offer a wizard instead of re-explaining the steps in chat. Do not offer one for steps you can complete with your own tools. The skill writes one script, only after the user confirms the plan in step 2, and never runs it.
 
 **Arguments:** "$ARGUMENTS"
 
@@ -58,10 +62,11 @@ If the current third-party UI, docs, or command syntax is unknown, verify it fro
 
 Copy `assets/template.sh` to the target path, then edit only the `STAGES` section below the marker.
 
+Put every stage inside the `run_wizard` function and keep the final `{ run_wizard "$@"; exit; }` block unchanged. Order the stages so that no stage needs a value, account, or resource that a later stage creates.
+
 Use one focused `stage` per human task. Set:
 
 - `TOTAL_STAGES` to the number of `stage` calls
-- `TOTAL_MINUTES` to an honest total estimate
 - `banner` to a short title naming the procedure
 
 Use the template helpers consistently:
@@ -71,7 +76,7 @@ Use the template helpers consistently:
 - `open_url` before asking for values from a web page
 - `ask` for visible public values
 - `ask_secret` for tokens, passwords, API secrets, private keys, and webhooks
-- `write_env` for every value persisted to the env file
+- `write_env` for every value persisted to the env file; it writes `KEY='value'`
 - `set_secret` only for values actually referenced as `secrets.NAME` in CI
 - `set_var` only for non-secret values referenced as `vars.NAME` in CI
 - `pause` after pure manual actions
@@ -93,6 +98,7 @@ Do not run the wizard end-to-end yourself because it opens browsers and blocks f
 
 Trace the script statically before handoff:
 
+- every stage sits inside `run_wizard`, and no stage depends on something a later stage creates
 - every scoped value is captured once
 - every captured value lands in the planned destination
 - every `ask_secret` value is never printed
