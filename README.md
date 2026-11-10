@@ -711,7 +711,7 @@ Usage records from before the rename count toward the new names. Your settings c
 
 ## Documentation
 
-Browse the documentation at [trackbed-docs.vercel.app](https://trackbed-docs.vercel.app). It has search and a page for every skill and agent, and it is republished with each release.
+Browse the documentation at [trackbed.dev](https://trackbed.dev). It has search and a page for every skill and agent, and it is republished with each release.
 
 Guides in this repository:
 

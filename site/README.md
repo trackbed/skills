@@ -43,10 +43,10 @@ The sync runs when `npm run dev` starts, so restart it to pick up a change to th
 
 The site is deployed when a release Pull Request merges. The [Create Release Tag](../.github/workflows/release-tag.yml) workflow tags the release and then calls [Deploy Docs Site](../.github/workflows/deploy-docs-site.yml), which triggers a Vercel Deploy Hook, and Vercel builds `main` and publishes it. Nothing else deploys: [vercel.json](vercel.json) turns off Vercel's automatic Git deployments, so pushes and Pull Requests build nothing there. The [Docs Site](../.github/workflows/site.yml) workflow builds the site on every Pull Request instead.
 
-The site is at <https://trackbed-docs.vercel.app>, served by the `trackbed-docs` Vercel project. The project holds settings that are not in this repository. To recreate it, apply all of them:
+The site is at <https://trackbed.dev>, served by the `trackbed-docs` Vercel project. `www.trackbed.dev` redirects there, and the project's own `trackbed-docs.vercel.app` address still serves the site. The domain is registered and has its DNS at Vercel, so adding it to the project needed no DNS records. The project holds settings that are not in this repository. To recreate it, apply all of them:
 
 1. **Root Directory** is `site`, with "Include files outside the root directory in the Build Step" left on, because the build reads the repository's README, guides, and components.
-2. Access to System Environment Variables is on. The sitemap and the commit-pinned links read `VERCEL_PROJECT_PRODUCTION_URL` and `VERCEL_GIT_COMMIT_SHA`.
+2. Access to System Environment Variables is on. The sitemap and the commit-pinned links read `VERCEL_PROJECT_PRODUCTION_URL` and `VERCEL_GIT_COMMIT_SHA`. The first is the project's shortest production domain, so after a domain change the canonical links and the sitemap keep the old address until the next deployment.
 3. A Deploy Hook for the `main` branch exists, and its URL is the repository secret `VERCEL_DEPLOY_HOOK_URL`. Treat the URL as a password: anyone who has it can deploy the project. The hook's ID together with the project ID is enough to rebuild the URL, so keep both out of logs.
 4. Preview deployments are disabled, and Vercel's Pull Request comments, commit statuses, and GitHub deployment events are off.
 
@@ -57,6 +57,8 @@ vercel project update trackbed-docs --root-directory site --framework astro --no
 vercel project update trackbed-docs --no-git-pr-comments --no-git-commit-status --no-github-deployment-events
 vercel git connect https://github.com/trackbed/skills --project trackbed-docs
 vercel deploy-hooks create release-workflow --git-branch main --project trackbed-docs
+vercel domains add trackbed.dev trackbed-docs
+vercel domains add www.trackbed.dev trackbed-docs --redirect trackbed.dev --redirect-status-code 308
 ```
 
 The CLI has no flag for disabling preview deployments; set `previewDeploymentsDisabled` to `true` with `PATCH /v9/projects/trackbed-docs` on the Vercel REST API. Connecting the repository needs the Vercel GitHub app installed on the organization, which only an organization owner can do.
