@@ -98,6 +98,7 @@
       "trackbed/skills/linear:next/scripts/cloud-launch.py",
       "trackbed/skills/pr:create/scripts/pr-create-preflight.py",
       "trackbed/skills/workflow:suggest-next/scripts/inventory.py",
+      "trackbed/skills/pr:shape-up/scripts/shape-snapshot.py",
       "trackbed/skills/pr:github-review/scripts/review-delta.py",
       "trackbed/skills/pr:github-review/scripts/stack-overview.py",
       "trackbed/skills/pr:review-convergence/scripts/convergence-state.py",
@@ -281,6 +282,15 @@
       "kind": "guidance",
       "suite": "trackbed/tests/workflow-suggest-next-guidance.bats",
       "skills": ["trackbed/skills/workflow:suggest-next/SKILL.md"]
+    },
+    {
+      "kind": "guidance",
+      "suite": "trackbed/tests/pr-shape-up-guidance.bats",
+      "skills": [
+        "trackbed/skills/pr:shape-up/SKILL.md",
+        "trackbed/skills/pr:fix-ci/SKILL.md",
+        "trackbed/skills/pr:github-review-reply/SKILL.md"
+      ]
     },
     {
       "kind": "guidance",
@@ -480,6 +490,11 @@
       "kind": "executable",
       "suite": "trackbed/tests/python/test_suggest_next_inventory.py",
       "skills": ["trackbed/skills/workflow:suggest-next/SKILL.md"]
+    },
+    {
+      "kind": "executable",
+      "suite": "trackbed/tests/python/test_shape_snapshot.py",
+      "skills": ["trackbed/skills/pr:shape-up/SKILL.md"]
     },
     {
       "kind": "executable",
