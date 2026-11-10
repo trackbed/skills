@@ -42,12 +42,14 @@ SUPPORTED_FLAGS = [
     "--cycles <1-5>",
     "--depth <balanced|full>",
     "--adversarial-review",
+    "--launch-confirmed",
     "--ship",
 ]
 BOOLEAN_FLAGS = {
     "--continue": "continue_mode",
     "--strict": "strict_review",
     "--adversarial-review": "adversarial_review",
+    "--launch-confirmed": "launch_confirmed",
     "--ship": "ship_mode",
 }
 VALUE_FLAGS = ("--cycles", "--depth")
