@@ -78,6 +78,18 @@ make -C trackbed verify
 
 Focused targets are listed in [docs/development.md](trackbed/docs/development.md#running-the-tests). Use [docs/code-map.md](trackbed/docs/code-map.md) to map files to likely tests.
 
+### Documentation site
+
+The site under [site/](site/README.md) renders the README, the user-facing guides, and the component sources; it holds no page content of its own. It has its own `package.json` and needs the Node.js version named there. The Docs Site CI job tests and builds it on every Pull Request; `make -C trackbed pr-verify` does not. Run the same checks yourself after changing `site/`, and after moving, renaming, or deleting a file or heading that the README or a guide links to:
+
+```bash
+npm --prefix site ci
+npm --prefix site test
+npm --prefix site run build
+```
+
+The build fails on a link whose target file or heading is gone, and on a README section or guide that [site/scripts/lib/config.mjs](site/scripts/lib/config.mjs) does not place.
+
 ### Optional pre-commit check
 
 Run the fast contributor gate directly before committing:

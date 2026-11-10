@@ -868,6 +868,38 @@ SH
   grep -q 'echo "tag=v\${VERSION}" >>"\$GITHUB_OUTPUT"' "$WORKFLOW"
 }
 
+@test "release tag workflow deploys the docs site once the release is tagged" {
+  WORKFLOW="$BATS_TEST_DIRNAME/../../.github/workflows/release-tag.yml"
+  deploy_job="$(sed -n '/^  deploy-docs:$/,$p' "$WORKFLOW")"
+
+  # The workflow runs only for a merged release Pull Request.
+  grep -q "startsWith(github.event.pull_request.head.ref, 'release/v')" "$WORKFLOW"
+  grep -q 'github.event.pull_request.merged == true' "$WORKFLOW"
+  [ -n "$deploy_job" ]
+  [[ "$deploy_job" == *'    needs: tag'* ]]
+  [[ "$deploy_job" == *'    permissions: {}'* ]]
+  [[ "$deploy_job" == *'    uses: ./.github/workflows/deploy-docs-site.yml'* ]]
+  [[ "$deploy_job" == *'      VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}'* ]]
+}
+
+@test "docs deployment workflow posts the Deploy Hook and skips without the secret" {
+  WORKFLOW="$BATS_TEST_DIRNAME/../../.github/workflows/deploy-docs-site.yml"
+  VERCEL_CONFIG="$BATS_TEST_DIRNAME/../../site/vercel.json"
+
+  grep -q '^  workflow_call:$' "$WORKFLOW"
+  grep -q '^  workflow_dispatch:$' "$WORKFLOW"
+  grep -q '^permissions: {}$' "$WORKFLOW"
+  # The URL is a credential: it reaches the shell through the environment only.
+  [ "$(grep -c 'secrets\.VERCEL_DEPLOY_HOOK_URL' "$WORKFLOW")" -eq 1 ]
+  grep -q '          VERCEL_DEPLOY_HOOK_URL: \${{ secrets.VERCEL_DEPLOY_HOOK_URL }}' "$WORKFLOW"
+  grep -q 'if \[ -z "\$VERCEL_DEPLOY_HOOK_URL" \]; then' "$WORKFLOW"
+  grep -q -- '--request POST --output /dev/null "\$VERCEL_DEPLOY_HOOK_URL"' "$WORKFLOW"
+  grep -q -- 'curl --fail ' "$WORKFLOW"
+  # Only the hook deploys: Vercel must not also deploy every push.
+  [ "$(jq -r '.git.deploymentEnabled' "$VERCEL_CONFIG")" = "false" ]
+  [ "$(jq -r 'has("ignoreCommand")' "$VERCEL_CONFIG")" = "false" ]
+}
+
 @test "Codex publication workflow accepts a release ref and remains tag-triggered" {
   WORKFLOW="$BATS_TEST_DIRNAME/../../.github/workflows/publish-codex-plugin.yml"
 

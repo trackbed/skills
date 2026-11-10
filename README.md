@@ -646,7 +646,7 @@ Update saved prompts and automation before upgrading; the old names no longer re
 
 ### From `kramme-cc-workflow` to `trackbed`
 
-Release 1.0.0 renamed the plugin and its marketplace from `kramme-cc-workflow` to `trackbed`, and the repository moved to `trackbed/skills`. Every skill and agent kept its name but moved from the `kramme:` prefix to the plugin namespace: `/kramme-cc-workflow:kramme:pr:code-review` in Claude Code and `$kramme:pr:code-review` in Codex both become `trackbed:pr:code-review`. The [decision record](kramme-cc-workflow/docs/decisions/2026-11-05-trackbed-plugin-namespace.md) explains why.
+Release 1.0.0 renamed the plugin and its marketplace from `kramme-cc-workflow` to `trackbed`, and the repository moved to `trackbed/skills`. Every skill and agent kept its name but moved from the `kramme:` prefix to the plugin namespace: `/kramme-cc-workflow:kramme:pr:code-review` in Claude Code and `$kramme:pr:code-review` in Codex both become `trackbed:pr:code-review`. The [decision record](trackbed/docs/decisions/2026-11-05-trackbed-plugin-namespace.md) explains why.
 
 Existing installs do not move on their own. Remove the old plugin and marketplace, then install `trackbed` as in [Installation & Updating](#installation--updating):
 
@@ -817,6 +817,7 @@ The shared plugin source lives in `trackbed/`; this root README is the canonical
 │   │   └── component-catalog.json  # Generated compact component index
 │   └── README.md            # Pointer to this root README
 ├── .agents/skills/          # Local repository-maintenance skills
+├── site/                    # Documentation site rendered from this README, the guides, and components
 └── README.md                # Canonical entry point
 ```
 

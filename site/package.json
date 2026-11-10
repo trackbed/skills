@@ -1,0 +1,30 @@
+{
+  "name": "trackbed-docs-site",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Documentation site rendered from the README, the docs guides, and the component sources",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "npm run sync && astro build",
+    "dev": "npm run sync && astro dev",
+    "preview": "astro preview",
+    "sync": "node scripts/sync-content.mjs",
+    "test": "node --test \"scripts/tests/*.test.mjs\""
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.42.10",
+    "astro": "^7.4.8",
+    "github-slugger": "^2.0.0",
+    "mdast-util-from-markdown": "^2.1.0",
+    "mdast-util-gfm": "^3.1.0",
+    "mdast-util-to-string": "^4.0.0",
+    "micromark-extension-gfm": "^3.0.0",
+    "sharp": "^0.35.5",
+    "starlight-links-validator": "^0.27.0",
+    "yaml": "^2.9.1"
+  },
+  "engines": {
+    "node": "24.x"
+  }
+}

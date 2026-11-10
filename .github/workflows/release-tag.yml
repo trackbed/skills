@@ -44,3 +44,11 @@ jobs:
     uses: ./.github/workflows/publish-codex-plugin.yml
     with:
       source_ref: ${{ needs.tag.outputs.tag }}
+
+  deploy-docs:
+    name: Deploy docs site
+    needs: tag
+    permissions: {}
+    uses: ./.github/workflows/deploy-docs-site.yml
+    secrets:
+      VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
