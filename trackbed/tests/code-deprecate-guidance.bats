@@ -157,3 +157,143 @@ PY
 	grep -qF 'Completion state is owned by `DEPRECATION_PLAN_<slug>.md`.' "$SKILL"
 	grep -qF "Do not close the deprecation or replace a missing gate with a follow-up." <<<"$verification"
 }
+
+@test "code with unique value is kept and maintained in both the instructions and the decision tree" {
+	run python3 - "$SKILL" "$DECISION_CHECKLIST" <<'PY'
+import pathlib
+import sys
+
+skill = pathlib.Path(sys.argv[1]).read_text()
+checklist = pathlib.Path(sys.argv[2]).read_text()
+
+step_one = skill.split("## Step 1 —", 1)[1].split("## Step 2 —", 1)[0]
+question_one = next(line for line in step_one.splitlines() if line.startswith("1. **"))
+checklist_q1 = checklist.split("## 1. Does this code still provide unique value?", 1)[1].split("---", 1)[0]
+tree = checklist.split("## Decision tree", 1)[1].split("```", 2)[1]
+q1_branches = [
+    line.strip()
+    for line in tree.split("Q1:", 1)[1].split("Q3:", 1)[0].splitlines()
+    if line.strip().startswith(("├─", "└─"))
+]
+checklist_q3 = checklist.split("## 3. Does a replacement exist?", 1)[1].split("---", 1)[0]
+
+missing = []
+if "If yes, do not deprecate: keep and maintain the code, record `Outcome: Keep and maintain` with a revisit trigger" not in question_one:
+    missing.append("Step 1 question 1 keeps and maintains with a revisit trigger")
+if "callers still need a capability that no existing or committed replacement is meant to provide" not in checklist_q1:
+    missing.append("checklist question 1 uses the committed-replacement definition")
+if "a clear YES means keep and maintain the code. Record `Outcome: Keep and maintain` with a revisit trigger and stop" not in checklist_q1:
+    missing.append("checklist question 1 outcome")
+if len(q1_branches) != 2 or "YES → Keep and maintain; record revisit trigger; stop" not in q1_branches[0] or not q1_branches[1].endswith("NO"):
+    missing.append("decision tree question 1 has only the Keep and maintain and NO branches")
+if "with a revisit trigger (a replacement is committed with an owner, scope, and plan" not in question_one:
+    missing.append("Keep trigger waits for a committed replacement")
+if "proposed but not committed" in checklist_q3:
+    missing.append("checklist question 3 keeps the unreachable proposed-replacement signal")
+if "**Committed, not built** — name it. Step 4.1 (Build the replacement) builds and verifies it _before_ any announcement" not in checklist_q3:
+    missing.append("checklist question 3 continues a committed replacement")
+raise SystemExit("unique-value outcome disagrees: " + ", ".join(missing) if missing else 0)
+PY
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
+@test "the decision step weighs migration against keeping and records a defer outcome" {
+	run python3 - "$SKILL" "$DECISION_CHECKLIST" <<'PY'
+import pathlib
+import sys
+
+skill = pathlib.Path(sys.argv[1]).read_text()
+checklist = pathlib.Path(sys.argv[2]).read_text()
+
+step_one = skill.split("## Step 1 —", 1)[1].split("## Step 2 —", 1)[0]
+weigh = checklist.split("## Weigh migration against keeping", 1)[1].split("---", 1)[0]
+tree = checklist.split("## Decision tree", 1)[1].split("```", 2)[1]
+tree_lines = tree.splitlines()
+keeping = next(i for i, line in enumerate(tree_lines) if "keeping cheaper?" in line)
+verification = skill.split("## Verification", 1)[1]
+required = {
+    "Step 1 compares total effort with keeping cost": (step_one, "the total migration effort across every dependent from question 4"),
+    "Step 1 keeping side": (step_one, "against the cost of keeping the old code from question 5"),
+    "Step 1 defer outcome": (step_one, "When keeping the old code is cheaper, record `Outcome: Defer` with a revisit trigger"),
+    "Step 1 stops before announcing": (step_one, "stop without announcing anything"),
+    "Step 1 records the outcome": (step_one, "Record the answers and the outcome"),
+    "checklist defer outcome": (weigh, "When keeping is cheaper, record `Outcome: Defer` with a revisit trigger"),
+    "decision tree defers when keeping is cheaper": (tree_lines[keeping + 1], "YES → Defer; record revisit trigger; stop"),
+    "plan template outcome field": (skill, "- Outcome: <Deprecate | Keep and maintain | Defer> Revisit trigger:"),
+    "resume checks the archived revisit trigger": (skill, "durable project docs archive a Keep and maintain or Defer decision for the target, check its revisit trigger before anything else"),
+    "resume stops on an unfired trigger": (skill, "otherwise report the archived decision and stop"),
+    "verification closes archived decisions": (verification, "A Keep and maintain or Defer outcome closes the workflow once the outcome and its revisit trigger are archived in durable project docs and the plan is deleted"),
+    "decision is archived, not kept in the disposable plan": (skill, "For a Keep and maintain or Defer outcome, archive the outcome and its revisit trigger in durable project docs"),
+}
+missing = [name for name, (text, phrase) in required.items() if phrase not in text]
+raise SystemExit("missing defer-outcome contracts: " + ", ".join(missing) if missing else 0)
+PY
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
+@test "an announced deprecated surface is frozen to the fixes its consumers need" {
+	local announce
+
+	announce="$(sed -n '/^### 4.2 Announce \/ document$/,/^### 4.3 /p' "$SKILL")"
+
+	grep -qF "Once the deprecation is announced, freeze the old surface: it gets only the security and correctness fixes its remaining consumers need" <<<"$announce"
+	grep -qF 'Adding functionality to the old surface requires `ASK FIRST: adding functionality to a deprecated surface`' <<<"$announce"
+	grep -qF "or adding functionality to an announced deprecated surface (see Step 4.2)" "$SKILL"
+}
+
+@test "advisory deprecations log callers on a cadence and escalate a stall or expired window" {
+	run python3 - "$SKILL" <<'PY'
+import pathlib
+import sys
+
+skill = pathlib.Path(sys.argv[1]).read_text()
+
+migrate = skill.split("### 4.3 Migrate incrementally", 1)[1].split("### 4.4 Remove old", 1)[0]
+check = next(line for line in migrate.splitlines() if line.startswith("**Advisory progress check.**"))
+announce = skill.split("### 4.2 Announce / document", 1)[1].split("### 4.3 Migrate incrementally", 1)[0]
+step_two = skill.split("## Step 2 —", 1)[1].split("## Zombie-code gate", 1)[0]
+required = {
+    "fixed cadence logging": (check, "log the remaining-caller count in `## Migration Log` at the plan's caller-count cadence"),
+    "stall counts start at a dated boundary": (check, "Count only remaining-caller entries dated after the latest `announced` or `progress decision` entry."),
+    "stall judged on the latest entries": (check, "Migration has stalled when the latest of those entries shows no fewer callers than the one before it"),
+    "Step 4.2 logs the announced boundary": (announce, "Once the exit criterion is met, log a dated `announced` entry in `## Migration Log`."),
+    "template has dated boundary entries": (skill, "- <date>: announced (Step 4.2 exit criterion met)"),
+    "template has dated progress decisions": (skill, "- <date>: progress decision: <take over, new target removal date YYYY-MM-DD"),
+    "stall with no take-over or reclassification re-runs Step 1": (check, "If you cannot migrate the remaining callers and the reclassification is declined, re-run Step 1 with current evidence and record its outcome as the progress decision"),
+    "expired window definition": (check, "the window has expired when the target removal date passes with callers remaining"),
+    "stall or expiry requires taking over or reclassifying": (check, "Either one requires a decision, logged as a dated `progress decision` entry and recorded in `## Decisions`: take over the remaining migrations yourself under the Churn Rule and set a new target removal date, or reclassify to Compulsory with a new date, subject to Step 2's `ASK FIRST` rules."),
+    "Step 2 allows reclassifying a stall": (step_two, "or a Step 4.3 Advisory progress decision chooses to reclassify a stalled or expired window"),
+    "Advisory needs a date and cadence": (step_two, "the window still needs a target removal date and a caller-count cadence"),
+    "Step 2 gate requires the date and cadence": (skill, "- [ ] Step 2 classification recorded; an Advisory deprecation also has a target removal date and a caller-count cadence."),
+    "plan template cadence field": (skill, "Caller-count cadence: <monthly | per release | n/a for Compulsory>"),
+    "resume runs the progress check": (skill, "For an Advisory deprecation with an `announced` entry in `## Migration Log`, run the Step 4.3 Advisory progress check before resuming."),
+}
+missing = [name for name, (text, phrase) in required.items() if phrase not in text]
+raise SystemExit("missing advisory progress contracts: " + ", ".join(missing) if missing else 0)
+PY
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
+@test "the deprecation source rationale names the adopted guardrail ideas" {
+	run python3 - "$PLUGIN_ROOT/skills/code:deprecate/references/sources.yaml" <<'PY'
+import pathlib
+import sys
+
+text = pathlib.Path(sys.argv[1]).read_text()
+entry = text.split("id: addy-deprecation-and-migration", 1)[1].split("  - id:", 1)[0]
+required = [
+    "usage: inspiration",
+    "Deprecation Decision section",
+    "keeping and maintaining code that still provides unique value",
+    "weighing total migration effort against the cost of keeping the old code",
+    "Keep and maintain and Defer outcomes with revisit triggers",
+    "Compulsory vs Advisory Deprecation section",
+    "Red Flags",
+    "freeze on new functionality once a deprecation is announced",
+    "Advisory progress check",
+]
+missing = [phrase for phrase in required if phrase not in entry]
+raise SystemExit("source rationale misses: " + ", ".join(missing) if missing else 0)
+PY
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
