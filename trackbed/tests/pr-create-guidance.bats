@@ -209,7 +209,7 @@ file_mode() {
     grep -qF -- "\`--coarse\` — Force coarse decomposition: one commit per major grouping" "$recreate"
     grep -qF "auto mode keeps authorizing them, and \`--manual\` keeps their confirmations" "$recreate"
     grep -qF "does not authorize the history rewrite or publication by itself" "$recreate"
-    grep -qF "If \`--coarse\` was combined with \`--granular\`, stop" "$recreate"
+    grep -qF "a positional token, or \`--coarse\` combined with \`--granular\`" "$recreate"
     grep -qF "\`--coarse\` selects **Coarse** granularity unconditionally and skips the granularity question" "$recreate"
     grep -qF "In auto mode, either fixed-granularity flag replaces automatic granularity selection and every other auto-mode behavior remains in effect" "$recreate"
     grep -qF "For **coarse** granularity, stop here — each grouping becomes one commit" "$recreate"

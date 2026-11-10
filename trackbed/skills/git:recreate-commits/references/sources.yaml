@@ -2,7 +2,7 @@ sources:
   - id: anthropic-claude-code-skills
     url: https://code.claude.com/docs/en/skills.md
     title: "Claude Code Docs - Extend Claude with skills"
-    rationale: "The model-invocation metadata and direct-user versus Skill-tool routing boundary follow Claude Code's documented skill invocation controls."
+    rationale: "The model-invocation metadata and direct-user versus Skill-tool routing boundary follow Claude Code's documented skill invocation controls; the explicit argument parse, the compaction resume rule, and the skipped pre-commit verify or simplify run follow its documented `$ARGUMENTS` substitution (which avoids the end-of-skill argument append), post-compaction skill truncation, and pre-commit check behavior."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     fetch_mode: curl-html
@@ -10,7 +10,7 @@ sources:
   - id: addy-git-workflow-versioning
     url: https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/git-workflow-and-versioning/SKILL.md
     title: "Addy Osmani agent-skills - git workflow and versioning"
-    rationale: "Narrative commit reconstruction, branch-history quality standards, and no-AI-attribution rules are adapted from this source."
+    rationale: "Narrative commit reconstruction and branch-history quality standards are adapted from this source, and its save-point view of commits informs the rule that coarse and medium recreations keep every commit building."
     usage: inspiration
     last_reviewed_at: 2026-11-06
     baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
