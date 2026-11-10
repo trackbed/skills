@@ -248,7 +248,7 @@ See [docs/siw.md](trackbed/docs/siw.md) for the full workflow reference.
 ```
 
 1. **Preflight:** checks Linear's target branch and confirms there is no existing Pull Request or remote branch for it. Needs a clean tree unless you pass `--continue`.
-2. **Start:** moves a Backlog issue to the team's started status, preferring In Progress; any other state asks first. Renames a detected Conductor workspace, best-effort.
+2. **Start:** moves a Backlog issue to the team's started status, preferring In Progress; any other state asks first unless `--launch-confirmed` covers an unstarted issue. Renames a detected Conductor workspace, best-effort.
 3. **Implement** the issue with `/trackbed:linear:issue-implement`.
 4. **Review:** freezes the issue's requirements and runs [review convergence](trackbed/docs/review.md#review-convergence) on the branch.
 5. **Ship** (`--ship` only): opens the PR and runs `/trackbed:pr:fix-ci` until CI and review feedback are clear.
@@ -262,6 +262,7 @@ See [docs/siw.md](trackbed/docs/siw.md) for the full workflow reference.
 | `--depth balanced\|full` | Raise the review profile above the branch's risk floor; it never lowers it |
 | `--adversarial-review` | Also get a review from the model provider opposite your host on medium- and high-risk work; you decide any of its findings the run wants to reject |
 | `--continue` | Resume on the issue's exact unpublished branch; the issue must already be started and every changed path must belong to it |
+| `--launch-confirmed` | Count an earlier yes as the start confirmation, for `unstarted` issues only; `/trackbed:linear:next` cloud launches set it |
 
 `/trackbed:code:plan-to-pr` runs the same pipeline for one `PR_PLAN_*.md` file. The [shipping guide](trackbed/docs/shipping.md) covers preconditions, status changes, and the handoff in full.
 
@@ -434,7 +435,7 @@ Linear issue tracking. These skills need an authenticated Linear MCP server; `is
 | `/trackbed:linear:breakdown-findings` | User | `[--auto] [--ask] [--dry-run] [--resume <partial-report-path>] [--team <team>] [--project <project>] [--label <label>] [--] [source ...]` | Turn reviewed audit, review, scan, or QA findings into coordinated, PR-sized Linear issues. |
 | `/trackbed:linear:issue-define` | User, Auto | `[--auto [--ask]] [--] [issue-id or description and/or file paths for context]` | Create or improve a Linear issue that fits one PR; larger work becomes a parent with sub-issues. `--auto` drafts from rough input. |
 | `/trackbed:linear:issue-implement` | User, Auto | `<ISSUE-ID> [--auto] [--set-in-progress]` | Implement one Linear issue: branch setup, reference mapping, planning, coding, and fast verification. |
-| `/trackbed:linear:issue-to-pr` | User | `<ISSUE-ID> [--continue] [--strict] [--cycles <1-5>] [--depth <balanced\|full>] [--adversarial-review] [--ship]` | Take one Linear issue through implementation, review convergence, and verification; `--ship` also opens the PR and fixes CI. |
+| `/trackbed:linear:issue-to-pr` | User | `<ISSUE-ID> [--continue] [--strict] [--cycles <1-5>] [--depth <balanced\|full>] [--adversarial-review] [--launch-confirmed] [--ship]` | Take one Linear issue through implementation, review convergence, and verification; `--ship` also opens the PR and fixes CI. |
 | `/trackbed:linear:next` | User | `[team or selection query] [--state <name>] [--agent-ready] [--interest <preference>] [--mine\|--unassigned\|--both] [--project <name>] [--label <name>] [--count <n>] [--limit <n>]` | Find up to 10 valuable, unstarted Linear issues by default, with plain-language summaries, when deciding what to pick up next. |
 | `/trackbed:linear:review-pr` | User, Auto | `[PR-number\|PR-url] [ISSUE-ID]` | Check that an existing PR implements its Linear issue, tracing each requirement to diff, code, and test evidence. Read-only. |
 

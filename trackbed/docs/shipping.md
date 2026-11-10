@@ -50,6 +50,8 @@ A Backlog issue is moved automatically to the team's resolved started status, pr
 - That child repeats the pre-write race close, updates the status field alone, and verifies it by reading the issue back before it creates a branch.
 - Resume mode never performs this transition.
 
+`--launch-confirmed` supplies that confirmation for an issue whose state type is still `unstarted` at the gate, such as a To-do issue. `/trackbed:linear:next` writes it into the first message of a cloud workspace it starts after your yes, or you can type it yourself. Started, completed, and canceled issues still ask.
+
 Once the state gate passes, a detected Conductor workspace is renamed best-effort to `ISSUE-ID: normalized issue title`. Detection uses `CONDUCTOR_WORKSPACE_PATH`; a missing workspace identifier skips the rename before probing the CLI. Missing CLI access, authentication, or rename support is reported without blocking canonical work. Continuations preserve the existing workspace name.
 
 ### Review, Verification, and Shipping
