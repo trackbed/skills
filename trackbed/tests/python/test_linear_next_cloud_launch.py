@@ -26,6 +26,12 @@ assert SPEC is not None
 assert SPEC.loader is not None
 cloud_launch = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(cloud_launch)
+PREFLIGHT_PATH = SKILL_DIR.parent / "linear:issue-to-pr" / "scripts" / "preflight.py"
+PREFLIGHT_SPEC = importlib.util.spec_from_file_location("issue_to_pr_preflight_for_launch", PREFLIGHT_PATH)
+assert PREFLIGHT_SPEC is not None
+assert PREFLIGHT_SPEC.loader is not None
+preflight = importlib.util.module_from_spec(PREFLIGHT_SPEC)
+PREFLIGHT_SPEC.loader.exec_module(preflight)
 
 FAKE_CONDUCTOR = """#!{python}
 import json, os, sys, time
@@ -175,6 +181,29 @@ class CloudLaunchTest(unittest.TestCase):
         )
         self.assertEqual([call[call.index("--message") + 1] for call in self.calls()], messages)
 
+    def test_launch_confirmation_reaches_issue_to_pr_only_for_unstarted_issues(self) -> None:
+        code, result = self.run_helper(
+            "launch", "--project-id", "proj_1", "--adversarial-review", "--unstarted", "DISC-1",
+            "--item", "DISC-1", "claude", "opus-5-5-1m",
+            "--item", "DISC-2", "codex", "gpt-5.5",
+            responses=[created(1), created(2)],
+        )  # fmt: skip
+        self.assertEqual((code, result["status"]), (0, "ok"))
+        messages = [entry["message"] for entry in result["results"]]
+        self.assertEqual(
+            messages,
+            [
+                "/trackbed:linear-issue-to-pr DISC-1 --ship --launch-confirmed --adversarial-review",
+                "$trackbed:linear:issue-to-pr DISC-2 --ship --adversarial-review",
+            ],
+        )
+        self.assertEqual([call[call.index("--message") + 1] for call in self.calls()], messages)
+        # The launched workspace's issue-to-pr parses the same first message.
+        parsed = [preflight.parse_arguments(message.split(" ", 1)[1]) for message in messages]
+        self.assertEqual([args["issue_id"] for args in parsed], ["DISC-1", "DISC-2"])
+        self.assertEqual([args["launch_confirmed"] for args in parsed], [True, False])
+        self.assertTrue(all(args["ship_mode"] and args["adversarial_review"] for args in parsed))
+
     def test_launch_never_infers_review_consent_from_environment(self) -> None:
         code, result = self.run_helper(
             "launch", "--project-id", "proj_1", "--item", "DISC-1", "codex", "gpt-5.5",
@@ -280,6 +309,8 @@ class CloudLaunchTest(unittest.TestCase):
             "agent_invalid": ["--project-id", "proj_1", "--item", "DISC-1", "cursor", "auto"],
             "model_invalid": ["--project-id", "proj_1", "--item", "DISC-1", "claude", "Opus 5"],
             "issue_duplicate": ["--project-id", "proj_1"] + ["--item", "DISC-1", "claude", "opus-5-5-1m"] * 2,
+            "unstarted_unknown": ["--project-id", "proj_1", "--unstarted", "DISC-2"]
+            + ["--item", "DISC-1", "claude", "opus-5-5-1m"],
             "project_id_invalid": ["--project-id", "../proj", "--item", "DISC-1", "claude", "opus-5-5-1m"],
             "too_many_items": ["--project-id", "proj_1"]
             + [part for number in range(26) for part in ("--item", f"DISC-{number}", "claude", "opus-5-5-1m")],

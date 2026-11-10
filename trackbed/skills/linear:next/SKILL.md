@@ -17,7 +17,7 @@ Find the most valuable ready-to-start issues in a Linear team, optionally constr
 
 - **Do:** inspect available team issues, compare assigned-to-me and unassigned work, account for blockers/readiness/value, assess autonomous agent-readiness when requested, rank up to `--count` ready issues, and identify independent issues that can run in parallel.
 - **Do not:** create branches, change assignees, move statuses, add comments, create issues, or start implementation in this workspace.
-- **Cloud launch:** only Step 10 may start work, and only by creating new Conductor cloud workspaces for issues the user confirms in this run. Each workspace runs `trackbed:linear:issue-to-pr {ISSUE-ID} --ship`.
+- **Cloud launch:** only Step 10 may start work, and only by creating new Conductor cloud workspaces for issues the user confirms in this run. Each workspace runs `trackbed:linear:issue-to-pr {ISSUE-ID} --ship`. For an issue whose state type is `unstarted`, such as To-do, the launch message also carries the user's confirmation, which the run uses to move the issue to its started status.
 - **Handoff:** once the user picks an issue, suggest `trackbed:linear:issue-implement {ISSUE-ID}`.
 
 ## Arguments

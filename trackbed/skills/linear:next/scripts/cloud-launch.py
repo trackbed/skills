@@ -5,9 +5,11 @@ The skill keeps issue selection and the user's confirmation. This helper owns th
 
   detect                                        Report whether this session runs in a usable Conductor cloud
                                                 workspace, with its project ID and this session's model.
-  launch --project-id ID [--adversarial-review] --item ISSUE AGENT MODEL [--item ...]
+  launch --project-id ID [--adversarial-review] [--unstarted ISSUE [--unstarted ...]] --item ISSUE AGENT MODEL [--item ...]
                                                 Create one cloud workspace per confirmed issue, in order, whose
-                                                first message runs trackbed:linear:issue-to-pr ISSUE --ship.
+                                                first message runs trackbed:linear:issue-to-pr ISSUE --ship. Each
+                                                --unstarted issue's message also carries --launch-confirmed, so
+                                                issue-to-pr does not ask again while it is still unstarted.
 
 Each call prints one JSON document with `schema_version`, `command`, `status`, `reason`, and `message`. Exit codes:
 0 when the call completed; 1 when `launch` stopped before starting every issue; 2 for an invalid invocation.
@@ -175,6 +177,14 @@ def validate_items(raw_items: Sequence[Sequence[str]]) -> list[tuple[str, str, s
     return items
 
 
+def validate_unstarted(unstarted: Sequence[str], items: Sequence[tuple[str, str, str]]) -> set[str]:
+    launched = {issue for issue, _, _ in items}
+    for issue in unstarted:
+        if issue not in launched:
+            raise Stop("unstarted_unknown", f"{issue!r} is marked --unstarted but has no --item.")
+    return set(unstarted)
+
+
 def create_outcome(created: CliResult) -> JsonDict:
     if created.outcome == "ok":
         answer = created.data if isinstance(created.data, dict) else {}
@@ -212,12 +222,18 @@ def create_workspace(command: Sequence[str], wait_budget: int) -> tuple[CliResul
     return created, wait_budget
 
 
-def launch(project_id: str, raw_items: Sequence[Sequence[str]], adversarial_review: bool = False) -> JsonDict:
+def launch(
+    project_id: str,
+    raw_items: Sequence[Sequence[str]],
+    adversarial_review: bool = False,
+    unstarted: Sequence[str] = (),
+) -> JsonDict:
     if os.environ.get("CONDUCTOR_IS_LOCAL") != "0":
         raise Stop("not_cloud", "launch runs only in a Conductor cloud workspace.")
     if not valid_id(project_id):
         raise Stop("project_id_invalid", "The project ID is missing or invalid.")
     items = validate_items(raw_items)
+    launch_confirmed = validate_unstarted(unstarted, items)
     if shutil.which(CONDUCTOR) is None:
         raise Stop("cli_missing", "The Conductor CLI is not installed in this workspace.")
     results: list[JsonDict] = []
@@ -225,6 +241,8 @@ def launch(project_id: str, raw_items: Sequence[Sequence[str]], adversarial_revi
     wait_budget = RATE_LIMIT_WAIT_BUDGET
     for issue, agent, model in items:
         message = f"{INVOCATIONS[agent]} {issue} --ship"
+        if issue in launch_confirmed:
+            message += " --launch-confirmed"
         if adversarial_review:
             message += " --adversarial-review"
         entry: JsonDict = {"issue": issue, "agent": agent, "model": model, "message": message}
@@ -257,6 +275,7 @@ def build_parser() -> JsonArgumentParser:
     launch_parser = commands.add_parser("launch", help="Start confirmed issues in new Conductor cloud workspaces.")
     launch_parser.add_argument("--project-id", required=True)
     launch_parser.add_argument("--adversarial-review", action="store_true")
+    launch_parser.add_argument("--unstarted", action="append", default=[], metavar="ISSUE")
     launch_parser.add_argument("--item", nargs=3, action="append", required=True, metavar=("ISSUE", "AGENT", "MODEL"))
     return parser
 
@@ -273,7 +292,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         command = args.command
         if command == "detect":
             return emit(command, detect())
-        return emit(command, launch(args.project_id, args.item, args.adversarial_review))
+        return emit(command, launch(args.project_id, args.item, args.adversarial_review, args.unstarted))
     except Stop as stop:
         return emit(command, {"status": "error", "reason": stop.reason, "message": stop.message})
 
