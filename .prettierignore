@@ -22,6 +22,3 @@ trackbed/evals/**/fixtures/
 
 # Vendored browser asset
 trackbed/skills/pr:walkthrough/assets/d3.v7.9.0.min.js
-
-# Generated offline skill runtime (reproducibility checked by its Bats suite)
-trackbed/skills/visual:check-slop/scripts/anti-slop.mjs

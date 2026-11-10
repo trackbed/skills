@@ -535,11 +535,10 @@ Live product inspection and structured testing.
 
 #### Visual
 
-Generate and inspect visual output, including self-contained HTML pages, UI checks, and diagrams.
+Generate visual output, including self-contained HTML pages and diagrams.
 
 | Skill | Invocation | Arguments | Description |
 | --- | --- | --- | --- |
-| `/trackbed:visual:check-slop` | User | `<file-or-directory> [--fix]` | Run a deterministic check for AI-style UI patterns in HTML screens; `--fix` applies safe fixes. |
 | `/trackbed:visual:explain` | User, Auto | `[topic or description \| --onboarding [focus-area or audience]]` | Generate a self-contained HTML page that explains a system, change, plan, or data visually; `--onboarding` builds a codebase guide. |
 
 #### Documentation & Writing
@@ -708,6 +707,7 @@ Usage records from before the rename count toward the new names. Your settings c
 | `/kramme:visual:demo-reel` | `/trackbed:pr:generate-description` no longer accepts `--visual`, and `/trackbed:pr:create` no longer captures or attaches screenshots or video; both leave a Screenshots/Videos placeholder on changes with visible UI. Ask directly for a screenshot or recording, or use `/trackbed:browse` or `/trackbed:qa`. No replacement keeps tiered capture, the secret preflight, or bounded environment startup. Earlier captures under `.context/demo-reels/` remain eligible for `/trackbed:workflow:cleanup-artifacts`. |
 | `/kramme:session:context-setup` | `/trackbed:code:work-from-plan`, `/trackbed:code:plan-to-pr`, and `/trackbed:linear:issue-implement` keep a shared preparation checklist with focused context loading, and a shared forward-progress reference covers context recovery. Ask directly for rules-file updates; the setup ritual, markers, and mandatory repair gate are retired. |
 | `/kramme:nx:setup-portless` and the `nx` skill domain | Ask directly for portless setup or Nx `dev:local`/`dev:full` target wiring. No replacement keeps its target templates or certificate-trust steps. |
+| `/trackbed:visual:check-slop` | Ask directly for a check of HTML screens for AI-style UI patterns, or use `/trackbed:pr:product-review` for broader UX, visual, and accessibility critique. The bundled Gesso Build detector, its 73 rules, and its `--fix` mode are no longer shipped. |
 
 ## Documentation
 
@@ -918,7 +918,6 @@ Reviewed at commit `403d8881d62022490637d740657b33f01e321ea8`, the Codex integra
 - `trackbed:text:clarify` and the shared plain-language rubric that `trackbed:pr:generate-description` also applies: Inspired by [fofr's GOV.UK style skill](https://gist.github.com/fofr/505e225f9bf5e839d30c12ba6bfa0be2) and official GOV.UK guidance on [identifying user needs](https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/plan-manage-content/identify-user-needs/) and [using clear language](https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/writing-guidelines/clear-language/), adapted into a locale-neutral reader-task workflow.
 - `trackbed:text:clarify --humanize`: Its AI-writing pattern catalog adapts Wikipedia: Signs of AI writing (maintained by WikiProject AI Cleanup) under CC BY-SA 4.0 and retains adapted text from [blader/humanizer](https://github.com/blader/humanizer)'s `SKILL.md` at commit [`3e1da8bfce43ecbe43a56f3cb00b62fbdf1cbd56`](https://github.com/blader/humanizer/blob/3e1da8bfce43ecbe43a56f3cb00b62fbdf1cbd56/SKILL.md) under the MIT License. Both notices ship with the skill.
 - `trackbed:visual:explain`, including its `--onboarding` mode: Adapted from [nicobailon/visual-explainer](https://github.com/nicobailon/visual-explainer).
-- `trackbed:visual:check-slop`: Vendors and adapts Gesso Build's MIT-licensed anti-slop detector and 73-rule registry at commit [`1c3908b7efb56ec24624436dea5c32a371eb487c`](https://github.com/Gesso-Build/skills/tree/1c3908b7efb56ec24624436dea5c32a371eb487c). Complete notices for Gesso and bundled parser dependencies ship with the skill.
 - Skills authoring patterns: Inspired by [mgechev/skills-best-practices](https://github.com/mgechev/skills-best-practices).
 - `trackbed:session:automate-repeats` effectiveness evidence, counterfactual improvement gate, and explicit skill-use extraction: Inspired by Warp's [skill-doctor workflow, rubrics, guidance, and collector at commit `737129f`](https://github.com/warpdotdev/common-skills/tree/737129fae58e1feb4ec956c0f0bfa597b5c6ee89/.agents/skills/skill-doctor).
 - `trackbed:pr:github-review-reply`: GitHub review comment listing, review-summary reads, top-level PR comment reads/posts, reply posting, review thread mapping, and thread resolution operations are grounded in official GitHub REST and GraphQL API documentation.
