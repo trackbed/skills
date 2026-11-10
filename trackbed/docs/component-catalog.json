@@ -433,11 +433,6 @@
       "path": "trackbed/skills/verify:run/SKILL.md"
     },
     {
-      "name": "trackbed:visual:check-slop",
-      "invocation": "User",
-      "path": "trackbed/skills/visual:check-slop/SKILL.md"
-    },
-    {
       "name": "trackbed:visual:explain",
       "invocation": "User, Auto",
       "path": "trackbed/skills/visual:explain/SKILL.md"

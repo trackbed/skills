@@ -316,11 +316,6 @@
       "skills": ["trackbed/skills/setup/SKILL.md"]
     },
     {
-      "kind": "executable",
-      "suite": "trackbed/tests/visual-check-slop.bats",
-      "skills": ["trackbed/skills/visual:check-slop/SKILL.md"]
-    },
-    {
       "kind": "guidance",
       "suite": "trackbed/tests/docs-adr-guidance.bats",
       "skills": [

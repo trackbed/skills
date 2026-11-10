@@ -1506,37 +1506,6 @@
       ]
     },
     {
-      "name": "visual-check-slop-guidance",
-      "path": "trackbed/skills/visual:check-slop/SKILL.md",
-      "contains": [
-        "${CLAUDE_PLUGIN_ROOT}/skills/visual:check-slop",
-        "Without `--fix`, do not modify",
-        "Do not fetch or execute the upstream npm package",
-        "Do not add subjective judgment to this report",
-        "hand off to `trackbed:pr:product-review`",
-        "only when the user explicitly requested broader critique",
-        "node \"$CHECK_SLOP_RUNTIME\" check \"$TARGET\" --json",
-        "node \"$CHECK_SLOP_RUNTIME\" fix \"$TARGET\" --write --json"
-      ]
-    },
-    {
-      "name": "visual-check-slop-source-manifest",
-      "path": "trackbed/skills/visual:check-slop/references/sources.yaml",
-      "contains": [
-        "gesso-anti-slop",
-        "node-html-parser-runtime",
-        "1c3908b7efb56ec24624436dea5c32a371eb487c"
-      ]
-    },
-    {
-      "name": "visual-check-slop-third-party-notices",
-      "path": "trackbed/skills/visual:check-slop/references/THIRD_PARTY_NOTICES.md",
-      "contains": [
-        "Copyright (c) 2026 Gesso Build, Inc.",
-        "Copyright 2019 Tao Qiufeng"
-      ]
-    },
-    {
       "name": "code-optimize-shell-permission",
       "path": "trackbed/skills/code:optimize/SKILL.md",
       "contains": ["permissions:", "  - shell"]
@@ -1850,7 +1819,6 @@
       "trackbed:test:audit": "Find low-value, brittle, obsolete, or duplicated tests and get a read-only report of what to remove, repair, or consolidate.",
       "trackbed:text:clarify": "Rewrite prose so readers can understand and act on it quickly; `--humanize` removes AI-writing patterns instead.",
       "trackbed:verify:run": "Run the project's tests, linting, formatting, builds, and type checks for affected code; `--fast` runs the quick tier.",
-      "trackbed:visual:check-slop": "Run a deterministic check for AI-style UI patterns in HTML screens; `--fix` applies safe fixes.",
       "trackbed:visual:explain": "Generate a self-contained HTML page that explains a system, change, plan, or data visually; `--onboarding` builds a codebase guide.",
       "trackbed:workflow:cleanup-artifacts": "Delete disposable workflow artifacts such as review, audit, and QA reports, plans, and diagrams; `--siw` retires the `siw/` workspace.",
       "trackbed:workflow:suggest-next": "Suggest at most three trackbed commands for a task or for the artifacts in your workspace, read from the installed skills. Read-only.",
