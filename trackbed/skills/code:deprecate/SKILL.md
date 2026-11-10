@@ -79,7 +79,7 @@ ASK FIRST: <which boundary you're about to cross>
 Plan: <what you intend to do>
 ```
 
-Use before: deprecating a public API, removing an externally-consumed endpoint, deprecating code whose owner is unknown (see zombie-code gate below), or compressing the announcement window on a Compulsory deprecation.
+Use before: deprecating a public API, removing an externally-consumed endpoint, deprecating code whose owner is unknown (see zombie-code gate below), compressing the announcement window on a Compulsory deprecation, or adding functionality to an announced deprecated surface (see Step 4.2).
 
 ---
 
@@ -94,14 +94,14 @@ Create or update `DEPRECATION_PLAN_<slug>.md` in the repository root before Step
 
 Examples: `Billing v1 API` → `billing-v1-api`, `LegacyAuthAdapter` → `legacyauthadapter`. Reject the input and abort if the slug is empty after normalization. Per-target naming keeps concurrent deprecations from colliding on one plan file.
 
-This is the working artifact for the deprecation workflow; after the deprecation closes, delete it or archive the final decision in durable project docs.
+This is the working artifact for the deprecation workflow; after the deprecation closes, delete it or archive the final decision in durable project docs. For a Keep and maintain or Defer outcome, archive the outcome and its revisit trigger in durable project docs, such as an ADR or the owning module's docs, before deleting the plan; the plan is a disposable working file, so re-invocation reads the archived decision.
 
 Minimum template:
 
 ```md
 # Deprecation Plan: <symbol / feature / API>
 
-Owner: <team or person> Surface: <Compile-time / internal-only | Runtime / internal | External / public> Classification: <Advisory | Compulsory | TBD> Replacement: <new surface> Migration pattern: <Strangler | Adapter | Feature Flag Migration | Database Expand/Migrate/Contract> Target removal date: <YYYY-MM-DD or TBD> Current step: <Step 1 | Step 2 | Step 3 | Step 4.1 | Step 4.2 | Step 4.3 | Step 4.4 | Complete>
+Owner: <team or person> Surface: <Compile-time / internal-only | Runtime / internal | External / public> Classification: <Advisory | Compulsory | TBD> Replacement: <new surface> Migration pattern: <Strangler | Adapter | Feature Flag Migration | Database Expand/Migrate/Contract> Target removal date: <YYYY-MM-DD or TBD> Caller-count cadence: <monthly | per release | n/a for Compulsory> Current step: <Step 1 | Step 2 | Step 3 | Step 4.1 | Step 4.2 | Step 4.3 | Step 4.4 | Complete>
 
 ## Call Sites
 
@@ -110,9 +110,13 @@ Owner: <team or person> Surface: <Compile-time / internal-only | Runtime / inter
 ## Migration Log
 
 - <date>: <slice migrated / verification result>
+- <date>: announced (Step 4.2 exit criterion met)
+- <date>: remaining callers <n> (<evidence source>)
+- <date>: progress decision: <take over, new target removal date YYYY-MM-DD | reclassify to Compulsory, date YYYY-MM-DD | Step 1 re-run, outcome>
 
 ## Decisions
 
+- Outcome: <Deprecate | Keep and maintain | Defer> Revisit trigger: <event or date; required for Keep and maintain and Defer>
 - <checklist answer, exception, or ASK FIRST outcome>
 
 ## Open Markers
@@ -124,7 +128,7 @@ Owner: <team or person> Surface: <Compile-time / internal-only | Runtime / inter
 ## Step Status
 
 - [ ] Step 1 decision checklist answered and recorded.
-- [ ] Step 2 classification recorded.
+- [ ] Step 2 classification recorded; an Advisory deprecation also has a target removal date and a caller-count cadence.
 - [ ] Zombie-code gate cleared or escalated to owner.
 - [ ] Step 3 migration pattern recorded.
 - [ ] Step 4.1 replacement built and verified.
@@ -159,32 +163,34 @@ Owner: <team or person> Surface: <Compile-time / internal-only | Runtime / inter
   - Evidence: <dependent audit and contraction outcome>
 ```
 
-On re-invocation, list all `DEPRECATION_PLAN_*.md` files in the repository root first. If exactly one matches the current target's slug, read it; if several plans exist and the target is ambiguous, list them and ask the user which deprecation to resume. Then use `## Step Status`, `## Open Markers`, `## Completion Gates`, and—when Database Expand/Migrate/Contract is selected—`## Database Migration Phase Status` to find the earliest incomplete exit criterion across Step 1 through Step 4.4 and the overall completion gates, then resume there. The database phase-status checklist is the authoritative state for database phase progression; do not infer completion from descriptive prose or the reference table. If an existing plan lacks a status or evidence field for a required gate, treat that gate as incomplete until the evidence is recorded. Do not jump straight to removal because a previous session announced the deprecation.
+On re-invocation, list all `DEPRECATION_PLAN_*.md` files in the repository root first. If exactly one matches the current target's slug, read it; if several plans exist and the target is ambiguous, list them and ask the user which deprecation to resume. If no plan matches but durable project docs archive a Keep and maintain or Defer decision for the target, check its revisit trigger before anything else: when it has fired or the user asks to re-decide, re-run Step 1 with current evidence in a new plan; otherwise report the archived decision and stop. Then use `## Step Status`, `## Open Markers`, `## Completion Gates`, and—when Database Expand/Migrate/Contract is selected—`## Database Migration Phase Status` to find the earliest incomplete exit criterion across Step 1 through Step 4.4 and the overall completion gates, then resume there. The database phase-status checklist is the authoritative state for database phase progression; do not infer completion from descriptive prose or the reference table. If an existing plan lacks a status or evidence field for a required gate, treat that gate as incomplete until the evidence is recorded. Do not jump straight to removal because a previous session announced the deprecation. For an Advisory deprecation with an `announced` entry in `## Migration Log`, run the Step 4.3 Advisory progress check before resuming.
 
 ## Step 1 — Decide whether to deprecate
 
 Answer the five-question checklist. Extended signals and a decision tree live in `references/decision-checklist.md`.
 
-1. **Does this code still provide unique value?** If a replacement in the codebase already covers the same surface, value is duplicated — deprecation candidate. If no replacement exists, building the replacement is Step 4.1 and must happen _before_ removal begins.
+1. **Does this code still provide unique value?** The value is unique when callers still need a capability that no existing or committed replacement is meant to provide. If yes, do not deprecate: keep and maintain the code, record `Outcome: Keep and maintain` with a revisit trigger (a replacement is committed with an owner, scope, and plan, a cost of keeping the code gains a date such as a CVE or end of life, or a named review date), and stop. Otherwise the code is a deprecation candidate, and question 3 decides whether its replacement must still be built in Step 4.1 _before_ any announcement.
 2. **Who are the dependents (internal + external)?** Audit the evidence sources that match the chosen surface. Compile-time / internal-only => import/build graph, tests, config, and package/publish references. Runtime / internal => import/build graph plus telemetry/logs. External / public => telemetry/logs plus docs, SDKs, and partner inventory. "No dependents found" is `UNVERIFIED` only when a required evidence source for that surface has not been checked.
-3. **Does a replacement exist?** If yes, name it. If no, deprecation is blocked until a replacement ships — removing without a replacement is "delete the feature", a different decision.
+3. **Does a replacement exist?** If yes, name it. If it is committed but not built yet, name it too: Step 4.1 builds and verifies it before any announcement, and that work counts toward the question 4 migration effort. If no replacement exists or is committed, removing the code is "delete the feature", a different decision: tell the user, delete the plan, and stop.
 4. **What is the migration cost for dependents?** Choose the migration boundary before using cost to select mechanics or a window: persisted data/schema contract → Database Expand/Migrate/Contract at every cost tier; framework/library version migration → `trackbed:code:migrate`; other long-lived service/runtime replacement → Strangler. Then estimate each dependent as Low, Medium, or High and choose the shortest safe window and migration mechanics within that boundary.
-5. **What is the maintenance cost of NOT deprecating?** Frame against concrete cost items: security patches, framework upgrades that require touching it, test flakes, onboarding time for new contributors. If the list is short, deferring is fine. If long or growing, deprecation has a clock.
+5. **What is the maintenance cost of NOT deprecating?** Frame against concrete cost items: security patches, framework upgrades that require touching it, test flakes, onboarding time for new contributors. A short list usually makes the weighing below favor a Defer outcome. If long or growing, deprecation has a clock.
 
-Emit `SIMPLICITY CHECK: <smallest coherent removal>` once the answers are in.
+Then weigh the two costs over the same horizon: the total migration effort across every dependent from question 4 plus any replacement build from question 3, including the work this skill makes yours under the Churn Rule, against the cost of keeping the old code from question 5, including any security or end-of-life forcing function. When keeping the old code is cheaper, record `Outcome: Defer` with a revisit trigger (a forcing event, a cost item that gains a date, or a named review date) and stop without announcing anything. Otherwise record `Outcome: Deprecate`.
 
-Record the five answers in `DEPRECATION_PLAN_<slug>.md` under `## Decisions`.
+For a Deprecate outcome, emit `SIMPLICITY CHECK: <smallest coherent removal>`.
+
+Record the answers and the outcome in `DEPRECATION_PLAN_<slug>.md` under `## Decisions`; a Keep and maintain outcome needs only the question 1 answer.
 
 ## Step 2 — Classify: Advisory vs Compulsory
 
 Every deprecation is one of:
 
-- **Advisory** — optional migration; the old path continues to function. Signals: no security issue, no EOL date, no platform forcing function. Announcement window measured in quarters. Callers migrate at their own cadence.
-- **Compulsory** — forced by security (CVE, unpatched known issue), maintenance (vendor EOL), or platform (runtime bump, framework sunset). Announcement window measured in weeks or months. Callers must migrate or lose the capability.
+- **Advisory** — optional migration; the old path continues to function. Signals: no security issue, no EOL date, no platform forcing function. Announcement window measured in quarters. Callers migrate at their own cadence, but the window still needs a target removal date and a caller-count cadence so the Step 4.3 Advisory progress check can tell when migration has stalled.
+- **Compulsory** — forced by security (CVE, unpatched known issue), maintenance (vendor EOL), platform (runtime bump, framework sunset), or a Step 4.3 Advisory progress decision to reclassify a stalled or expired window. Announcement window measured in weeks or months. Callers must migrate or lose the capability.
 
 Compulsory deprecations trigger `ASK FIRST` if the announcement window is under 30 days or the affected surface is a public API.
 
-Ambiguous cases default to Advisory — then reclassify if a specific forcing function surfaces (new CVE, vendor EOL notice).
+Ambiguous cases default to Advisory — then reclassify if a specific forcing function surfaces (new CVE, vendor EOL notice) or a Step 4.3 Advisory progress decision chooses to reclassify a stalled or expired window.
 
 ## Zombie-code gate
 
@@ -237,13 +243,17 @@ For Database Expand/Migrate/Contract, publish the operator-reviewed phase plan c
 
 When the Step 3 pattern is Feature Flag, the flag service itself acts as a per-cohort announcement channel in addition to the surface-appropriate notices above — see `references/migration-patterns.md`.
 
-Exit criterion: every dependent surface for the chosen surface type has received the announcement or upgrade note it actually uses, and the migration guide has been rehearsal-validated against at least one representative caller when caller migration is required before rollout begins. For Database Expand/Migrate/Contract, confirm the already-completed `Operator readiness` evidence still matches the published production phase plan before migration begins.
+Once the deprecation is announced, freeze the old surface: it gets only the security and correctness fixes its remaining consumers need, and new capability goes into the replacement. Adding functionality to the old surface requires `ASK FIRST: adding functionality to a deprecated surface`, because every new feature gives callers another reason to stay.
+
+Exit criterion: every dependent surface for the chosen surface type has received the announcement or upgrade note it actually uses, and the migration guide has been rehearsal-validated against at least one representative caller when caller migration is required before rollout begins. For Database Expand/Migrate/Contract, confirm the already-completed `Operator readiness` evidence still matches the published production phase plan before migration begins. Once the exit criterion is met, log a dated `announced` entry in `## Migration Log`.
 
 ### 4.3 Migrate incrementally
 
 Apply the Step 3 pattern. Migrate callers in slices — by team, by cohort, by path — with verification between slices. The Churn Rule says you own this migration: if callers are not migrating, you do the migrations yourself (codemods, PRs against consuming services, batch-updates).
 
 For Database Expand/Migrate/Contract, advance only through the separately deployable phase-status gates. Use the migration-pattern reference to design transitional writes, backfill, read cutover, observation, and recovery for the chosen datastore. The Backfill gate must account for every retained record and value required by the new contract; record an explicit safe disposition for every excluded population before advancing.
+
+**Advisory progress check.** For an Advisory deprecation, log the remaining-caller count in `## Migration Log` at the plan's caller-count cadence, using the surface's Step 1 evidence sources. Count only remaining-caller entries dated after the latest `announced` or `progress decision` entry. Migration has stalled when the latest of those entries shows no fewer callers than the one before it; the window has expired when the target removal date passes with callers remaining. Either one requires a decision, logged as a dated `progress decision` entry and recorded in `## Decisions`: take over the remaining migrations yourself under the Churn Rule and set a new target removal date, or reclassify to Compulsory with a new date, subject to Step 2's `ASK FIRST` rules. If you cannot migrate the remaining callers and the reclassification is declined, re-run Step 1 with current evidence and record its outcome as the progress decision; a Keep and maintain or Defer outcome ends the deprecation.
 
 The first migrated slice is the guide's real-world validation. If the guide is wrong or incomplete, fix it before moving to the next slice.
 
@@ -287,7 +297,7 @@ When Database Expand/Migrate/Contract is selected, the checked, evidenced items 
 
 ## Verification
 
-Completion state is owned by `DEPRECATION_PLAN_<slug>.md`. Before closing the workflow:
+Completion state is owned by `DEPRECATION_PLAN_<slug>.md`. A Keep and maintain or Defer outcome closes the workflow once the outcome and its revisit trigger are archived in durable project docs and the plan is deleted. Otherwise, before closing the workflow:
 
 - Re-read `## Step Status` and `## Completion Gates`; every box must be checked with the evidence required by its owning step.
 - For Database Expand/Migrate/Contract, every authoritative `## Database Migration Phase Status` item must also be checked with evidence.
