@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: pr-description-one-way-migration
+expected_outcome: |
+  A migration drops a column, which a revert cannot undo. The description has a Rollout section with the deploy order, says what a revert leaves behind, and a cold reader runs because the diff has a database migration.
+context:
+  scaffold_script: scaffold.sh

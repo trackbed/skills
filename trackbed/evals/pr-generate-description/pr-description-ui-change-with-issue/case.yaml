@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: pr-description-ui-change-with-issue
+expected_outcome: |
+  A change people can see in the UI, on a branch named after issue SKILLS-15. The description links the full issue ID with a magic word, leads with what people can now do, and has a Screenshots / Videos placeholder with a reminder to add the images.
+context:
+  scaffold_script: scaffold.sh

@@ -1,6 +1,6 @@
 # Eval Scope Review: Testing the Revisit Condition
 
-- Status: PROPOSED
+- Status: SUPERSEDED by [2026-11-11-skill-change-evals.md](2026-11-11-skill-change-evals.md)
 - Date: 2026-08-08
 - Deciders: repository maintainers
 

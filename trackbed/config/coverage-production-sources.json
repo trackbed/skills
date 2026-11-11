@@ -25,7 +25,8 @@
       "trackbed/scripts/lib/skill-usage-cost.js",
       "trackbed/scripts/lib/skill-usage-hosts.js",
       "trackbed/scripts/probe-cold-reader-isolation.js",
-      "trackbed/scripts/schemas/skill-contracts.js"
+      "trackbed/scripts/schemas/skill-contracts.js",
+      "trackbed/scripts/skill-eval-compare.js"
     ],
     "contract_only": {
       "trackbed/skills/pr:code-review/scripts/review-execution.js": [
@@ -764,6 +765,30 @@
   ],
   "shell": {
     "contract_only": {
+      "trackbed/evals/pr-generate-description/_lib/git-fixture.sh": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/pr-generate-description/pr-description-breaking-change/scaffold.sh": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/pr-generate-description/pr-description-migration-without-rationale/scaffold.sh": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/pr-generate-description/pr-description-new-runtime-dependency/scaffold.sh": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/pr-generate-description/pr-description-one-way-migration/scaffold.sh": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/pr-generate-description/pr-description-small-fix/scaffold.sh": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/pr-generate-description/pr-description-ui-change-with-issue/scaffold.sh": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/pr-generate-description/pr-description-uppercase-template/scaffold.sh": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
       "trackbed/evals/skillopt/scripts/export-candidate.sh": [
         "trackbed/tests/skillopt-adapter.bats"
       ],
