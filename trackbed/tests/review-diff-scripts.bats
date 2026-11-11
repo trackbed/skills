@@ -430,6 +430,48 @@ PY
 	[ "$CHANGED_FILES" = "$expected" ]
 }
 
+@test "collect-review-diff never lists an untracked visual report page" {
+	printf 'tracked page\n' >QA_REPORT.html
+	git add QA_REPORT.html
+	git commit -m "feature commit" >/dev/null
+	printf 'tracked page, edited\n' >QA_REPORT.html
+
+	mkdir -p siw docs siw/notes
+	printf 'page\n' >REVIEW_OVERVIEW.html
+	printf 'page\n' >DEPRECATION_PLAN_old-api.html
+	printf 'page\n' >siw/AUDIT_SPEC_REPORT.html
+	printf 'report\n' >REVIEW_OVERVIEW.md
+	printf 'ui\n' >index.html
+	printf 'ui\n' >docs/REVIEW_OVERVIEW.html
+	printf 'ui\n' >siw/notes/REVIEW_OVERVIEW.html
+	printf 'ui\n' >REVIEW_OVERVIEW.html.bak
+
+	# Without any option: pages at the root and directly under siw/ drop; the
+	# Markdown report, a tracked file with a page name, nested files, and other
+	# HTML stay in scope.
+	run "$SCRIPT_DIR/collect-review-diff.sh"
+	[ "$status" -eq 0 ]
+	eval "$output"
+	expected="$(printf '%s\n' QA_REPORT.html REVIEW_OVERVIEW.html.bak REVIEW_OVERVIEW.md \
+		docs/REVIEW_OVERVIEW.html index.html siw/notes/REVIEW_OVERVIEW.html | sort)"
+	[ "$CHANGED_FILES" = "$expected" ]
+}
+
+@test "collect-review-diff keeps untracked pages in scope when the artifact list is absent" {
+	local fake_scripts="$BATS_TEST_TMPDIR/scripts-without-list"
+	mkdir -p "$fake_scripts"
+	cp -R "$SCRIPT_DIR/." "$fake_scripts/"
+	printf 'committed\n' >committed.txt
+	git add committed.txt
+	git commit -m "feature commit" >/dev/null
+	printf 'page\n' >REVIEW_OVERVIEW.html
+
+	run "$fake_scripts/collect-review-diff.sh"
+	[ "$status" -eq 0 ]
+	eval "$output"
+	[ "$CHANGED_FILES" = $'REVIEW_OVERVIEW.html\ncommitted.txt' ]
+}
+
 @test "collect-review-diff filtering does not evaluate hostile file names" {
 	printf 'committed\n' >committed.txt
 	git add committed.txt
