@@ -1,4 +1,4 @@
-.PHONY: lint lint-shell lint-python lint-js typecheck-python format-check pre-commit pr-verify verify test test-smoke test-bootstrap test-bats test-bats-file test-node test-node-watch test-node-file test-python test-python-file test-verbose test-convert test-block test-format test-skill-usage test-skill-contracts test-skill-review-eval test-skill-review-live-eval coverage unit-coverage coverage-node coverage-python coverage-bats-contract check-python-static-inventory skill-contracts skill-security skill-security-changed skill-security-semantic skill-security-semantic-changed skill-eval-skill-review skillopt-candidate-check bootstrap-check bootstrap-install install-test-deps check-deps check-bats-deps check-node-deps check-python-deps check-coverage-inventory-deps check-shell-deps check-ruff-deps check-mypy-deps check-js-deps check-static-deps check-test-deps check-format-deps check-security-deps check-security-changed-deps
+.PHONY: lint lint-shell lint-python lint-js typecheck-python format-check pre-commit pr-verify verify test test-smoke test-bootstrap test-bats test-bats-file test-node test-node-watch test-node-file test-python test-python-file test-verbose test-convert test-block test-format test-skill-usage test-skill-contracts test-skill-review-eval test-skill-review-live-eval coverage unit-coverage coverage-node coverage-python coverage-bats-contract check-python-static-inventory skill-contracts skill-security skill-security-changed skill-security-semantic skill-security-semantic-changed skill-eval-skill-review skill-eval-compare skillopt-candidate-check bootstrap-check bootstrap-install install-test-deps check-deps check-bats-deps check-node-deps check-python-deps check-coverage-inventory-deps check-shell-deps check-ruff-deps check-mypy-deps check-js-deps check-static-deps check-test-deps check-format-deps check-security-deps check-security-changed-deps
 
 ROOT_DIR := $(abspath ..)
 PLUGIN_REL := $(shell basename "$(CURDIR)")
@@ -58,6 +58,8 @@ SHELLCHECK_FILES = \
 	scripts/dev-server/*.sh \
 	scripts/lib/*.sh \
 	evals/skillopt/scripts/*.sh \
+	evals/*/_lib/*.sh \
+	evals/*/*/scaffold.sh \
 	skills/*/scripts/*.sh \
 	skills/*/assets/*.sh
 
@@ -259,6 +261,13 @@ skill-security-semantic-changed:
 
 skill-eval-skill-review:
 	@node evals/skill-review/run-eval.js --split all --json
+
+# Compare one eval suite on a base commit against the working tree. This starts
+# real model sessions through `claude plugin eval`, so no verification gate
+# runs it.
+skill-eval-compare:
+	@test -n "$(SUITE)" || { echo "Usage: make skill-eval-compare SUITE=<suite> [BASE=<ref>] [RUNS=<n>] [ARGS='<options>']"; exit 2; }
+	@node scripts/skill-eval-compare.js "$(SUITE)" $(if $(BASE),--base "$(BASE)") $(if $(RUNS),--runs "$(RUNS)") $(ARGS)
 
 skillopt-candidate-check:
 	@python3 scripts/lint-skill-contracts.py

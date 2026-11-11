@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: pr-description-uppercase-template
+expected_outcome: |
+  The repository's default PR template is named in upper case. The description follows that template's headings in order, keeps its checklist, ticks only the boxes the diff supports, and adds no default Summary section.
+context:
+  scaffold_script: scaffold.sh

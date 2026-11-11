@@ -1,6 +1,6 @@
 # Development Guide
 
-Contributor reference for testing, verification, skill security scanning, and the SkillOpt eval pilot. For the contribution workflow see [CONTRIBUTING.md](../../CONTRIBUTING.md); for component conventions see the repo-root [AGENTS.md](../../AGENTS.md).
+Contributor reference for testing, verification, skill security scanning, skill-change evals, and the SkillOpt eval pilot. For the contribution workflow see [CONTRIBUTING.md](../../CONTRIBUTING.md); for component conventions see the repo-root [AGENTS.md](../../AGENTS.md).
 
 ## Running the Tests
 
@@ -326,6 +326,45 @@ Add a row after every live run, passed or failed, so anyone can see when isolati
 | Date | Claude Code | Model | `isolated` | `control` | `unreadable` | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | 2026-11-09 | 2.1.319 | `sonnet` | passed | passed | passed | Seed run made when this record was added |
+
+### Skill Change Evals
+
+`scripts/skill-eval-compare.js` answers one question: is this change to a skill an improvement? It runs an eval suite with [`claude plugin eval`](https://code.claude.com/docs/en/plugin-evals) against two versions of the plugin, a base commit and your working tree, and reports which checks improved, got worse, or stayed within noise. Both versions run the working tree's cases, so the plugin is the only difference. See the [decision](decisions/2026-11-11-skill-change-evals.md).
+
+```bash
+make -C trackbed skill-eval-compare SUITE=pr-generate-description
+```
+
+Each run is a real Claude Code session on your Claude login or `ANTHROPIC_API_KEY`, so no verification gate starts one. It needs Claude Code 2.1.269 or later. A full comparison of the `pr-generate-description` suite is 42 sessions: seven cases, three runs each, on two versions. On 2026-11-11 that cost about $28 at list price and took 14 minutes with `--concurrency 4`.
+
+| To | Pass |
+| --- | --- |
+| Compare against another commit than the merge-base with `origin/main` | `BASE=<ref>` |
+| Change the runs per case per version (default 3) | `RUNS=<n>` |
+| Stop at a list-price cost ceiling, split across the two versions | `ARGS='--max-cost-usd 20'` |
+| Run some cases only | `ARGS='--case pr-description-small-*'` |
+| Run sessions in parallel | `ARGS='--concurrency 4'` |
+| Try a case you are writing, on the working tree alone | `ARGS='--candidate-only --runs 1'` |
+
+The report goes to stdout and to `.context/skill-evals/<suite>/<time>/comparison.md`, beside `comparison.json` and the runner's own HTML report for each version. The command exits `0` for a finished report, `2` when a run stopped early or the runner reported a problem, and `1` when it could not run.
+
+Read the report from the top:
+
+- **Verdict.** Better, worse, mixed, or no detectable difference. A check counts as changed when its pass rate moves by more than half its runs, so three runs catch a check that flips and miss a small shift. No detectable difference is a normal answer, not a failure.
+- **Checks passed, cost per run, and time per run.** A change that passes the same checks for less cost or time is also an improvement; the verdict does not weigh that for you.
+- **Unstable checks.** They passed in some runs and failed in others on the same version. Treat a change in one with suspicion, and raise `RUNS` before relying on it.
+- **Measure the noise when in doubt.** Compare a commit with itself on a clean tree, with `BASE=HEAD`: every check reported as changed is noise.
+
+A suite is a folder under `evals/` holding a `suite.json` and one folder per case in the layout `claude plugin eval` reads. `suite.json` lists the grants the suite needs, `allow_tools` and `scaffold`, because the runner never lets a case widen its own access. When you add a case:
+
+- Write it for a failure you have seen, a fix that just merged, or a contract another skill relies on, and say which in `expected_outcome`. A case the skill passes every time can only show a regression; showing an improvement takes a check the current skill sometimes fails.
+- Tag it with the suite name, give it a `graders/skill-fired.md` check, and prefer `regex` and `tool_used` checks. Keep `llm` checks for meaning, written as `PASS if` and `FAIL if` conditions.
+- Check the part of the reply you mean. A skill's reply often holds its result and then notes about the run, and a pattern over the whole reply matches both. The `pr-generate-description` checks about the description only look between the two `---` lines around it.
+- Never write `---` inside a grader's or prompt's settings block: the runner ends the block there and the case fails to load. Write `-{3}` in a pattern.
+- Build fixtures from invented code. This repository is public, and the eval directory ships with the plugin. Name a fixture's `package.json` `package.fixture.json`; the fixture helper restores the name, and dependency scanners do not read the invented project as this repository's own.
+- Run `make -C trackbed test-bats-file BATS_TEST_FILE=tests/skill-eval-suites.bats`. It validates every case and builds every Git fixture without starting a model.
+
+Shell commands in a run have no network, so `gh` and Linear lookups fail there; the `pr-generate-description` prompts pass `--base main` for that reason. On macOS the script puts wrappers for the real developer tools first on `PATH`, because the `/usr/bin` launchers for Git, Python, and Make cannot run inside the runner's sandbox.
 
 ### Test Structure
 

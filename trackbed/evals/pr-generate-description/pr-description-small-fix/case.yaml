@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: pr-description-small-fix
+expected_outcome: |
+  A short description of a one-file bug fix: a Conventional Commits fix title,
+  a Summary and a Test plan, no Breaking changes, Rollout, or Screenshots
+  section, and a cold read skipped because the diff is small.
+context:
+  scaffold_script: scaffold.sh

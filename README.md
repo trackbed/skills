@@ -772,7 +772,7 @@ Regular branch commits should use plain-English commit messages (no Conventional
 
 ## Development
 
-[CONTRIBUTING.md](CONTRIBUTING.md) covers local setup, and the [development guide](trackbed/docs/development.md) has the complete test-target catalog, coverage baselines, pre-PR verification, skill security scans, and the SkillOpt eval pilot. The short version:
+[CONTRIBUTING.md](CONTRIBUTING.md) covers local setup, and the [development guide](trackbed/docs/development.md) has the complete test-target catalog, coverage baselines, pre-PR verification, skill security scans, skill-change evals, and the SkillOpt eval pilot. The short version:
 
 ```bash
 # Read-only prerequisite check
@@ -795,6 +795,9 @@ make -C trackbed pr-verify
 
 # Stronger release-candidate gate
 make -C trackbed verify
+
+# Compare a skill change with its base commit (starts paid model sessions)
+make -C trackbed skill-eval-compare SUITE=pr-generate-description
 ```
 
 Skill changes also need a separate SkillSpector installation for the changed-skill security gate. [CONTRIBUTING.md](CONTRIBUTING.md#optional-pre-commit-check) describes the optional managed pre-commit hook, and the [skill-review eval guide](trackbed/evals/skill-review/README.md#live-provider-adapters) covers the optional live evals that spend Anthropic or OpenAI API credits.

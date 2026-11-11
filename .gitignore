@@ -3,6 +3,7 @@ node_modules/
 .venv/
 
 trackbed/hooks/hook-state.json
+trackbed/evals/results/
 .claude/scheduled_tasks.lock
 __pycache__/
 *.pyc

@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: pr-description-new-runtime-dependency
+expected_outcome: |
+  The diff adds one runtime dependency and one development-only dependency. The description names the runtime dependency in Review notes with what it is for, and leaves the development-only one out.
+context:
+  scaffold_script: scaffold.sh

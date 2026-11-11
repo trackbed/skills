@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: pr-description-migration-without-rationale
+expected_outcome: |
+  The diff adds a database migration, and neither the commit nor the branch says why or how to roll it back. The run reports the missing migration context as a blocking MISSING REQUIREMENT line and still produces a title.
+context:
+  scaffold_script: scaffold.sh

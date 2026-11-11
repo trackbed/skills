@@ -18,6 +18,7 @@
     "scripts/lib/*.js",
     "scripts/probe-cold-reader-isolation.js",
     "scripts/schemas/*.js",
+    "scripts/skill-eval-compare.js",
     "scripts/skill-usage.js",
     "evals/skill-review/*.js",
     "tests/node/*.test.js"

@@ -1,0 +1,4 @@
+{
+  "allow_tools": ["Bash"],
+  "scaffold": true
+}
