@@ -26,4 +26,5 @@
 /trackbed:qa https://staging.myapp.com                          # staging URL
 /trackbed:qa http://localhost:3000 --regression                 # compare against previous baseline
 /trackbed:qa http://localhost:3000 --inline                     # reply inline, no QA_REPORT.md
+/trackbed:qa http://localhost:3000 --visual                     # also write QA_REPORT.html, an interactive page
 ```

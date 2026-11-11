@@ -86,10 +86,11 @@ Generated plans are inputs, not Pull Request content.
 1. Inspect `git status --porcelain`.
 2. Require `{plan-set-root}` to pass `git check-ignore -q -- "{plan-set-root}"`.
 3. For `root` input:
-   - Continue only when every dirty path is a root-level `PR_PLAN_*.md` file and every such path is untracked (`??`). Stop on tracked plan edits or any non-plan change.
+   - Continue only when every dirty path is a root-level `PR_PLAN_*.md` file or the root `PR_PLAN_INDEX.html` visual page that `trackbed:code:breakdown-findings` writes beside the index, and every such path is untracked (`??`). Stop on tracked plan edits or any other change.
    - Create `{plan-set-root}`.
    - Require every root `PR_PLAN_*.md` artifact to be a non-symlink regular file. For each path, run `git ls-files --error-unmatch -- ":(literal){path}"` and require the recognized no-match result; command success means the artifact is tracked and is a blocker.
    - Require every destination basename not to exist, then move each untracked root `PR_PLAN_*.md` into `{plan-set-root}`.
+   - The root `PR_PLAN_INDEX.html` page is not a plan. When it is an untracked, non-symlink regular file by the same checks, move it into `{plan-set-root}` with the set and never read, validate, or hash it; a tracked or symlinked one stops the run.
 4. For `attachment` input:
    - Require no root-level `PR_PLAN_*.md` artifact and require `git status --porcelain` to be empty. The ignored attachment itself does not count as worktree state.
    - Revalidate the attachment's exact source object ID immediately before copying it.

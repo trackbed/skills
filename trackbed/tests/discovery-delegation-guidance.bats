@@ -22,7 +22,7 @@
     test -f "$interview_dir/assets/siw-discovery-brief-template.md"
     test -f "$interview_dir/assets/siw-spec-strengthening-plan-template.md"
     grep -q "^disable-model-invocation: false$" "$interview_skill"
-    grep -qF "argument-hint: \"[topic | file-path(s) | siw] [--siw] [--apply] [--ideate] [--decision-tree] [--research]\"" "$interview_skill"
+    grep -qF "argument-hint: \"[topic | file-path(s) | siw] [--siw] [--apply] [--visual] [--ideate] [--decision-tree] [--research]\"" "$interview_skill"
 
     # The sibling-skill delegation contract is retired.
     ! grep -qF "INTERVIEW DELEGATION" "$interview_skill"

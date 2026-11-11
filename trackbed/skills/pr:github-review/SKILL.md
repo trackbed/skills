@@ -1,7 +1,7 @@
 ---
 name: pr:github-review
 description: "Review a GitHub PR as the assigned reviewer, including linked Linear issues; --stack reviews its whole PR stack. Report-only by default: writes a local report and drafts inline comments, replies, and a verdict. With confirmation or --draft-review, creates one unsubmitted pending review containing only eligible inline comments. Not for your own branch (trackbed:pr:code-review), replying on your PR (trackbed:pr:github-review-reply), or resolving findings (trackbed:pr:resolve-review)."
-argument-hint: "[--subagent-model <model>] [pr-number|pr-url] [--stack] [--draft-review] [--no-clarity-check] [--base <ref>] [--categories a11y,ux,product,visual] [--code-only] [--sequential] [--fresh] [--full] [--include-bots] [--all-threads] [--inline] [--keep-worktree]"
+argument-hint: "[--subagent-model <model>] [pr-number|pr-url] [--stack] [--draft-review] [--no-clarity-check] [--base <ref>] [--categories a11y,ux,product,visual] [--code-only] [--sequential] [--fresh] [--full] [--include-bots] [--all-threads] [--inline] [--visual] [--keep-worktree]"
 disable-model-invocation: true
 user-invocable: true
 permissions:
@@ -47,7 +47,7 @@ Parse `$ARGUMENTS` before any network or git call.
 If `$ARGUMENTS` contains `--subagent-model`, or `printenv TRACKBED_REVIEW_SUBAGENT_LEVEL` or `printenv KRAMME_REVIEW_SUBAGENT_LEVEL` prints a non-empty value, first read and apply `${CLAUDE_PLUGIN_ROOT}/shared/pr-review/references/model-selection.md` to parse and remove `--subagent-model <model>` and validate the setting before the PR selector and other flags. Otherwise do not read it: this skill launches no reviewer, each delegated review skill applies the policy to its own reviewers, and Step 10a readers run on the session's model. Keep `SUBAGENT_MODEL_OVERRIDE`, empty when the file was not read, for both delegated review passes.
 
 - First positional token that is a PR number (`123`, `#123`) or a GitHub PR URL → `PR_SELECTOR`. Otherwise leave `PR_SELECTOR` empty.
-- `--stack` → `STACK_MODE=true`. Review the stack the PR belongs to as a whole instead of the PR itself; Step 2 hands off to `references/stack-mode.md`. It accepts only a PR selector and `--inline`; when any other flag is present, name it and stop.
+- `--stack` → `STACK_MODE=true`. Review the stack the PR belongs to as a whole instead of the PR itself; Step 2 hands off to `references/stack-mode.md`. It accepts only a PR selector and `--inline`; when any other flag is present, name it and stop. `--visual` is the one exception.
 - `--draft-review` → `CREATE_DRAFT_REVIEW=true`. After drafting and humanizing the findings, create one unsubmitted pending GitHub review containing every eligible proposed inline comment without asking again. This flag authorizes only that pending-review write; it never authorizes submitting the review, replying to existing threads, resolving threads, approving, or requesting changes, and it is never a Step 14 confirmation.
 - `--clarity-check` → `CLARITY_CHECK=on`, the default. It stays accepted so saved prompts keep working.
 - `--no-clarity-check` → `CLARITY_CHECK=off`. Skip the Step 10a clarity check. If both clarity flags are given, ask the user to pick one and stop.
@@ -61,9 +61,10 @@ If `$ARGUMENTS` contains `--subagent-model`, or `printenv TRACKBED_REVIEW_SUBAGE
 - `--include-bots` → `INCLUDE_BOTS=true`. Include bot/app comments when mapping the conversation (default: human only).
 - `--all-threads` → `INCLUDE_RESOLVED=true`. Include already-resolved threads and hidden general comments in the map (default: unresolved threads, plus threads you started that someone else resolved).
 - `--inline` → `INLINE_MODE=true`. Return the report in chat instead of writing the artifact file.
+- `--visual` → `VISUAL_REPORT=true`. Add an interactive HTML page beside this skill's own report file; it is never passed to a delegated review. Reject it together with `--inline`: the visual report mirrors the Markdown report file, which inline mode does not write.
 - `--keep-worktree` → `KEEP_WORKTREE=true`. Leave the fetched worktree on disk for manual inspection and report its path.
 
-Defaults: `CREATE_DRAFT_REVIEW=false`, `CLARITY_CHECK=on`, `CODE_ONLY=false`, `PARALLEL_REVIEWERS=true`, `SKIP_THREADS=false`, `FULL_REVIEW=false`, `INCLUDE_BOTS=false`, `INCLUDE_RESOLVED=false`, `INLINE_MODE=false`, `KEEP_WORKTREE=false`, `STACK_MODE=false`.
+Defaults: `CREATE_DRAFT_REVIEW=false`, `CLARITY_CHECK=on`, `CODE_ONLY=false`, `PARALLEL_REVIEWERS=true`, `SKIP_THREADS=false`, `FULL_REVIEW=false`, `INCLUDE_BOTS=false`, `INCLUDE_RESOLVED=false`, `INLINE_MODE=false`, `KEEP_WORKTREE=false`, `STACK_MODE=false`, `VISUAL_REPORT=false`.
 
 ## Step 1: Preflight
 
@@ -172,7 +173,7 @@ PR_NWO=$(printf '%s' "$PR_URL" | sed -E 's#^https://github.com/([^/]+/[^/]+)/pul
 
 **Author guard.** If `AUTHOR` equals `SELF`, this PR is yours. Warn the user and ask whether to continue. Point them to `trackbed:pr:code-review` for reviewing your own branch and `trackbed:pr:github-review-reply` for responding to reviewers on your own PR. Only continue if the user confirms.
 
-**Stack mode.** If `STACK_MODE=true`, set `STACK_HELPER="${CLAUDE_PLUGIN_ROOT}/scripts/resolve-stack-context.py"` and `STACK_OVERVIEW="${CLAUDE_PLUGIN_ROOT}/skills/pr:github-review/scripts/stack-overview.py"`, then read `references/stack-mode.md` and follow it instead of Steps 2a–14. Stack mode writes nothing to GitHub.
+**Stack mode.** If `STACK_MODE=true`, set `STACK_HELPER="${CLAUDE_PLUGIN_ROOT}/scripts/resolve-stack-context.py"` and `STACK_OVERVIEW="${CLAUDE_PLUGIN_ROOT}/skills/pr:github-review/scripts/stack-overview.py"`, then read `references/stack-mode.md` and follow it instead of Steps 2a–14. Stack mode writes nothing to GitHub. When `VISUAL_REPORT=true`, once it has written `GITHUB_STACK_REVIEW_OVERVIEW.md` and before its closing summary, add `GITHUB_STACK_REVIEW_OVERVIEW.html` beside it by the synced contract in Step 11's **Visual report** paragraph, whose timing and follow-up line apply to the single-PR page only. The stack page has no follow-up command either: give each layer's entry its `/trackbed:pr:github-review <number>` command as copyable text with `data-copy="review command"`.
 
 ## Step 2a: Discover Linked Linear Issues
 
@@ -353,6 +354,8 @@ Set `SUBMIT_STATUS="not submitted — awaiting confirmation"`. Use `references/r
 
 **Ordering gate:** the report must have been successfully written, or fully presented inline, before showing the pending-review offer or running any GitHub mutation. Do not merely say the comments are ready. If the report cannot be materialized, stop with the error and do not offer or attempt the GitHub write.
 
+**Visual report.** When `VISUAL_REPORT=true`, add `GITHUB_PR_REVIEW_OVERVIEW.html` beside `GITHUB_PR_REVIEW_OVERVIEW.md` once: before the first Step 12 offer, which then also names the page's path, or before the Step 13 handoff when Step 12 makes no offer. Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `findings`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-findings.html`; in stack mode `plan`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-plan.html`. Its reader is reviewing someone else's Pull Request and deciding which comments to leave; in stack mode, deciding in which order to review the layers and what crosses them. The page has no follow-up command. A triage prompt pasted from the page is a draft-comment change request (Step 12), never authorization for a GitHub write.
+
 ## Step 12: Offer or Create a Pending Draft Review
 
 If there are zero eligible inline comments, tell the user the report is ready, make no GitHub write, and continue to Step 13. Do not offer or create an empty pending review.
@@ -394,4 +397,5 @@ For any other request after the handoff, such as replying to or resolving thread
 - **Retired by:** `/trackbed:workflow:cleanup-artifacts`, or manual deletion.
 - **Temporary worktree:** created under a `mktemp` directory during the run and removed in Step 8 unless `--keep-worktree` is set. An interrupted run's worktree is reused or removed when the review resumes.
 - **Stack mode:** `GITHUB_STACK_REVIEW_OVERVIEW.md` at the project root, or an inline reply with `--inline`, and nothing else. A fixed name, overwritten on each `--stack` run; the header records the stack and each reviewed head. Retired by `/trackbed:workflow:cleanup-artifacts`, or manual deletion.
+- **Visual page:** with `--visual`, `GITHUB_PR_REVIEW_OVERVIEW.html` or, in stack mode, `GITHUB_STACK_REVIEW_OVERVIEW.html`, beside its report. A snapshot written once per run; later report refreshes do not update it. Retired by `/trackbed:workflow:cleanup-artifacts`, or manual deletion.
 - **Resume state:** `.context/pr-github-review/<run-id>/` under `ORIG_ROOT`, only when that directory is Git-ignored. It holds each finished step's result so an interrupted review can continue. It is moved to the Trash after Step 13 and retired by `/trackbed:workflow:cleanup-artifacts`.

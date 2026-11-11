@@ -10,6 +10,36 @@
   ],
   "text_contracts": [
     {
+      "name": "visual-report-style",
+      "extract_regex": "Synced visual report contract \\(keep aligned across report producers\\):\\s*(only the user's own --visual in this invocation turns the page on.*?include Visual report: <absolute path> in the run's closing output\\.)",
+      "inventory": {
+        "glob": "trackbed/skills/**/SKILL.md",
+        "marker": "Synced visual report contract (keep aligned across report producers):"
+      },
+      "paths": [
+        "trackbed/skills/pr:code-review/SKILL.md",
+        "trackbed/skills/pr:product-review/SKILL.md",
+        "trackbed/skills/code:copy-review/SKILL.md",
+        "trackbed/skills/pr:convention-review/SKILL.md",
+        "trackbed/skills/pr:overengineering-review/SKILL.md",
+        "trackbed/skills/pr:github-review/SKILL.md",
+        "trackbed/skills/code:refactor-opportunities/SKILL.md",
+        "trackbed/skills/code:agent-readiness/SKILL.md",
+        "trackbed/skills/code:outside-view/SKILL.md",
+        "trackbed/skills/deps:audit/SKILL.md",
+        "trackbed/skills/code:audit-security/SKILL.md",
+        "trackbed/skills/qa/SKILL.md",
+        "trackbed/skills/product:review/SKILL.md",
+        "trackbed/skills/docs:review/SKILL.md",
+        "trackbed/skills/siw:spec-audit/SKILL.md",
+        "trackbed/skills/discovery:strategic-inquiry/SKILL.md",
+        "trackbed/skills/code:breakdown-findings/SKILL.md",
+        "trackbed/skills/pr:github-review-reply/SKILL.md",
+        "trackbed/skills/code:deprecate/SKILL.md",
+        "trackbed/skills/discovery:interview/SKILL.md"
+      ]
+    },
+    {
       "name": "linear-agent-readiness-rubric",
       "extract_regex": "(?s)Synced Linear agent-readiness contract \\(keep aligned across Linear readiness workflows\\):\\s*(An issue is `?agent-ready`? only when every item passes\\..*?Never promote an issue while required evidence is unknown\\.)",
       "inventory": {
@@ -543,7 +573,7 @@
       "path": "trackbed/skills/pr:code-review/SKILL.md",
       "frontmatter": {
         "name": "pr:code-review",
-        "argument-hint": "[--subagent-model <model>] [aspects] [--emphasize <dim>...] [--base <branch>] [--previous-review <path>] [--no-cleanup] [--parallel] [parallel] [--team] [--inline] [--loop] [--no-diff-comments]",
+        "argument-hint": "[--subagent-model <model>] [aspects] [--emphasize <dim>...] [--base <branch>] [--previous-review <path>] [--no-cleanup] [--parallel] [parallel] [--team] [--inline] [--visual] [--loop] [--no-diff-comments]",
         "disable-model-invocation": "false",
         "user-invocable": "true"
       },
@@ -580,7 +610,7 @@
       "path": "trackbed/skills/pr:convention-review/SKILL.md",
       "frontmatter": {
         "name": "pr:convention-review",
-        "argument-hint": "[--subagent-model <model>] [--base <branch>] [--threshold 0-100] [--baseline <path>] [--inline] [--no-diff-comments]",
+        "argument-hint": "[--subagent-model <model>] [--base <branch>] [--threshold 0-100] [--baseline <path>] [--inline] [--visual] [--no-diff-comments]",
         "disable-model-invocation": "false",
         "user-invocable": "true"
       },
@@ -1524,7 +1554,7 @@
       "path": "trackbed/skills/code:breakdown-findings/SKILL.md",
       "frontmatter": {
         "name": "code:breakdown-findings",
-        "argument-hint": "[--auto] [--resume|--reconcile|--split] [--all | plan-file ...] [--worktree <path>] [--source <ref>] [--base <ref>] [--] [source ...]",
+        "argument-hint": "[--auto] [--resume|--reconcile|--split] [--visual] [--all | plan-file ...] [--worktree <path>] [--source <ref>] [--base <ref>] [--] [source ...]",
         "disable-model-invocation": "true",
         "user-invocable": "true"
       },
@@ -1872,14 +1902,10 @@
     "inventory": "trackbed/config/coverage-production-sources.json",
     "mechanical_only": [
       "trackbed/skills/browse/SKILL.md",
-      "trackbed/skills/code:audit-security/SKILL.md",
-      "trackbed/skills/deps:audit/SKILL.md",
-      "trackbed/skills/discovery:strategic-inquiry/SKILL.md",
       "trackbed/skills/docs:to-markdown/SKILL.md",
       "trackbed/skills/docs:ubiquitous-language/SKILL.md",
       "trackbed/skills/hooks:toggle/SKILL.md",
       "trackbed/skills/product:design-critic/SKILL.md",
-      "trackbed/skills/product:review/SKILL.md",
       "trackbed/skills/product:strategy/SKILL.md",
       "trackbed/skills/product:validate-demand/SKILL.md",
       "trackbed/skills/research/SKILL.md",

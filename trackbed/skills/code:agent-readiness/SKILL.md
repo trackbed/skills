@@ -1,7 +1,7 @@
 ---
 name: code:agent-readiness
 description: "Audit a codebase for agent-nativeness — score how well-optimized it is for AI coding agents across 5 dimensions and generate a prioritized refactoring plan."
-argument-hint: "[--subagent-model <model>] [--auto]"
+argument-hint: "[--subagent-model <model>] [--auto] [--visual]"
 disable-model-invocation: true
 user-invocable: true
 trackbed-platforms: [claude-code, codex]
@@ -17,7 +17,7 @@ Audit a codebase for agent-nativeness — how well-optimized it is for AI coding
 - Replacing a refactor-opportunity scan — this scores agent-nativeness, not general code quality.
 - Per-package audits inside a monorepo — this skill audits root-level configuration. Run per-package separately if needed.
 
-**What it touches:** writes one report file (`AGENT_NATIVE_AUDIT.md`) at the project root. Read-only otherwise.
+**What it touches:** writes one report file (`AGENT_NATIVE_AUDIT.md`) at the project root. With `--visual`, it also writes one HTML page beside that file. Read-only otherwise.
 
 **Subagent models.** First read and apply `${CLAUDE_PLUGIN_ROOT}/shared/pr-review/references/model-selection.md`, using its `## Non-Review Subagent Roles` section for the three dimension agents, named as lens or scan roles. It parses and removes `--subagent-model <model>`, reads `TRACKBED_REVIEW_SUBAGENT_LEVEL`, and keeps the default `same` when neither is set. Report the selection before Step 2, set it on all three launches, and record it in the resumable fan-out `subagent_model` key slot.
 
@@ -25,6 +25,7 @@ Parse `$ARGUMENTS` for `--auto` before Step 1.
 
 - If present, set `AUTO_MODE=true` and remove the flag from the remaining input.
 - `--auto` means: if a previous report exists, write a fresh report and include a score comparison instead of prompting the user.
+- If `--visual` is present, set `VISUAL_REPORT=true` and remove the flag from the remaining input; otherwise set `VISUAL_REPORT=false`.
 
 Score every dimension from evidence you found in the codebase; do not guess a score you have not checked.
 
@@ -44,7 +45,7 @@ Good pointers are scoped, accurate, and explain why the target matters. Link dum
 ## Process Overview
 
 ```text
-/trackbed:code:agent-readiness [--auto]
+/trackbed:code:agent-readiness [--auto] [--visual]
     |
     v
 [Step 1: Detect Codebase Context] -> Language, framework, key signals
@@ -333,6 +334,8 @@ Report written to: AGENT_NATIVE_AUDIT.md
 ```
 
 Then mark the run complete.
+
+**Visual report (`--visual`).** When `VISUAL_REPORT=true`, add `AGENT_NATIVE_AUDIT.html` beside the written `AGENT_NATIVE_AUDIT.md`. Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `assessment`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-assessment.html`. Its reader is a maintainer who wants to see how ready the codebase is for agents, dimension by dimension, and what would raise the lowest scores. Follow-up commands for the page: `/trackbed:code:breakdown-findings`, `/trackbed:linear:breakdown-findings`.
 
 ---
 

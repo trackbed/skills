@@ -67,7 +67,7 @@ Save `NO_CLEANUP` as the boolean `noCleanup` and `EMPHASIZED_DIMENSIONS` as the 
 node "$REVIEW_SKILL_DIR/scripts/review-execution.js" init "$REVIEW_RUN" --plan "$REVIEW_PLAN" --base "$BASE_REF"
 ```
 
-The helper derives the job inventory, creates `plan.json` and `ledger.json`, and captures HEAD, resolved base, index and working-file content. It excludes only ignored files and the untracked root report; a tracked report remains evidence. Dirty submodules fail closed. Keep the returned run ID for the report.
+The helper derives the job inventory, creates `plan.json` and `ledger.json`, and captures HEAD, resolved base, index and working-file content. It excludes only ignored files, the untracked root report, and that report's untracked `--visual` page; a tracked report remains evidence. Dirty submodules fail closed. Keep the returned run ID for the report.
 
 ## Record actual execution
 

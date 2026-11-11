@@ -1,7 +1,7 @@
 ---
 name: pr:convention-review
 description: "Flag drift from documented rules and mined peer-file practice, plus overcaution, citing evidence for every finding. Use when asked or delegated by trackbed:pr:review-convergence. Never edits source."
-argument-hint: "[--subagent-model <model>] [--base <branch>] [--threshold 0-100] [--baseline <path>] [--inline] [--no-diff-comments]"
+argument-hint: "[--subagent-model <model>] [--base <branch>] [--threshold 0-100] [--baseline <path>] [--inline] [--visual] [--no-diff-comments]"
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -30,13 +30,13 @@ Before parsing other arguments, read and apply `${CLAUDE_PLUGIN_ROOT}/shared/pr-
 
 ### Step 1: Parse Arguments
 
-Accept `--subagent-model <model>` through the startup model-selection contract above. Accept only `--base <branch>`, `--threshold N`, `--baseline <path>`, `--inline`, and `--no-diff-comments` in the remaining arguments:
+Accept `--subagent-model <model>` through the startup model-selection contract above. Accept only `--base <branch>`, `--threshold N`, `--baseline <path>`, `--inline`, `--visual`, and `--no-diff-comments` in the remaining arguments:
 
 1. `--base` and `--threshold` may each appear at most once and must be followed by a non-flag value. Store the base as `BASE_BRANCH_OVERRIDE`.
 2. Require `--threshold` to be a decimal integer from 0 through 100. Store it as `custom_threshold`; default to `80`.
-3. `--inline` may appear at most once. Set `INLINE_MODE=true` when present and `false` otherwise.
+3. `--inline` may appear at most once. Set `INLINE_MODE=true` when present and `false` otherwise. `--visual` may appear at most once. Set `VISUAL_REPORT=true` when present and `false` otherwise, and reject it together with `--inline`: the visual report mirrors `CONVENTION_REVIEW_OVERVIEW.md`, which inline mode does not write.
 4. `--no-diff-comments` may appear at most once. Set `DIFF_COMMENTS=false` when present and `true` otherwise. `--baseline <path>` may appear at most once and must be followed by a non-flag value. Store it as `BASELINE_PATH`. Require its parent to be an existing real directory that Git ignores (`git check-ignore -q -- <parent>/`), and require the path itself to be absent or a regular non-symlink file; stop otherwise. When the file exists, parse it as the baseline ledger defined in `references/baseline-mining.md`; treat unparseable content as an empty ledger and say so in the report.
-5. Reject duplicate flags, unknown flags, positional arguments, missing values, and invalid thresholds before reading project files, fetching, or launching reviewers. Show: `Usage: /trackbed:pr:convention-review [--subagent-model <model>] [--base <branch>] [--threshold 0-100] [--baseline <path>] [--inline] [--no-diff-comments]` and stop.
+5. Reject duplicate flags, unknown flags, positional arguments, missing values, and invalid thresholds before reading project files, fetching, or launching reviewers. Show: `Usage: /trackbed:pr:convention-review [--subagent-model <model>] [--base <branch>] [--threshold 0-100] [--baseline <path>] [--inline] [--visual] [--no-diff-comments]` and stop.
 
 Before aggregation, when `DIFF_COMMENTS=true`, `CONDUCTOR_WORKSPACE_ID` is set, and `mcp__conductor__DiffComment` is already present in the current tool set, read and follow `references/conductor-diff-comments.md` while building the canonical finding set. Preserve its projection identities through ordinal ID assignment for the post-report projection. Detect tools by presence; never call one merely to probe availability.
 
@@ -97,7 +97,16 @@ capture_untracked_scope() {
   local list_file="$2"
   local file status
 
-  git ls-files --others --exclude-standard -z > "$list_file" || return 1
+  git ls-files --others --exclude-standard -z > "$list_file.all" || return 1
+  : > "$list_file"
+  # An untracked .html file absent from CHANGED_FILES is a visual report page the collector dropped.
+  while IFS= read -r -d '' file; do
+    case "$file" in
+      *.html) grep -Fxq -- "$file" "$REVIEW_SCOPE_DIR/changed-files.txt" || continue ;;
+    esac
+    printf '%s\0' "$file" >> "$list_file"
+  done < "$list_file.all"
+  rm -f "$list_file.all"
   : > "$output_file"
   while IFS= read -r -d '' file; do
     if git diff --no-index --binary -- /dev/null "$file" >> "$output_file"; then
@@ -257,6 +266,10 @@ Otherwise:
 ### Post Conductor Diff Comments (When Available)
 
 After the canonical report succeeds, when `CONDUCTOR_WORKSPACE_ID` is set, handle the optional projection for inline and file output. If `DIFF_COMMENTS=true` and `mcp__conductor__DiffComment` is already present in the current tool set, apply `references/conductor-diff-comments.md` using the identities preserved during aggregation. Otherwise report `Diff comments posted: 0 (skipped 0 already present)` and `Diff comment projection: skipped — disabled by --no-diff-comments` or `Diff comment projection: skipped — DiffComment unavailable`, as applicable.
+
+### Write the Visual Report (`--visual`)
+
+When `VISUAL_REPORT=true`, add `CONVENTION_REVIEW_OVERVIEW.html` beside the written `CONVENTION_REVIEW_OVERVIEW.md`. Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `findings`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-findings.html`. Its reader is the branch's author, deciding which departures from the codebase's own practice to bring back in line. Follow-up command for the page: `/trackbed:pr:resolve-review`.
 
 ### Step 10: Provide Action Plan
 

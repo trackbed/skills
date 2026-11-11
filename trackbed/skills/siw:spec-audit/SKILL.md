@@ -1,7 +1,7 @@
 ---
 name: siw:spec-audit
 description: Audit specifications for implementation readiness — coherence, completeness, clarity, scope consistency, actionability, testability, rationale documentation, and technical design. Add --product to also judge product correctness — target user, problem/solution fit, user states, critical moments, scope, success criteria, prioritization, and strategy fit. --apply auto-fixes mechanical findings, also in an existing report. Supports --inline and --team cross-validation with codebase pattern review.
-argument-hint: "[spec-file-path(s) | 'siw' | audit-report-path] [--product] [--auto] [--apply [--dry-run] [--threshold 60-100] [--allow-dirty]] [--model opus|sonnet|haiku] [--inline] [--team]"
+argument-hint: "[spec-file-path(s) | 'siw' | audit-report-path] [--product] [--auto] [--apply [--dry-run] [--threshold 60-100] [--allow-dirty]] [--model opus|sonnet|haiku] [--inline] [--visual] [--team]"
 disable-model-invocation: true
 user-invocable: true
 ---
@@ -24,7 +24,7 @@ If `$ARGUMENTS` contains `--apply` or `--apply-now` and a path to an existing sp
 
 ## Team Mode
 
-If `$ARGUMENTS` contains `--team`, remove that flag, read `references/team-mode.md`, and follow that workflow instead of the standard workflow below. Pass the remaining arguments through as the team-mode arguments.
+If `$ARGUMENTS` contains `--team`, remove that flag, read `references/team-mode.md`, and follow that workflow instead of the standard workflow below. Pass the remaining arguments through as the team-mode arguments. Team Mode Step 10 runs Step 7 below in full, including its visual report step when `VISUAL_REPORT=true`.
 
 ## Product Mode
 
@@ -33,7 +33,7 @@ If `$ARGUMENTS` contains `--product`, set `PRODUCT_MODE=true`, read `references/
 ## Process Overview
 
 ```
-/trackbed:siw:spec-audit [spec-file-path(s) | 'siw' | audit-report-path] [--product] [--auto] [--apply [--dry-run] [--threshold 60-100] [--allow-dirty]] [--model opus|sonnet|haiku] [--inline] [--team]
+/trackbed:siw:spec-audit [spec-file-path(s) | 'siw' | audit-report-path] [--product] [--auto] [--apply [--dry-run] [--threshold 60-100] [--allow-dirty]] [--model opus|sonnet|haiku] [--inline] [--visual] [--team]
     |
     v
 [Step 1: Resolve Spec Files] -> Parse args or auto-detect from siw/
@@ -387,6 +387,8 @@ If the user chooses **Create SIW issues**, read and follow `references/issue-cre
 ---
 
 ## Step 7: Report Summary
+
+When `VISUAL_REPORT=true`, first add `AUDIT_SPEC_REPORT.html` beside the report written in Step 5, so the page shows the report as Step 6 left it. Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `findings`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-findings.html`. Its reader is the specification's author, deciding which gaps to close before the work is broken into issues. Follow-up command for the page: `/trackbed:siw:resolve-audit`.
 
 Use the summary template from `assets/spec-audit-summary.md`, then end the turn.
 

@@ -1,7 +1,7 @@
 ---
 name: code:audit-security
 description: "Audit a repository's security posture before remediation by inventorying attack surfaces and trust boundaries across code, identity, data, CI/CD, infrastructure, integrations, dependencies, secrets, and agent or LLM tooling. Produces a secret-safe, evidence-ranked report with coverage gaps and remediation routes. Use for whole-repository posture or threat-surface audits. Not for fixes, dependency-only audits, author-time hardening, penetration tests, compliance claims, or PR-diff review."
-argument-hint: "[--output <repo-relative-path>]"
+argument-hint: "[--output <repo-relative-path> [--visual]]"
 disable-model-invocation: true
 user-invocable: true
 ---
@@ -12,15 +12,16 @@ Produce one read-only, evidence-backed security posture report. Model the reposi
 
 ## Parse arguments
 
-Accept either no arguments or exactly `--output <repo-relative-path>`.
+Accept either no arguments or exactly `--output <repo-relative-path>`, alone or together with `--visual`.
 
 - With no arguments, return the report inline and write nothing.
 - With `--output`, require a repository-relative Markdown path whose canonical destination stays inside the repository, every parent directory to already exist as a real non-symlink directory, and the destination to be absent or a non-symlink regular file with exactly one hard link. Reject absolute paths, `..` segments, Git-administrative paths, multi-linked destinations, and replacement of unrelated source or documentation files.
 - Replace an existing file only when safe inspection identifies it as an earlier `# Security Posture Audit` output and the user explicitly requested or confirms replacement. Before writing to a tracked or non-ignored destination, warn that the report may be committed or published and require confirmation.
 - Immediately before writing, repeat the containment, parent-symlink, destination-type, link-count, report-identity, and overwrite checks. Use exclusive or no-follow creation when the native tool supports it; do not add custom filesystem machinery to emulate unavailable primitives. If path state changes, a safe write mode is unavailable for the observed destination risk, or the write fails, is incomplete, or cannot be verified, stop and report that no reliable artifact was created. Do not claim success or silently fall back to inline output. Create only that report after the audit.
+- With `--visual`, set `VISUAL_REPORT=true`; otherwise set `VISUAL_REPORT=false`. Reject `--visual` without `--output`, because the visual report mirrors the Markdown report file, which inline output does not write, and reject it when the `--output` path does not end in `.md`. The page path is the `--output` path with that `.md` replaced by `.html`. Hold the page path to every `--output` rule above, when parsing and again immediately before writing the page, including a canonical destination inside the repository, real non-symlink parent directories, a destination that is absent or a non-symlink regular file with exactly one hard link, replacement only of a file that safe inspection identifies by its `data-producer` as an earlier visual report of this skill and that the user explicitly requested or confirms replacing, and the same warning and confirmation before writing to a tracked or non-ignored destination.
 - Reject every other flag or positional argument.
 
-The optional report is the only mutation this skill permits. It does not authorize source edits, dependency changes, configuration changes, credential rotation, issue creation, commits, pushes, deployments, or external messages.
+The optional report is the only mutation this skill permits. It does not authorize source edits, dependency changes, configuration changes, credential rotation, issue creation, commits, pushes, deployments, or external messages. `--visual` permits exactly one more write, the page beside that report, under the same limits.
 
 ## Route boundary
 
@@ -226,6 +227,8 @@ When there are no verified findings, say `No verified findings in inspected surf
 The report is a repository-state review, not a penetration test, compliance assessment, certification, or guarantee of exhaustive coverage. Separate facts from inference and date every external or unavailable assumption.
 
 Before returning or writing the report, perform a final secret-safety pass. Remove credential-like material from secret-exposure candidates and restrict their evidence payload to redacted location, candidate type, verification state, and remediation while preserving every mandatory non-secret finding field. Preserve the required non-secret report fields for other findings. If safe redaction is uncertain, omit the detail and report the resulting coverage gap.
+
+When `VISUAL_REPORT=true`, add the page once the Markdown report is written and verified, at the `--output` path with `.html` in place of `.md`. Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `findings`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-findings.html`. Its reader is a maintainer deciding which security weaknesses to remediate first and where the audit could not look. Follow-up command for the page: `/trackbed:code:harden-security`. Leave `data-root` off the page, so no repository-derived path becomes a link. Repeat the page-path checks from **Parse arguments** immediately before writing the page, and if one fails or the page cannot be finalized, stop and report that the Markdown report was written and no reliable page was created.
 
 ## Maintenance
 

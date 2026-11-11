@@ -34,7 +34,7 @@ Then stop.
 Same setup as `/trackbed:pr:code-review` Steps 1-7:
 
 1. Check git status to identify changed files.
-2. Parse arguments with the same rules as `/trackbed:pr:code-review` Step 1, including specific review aspects (comments, tests, errors, types, architecture, code, slop, security, performance, removal, lean, refactor, simplify, all), `--emphasize <dim>...`, `--no-cleanup`, `--base <ref>`, `--previous-review <path>`, and `--inline`. Freeze `NO_CLEANUP` and `EMPHASIZED_DIMENSIONS` in the execution plan as `noCleanup` and `emphasizedDimensions` per `references/execution-contract.md`.
+2. Parse arguments with the same rules as `/trackbed:pr:code-review` Step 1, including specific review aspects (comments, tests, errors, types, architecture, code, slop, security, performance, removal, lean, refactor, simplify, all), `--emphasize <dim>...`, `--no-cleanup`, `--base <ref>`, `--previous-review <path>`, `--inline`, and `--visual`, which sets `VISUAL_REPORT` and is rejected together with `--inline`. Freeze `NO_CLEANUP` and `EMPHASIZED_DIMENSIONS` in the execution plan as `noCleanup` and `emphasizedDimensions` per `references/execution-contract.md`.
 3. Accept and remove `--parallel` and the deprecated bare `parallel` token as no-op aliases in team mode. Team mode already launches teammate review tasks in parallel; these flags must not remain in the aspect list or cause an unrecognized-token error.
 4. Default `all` includes `lean`, `refactor`, and `simplify`; `--no-cleanup` excludes those advisory dimensions while retaining `["all"]` and independent `removal` applicability. Reject conflicts with explicitly requested cleanup aspects or emphasis under the standard Step 1 rules. These cleanup dimensions are subordinated to unresolved correctness, security, error-handling, and test findings during aggregation. Cleanup emphasis (`lean`, `refactor`, `simplify`) never overrides the precedence pass or the action-class normalization rule that optional cleanup stays advisory.
 5. Resolve the base branch and build the unified change scope by running the exact shared `collect-review-diff.sh` collection flow from `/trackbed:pr:code-review` Step 2. Do not inline `git merge-base` or reconstruct changed-file commands here. Reuse the resulting `BASE_REF`, `BASE_BRANCH`, `MERGE_BASE`, newline-delimited `CHANGED_FILES`, and `STACK_CONTEXT`, and apply that step's stacked Pull Request reference rule.
@@ -65,7 +65,7 @@ TREE_MANIFEST_BEFORE=$(mktemp "${TMPDIR:-/tmp}/review-tree.XXXXXX") || exit 1
 
 Spawn teammates based on applicable review aspects. Each teammate receives:
 
-- The resolved `BASE_BRANCH`, `BASE_REF`, `MERGE_BASE`, `CHANGED_FILES`, and diff commands to run (`git diff "$MERGE_BASE"...HEAD`, `git diff --cached`, `git diff`, `git ls-files --others --exclude-standard`)
+- The resolved `BASE_BRANCH`, `BASE_REF`, `MERGE_BASE`, `CHANGED_FILES`, and diff commands to run (`git diff "$MERGE_BASE"...HEAD`, `git diff --cached`, `git diff`, `git ls-files --others --exclude-standard`, leaving out any file that `CHANGED_FILES` does not also list, such as a visual report page)
 - The PR context from Step 1 (`PR_CONTEXT_JSON`) when available
 - The coding-standards guides found under standard workflow Step 7 (`CONTRIBUTING.md`, `CODING_STANDARDS.md`), with the same merge-base rule for guides the review scope changes
 - The checks and evidence requirements of the `REVIEW.md` policy files found under standard workflow Step 7, read at `MERGE_BASE`

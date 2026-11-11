@@ -1,7 +1,7 @@
 ---
 name: discovery:strategic-inquiry
 description: "Generate ranked strategic questions and evidence-backed briefs on hidden assumptions, contradictions, absences, and load-bearing decisions. Writes STRATEGIC_INQUIRY.md or returns inline. Use to surface blind spots. Not for defect or quality audits; use trackbed:code:refactor-opportunities --ranked, trackbed:pr:code-review, or trackbed:product:review."
-argument-hint: "[focus, e.g. 'onboarding', src/auth, or omit for whole repo] [--max-questions N] [--output <path>] [--inline]"
+argument-hint: "[focus, e.g. 'onboarding', src/auth, or omit for whole repo] [--max-questions N] [--output <path>] [--inline] [--visual]"
 disable-model-invocation: true
 user-invocable: true
 ---
@@ -12,7 +12,7 @@ Propose the strategic questions and investigations a review or audit cannot prod
 
 **Arguments:** "$ARGUMENTS"
 
-**What it touches:** writes one report file, `STRATEGIC_INQUIRY.md` by default (skipped with `--inline`). Read-only otherwise. Do not modify implementation code, and do not fix anything found along the way.
+**What it touches:** writes one report file, `STRATEGIC_INQUIRY.md` by default (skipped with `--inline`). With `--visual`, it also writes one HTML page beside that file. Read-only otherwise. Do not modify implementation code, and do not fix anything found along the way.
 
 ## What This Skill Is Not
 
@@ -28,6 +28,7 @@ This boundary is the skill's identity. Enforce it during filtering (step 5):
 - **`--max-questions N`**: cap on ranked questions in the report. Default `10`, cap `15`. Fewer, sharper questions beat inventory.
 - **`--output <path>`**: report path. Default `STRATEGIC_INQUIRY.md` at the repo root. Refuse paths outside the working tree unless the user explicitly confirms.
 - **`--inline`**: reply with the report content instead of writing a file.
+- **`--visual`**: set `VISUAL_REPORT=true` and remove the flag (default `false`); step 7b then adds one interactive HTML page beside the report file. Reject `--visual` together with `--inline`: the visual report mirrors the report file, which inline mode does not write.
 
 If a path-shaped focus does not resolve, ask whether it was meant as a theme instead of guessing.
 
@@ -108,6 +109,10 @@ Then run the **answer-location health check**: count questions by answer locatio
    - `users/market` — a research or interview prompt (suitable for a deep-research run or as an interview guide), including who to ask and what answers would confirm or refute.
    - `team decision` — a framing prompt for a decision discussion: the options, what each commits the team to, and the cheapest test before committing.
 5. Include the assumptions registry (stated and unstated beliefs the product currently rests on) and a short list of notable dropped candidates with one-line reasons, so the filtering is inspectable.
+
+### 7b. Write the visual report (`--visual`)
+
+When `VISUAL_REPORT=true`, add the page at the report's output path with `.html` in place of `.md`, so `STRATEGIC_INQUIRY.md` gets `STRATEGIC_INQUIRY.html`. Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `inquiry`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-inquiry.html`. Its reader leads the product or its engineering and is choosing which uncomfortable questions to investigate first. Follow-up commands for the page: `/trackbed:discovery:interview`, `/trackbed:docs:adr`.
 
 ### 8. Summarize
 

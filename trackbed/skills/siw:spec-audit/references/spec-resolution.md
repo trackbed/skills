@@ -12,6 +12,7 @@ Use this when `SKILL.md` reaches Step 1. Resolve `$ARGUMENTS` into mode flags an
 - If `$ARGUMENTS` contains `--apply` or `--apply-now`, set `APPLY_MODE=true` and remove the flag before processing remaining arguments.
 - If `$ARGUMENTS` contains `--dry-run`, set `DRY_RUN=true`; if it contains `--allow-dirty`, set `ALLOW_DIRTY=true`; if it contains `--threshold N`, set `CONFIDENCE_THRESHOLD=N` (default 80). Remove each flag before processing remaining arguments. If `N` is non-numeric or outside 60-100, abort with: `Threshold {N} out of range. --threshold must be an integer between 60 and 100.`
 - If `$ARGUMENTS` contains `--inline`, set `INLINE_MODE=true` and remove the flag before processing remaining arguments.
+- If `$ARGUMENTS` contains `--visual`, set `VISUAL_REPORT=true` and remove the flag before processing remaining arguments; otherwise set `VISUAL_REPORT=false`.
 - If `$ARGUMENTS` contains `--team`, use Team Mode and remove the flag before processing remaining arguments.
 - If `$ARGUMENTS` contains `--product`, set `PRODUCT_MODE=true` and remove the flag before processing remaining arguments.
 
@@ -53,6 +54,8 @@ Error: --inline cannot be combined with --apply or --apply-now.
 --inline is read-only. Re-run without --inline to apply spec updates.
 ```
 
+If `VISUAL_REPORT=true` and `INLINE_MODE=true`, abort before reading specs: the visual report mirrors the audit report file, which inline mode does not write.
+
 If `DRY_RUN`, `ALLOW_DIRTY`, or a `--threshold` value is set without `APPLY_MODE=true`, abort before reading specs:
 
 ```
@@ -72,6 +75,8 @@ Error: --dry-run, --threshold, and --allow-dirty modify --apply. Add --apply or 
   ```
   Error: --apply <report> fixes an existing audit report without re-auditing. Pass only the report path with apply flags.
   ```
+
+- With `VISUAL_REPORT=true`, abort: the visual report mirrors the report a new audit writes, which `--apply <report>` does not write.
 
 - Otherwise set `APPLY_ONLY=true` and `APPLY_REPORT_PATH={path}`, skip Sections 1.2-1.4, and return to the `SKILL.md` Apply Mode section.
 

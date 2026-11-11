@@ -1,7 +1,7 @@
 ---
 name: discovery:interview
 description: Conduct an in-depth interview about a topic, proposal, or spec to uncover requirements, priorities, and non-goals, then write a plan. Pass --ideate for divergent framing, --decision-tree or depth-first language for coupled decisions, --research for pre-interview research, or --siw (or siw/ spec paths) to interview to 90% confidence and write siw/DISCOVERY_BRIEF.md or siw/SPEC_STRENGTHENING_PLAN.md. --apply edits SIW specs only on direct user request.
-argument-hint: "[topic | file-path(s) | siw] [--siw] [--apply] [--ideate] [--decision-tree] [--research]"
+argument-hint: "[topic | file-path(s) | siw] [--siw] [--apply] [--visual] [--ideate] [--decision-tree] [--research]"
 disable-model-invocation: false
 user-invocable: true
 trackbed-platforms: [claude-code, codex]
@@ -48,8 +48,10 @@ Parse `$ARGUMENTS` as shell-style arguments so quoted paths stay intact.
 - If `--research` is present, set `research_requested=true` and remove from argument list.
 - If `--siw` is present, set `siw_mode=true` and remove from argument list.
 - If `--apply` is present, set `apply_changes=true` and remove from argument list, subject to the user-only check below.
+- If `--visual` is present, set `VISUAL_REPORT=true` and remove from argument list; otherwise set `VISUAL_REPORT=false`.
 - Only after every flag above, including `--apply`, has been removed: if the only remaining argument is the bare keyword `siw`, set `siw_mode=true` and remove it. Also set `siw_mode=true` when every supplied file path is inside `siw/`. If some but not all paths are in `siw/` and `--siw` is absent, ask (AskUserQuestion) whether to run SIW mode.
 - If `apply_changes=true` but the run is not SIW Refinement (no SIW mode, or SIW context resolves to Greenfield), tell the user `--apply` only applies to SIW Refinement, ignore it, and continue.
+- If `VISUAL_REPORT=true` but the run is not SIW Refinement (no SIW mode, or SIW context resolves to Greenfield), reject `--visual` and stop before the interview: the visual page mirrors only `siw/SPEC_STRENGTHENING_PLAN.md`, which a standalone plan or `siw/DISCOVERY_BRIEF.md` run does not write.
 - If remaining text includes trigger phrases like "walk the decision tree", "walk this depth-first", "resolve dependencies first", or "depth-first", set `decision_tree_requested=true` without removing meaningful topic words unless the phrase is only an instruction.
 - If the remaining text looks like file path(s), read and analyze them first. If a path cannot be read, report the exact path and ask (via AskUserQuestion) whether to treat the input as a free-text topic instead of proceeding on a missing artifact.
 - If it is free text, use it as the topic description.
@@ -225,6 +227,8 @@ For topic coverage, use `references/interview-operations.md` for round structure
 ## Step 5: Output Plan Document
 
 In SIW mode, skip the standalone steps below and follow **Synthesize SIW Artifacts** and **Optional Apply** in `references/siw-mode.md`.
+
+When `VISUAL_REPORT=true`, add `siw/SPEC_STRENGTHENING_PLAN.html` beside the plan after **Synthesize SIW Artifacts** has written `siw/SPEC_STRENGTHENING_PLAN.md` and emitted its hand-off lines, and after **Optional Apply** when it runs. Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `plan`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-plan.html`. Its reader owns the specification and is confirming that the planned edits match what was decided, before they are applied. Follow-up command for the page: `/trackbed:discovery:interview --siw --apply`. When the apply protocol removed the plan in this run, skip the page and delete an earlier `siw/SPEC_STRENGTHENING_PLAN.html` when that file is a visual report page: nothing is left for it to mirror.
 
 ### File Naming
 

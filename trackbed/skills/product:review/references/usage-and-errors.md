@@ -56,3 +56,9 @@ Key patterns:
 ```text
 /trackbed:product:review https://staging.myapp.com --inline
 ```
+
+**Add an interactive HTML page beside the report file:**
+
+```text
+/trackbed:product:review http://localhost:3000 --visual
+```

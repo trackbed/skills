@@ -1,7 +1,7 @@
 ---
 name: qa
 description: Structured QA testing with evidence capture. Runs smoke checks, diff-aware validation, or targeted route testing against a live app. Produces QA_REPORT.md with screenshots, repro steps, severity, and recommended fixes, or replies inline with --inline. Uses browser MCP when available and falls back to code-only analysis otherwise. Not for logging multiple bugs from a manual pass (use trackbed:qa:intake) or tracing one bug's root cause (use trackbed:debug:investigate).
-argument-hint: "<url|auto> [quick|diff-aware|targeted <route>] [--base <branch>] [--regression] [--inline] [--legacy-console]"
+argument-hint: "<url|auto> [quick|diff-aware|targeted <route>] [--base <branch>] [--regression] [--inline] [--visual] [--legacy-console]"
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -27,6 +27,7 @@ Extract from `$ARGUMENTS`:
    - `--base <branch>` — explicit base branch for diff-aware mode
    - `--regression` — compare results against previous QA baseline (see Step 8)
    - `--inline` — reply with the QA report inline instead of writing `QA_REPORT.md` (still writes `QA_BASELINE.json`, which regression depends on; see Step 10)
+   - `--visual` — also write the interactive page `QA_REPORT.html` beside `QA_REPORT.md` (see Step 10b). Reject `--visual` together with `--inline`: the visual report mirrors `QA_REPORT.md`, which inline mode does not write.
    - `--legacy-console` — relax the clean-console standard for legacy apps with known noisy consoles (see Step 4)
 
 Store parsed values:
@@ -37,6 +38,7 @@ Store parsed values:
 - `BASE_OVERRIDE` — explicit base branch if provided
 - `REGRESSION_MODE` — boolean (default: false)
 - `INLINE_MODE` — boolean (default: false)
+- `VISUAL_REPORT` — boolean (default: false); `true` when `--visual` is present
 - `LEGACY_CONSOLE_MODE` — boolean (default: false)
 
 ### Step 2: Validate Prerequisites
@@ -313,6 +315,10 @@ After regression comparison (or if skipped), save a machine-readable baseline fo
 Write `QA_BASELINE.json` at the project root using the shape in `assets/qa-baseline-schema.md`.
 
 This file is a working artifact. It will be cleaned up by `/trackbed:workflow:cleanup-artifacts`.
+
+### Step 10b: Write the Visual Report (`--visual`)
+
+When `VISUAL_REPORT=true`, add `QA_REPORT.html` beside the `QA_REPORT.md` written in Step 9. Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `qa`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-qa.html`. Its reader is deciding whether the app is ready to ship: what was tested, what broke, and how to reproduce it. Follow-up commands for the page: `/trackbed:code:breakdown-findings`, `/trackbed:linear:breakdown-findings`.
 
 ### Step 11: Output Summary
 

@@ -1,7 +1,7 @@
 ---
 name: code:outside-view
 description: "Rate a codebase with unprimed raters; cluster complaints, compare with CODEBASE_WEAKNESS_REPORT.md, and track gestalt in OUTSIDE_VIEW_REPORT.md. Cross-model is opt-in and isolated. Use for unknown-unknown quality issues, especially in AI-engineered code. Not for evidence-ranked findings (trackbed:code:refactor-opportunities --ranked), PR review, or implementation."
-argument-hint: "[--subagent-model <model>] [--raters N] [--output <path>] [--compare <report-path>] [--cross-model]"
+argument-hint: "[--subagent-model <model>] [--raters N] [--output <path>] [--visual] [--compare <report-path>] [--cross-model]"
 disable-model-invocation: true
 user-invocable: true
 trackbed-platforms: [claude-code, codex]
@@ -13,7 +13,7 @@ Elicit unprimed, frame-diverse judgments of the codebase, then synthesize them i
 
 **Arguments:** "$ARGUMENTS"
 
-**What it touches:** writes one report file, `OUTSIDE_VIEW_REPORT.md` by default. Read-only otherwise. Do not modify implementation code.
+**What it touches:** writes one report file, `OUTSIDE_VIEW_REPORT.md` by default. With `--visual`, it also writes one HTML page beside that file. Read-only otherwise. Do not modify implementation code.
 
 ## Why This Skill Exists
 
@@ -30,6 +30,7 @@ Structured audits measure conformance to a rubric, and heavily AI-engineered cod
 - **Comparison report**: optional `--compare <report-path>`. Default is `CODEBASE_WEAKNESS_REPORT.md` in the project root when it exists; skip the delta step when no comparison report is available.
 - **Cross-model rater**: disabled by default. Enable it with the explicit repository-scoped opt-in `--cross-model`; the run still skips the rater unless a different model family and a verified isolation profile are available.
 - **Rater model**: optional `--subagent-model <model>`, handled by **Subagent models** below.
+- **Visual report**: optional `--visual`, handled by step 6 below.
 
 ## Workflow
 
@@ -39,7 +40,7 @@ Structured audits measure conformance to a rubric, and heavily AI-engineered cod
 
 This step is deliberately shallow. The orchestrator must stay outside the project's frame until synthesis.
 
-1. Parse arguments into `RATER_COUNT`, `OUTPUT_PATH`, `COMPARE_PATH`, and `CROSS_MODEL`. Reject the run when `RATER_COUNT < 3` or `RATER_COUNT > 6`.
+1. Parse arguments into `RATER_COUNT`, `OUTPUT_PATH`, `COMPARE_PATH`, and `CROSS_MODEL`. Reject the run when `RATER_COUNT < 3` or `RATER_COUNT > 6`. When `--visual` is present, set `VISUAL_REPORT=true` and remove the flag; otherwise set `VISUAL_REPORT=false`.
 2. Resolve the canonical working-tree root and validate `OUTPUT_PATH` before reading it:
    - Reject an existing output that is a symlink or is not a regular file.
    - Reject any existing symlink in its parent path.
@@ -109,6 +110,7 @@ Only now does the orchestrator enter the project's frame.
 4. Summarize rater footprints in Coverage Notes: what each rater reported examining, and which top-level areas of the repository no rater visited. Footprints are self-reported after the fact — never assign areas to raters, and never mark a run as complete coverage; the footprint exists so the reader can judge how much weight the run deserves.
 5. Repeat the canonical containment, parent-symlink, leaf-symlink, and regular-file checks from step 1 immediately before writing. Stop without changing the existing report if any check fails.
 6. Write the report to `OUTPUT_PATH`, overwriting the previous report. Then mark the run complete.
+7. **Visual report (`--visual`).** When `VISUAL_REPORT=true`, add the page beside the written report, at `OUTPUT_PATH` with `.html` in place of `.md` (`OUTSIDE_VIEW_REPORT.html` by default). Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `assessment`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-assessment.html`. Its reader owns the codebase and wants to see how outsiders rated it and which complaints several of them share. Follow-up command for the page: `/trackbed:code:breakdown-findings`. Run item 5's checks on the page path before writing the page, and skip the page with the reason when one fails.
 
 ### 7. Summarize
 
