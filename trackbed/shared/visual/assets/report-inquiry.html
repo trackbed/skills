@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Strategic inquiry · STRATEGIC_INQUIRY.md</title>
+    <!--
+      Authoring template for the --visual report style, shape "inquiry": a ranked
+      set of open questions whose reader asks which ones matter most and what the
+      cheapest way to settle each one is. The contract is in
+      shared/visual/references/visual-report.md; this file shows it applied to a
+      small inquiry. Replace every value: nothing here is boilerplate to keep.
+
+      One trackbed-followup per command the reader can paste the triage prompt into.
+    -->
+    <meta name="trackbed-followup" content="/trackbed:discovery:interview" />
+    <!-- Leave both runtime elements empty. scripts/visual-report.py fills them. -->
+    <style data-trackbed-runtime></style>
+  </head>
+  <body>
+    <!-- Entries are questions, in rank order. The facet listed first is where an answer lives,
+         because that decides who can settle it. Nothing here has a severity. -->
+    <main
+      data-report
+      data-shape="inquiry"
+      data-noun="question questions"
+      data-producer="trackbed:discovery:strategic-inquiry"
+      data-source="STRATEGIC_INQUIRY.md"
+      data-generated="2026-01-15T14:02:00+0100"
+      data-commit="1a2b3c4d5e6f"
+      data-root="/Users/example/project"
+      data-facets="answer-lives-in lens"
+      data-accept-label="Pursue"
+      data-dismiss-label="Drop"
+    >
+      <!-- The suggested first move, and what the ranking rests on. -->
+      <header data-report-header>
+        <h1>Strategic inquiry: onboarding</h1>
+        <p>
+          Start with <a href="#entry-SQ-001">whether agencies finish onboarding at all</a>: one production query
+          settles it in an afternoon. The two questions after it are ranked by what a bad answer would cost.
+        </p>
+      </header>
+
+      <details class="tr-legend">
+        <summary>How to read this inquiry</summary>
+        <dl class="tr-fields">
+          <dt>Answer lives in</dt>
+          <dd>Where the answer can be found: the repository, production data, users or the market, or a team decision.</dd>
+          <dt>Lens</dt>
+          <dd>The angle a question came from, such as adoption or pricing.</dd>
+          <dt>Leverage</dt>
+          <dd>1 to 5: how much would change if the question resolved badly.</dd>
+          <dt>Tractability</dt>
+          <dd>1 to 5: how cheaply it can be settled.</dd>
+          <dt>Pursue and Drop</dt>
+          <dd>Mark the questions worth investigating; the copied prompt lists them in rank order.</dd>
+        </dl>
+      </details>
+
+      <div class="tr-kpis">
+        <div class="tr-kpi"><b>2</b><span>questions</span></div>
+        <div class="tr-kpi"><b>1</b><span>answerable from production data</span></div>
+        <div class="tr-kpi"><b>1</b><span>needs a team decision</span></div>
+      </div>
+
+      <section data-section id="questions">
+        <h2>Ranked questions</h2>
+        <article data-entry data-id="SQ-001" data-answer-lives-in="production" data-lens="adoption">
+          <!-- Title: the question itself. Where: what prompted it. Then why it matters. -->
+          <h3>Do agencies finish onboarding, or stop at the import step?</h3>
+          <p data-where>Prompted by <code data-loc>docs/strategy.md:41</code></p>
+          <p>
+            If most agencies stop at the import step, the next two quarters of the roadmap polish a product that few
+            accounts ever reach.
+          </p>
+          <h4>What prompted it</h4>
+          <p>
+            The strategy says "onboarding is solved", but the import step has had no change in eight months and no
+            event is recorded when it completes.
+          </p>
+          <h4>The uncomfortable answer</h4>
+          <p>Most trial accounts never import a project, so they never see the board.</p>
+          <h4>How to find out</h4>
+          <p>Count trial accounts created in the last 90 days that have at least one imported project. Half a day.</p>
+          <h4>What would settle it</h4>
+          <p>Above 60 percent, onboarding is not the problem. Below 30 percent, it is the first thing to fix.</p>
+          <!-- A prompt the reader can hand to an agent or a colleague is copyable text. -->
+          <h4>Investigation prompt</h4>
+          <pre data-copy="investigation prompt"><code>Using the production read replica, count trial accounts created in the
+last 90 days and how many have at least one imported project. Report the
+ratio by signup week.</code></pre>
+          <dl class="tr-meta">
+            <div>
+              <dt>Leverage</dt>
+              <dd>5</dd>
+            </div>
+            <div>
+              <dt>Tractability</dt>
+              <dd>4</dd>
+            </div>
+            <div>
+              <dt>If settled</dt>
+              <dd>record the result in the strategy document</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article data-entry data-id="SQ-002" data-answer-lives-in="team-decision" data-lens="pricing">
+          <h3>Is per-seat pricing right for agencies that add clients as guests?</h3>
+          <p data-where>Prompted by <code data-loc>src/billing/seats.ts:12</code></p>
+          <p>Guests are free, so an agency's bill stays flat while its use of the product grows.</p>
+          <h4>The uncomfortable answer</h4>
+          <p>The accounts that use the product most pay the least.</p>
+          <h4>How to find out</h4>
+          <p>A one-hour pricing discussion with the numbers for the ten largest accounts.</p>
+          <dl class="tr-meta">
+            <div>
+              <dt>Leverage</dt>
+              <dd>4</dd>
+            </div>
+            <div>
+              <dt>Tractability</dt>
+              <dd>3</dd>
+            </div>
+          </dl>
+        </article>
+
+        <!-- The report's ranking table closes the section, so the scores can be compared. -->
+        <h4>Scores side by side</h4>
+        <table data-sortable>
+          <thead>
+            <tr>
+              <th>Question</th>
+              <th>Answer lives in</th>
+              <th>Leverage</th>
+              <th>Tractability</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><a href="#entry-SQ-001">SQ-001 Finishing onboarding</a></td>
+              <td>Production</td>
+              <td>5</td>
+              <td>4</td>
+            </tr>
+            <tr>
+              <td><a href="#entry-SQ-002">SQ-002 Per-seat pricing</a></td>
+              <td>Team decision</td>
+              <td>4</td>
+              <td>3</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Reference material comes last, folded, with nothing to decide. -->
+      <section data-section id="about" data-triage="off" data-collapsed>
+        <h2>About this inquiry</h2>
+        <h4>Assumptions the product rests on</h4>
+        <table data-sortable>
+          <thead>
+            <tr>
+              <th>Assumption</th>
+              <th>Stated where</th>
+              <th>Decided on purpose?</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Agencies import existing projects</td>
+              <td><code data-loc>docs/strategy.md:41</code></td>
+              <td>No</td>
+            </tr>
+          </tbody>
+        </table>
+        <h4>Considered and dropped</h4>
+        <p>Whether to support mobile: the strategy already answers it.</p>
+      </section>
+    </main>
+    <script data-trackbed-runtime></script>
+  </body>
+</html>
