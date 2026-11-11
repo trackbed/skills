@@ -1,0 +1,16 @@
+# Token limits for models the pinned SkillSpector release does not know.
+#
+# The semantic scan workflow passes this file through SKILLSPECTOR_MODEL_REGISTRY,
+# which replaces SkillSpector's bundled registry. A model missing here falls back
+# to an assumed 128,000-token window, and the scan summary reports that warning as
+# a problem. Add the model here before naming it in SKILLSPECTOR_SEMANTIC_MODEL.
+#
+# Limits are from https://developers.openai.com/api/docs/models (read 2026-11-11).
+models:
+  "gpt-6.1-terra":
+    context_length: 1050000
+    max_output_tokens: 128000
+
+  "gpt-6.1-sol":
+    context_length: 1050000
+    max_output_tokens: 128000

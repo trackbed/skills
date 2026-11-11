@@ -258,6 +258,57 @@ trackbed/skills/kramme:one/assets/vendor.min.js"
 	[ -f "$TMP_DIR/runner/skillspector-semantic/kramme_one.json" ]
 }
 
+@test "semantic scan workflow keeps the provider key on trusted main" {
+	run node - "$BATS_TEST_DIRNAME/../.." <<'NODE'
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const root = process.argv[2];
+const YAML = require(path.join(root, 'node_modules/yaml'));
+const read = name => fs.readFileSync(path.join(root, '.github/workflows', name), 'utf8');
+const workflow = YAML.parse(read('skill-security-semantic.yml'));
+
+// Pull Request gates stay credential-free: the scan only runs after merge or by hand.
+assert.deepEqual(Object.keys(workflow.on).sort(), ['push', 'workflow_dispatch']);
+assert.deepEqual(workflow.on.push.branches, ['main']);
+assert.deepEqual(workflow.on.push.paths, ['trackbed/skills/**', 'trackbed/shared/**']);
+assert.deepEqual(workflow.permissions, {contents: 'read'});
+assert.equal(workflow.concurrency['cancel-in-progress'], false);
+
+const job = workflow.jobs['semantic-scan'];
+assert.deepEqual(Object.keys(workflow.jobs), ['semantic-scan']);
+assert.ok(job.if.includes("github.ref == 'refs/heads/main'"));
+assert.ok(job.if.includes("vars.SKILLSPECTOR_SEMANTIC_MODEL != ''"));
+assert.equal(job.env.SKILLSPECTOR_FAIL_ON, 'none');
+assert.equal(job.env.SKILLSPECTOR_FORMAT, 'json');
+assert.equal(job.steps[0].with['persist-credentials'], false);
+
+// Only the LLM scan step receives the key, and nothing but the key.
+const secretSteps = job.steps.filter(step => JSON.stringify(step).includes('secrets.'));
+assert.equal(secretSteps.length, 1);
+assert.equal(secretSteps[0].id, 'semantic');
+assert.deepEqual(
+  Object.entries(secretSteps[0].env).filter(([, value]) => value.includes('secrets.')),
+  [['OPENAI_API_KEY', '${{ secrets.SKILLSPECTOR_OPENAI_API_KEY }}']],
+);
+assert.ok(secretSteps[0].run.includes('skill-security-semantic-changed'));
+const registry = secretSteps[0].env.SKILLSPECTOR_MODEL_REGISTRY.replace('${{ github.workspace }}/', '');
+assert.ok(fs.existsSync(path.join(root, registry)));
+
+// Provider errors can name the account, so logs stay out of the public artifact.
+const upload = job.steps.find(step => (step.uses || '').startsWith('actions/upload-artifact@'));
+assert.equal(upload.if, '${{ always() }}');
+assert.ok(upload.with.path.trim().split('\n').every(line => line.trim().endsWith('*.json')));
+
+// All three workflows install the same SkillSpector commit.
+const pin = job.env.SKILLSPECTOR_COMMIT;
+assert.match(pin, /^[0-9a-f]{40}$/);
+assert.equal(YAML.parse(read('skill-lint.yml')).jobs.skillspector.env.SKILLSPECTOR_COMMIT, pin);
+assert.equal(YAML.parse(read('release.yml')).env.SKILLSPECTOR_REF, pin);
+NODE
+	[ "$status" -eq 0 ]
+}
+
 @test "missing skillspector prints a clear setup error" {
 	rm -f "$BIN_DIR/skillspector"
 
