@@ -242,6 +242,9 @@ make -C trackbed skill-security-changed
 # Scan every plugin skill with SkillSpector semantic analysis enabled.
 # Defaults to JSON to avoid running a second LLM-backed companion report.
 make -C trackbed skill-security-semantic
+
+# The same LLM scan for the directories changed against BASE_REF
+make -C trackbed skill-security-semantic-changed
 ```
 
 For third-party skill intake, scan the source before installing it:
@@ -251,9 +254,31 @@ For third-party skill intake, scan the source before installing it:
 skillspector scan SOURCE --no-llm
 ```
 
-Reports are written to `.context/skillspector/` by default, or `$RUNNER_TEMP/skillspector` in CI. Override behavior with `SKILLSPECTOR_FORMAT`, `SKILLSPECTOR_SEMANTIC_FORMAT`, `SKILLSPECTOR_FAIL_ON`, and `SKILLSPECTOR_BASE`.
+Reports are written to `.context/skillspector/` by default, or `$RUNNER_TEMP/skillspector` in CI. Semantic scans write to a sibling `skillspector-semantic` directory, because an LLM report keeps only the findings the model confirmed and must not replace the static report. Override behavior with `SKILLSPECTOR_FORMAT`, `SKILLSPECTOR_SEMANTIC_FORMAT`, `SKILLSPECTOR_FAIL_ON`, and `SKILLSPECTOR_BASE`.
 
-Triage high and critical findings before installation, release, or merge. In ordinary Pull Requests, fix enforceable high and critical findings or record a specific accepted finding before merging. Enable semantic scanning only when provider credentials are intentionally configured and the skill contents are acceptable to send to that provider; semantic scans remain manual and are not required for ordinary Pull Requests.
+Triage high and critical findings before installation, release, or merge. In ordinary Pull Requests, fix enforceable high and critical findings or record a specific accepted finding before merging. Enable semantic scanning only when provider credentials are intentionally configured and the skill contents are acceptable to send to that provider. Semantic scans are never part of a Pull Request gate.
+
+#### Semantic scan after merge
+
+The **Skill Security Semantic Scan** workflow is a report-only trial; the [decision record](decisions/2026-11-11-semantic-skill-scan-trial.md) explains why it runs after merge and what the trial must show. After a push to `main` that changes `trackbed/skills/` or `trackbed/shared/`, it runs the static scan and then the LLM scan on the directories that push changed. A manual run scans the whole tree.
+
+To turn it on, add the provider key as the `SKILLSPECTOR_OPENAI_API_KEY` secret and name the model in the `SKILLSPECTOR_SEMANTIC_MODEL` repository variable. Clear the variable to turn it off. The model must have an entry in `trackbed/config/skillspector-model-registry.yaml`, because the pinned SkillSpector release only knows the token limits of older models.
+
+The job summary lists the findings the model added and the static findings it dropped, and the `skillspector-semantic-reports` artifact holds both sets of JSON reports. Findings never fail the run. It fails when the scanner fails, when a report shows the model was not used, or when a model call failed; the Problems section of the summary says which.
+
+`trackbed/config/skillspector-semantic-excludes.txt` lists files the LLM scan leaves out, such as a vendored bundle. Each entry is a repository-relative path, and the static scan still covers it.
+
+`trackbed/scripts/summarize-semantic-scan.py` finds failed model calls by SkillSpector's logger names. After changing the pinned SkillSpector commit, rehearse the failure on a branch that changes a skill: point the scan at a closed local port and confirm the summary lists the failed calls and exits 1. Nothing is sent to a provider.
+
+```bash
+OPENAI_API_KEY=unused OPENAI_BASE_URL=http://127.0.0.1:9/v1 \
+  SKILLSPECTOR_PROVIDER=openai SKILLSPECTOR_MODEL=gpt-6.1-terra \
+  SKILLSPECTOR_MODEL_REGISTRY="$PWD/trackbed/config/skillspector-model-registry.yaml" \
+  make -C trackbed skill-security-changed skill-security-semantic-changed SKILLSPECTOR_FORMAT=json
+
+python3 trackbed/scripts/summarize-semantic-scan.py \
+  --static-dir .context/skillspector --semantic-dir .context/skillspector-semantic
+```
 
 Accepted findings live in `trackbed/config/skillspector-accepted-findings.json`. Keep this registry small: add an entry only when a finding has been reviewed and the risk is intentionally accepted or proven to be scanner noise. Each entry must name the exact repo-relative `path`, `rule_id`, `reason`, `owner`, `accepted_at`, and either `expires_at` or `review_after`.
 

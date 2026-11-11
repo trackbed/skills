@@ -51,6 +51,7 @@ Nothing here changes a rule in the table above.
 | Whether to expand the committed eval cap to `trackbed:pr:resolve-review`. Tests the revisit condition in `2026-07-06-skill-quality-regime.md` against a prototype and recommends reaffirming the cap. | [2026-08-08-eval-scope-review.md](2026-08-08-eval-scope-review.md) |
 | Whether review filter roles (relevance validation and slop meta-review) should default to one model class below the orchestrator while every defect-finding reviewer stays on its model. Narrows the lower-class default that the 2026-10-20 risk-routing record deferred; decision review 2026-11-21. | [2026-10-21-filter-role-model-default.md](2026-10-21-filter-role-model-default.md) |
 | Whether to run a monthly skill improvement review that turns version-stamped evidence from real use into PRs that name a metric and are re-measured on the release that shipped them. Extends the monthly report cadence in `2026-07-06-skill-usage-portrait.md`; trial in November and December 2026, with the decision at the December review. | [2026-10-28-monthly-skill-improvement-review.md](2026-10-28-monthly-skill-improvement-review.md) |
+| Whether to keep a report-only SkillSpector LLM scan that runs after merge on trusted `main` with GPT-6.1 Terra and covers the skill directories each merge changed. Leaves the static, credential-free Pull Request gate as it is; the trial starts when the model variable is set, with the decision two weeks later. | [2026-11-11-semantic-skill-scan-trial.md](2026-11-11-semantic-skill-scan-trial.md) |
 
 ## Adding Decisions
 

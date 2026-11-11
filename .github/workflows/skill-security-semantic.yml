@@ -1,0 +1,106 @@
+name: Skill Security Semantic Scan
+
+# Report-only SkillSpector LLM scan. It runs after merge so that the provider key
+# never reaches Pull Request code; Pull Request gates stay static and
+# credential-free (see trackbed/docs/decisions/2026-11-11-semantic-skill-scan-trial.md).
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "trackbed/skills/**"
+      - "trackbed/shared/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: skill-security-semantic
+  cancel-in-progress: false
+
+jobs:
+  semantic-scan:
+    name: SkillSpector semantic skill scan
+    # Keep the provider key and the scanner code on the trusted default branch.
+    # The scan stays off until a maintainer names a model in the repository variable.
+    if: ${{ github.ref == 'refs/heads/main' && vars.SKILLSPECTOR_SEMANTIC_MODEL != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      SKILLSPECTOR_COMMIT: cff7ecc4f2881d9e23ea4bb801a6353e1dbe39e6
+      SKILLSPECTOR_FAIL_ON: none
+      SKILLSPECTOR_FORMAT: json
+      # A push scans the directories it changed; a manual run scans the whole tree.
+      SCAN_SCOPE: ${{ github.event_name == 'workflow_dispatch' && 'all' || 'changed' }}
+      BASE_REF: ${{ github.event.before }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache SkillSpector pip downloads
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-skillspector-py3.12-${{ env.SKILLSPECTOR_COMMIT }}
+          restore-keys: |
+            ${{ runner.os }}-pip-skillspector-py3.12-
+            ${{ runner.os }}-pip-
+
+      - name: Install SkillSpector
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install "git+https://github.com/NVIDIA/SkillSpector.git@$SKILLSPECTOR_COMMIT"
+
+      - name: Run static baseline scan
+        run: |
+          if [ "$SCAN_SCOPE" = "all" ]; then
+            make -C trackbed skill-security
+          else
+            make -C trackbed skill-security-changed
+          fi
+
+      - name: Run semantic scan
+        id: semantic
+        env:
+          OPENAI_API_KEY: ${{ secrets.SKILLSPECTOR_OPENAI_API_KEY }}
+          SKILLSPECTOR_PROVIDER: openai
+          SKILLSPECTOR_MODEL: ${{ vars.SKILLSPECTOR_SEMANTIC_MODEL }}
+          SKILLSPECTOR_MODEL_REGISTRY: ${{ github.workspace }}/trackbed/config/skillspector-model-registry.yaml
+        run: |
+          if [ "$SCAN_SCOPE" = "all" ]; then
+            make -C trackbed skill-security-semantic
+          else
+            make -C trackbed skill-security-semantic-changed
+          fi
+
+      - name: Summarize semantic scan
+        if: ${{ always() }}
+        env:
+          SKILLSPECTOR_MODEL: ${{ vars.SKILLSPECTOR_SEMANTIC_MODEL }}
+        run: |
+          set -o pipefail
+          python3 trackbed/scripts/summarize-semantic-scan.py \
+            --static-dir "$RUNNER_TEMP/skillspector" \
+            --semantic-dir "$RUNNER_TEMP/skillspector-semantic" \
+            --model "$SKILLSPECTOR_MODEL" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload SkillSpector reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: skillspector-semantic-reports
+          # Reports only: scan logs can quote provider errors that name the account.
+          path: |
+            ${{ runner.temp }}/skillspector/*.json
+            ${{ runner.temp }}/skillspector-semantic/*.json
+          retention-days: 90
+          if-no-files-found: ignore
