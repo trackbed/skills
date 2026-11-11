@@ -85,7 +85,7 @@ The plugin needs no other plugin and no MCP server for basic use. Use a current 
 | `bash` | Hook runtime | Pre-installed on macOS and Linux. On native Windows, use Git Bash; PowerShell alone cannot run the hooks. |
 | `git` | Version control | Pre-installed on most systems |
 | `jq` | Safety-hook JSON parsing | `brew install jq` (macOS) / `apt install jq` (Linux) |
-| `python3` | Safety-hook command parsing | Install Python 3.10+ |
+| `python3` | Safety-hook command parsing; finalizing `--visual` report pages | Install Python 3.10+ |
 | `node` | Local skill-usage recording | Install Node.js 18+ |
 
 The enabled safety hooks fail closed when `jq` or Python is unavailable. Without Node.js, the usage-recording hook records a diagnostic and otherwise stays silent. The `update-check` hook uses `curl` and Python file locking, and stays silent when they are unavailable. If hooks cannot run in your environment, disable them with `/trackbed:hooks:toggle`.
@@ -326,6 +326,17 @@ Before a stack `rebase` or `sync` changes a branch checked out in another Conduc
 /trackbed:code:work-from-plan # route and execute a standalone implementation plan
 ```
 
+### Read a report as an interactive page
+
+```bash
+/trackbed:pr:code-review --visual          # also writes REVIEW_OVERVIEW.html
+/trackbed:code:breakdown-findings --visual # also writes PR_PLAN_INDEX.html
+```
+
+Skills that write a Markdown report or plan take `--visual` to add one self-contained HTML page beside it. The page opens with the verdict and takes the shape of its report: findings by severity, plans by wave, a QA run by what was tested, questions by rank, an audit by its scorecard.
+
+An outline of every entry stays beside the text. Step through the entries, accept or dismiss each one, and copy a prompt that tells the agent which to act on. The Markdown file stays the record that other skills read. See [Visual Reports](trackbed/docs/visual-reports.md).
+
 All skills are listed in the [reference below](#skills). Background skills, such as commit-message guidance, run automatically.
 
 ## Configuration
@@ -402,7 +413,7 @@ Local specification refinement and initial issue planning before a one-way Linea
 | --- | --- | --- | --- |
 | `/trackbed:siw:init` | User | `[spec-file(s) \| folder \| discover] [--auto]` | Initialize SIW documents in `siw/`: the spec, `LOG.md`, and issues. |
 | `/trackbed:siw:generate-phases` | User | `[spec-file-path] [--auto]` | Break the spec into atomic, phase-based issues with tests and validation. |
-| `/trackbed:siw:spec-audit` | User | `[spec-file-path(s) \| 'siw' \| audit-report-path] [--product] [--auto] [--apply [--dry-run] [--threshold 60-100] [--allow-dirty]] [--model opus\|sonnet\|haiku] [--inline] [--team]` | Audit specs for implementation readiness; `--product` adds product checks and `--apply` fixes mechanical findings. |
+| `/trackbed:siw:spec-audit` | User | `[spec-file-path(s) \| 'siw' \| audit-report-path] [--product] [--auto] [--apply [--dry-run] [--threshold 60-100] [--allow-dirty]] [--model opus\|sonnet\|haiku] [--inline] [--visual] [--team]` | Audit specs for implementation readiness; `--product` adds product checks and `--apply` fixes mechanical findings. |
 | `/trackbed:siw:resolve-audit` | User | `[audit-report-path] [finding-id(s)] [--auto]` | Resolve spec-audit findings one by one with summaries, alternatives, a recommendation, and SIW issue creation. |
 | `/trackbed:siw:transfer-to-linear` | User | `[siw-dir] [--project <name-or-id>] [--team <team>] [--dry-run] [--skip-done] [--skip-existing\|--retry]` | Move a planned SIW initiative into Linear for good: one project with its documents, milestones, and issues. One-way. |
 
@@ -414,8 +425,8 @@ Requirements discovery, primary-source research, and checks that you understand 
 | --- | --- | --- | --- |
 | `/trackbed:research` | User, Auto | `[research question or topic] [--output <path>]` | Answer a question from primary sources, such as official docs, specs, or source code, and save one cited Markdown artifact. |
 | `/trackbed:discovery:wayfinder` | User | `[initiative description \| map-path [ticket-id]]` | Chart a huge or foggy initiative as a local decision map and resolve one open question per session until it is ready for planning. |
-| `/trackbed:discovery:interview` | User, Auto | `[topic \| file-path(s) \| siw] [--siw] [--apply] [--ideate] [--decision-tree] [--research]` | Interview you about a topic, proposal, or spec to uncover requirements, priorities, and non-goals, then write a plan; `--siw` feeds an SIW spec. |
-| `/trackbed:discovery:strategic-inquiry` | User | `[focus, e.g. 'onboarding', src/auth, or omit for whole repo] [--max-questions N] [--output <path>] [--inline]` | Generate ranked strategic questions about hidden assumptions, contradictions, and load-bearing decisions in a codebase or area. |
+| `/trackbed:discovery:interview` | User, Auto | `[topic \| file-path(s) \| siw] [--siw] [--apply] [--visual] [--ideate] [--decision-tree] [--research]` | Interview you about a topic, proposal, or spec to uncover requirements, priorities, and non-goals, then write a plan; `--siw` feeds an SIW spec. |
+| `/trackbed:discovery:strategic-inquiry` | User | `[focus, e.g. 'onboarding', src/auth, or omit for whole repo] [--max-questions N] [--output <path>] [--inline] [--visual]` | Generate ranked strategic questions about hidden assumptions, contradictions, and load-bearing decisions in a codebase or area. |
 | `/trackbed:learn:verify-understanding` | User | `[topic: PR, branch, feature, document, spec, etc.] [--answer-options\|--choices]` | Confirm that you understand a PR, feature, spec, or other topic through questions and a checklist before calling it done. |
 
 #### Product
@@ -429,7 +440,7 @@ Product direction, demand validation, post-prototype PRDs, behavior documentatio
 | `/trackbed:product:prd` | User | `[feature name or path to an existing PRD]` | Write a PRD after prototyping that records which candidate ships and why, how success is measured, and when to roll back; log results after launch. |
 | `/trackbed:product:describe-behavior` | User | `[product or surface] [--source <path>] [--output <path>] [--resume]` | Document how an existing product behaves from the user's perspective, grounded in code, tests, and the running app. |
 | `/trackbed:product:design-critic` | User, Auto | `[file-path, screenshot, URL, or product question]` | (experimental) Critique product UI and UX, including flows, hierarchy, trust, and jobs-to-be-done, rather than visual polish alone. |
-| `/trackbed:product:review` | User | `<url\|auto> [--flows <flow1,flow2,...>] [--focus <dimension>] [--inline]` | (experimental) Review a live product across flows for navigation, discoverability, onboarding, consistency, dead ends, and trust. |
+| `/trackbed:product:review` | User | `<url\|auto> [--flows <flow1,flow2,...>] [--focus <dimension>] [--inline] [--visual]` | (experimental) Review a live product across flows for navigation, discoverability, onboarding, consistency, dead ends, and trust. |
 
 #### Linear
 
@@ -454,11 +465,11 @@ PR creation, review, iteration, and resolution. See the [review guide](trackbed/
 | `/trackbed:pr:create` | User, Auto | `[--manual] [--draft] [--rebase] [--base <branch>] [--linear-issue <ISSUE-ID>] [--independent-review-line <line>] [--require-generated-description] [--authorize-history-rewrite]` | Publish a new PR unattended: narrative commits, a generated title and body, and a lease-protected first push; `--manual` keeps the prompts. |
 | `/trackbed:pr:stack` | User | `[init [--base <trunk>] <branches...> \| submit \| sync \| merge <pr-number> \| adopt [--base <trunk>] <branches...> \| status]` | Create and manage GitHub stacked PRs with gh-stack when a change should land as a chain of small dependent PRs. |
 | `/trackbed:pr:adversarial-review` | User, Auto | `[--provider claude\|codex] [--model <id>] [--base <branch>] [--requirements <authoritative requirements>]` | Get one read-only review of your branch from a different model provider than the host you are using. |
-| `/trackbed:pr:code-review` | User, Auto | `[--subagent-model <model>] [aspects] [--emphasize <dim>...] [--base <branch>] [--previous-review <path>] [--no-cleanup] [--parallel] [parallel] [--team] [--inline] [--loop] [--no-diff-comments]` | Review branch changes for bugs, tests, errors, types, architecture, security, performance, and cleanup; writes `REVIEW_OVERVIEW.md`. |
+| `/trackbed:pr:code-review` | User, Auto | `[--subagent-model <model>] [aspects] [--emphasize <dim>...] [--base <branch>] [--previous-review <path>] [--no-cleanup] [--parallel] [parallel] [--team] [--inline] [--visual] [--loop] [--no-diff-comments]` | Review branch changes for bugs, tests, errors, types, architecture, security, performance, and cleanup; writes `REVIEW_OVERVIEW.md`. |
 | `/trackbed:pr:review-convergence` | User, Auto | `[--subagent-model <model>] [--strict] [--rounds <1-5>] [--depth <balanced\|full>] [--adversarial-review [--adversarial-provider claude\|codex] [--adversarial-model <id>]] [--derive \| LINEAR-ISSUE \| --requirements <authoritative requirements>]` | Take a clean committed branch through ordered review gates, bounded fixes, and verification against frozen requirements. |
 | `/trackbed:pr:resolve-review` | User, Auto | `[--team] [--implement-only] [--granular] [--severity ...] [--source local\|online\|conductor] [review\|url\|instructions]` | Implement fixes for code-review or Conductor diff-comment findings as commits on the current branch. |
-| `/trackbed:pr:github-review-reply` | User, Auto | `[--auto] [--implement\|--no-implement] [--post] [--resolve] [--inline] [--humanize] [--human-only\|--bot-only\|--include-bots] [--all] [--only <login>] [pr-url\|instructions]` | Triage review comments on your own PR, make the needed changes, and draft or post replies. |
-| `/trackbed:pr:github-review` | User | `[--subagent-model <model>] [pr-number\|pr-url] [--stack] [--draft-review] [--no-clarity-check] [--base <ref>] [--categories a11y,ux,product,visual] [--code-only] [--sequential] [--fresh] [--full] [--include-bots] [--all-threads] [--inline] [--keep-worktree]` | Review someone else's GitHub PR or its whole stack, including linked Linear issues. Report-only unless you ask for a pending review. |
+| `/trackbed:pr:github-review-reply` | User, Auto | `[--auto] [--implement\|--no-implement] [--post] [--resolve] [--inline] [--visual] [--humanize] [--human-only\|--bot-only\|--include-bots] [--all] [--only <login>] [pr-url\|instructions]` | Triage review comments on your own PR, make the needed changes, and draft or post replies. |
+| `/trackbed:pr:github-review` | User | `[--subagent-model <model>] [pr-number\|pr-url] [--stack] [--draft-review] [--no-clarity-check] [--base <ref>] [--categories a11y,ux,product,visual] [--code-only] [--sequential] [--fresh] [--full] [--include-bots] [--all-threads] [--inline] [--visual] [--keep-worktree]` | Review someone else's GitHub PR or its whole stack, including linked Linear issues. Report-only unless you ask for a pending review. |
 | `/trackbed:pr:review-queue` | User, Auto | `[--repo OWNER/NAME] [--since ISO-8601] [OWNER/NAME#N ...]` | See which PRs wait on your review and where each stands: your part, CI, merge state, and linked issue; rechecks report what changed. Read-only. |
 | `/trackbed:pr:fix-ci` | User, Auto | `[--fixup] [--manual] [--no-consolidate] [--rebase\|--no-rebase] [--scope-plan <archived-plan>]` | Repair failing CI checks and reviewer feedback on an open PR with targeted pushes until checks pass; `--manual` keeps the prompts. |
 | `/trackbed:pr:shape-up` | User | — | Get an open PR ready to merge: rebase when behind its target, fix CI until checks are green, and fix and answer AI reviewer comments. Does only what is needed. |
@@ -466,9 +477,9 @@ PR creation, review, iteration, and resolution. See the [review guide](trackbed/
 | `/trackbed:pr:walkthrough` | User | `[--report [branch\|commit\|PR#\|range] \| --report --base <ref> \| --base <ref>] [--output <path>]` | Generate a visual HTML walkthrough of a branch or PR; `--report` produces a shareable before/after architecture report. |
 | `/trackbed:pr:gut-check` | User, Auto | `[--base <branch>] [--intent <text>]` | Get a fast first-reader reaction: does anything on this branch look strange, unusual, or unnecessary? |
 | `/trackbed:pr:triage-risk` | User, Auto | `[--base <branch>]` | Decide how much review the branch needs: a low, medium, or high risk tier and the review commands to run. Read-only. |
-| `/trackbed:pr:convention-review` | User, Auto | `[--subagent-model <model>] [--base <branch>] [--threshold 0-100] [--baseline <path>] [--inline] [--no-diff-comments]` | Flag drift from documented rules and established codebase practice, plus overcautious code, with evidence for every finding. |
-| `/trackbed:pr:overengineering-review` | User, Auto | `[--subagent-model <model>] [--base <branch>] [--inline] [--no-diff-comments] [--requirements <text>]` | Flag speculative generality and unlikely edge-case handling that the requirements do not need. |
-| `/trackbed:pr:product-review` | User, Auto | `[--subagent-model <model>] [app-url\|auto] [--categories a11y,ux,product,visual] [--threshold 0-100] [--base <branch>] [--parallel] [--team] [--inline] [--no-diff-comments]` | Review the product value, UX, visual consistency, and accessibility of your changes with specialist agents. |
+| `/trackbed:pr:convention-review` | User, Auto | `[--subagent-model <model>] [--base <branch>] [--threshold 0-100] [--baseline <path>] [--inline] [--visual] [--no-diff-comments]` | Flag drift from documented rules and established codebase practice, plus overcautious code, with evidence for every finding. |
+| `/trackbed:pr:overengineering-review` | User, Auto | `[--subagent-model <model>] [--base <branch>] [--inline] [--visual] [--no-diff-comments] [--requirements <text>]` | Flag speculative generality and unlikely edge-case handling that the requirements do not need. |
+| `/trackbed:pr:product-review` | User, Auto | `[--subagent-model <model>] [app-url\|auto] [--categories a11y,ux,product,visual] [--threshold 0-100] [--base <branch>] [--parallel] [--team] [--inline] [--visual] [--no-diff-comments]` | Review the product value, UX, visual consistency, and accessibility of your changes with specialist agents. |
 | `/trackbed:pr:rebase` | User, Auto | `[--manual] [--force-push] [--fix-ci] [--base <branch>] [--all-open]` | Rebase onto the PR's target branch and force-push with a lease, unattended by default; `--force-push` or `--manual` keeps the gates. |
 
 #### Code Changes
@@ -479,11 +490,11 @@ Plan-driven implementation, migrations, deprecations, design and security guidan
 | --- | --- | --- | --- |
 | `/trackbed:code:plan-to-pr` | User | `<attached plan \| PR_PLAN_W##L_*.md> [--continue] [--strict] [--cycles <1-5>] [--depth <balanced\|full>] [--ship]` | Implement one self-contained `PR_PLAN_*.md` on a fresh branch, then review, verify, and optionally ship it as a PR. |
 | `/trackbed:code:work-from-plan` | User, Auto | `[plan path \| inline plan]` | Execute one standalone implementation plan, such as a `PR_PLAN_*.md` file or a pasted checklist, as bounded work on the current branch. |
-| `/trackbed:code:breakdown-findings` | User | `[--auto] [--resume\|--reconcile\|--split] [--all \| plan-file ...] [--worktree <path>] [--source <ref>] [--base <ref>] [--] [source ...]` | Cluster validated review, audit, or QA findings into PR-sized `PR_PLAN_*.md` files; `--split` plans slices of a branch and `--reconcile` updates plan sets. |
+| `/trackbed:code:breakdown-findings` | User | `[--auto] [--resume\|--reconcile\|--split] [--visual] [--all \| plan-file ...] [--worktree <path>] [--source <ref>] [--base <ref>] [--] [source ...]` | Cluster validated review, audit, or QA findings into PR-sized `PR_PLAN_*.md` files; `--split` plans slices of a branch and `--reconcile` updates plan sets. |
 | `/trackbed:code:api-design` | User, Auto | `[--design-twice]` | (experimental) Design stable APIs and module boundaries for endpoints, public modules, and SDKs; `--design-twice` compares alternative shapes first. |
 | `/trackbed:code:harden-security` | User, Auto | — | Apply secure defaults when code handles untrusted input, authentication, sessions, dependencies, or personal data. |
 | `/trackbed:code:migrate` | User | `<target e.g. 'Angular 19', 'React 19', 'Node 22'> [--auto]` | (experimental) Plan and run framework or library version upgrades, such as Angular, React, or Node, in phases with verification gates. |
-| `/trackbed:code:deprecate` | User | — | Plan and run the deprecation of code, features, APIs, or persistent data shapes: build the replacement, announce, migrate incrementally, then remove. |
+| `/trackbed:code:deprecate` | User | `[deprecation target] [--visual]` | Plan and run the deprecation of code, features, APIs, or persistent data shapes: build the replacement, announce, migrate incrementally, then remove. |
 | `/trackbed:code:optimize` | User | `[spec.yaml \| optimization goal] [--auto]` | (experimental) Run repeatable, metric-driven optimization experiments when a measurable outcome needs variants instead of guess-and-check. |
 | `/trackbed:code:refactor-pass` | User | `[scope ... \| --rewrite]` | Simplify recent changes and clean up AI slop slice by slice without changing behavior; `--rewrite` redoes mediocre recent work properly. |
 | `/trackbed:code:encode-constraint` | User | `[mistake description \| path:line example \| review comment]` | Turn an observed agent mistake or review nit into a type, lint rule, or check that rejects it, proven to fail on the mistake and pass on the repository. |
@@ -494,14 +505,14 @@ Codebase, dependency, test-suite, and agent-practice audits that report findings
 
 | Skill | Invocation | Arguments | Description |
 | --- | --- | --- | --- |
-| `/trackbed:code:refactor-opportunities` | User, Auto | `[--subagent-model <model>] [full \| pr \| path <file-or-folder> \| feature <name>] [--for <spec-file \| description>] [--ranked [--solo] [--output <path>] [--max-findings N] [--base <ref>]]` | Find refactoring candidates, tech debt, and implicit state machines in a repo, PR, path, or feature, or before a change (`--for`); `--ranked` ranks weaknesses. |
-| `/trackbed:code:outside-view` | User | `[--subagent-model <model>] [--raters N] [--output <path>] [--compare <report-path>] [--cross-model]` | Rate a codebase with unprimed raters to surface unknown-unknown quality problems, especially in AI-engineered code. |
-| `/trackbed:code:agent-readiness` | User | `[--subagent-model <model>] [--auto]` | Score how well a codebase suits AI coding agents across five dimensions and get a prioritized refactoring plan. |
+| `/trackbed:code:refactor-opportunities` | User, Auto | `[--subagent-model <model>] [full \| pr \| path <file-or-folder> \| feature <name>] [--for <spec-file \| description>] [--ranked [--solo] [--output <path>] [--max-findings N] [--base <ref>]] [--visual]` | Find refactoring candidates, tech debt, and implicit state machines in a repo, PR, path, or feature, or before a change (`--for`); `--ranked` ranks weaknesses. |
+| `/trackbed:code:outside-view` | User | `[--subagent-model <model>] [--raters N] [--output <path>] [--visual] [--compare <report-path>] [--cross-model]` | Rate a codebase with unprimed raters to surface unknown-unknown quality problems, especially in AI-engineered code. |
+| `/trackbed:code:agent-readiness` | User | `[--subagent-model <model>] [--auto] [--visual]` | Score how well a codebase suits AI coding agents across five dimensions and get a prioritized refactoring plan. |
 | `/trackbed:code:audit-agent-config` | User, Auto | `[scope-path]` | Audit the repository's agent instructions, skills, hooks, MCP servers, and permissions for redundant, outdated, or conflicting entries. Read-only. |
 | `/trackbed:code:audit-practice` | User | `[--recent N] [--no-sessions]` | Check how you work with coding agents against 18 common mistakes, from effort and alignment to review and steering, and get the fixes to make first. |
-| `/trackbed:code:audit-security` | User | `[--output <repo-relative-path>]` | Audit a repository's security posture and attack surfaces before remediation, producing an evidence-ranked report with coverage gaps. |
-| `/trackbed:code:copy-review` | User, Auto | `[--pr] [--base <branch>] [--threshold 0-100] [--inline] [--all \| <scope-path>]` | Find unnecessary, redundant, or duplicated UI text across the codebase, or in the branch diff when run on a feature branch. |
-| `/trackbed:deps:audit` | User | `[--auto]` | (experimental) Audit dependencies for outdated packages, vulnerabilities, and staleness, and get a prioritized upgrade plan. |
+| `/trackbed:code:audit-security` | User | `[--output <repo-relative-path> [--visual]]` | Audit a repository's security posture and attack surfaces before remediation, producing an evidence-ranked report with coverage gaps. |
+| `/trackbed:code:copy-review` | User, Auto | `[--pr] [--base <branch>] [--threshold 0-100] [--inline] [--visual] [--all \| <scope-path>]` | Find unnecessary, redundant, or duplicated UI text across the codebase, or in the branch diff when run on a feature branch. |
+| `/trackbed:deps:audit` | User | `[--auto] [--visual]` | (experimental) Audit dependencies for outdated packages, vulnerabilities, and staleness, and get a prioritized upgrade plan. |
 | `/trackbed:test:audit` | User, Auto | `[full \| path <file-or-folder> \| changed [--base <ref>]] [--max-findings N]` | Find low-value, brittle, obsolete, or duplicated tests and get a read-only report of what to remove, repair, or consolidate. |
 
 #### Git
@@ -530,7 +541,7 @@ Live product inspection and structured testing.
 | Skill | Invocation | Arguments | Description |
 | --- | --- | --- | --- |
 | `/trackbed:browse` | User, Auto | `<url\|auto> [--screenshot] [--console] [--network]` | (experimental) Drive a live app through whichever browser MCP is available: navigate, screenshot, interact, and capture evidence. |
-| `/trackbed:qa` | User, Auto | `<url\|auto> [quick\|diff-aware\|targeted <route>] [--base <branch>] [--regression] [--inline] [--legacy-console]` | Test a running app with smoke, diff-aware, or targeted checks and get `QA_REPORT.md` with screenshots, repro steps, and severity. |
+| `/trackbed:qa` | User, Auto | `<url\|auto> [quick\|diff-aware\|targeted <route>] [--base <branch>] [--regression] [--inline] [--visual] [--legacy-console]` | Test a running app with smoke, diff-aware, or targeted checks and get `QA_REPORT.md` with screenshots, repro steps, and severity. |
 | `/trackbed:qa:intake` | User | `[optional starting context]` | Log several bugs from a manual QA pass as Linear or SIW tickets through a light, quick conversation. |
 
 #### Visual
@@ -550,7 +561,7 @@ Decision records, specs, solution notes, document review and conversion, and pla
 | `/trackbed:docs:adr` | User, Auto | `[decision title]` | Write an Architecture Decision Record for a significant, long-lived decision, following the project's existing ADR format. |
 | `/trackbed:docs:feature-spec` | User | `[feature name, brief description, or origin plan path] [--synthesize\|--auto]` | Write a lightweight PRD-style feature spec before coding, for features that need written alignment but not the full SIW workflow. |
 | `/trackbed:docs:track-rejected-enhancements` | User | `<record\|check\|append\|reconsider> <concept>` | (experimental) Record rejected enhancement ideas in `.out-of-scope/` and check new requests against them. |
-| `/trackbed:docs:review` | User | `[markdown-path] [--trade-offs] [--inline\|--file\|--output <path>]` | Review one Markdown document, such as a plan, proposal, or README draft, and get a verdict with severity-ordered findings. |
+| `/trackbed:docs:review` | User | `[markdown-path] [--trade-offs] [--inline\|--file\|--output <path>] [--visual]` | Review one Markdown document, such as a plan, proposal, or README draft, and get a verdict with severity-ordered findings. |
 | `/trackbed:docs:solution-note` | User | `[problem, lesson, or context] \| --refresh [solution-note-path\|--all] [--apply]` | Record a solved problem in `docs/solutions/` after a fix, migration, or lesson; `--refresh` audits existing notes against the code. |
 | `/trackbed:docs:sync-release` | User | `[<base>...<ref>\|--base <rev> [--ref <rev>]\|--current] [--apply]` | Compare install, usage, architecture, and contract docs against a release range and report drift; `--apply` fixes it. |
 | `/trackbed:docs:to-markdown` | User, Auto | — | Convert PDF, Office, HTML, image, audio, and other files to Markdown with MarkItDown. |
@@ -718,6 +729,7 @@ Guides in this repository:
 - [Review Workflows](trackbed/docs/review.md) — reviewer models, review convergence, stacked PRs, GitHub review rules, and resuming runs
 - [Implementing and Shipping](trackbed/docs/shipping.md) — base-branch selection, Linear issue and plan to PR, PR creation, and history rewrites
 - [SIW Workflow Reference](trackbed/docs/siw.md)
+- [Visual Reports](trackbed/docs/visual-reports.md) — the `--visual` report style: what the page does and which skills support it
 - [Hook Reference](trackbed/docs/hooks.md)
 - [Recommended MCP Servers](trackbed/docs/mcp-servers.md)
 - [Agent Autonomy Model](trackbed/docs/agent-autonomy.md)
