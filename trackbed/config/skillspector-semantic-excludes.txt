@@ -1,0 +1,10 @@
+# Files the SkillSpector LLM scan leaves out, one repository-relative path per line.
+# The static scan still covers every file listed here.
+#
+# List a file only when sending it to a model has no review value, such as a
+# vendored third-party bundle. Say why above each entry.
+
+# Minified third-party library: about 114,000 tokens per analyzer, and its static
+# findings quote whole minified lines, which pushes the filter prompt past the
+# model's context window.
+trackbed/skills/pr:walkthrough/assets/d3.v7.9.0.min.js

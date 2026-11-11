@@ -39,7 +39,14 @@ if [ -n "${MOCK_SKILLSPECTOR_LOG:-}" ]; then
 	if [ -e "$input_path/references/sources-snapshot" ]; then
 		snapshot_exists="yes"
 	fi
-	printf 'input=%s format=%s output=%s no_llm=%s snapshot_exists=%s\n' "$input_path" "$format" "$output_file" "$no_llm" "$snapshot_exists" >>"$MOCK_SKILLSPECTOR_LOG"
+	probe_exists="unset"
+	if [ -n "${MOCK_SKILLSPECTOR_PROBE:-}" ]; then
+		probe_exists="no"
+		if [ -e "$input_path/$MOCK_SKILLSPECTOR_PROBE" ]; then
+			probe_exists="yes"
+		fi
+	fi
+	printf 'input=%s format=%s output=%s no_llm=%s snapshot_exists=%s probe_exists=%s\n' "$input_path" "$format" "$output_file" "$no_llm" "$snapshot_exists" "$probe_exists" >>"$MOCK_SKILLSPECTOR_LOG"
 fi
 
 if [ "${MOCK_SKILLSPECTOR_WRITE_OUTPUT:-1}" != "0" ] && [ -n "$output_file" ]; then

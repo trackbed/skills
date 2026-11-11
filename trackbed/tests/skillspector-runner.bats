@@ -23,6 +23,7 @@ setup() {
 	unset MOCK_SKILLSPECTOR_EXIT
 	unset MOCK_SKILLSPECTOR_JSON
 	unset MOCK_SKILLSPECTOR_WRITE_OUTPUT
+	unset MOCK_SKILLSPECTOR_PROBE
 
 	init_test_git_repo "$REPO" --file README.md
 	cd "$REPO"
@@ -193,6 +194,68 @@ count_invocations() {
 	[ "$status" -eq 0 ]
 	[ "$(count_invocations)" = "2" ]
 	grep -q "no_llm=false" "$MOCK_SKILLSPECTOR_LOG"
+}
+
+@test "semantic scan keeps its reports apart from static reports by default" {
+	RUNNER_TEMP="$TMP_DIR/runner" run "$SCRIPT" --all --semantic
+
+	[ "$status" -eq 0 ]
+	[ -f "$TMP_DIR/runner/skillspector-semantic/kramme_one.json" ]
+	[ ! -e "$TMP_DIR/runner/skillspector" ]
+
+	RUNNER_TEMP="$TMP_DIR/runner" run "$SCRIPT" --all
+
+	[ "$status" -eq 0 ]
+	[ -f "$TMP_DIR/runner/skillspector/kramme_one.json" ]
+}
+
+@test "semantic scan leaves out files listed in the semantic excludes" {
+	commit_file "trackbed/skills/kramme:one/assets/vendor.min.js" "minified" "add vendored bundle"
+	write_policy "$REPO/trackbed/config/skillspector-semantic-excludes.txt" "# vendored bundle
+trackbed/skills/kramme:one/assets/vendor.min.js"
+	export MOCK_SKILLSPECTOR_PROBE="assets/vendor.min.js"
+
+	run "$SCRIPT" --changed --base main --semantic --output-dir "$REPORT_DIR"
+
+	[ "$status" -eq 0 ]
+	[ "$(count_invocations)" = "1" ]
+	grep -q "no_llm=false .*probe_exists=no" "$MOCK_SKILLSPECTOR_LOG"
+	[ -f "$REPO/trackbed/skills/kramme:one/assets/vendor.min.js" ]
+}
+
+@test "static scan keeps files listed in the semantic excludes" {
+	commit_file "trackbed/skills/kramme:one/assets/vendor.min.js" "minified" "add vendored bundle"
+	write_policy "$REPO/trackbed/config/skillspector-semantic-excludes.txt" "trackbed/skills/kramme:one/assets/vendor.min.js"
+	export MOCK_SKILLSPECTOR_PROBE="assets/vendor.min.js"
+
+	run "$SCRIPT" --changed --base main --output-dir "$REPORT_DIR"
+
+	[ "$status" -eq 0 ]
+	grep -q "no_llm=true .*probe_exists=yes" "$MOCK_SKILLSPECTOR_LOG"
+}
+
+@test "semantic excludes cannot reach outside the scanned directory" {
+	commit_file "trackbed/skills/kramme:one/references/one.md" "one" "change skill resource"
+	mkdir -p "$TMP_DIR/runner"
+	printf 'keep\n' >"$TMP_DIR/runner/sentinel"
+	write_policy "$REPO/trackbed/config/skillspector-semantic-excludes.txt" "trackbed/skills/kramme:one/../../sentinel"
+
+	RUNNER_TEMP="$TMP_DIR/runner" run "$SCRIPT" --changed --base main --semantic --output-dir "$REPORT_DIR"
+
+	[ "$status" -eq 0 ]
+	[ -f "$TMP_DIR/runner/sentinel" ]
+	grep -q "/repo/trackbed/skills/kramme:one format=json" "$MOCK_SKILLSPECTOR_LOG"
+}
+
+@test "semantic changed Make target runs one LLM scan per changed skill" {
+	commit_file "trackbed/skills/kramme:one/references/one.md" "one" "change skill resource"
+
+	run env RUNNER_TEMP="$TMP_DIR/runner" make -C "$REPO/trackbed" --no-print-directory skill-security-semantic-changed SKILLSPECTOR_BASE=main
+
+	[ "$status" -eq 0 ]
+	[ "$(count_invocations)" = "1" ]
+	grep -q "trackbed/skills/kramme:one format=json .*no_llm=false" "$MOCK_SKILLSPECTOR_LOG"
+	[ -f "$TMP_DIR/runner/skillspector-semantic/kramme_one.json" ]
 }
 
 @test "missing skillspector prints a clear setup error" {

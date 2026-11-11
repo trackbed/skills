@@ -10,6 +10,7 @@ source "$SCRIPT_DIR/lib/shell-helpers.sh"
 PLUGIN_ROOT=$(cd -- "$SCRIPT_DIR/.." && pwd -P)
 SKILLS_DIR="$PLUGIN_ROOT/skills"
 SHARED_DIR="$PLUGIN_ROOT/shared"
+SEMANTIC_EXCLUDES_FILE="$PLUGIN_ROOT/config/skillspector-semantic-excludes.txt"
 
 MODE=""
 BASE_REF="${BASE_REF:-origin/main}"
@@ -30,10 +31,12 @@ Options:
   --changed                     Scan skill directories and shared resource topics changed against the base ref.
   --base <ref>                  Base ref for --changed (default: ${BASE_REF:-origin/main}).
   --format <format>             Primary report format: markdown, json, sarif, or terminal (default: json).
-  --output-dir <dir>            Report directory (default: $RUNNER_TEMP/skillspector or .context/skillspector).
+  --output-dir <dir>            Report directory (default: $RUNNER_TEMP/skillspector or .context/skillspector;
+                                skillspector-semantic with --semantic).
   --fail-on <threshold>         Finding threshold: high, critical, or none (default: none).
   --accepted-findings <path>    JSON registry for accepted findings (default: config/skillspector-accepted-findings.json when present).
   --semantic                    Enable SkillSpector LLM analysis. Static-only mode is the default.
+                                Files listed in config/skillspector-semantic-excludes.txt are left out.
   -h, --help                    Show this help.
 
 The wrapper always writes a JSON report for each scanned skill so threshold
@@ -135,10 +138,16 @@ fi
 REPO_ROOT=$(cd -- "$REPO_ROOT" && pwd -P)
 
 if [ -z "$OUTPUT_DIR" ]; then
+  # An LLM report keeps only the findings the model confirmed, so it never
+  # overwrites the static report for the same directory.
+  REPORT_DIR_NAME="skillspector"
+  if [ "$SEMANTIC" -eq 1 ]; then
+    REPORT_DIR_NAME="skillspector-semantic"
+  fi
   if [ -n "${RUNNER_TEMP:-}" ]; then
-    OUTPUT_DIR="$RUNNER_TEMP/skillspector"
+    OUTPUT_DIR="$RUNNER_TEMP/$REPORT_DIR_NAME"
   else
-    OUTPUT_DIR="$REPO_ROOT/.context/skillspector"
+    OUTPUT_DIR="$REPO_ROOT/.context/$REPORT_DIR_NAME"
   fi
 fi
 mkdir -p "$OUTPUT_DIR"
@@ -312,13 +321,33 @@ cleanup_scan_temp_dirs() {
 }
 trap cleanup_scan_temp_dirs EXIT
 
+# Print the files the LLM scan leaves out of one scan directory, relative to it.
+# The static scan still covers them.
+semantic_excludes_for() {
+  local skill_repo_rel="${1#"$REPO_ROOT"/}"
+  local entry
+
+  if [ "$SEMANTIC" -eq 0 ] || [ ! -f "$SEMANTIC_EXCLUDES_FILE" ]; then
+    return
+  fi
+  while IFS= read -r entry || [ -n "$entry" ]; do
+    case "$entry" in
+      *..*) ;;
+      "$skill_repo_rel"/*) printf '%s\n' "${entry#"$skill_repo_rel"/}" ;;
+    esac
+  done < "$SEMANTIC_EXCLUDES_FILE"
+}
+
 prepare_scan_input() {
   local skill_dir="$1"
   local temp_root
   local temp_parent
   local scan_dir
+  local excludes
+  local excluded
 
-  if [ ! -d "$skill_dir/references/sources-snapshot" ]; then
+  excludes=$(semantic_excludes_for "$skill_dir")
+  if [ ! -d "$skill_dir/references/sources-snapshot" ] && [ -z "$excludes" ]; then
     printf '%s\n' "$skill_dir"
     return
   fi
@@ -330,6 +359,11 @@ prepare_scan_input() {
 
   cp -R "$skill_dir" "$scan_dir"
   rm -rf -- "$scan_dir/references/sources-snapshot"
+  while IFS= read -r excluded; do
+    if [ -n "$excluded" ]; then
+      rm -f -- "$scan_dir/$excluded"
+    fi
+  done <<< "$excludes"
   printf '%s\n' "$scan_dir"
 }
 
@@ -636,7 +670,7 @@ for skill_dir in "${SKILL_DIRS[@]}"; do
 
   echo "Scanning $skill_dir"
   if [ "$scan_dir" != "$skill_dir" ]; then
-    echo "  Excluding reference source snapshots from scan input"
+    echo "  Scanning a filtered copy: source snapshots and LLM-scan excludes removed"
   fi
   if ! run_scan_format "$scan_dir" "json" "$json_report" "$log_file"; then
     SCAN_FAILED=1
