@@ -106,7 +106,8 @@
       "trackbed/skills/code:audit-practice/scripts/signal_patterns.py",
       "trackbed/scripts/risk-signals.py",
       "trackbed/scripts/risk_patterns.py",
-      "trackbed/scripts/resolve-stack-context.py"
+      "trackbed/scripts/resolve-stack-context.py",
+      "trackbed/scripts/summarize-semantic-scan.py"
     ],
     "contract_only": {
       "trackbed/scripts/generate-component-reference.py": [
