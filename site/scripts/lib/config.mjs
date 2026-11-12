@@ -13,19 +13,28 @@ export const PLUGIN_MANIFEST_PATH = "trackbed/.claude-plugin/plugin.json";
 export const CATALOG_PATH = "trackbed/docs/component-catalog.json";
 export const REGISTRY_PATH = "trackbed/scripts/synced-contracts.yaml";
 export const GUIDES_DIR = "trackbed/docs";
+/** One hand-written usage guide per user-invocable skill, named by its page. */
+export const USAGE_DIR = "trackbed/docs/usage";
 
 export const HOME_PAGE = "index";
+export const HOME_TAB_TITLE =
+  "trackbed: agent workflows for Claude Code and Codex";
+export const QUICK_START_PAGE = "start/quick-start";
 export const SKILLS_PAGE = "skills";
 export const AGENTS_PAGE = "agents";
 
-/** README `##` sections that become pages, keyed by heading text. */
+/**
+ * README `##` sections that become pages, keyed by heading text.
+ * `dropTableColumns` leaves a column of the section's tables off the page.
+ */
 export const README_PAGES = [
-  { heading: "Quick Start", slug: "start/quick-start" },
+  { heading: "Quick Start", slug: QUICK_START_PAGE },
   { heading: "Requirements", slug: "start/requirements" },
   { heading: "Installation & Updating", slug: "start/installation" },
   { heading: "Configuration", slug: "start/configuration" },
   { heading: "Workflows", slug: "workflows" },
-  { heading: "Skills", slug: SKILLS_PAGE },
+  // Each skill's own page shows its arguments, and four columns do not fit.
+  { heading: "Skills", slug: SKILLS_PAGE, dropTableColumns: ["Arguments"] },
   { heading: "Agents", slug: AGENTS_PAGE },
   { heading: "Hooks", slug: "reference/hooks" },
   {
@@ -57,6 +66,8 @@ export const GUIDE_PAGES = [
   { file: "visual-reports.md", slug: "guides/visual-reports" },
   { file: "hooks.md", slug: "guides/hooks" },
   { file: "mcp-servers.md", slug: "guides/mcp-servers" },
+  { file: "troubleshooting.md", slug: "guides/troubleshooting" },
+  { file: "concepts.md", slug: "start/concepts" },
 ];
 
 /** Maintainer docs under `trackbed/docs/` that stay on GitHub. */
@@ -77,7 +88,8 @@ export const SIDEBAR_BEFORE_COMPONENTS = [
   {
     label: "Start Here",
     pages: [
-      "start/quick-start",
+      QUICK_START_PAGE,
+      "start/concepts",
       "start/requirements",
       "start/installation",
       "start/configuration",
@@ -91,8 +103,8 @@ export const SIDEBAR_BEFORE_COMPONENTS = [
       "guides/shipping",
       "guides/siw",
       "guides/visual-reports",
-      "guides/hooks",
       "guides/mcp-servers",
+      "guides/troubleshooting",
     ],
   },
 ];
@@ -102,6 +114,8 @@ export const SIDEBAR_AFTER_COMPONENTS = [
     label: "Reference",
     pages: [
       "reference/hooks",
+      // The detail behind the hook table above, so the two sit together.
+      "guides/hooks",
       "reference/renamed-and-removed-commands",
       "reference/attribution",
     ],

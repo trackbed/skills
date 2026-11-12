@@ -9,16 +9,54 @@ import {
   CATALOG_PATH,
   GUIDE_PAGES,
   GUIDES_DIR,
+  HOME_TAB_TITLE,
   PLUGIN_MANIFEST_PATH,
   README_PAGES,
   README_SECTIONS_OFF_SITE,
   REGISTRY_PATH,
   SKILLS_PAGE,
+  USAGE_DIR,
 } from "../lib/config.mjs";
 
 const CREATE = "trackbed/skills/pr:create/SKILL.md";
 const COMMIT = "trackbed/skills/git:commit-message/SKILL.md";
 const REVIEWER = "trackbed/agents/code-reviewer.md";
+const CREATE_USAGE = `${USAGE_DIR}/pr-create.md`;
+
+const [firstPage] = README_PAGES;
+const [firstGuide] = GUIDE_PAGES;
+
+function usageText({
+  title = "pr:create",
+  options = [
+    "| `--draft` | Open a draft. |",
+    "| `--base <branch>` | Target `<branch>`. |",
+  ],
+  examples = ["# Open a draft", "/trackbed:pr:create --draft"],
+} = {}) {
+  return [
+    `# ${title}`,
+    "",
+    `Opens a PR after \`trackbed:code-reviewer\` passes the [gates](../${firstGuide.file}#gates).`,
+    "",
+    "## Options",
+    "",
+    "| Option | Effect |",
+    "| --- | --- |",
+    ...options,
+    "",
+    "## Examples",
+    "",
+    "```text",
+    ...examples,
+    "```",
+    "",
+    "## What you get",
+    "",
+    "- An open Pull Request.",
+    "",
+  ].join("\n");
+}
 
 const SKILL_ROWS = [
   "Who can start a skill.",
@@ -36,9 +74,6 @@ const SKILL_ROWS = [
   "| `trackbed:git:commit-message` | Background | — | Write commit messages. |",
 ].join("\n");
 
-const [firstPage] = README_PAGES;
-const [firstGuide] = GUIDE_PAGES;
-
 function sectionBody({ heading, slug }) {
   if (slug === AGENTS_PAGE) return "`trackbed:code-reviewer` reviews code.";
   if (heading === firstPage.heading) {
@@ -49,6 +84,7 @@ function sectionBody({ heading, slug }) {
 
 function readmeText({
   intro = "A plugin for testing:",
+  notices = [],
   skillRows = SKILL_ROWS,
 } = {}) {
   return [
@@ -58,6 +94,7 @@ function readmeText({
     "",
     "- one thing",
     "",
+    ...notices,
     ...README_PAGES.flatMap((page) => [
       `## ${page.heading}`,
       "",
@@ -138,6 +175,7 @@ function fixtureRepo(t, overrides = {}) {
     ].join("\n"),
     "trackbed/skills/pr:create/references/notes.md":
       "Mentions trackbed:unknown:skill, which is not a component.\n",
+    [CREATE_USAGE]: usageText(),
     [COMMIT]: [
       "---",
       "name: git:commit-message",
@@ -174,7 +212,7 @@ function pageBodies(site) {
   return new Map(site.pages.map((page) => [page.slug, page.body]));
 }
 
-test("renders a skill page from its frontmatter, summary, and mentions", (t) => {
+test("renders a skill page from its frontmatter, summary, usage guide, and mentions", (t) => {
   const site = buildSite(fixtureRepo(t));
   const page = site.pages.find(
     (candidate) => candidate.slug === "skills/pr-create",
@@ -190,7 +228,9 @@ test("renders a skill page from its frontmatter, summary, and mentions", (t) => 
     [
       "Publish a PR; `--draft` opens a draft.",
       "",
-      "```text wrap",
+      `Opens a PR after [\`trackbed:code-reviewer\`](/agents/code-reviewer/) passes the [gates](/${firstGuide.slug}/#gates).`,
+      "",
+      "```slash",
       "/trackbed:pr:create [--draft] [--base <branch>]",
       "```",
       "",
@@ -199,9 +239,23 @@ test("renders a skill page from its frontmatter, summary, and mentions", (t) => 
       "- **Category:** [Pull Requests](/skills/#pull-requests)",
       `- **Source:** [\`${CREATE}\`](https://github.com/trackbed/skills/blob/main/${CREATE})`,
       "",
-      "## Description",
+      "## Options",
       "",
-      "Publish a PR with &lt;ISSUE-ID> and \\*care\\*. Use when delegated by [`trackbed:git:commit-message`](/skills/git-commit-message/), not by `trackbed:pr:create` itself or `trackbed:git:commit-message`.",
+      "| Option | Effect |",
+      "| --- | --- |",
+      "| `--draft` | Open a draft. |",
+      "| `--base <branch>` | Target `<branch>`. |",
+      "",
+      "## Examples",
+      "",
+      "```slash",
+      "# Open a draft",
+      "/trackbed:pr:create --draft",
+      "```",
+      "",
+      "## What you get",
+      "",
+      "- An open Pull Request.",
       "",
       "## Guides",
       "",
@@ -213,6 +267,14 @@ test("renders a skill page from its frontmatter, summary, and mentions", (t) => 
       "- **Refers to:** [`trackbed:git:commit-message`](/skills/git-commit-message/)",
       "- **Referred to by:** [`trackbed:git:commit-message`](/skills/git-commit-message/)",
       "- **Agents:** [`trackbed:code-reviewer`](/agents/code-reviewer/)",
+      "",
+      "## Host description",
+      "",
+      "The host shows this text in its command menu, and reads it to decide when to start the skill without being asked.",
+      "",
+      "> Publish a PR with &lt;ISSUE-ID> and \\*care\\*. Use when delegated by [`trackbed:git:commit-message`](/skills/git-commit-message/), not by `trackbed:pr:create` itself or `trackbed:git:commit-message`.",
+      "",
+      '<span data-pagefind-index-attrs="data-names" data-names="pr:create create"></span>',
     ].join("\n"),
   );
 });
@@ -232,14 +294,18 @@ test("leaves out what a background, single-host skill does not have", (t) => {
       "- **Category:** [Background Skills](/skills/#background-skills)",
       `- **Source:** [\`${COMMIT}\`](https://github.com/trackbed/skills/blob/main/${COMMIT})`,
       "",
-      "## Description",
-      "",
-      "Write commit messages.",
-      "",
       "## Related",
       "",
       "- **Refers to:** [`trackbed:pr:create`](/skills/pr-create/)",
       "- **Referred to by:** [`trackbed:pr:create`](/skills/pr-create/)",
+      "",
+      "## Host description",
+      "",
+      "The host reads this text to decide when to apply the skill. You cannot start it yourself.",
+      "",
+      "> Write commit messages.",
+      "",
+      '<span data-pagefind-index-attrs="data-names" data-names="git:commit-message commit-message"></span>',
     ].join("\n"),
   );
 });
@@ -258,10 +324,6 @@ test("renders an agent page with the skills and guides that use it", (t) => {
       "- **Model:** `inherit`",
       `- **Source:** [\`${REVIEWER}\`](https://github.com/trackbed/skills/blob/main/${REVIEWER})`,
       "",
-      "## Description",
-      "",
-      "Reviews code.",
-      "",
       "## Used by",
       "",
       "- [`trackbed:pr:create`](/skills/pr-create/)",
@@ -269,6 +331,14 @@ test("renders an agent page with the skills and guides that use it", (t) => {
       "## Guides",
       "",
       `- [Review Workflows](/${firstGuide.slug}/)`,
+      "",
+      "## Host description",
+      "",
+      "The host reads this text to decide when to launch the agent.",
+      "",
+      "> Reviews code.",
+      "",
+      '<span data-pagefind-index-attrs="data-names" data-names="code-reviewer"></span>',
     ].join("\n"),
   );
 });
@@ -290,6 +360,22 @@ test("routes links and code spans in README sections and guides", (t) => {
   );
 });
 
+test("leaves the Arguments column off the skills overview", (t) => {
+  const overview = pageBodies(buildSite(fixtureRepo(t))).get(SKILLS_PAGE);
+
+  assert.ok(
+    overview.includes(
+      [
+        "| Skill | Invocation | Description |",
+        "| --- | --- | --- |",
+        "| [`/trackbed:pr:create`](/skills/pr-create/) | User, Auto | Publish a PR. |",
+      ].join("\n"),
+    ),
+    overview,
+  );
+  assert.doesNotMatch(overview, /Arguments|--draft/);
+});
+
 test("builds the landing page and sidebar from the README and the catalog", (t) => {
   const site = buildSite(fixtureRepo(t));
   const home = site.pages.find((page) => page.slug === "index");
@@ -298,9 +384,21 @@ test("builds the landing page and sidebar from the README and the catalog", (t) 
 
   assert.equal(site.version, "1.2.3");
   assert.equal(home.frontmatter.hero.tagline, "A plugin for testing");
-  assert.match(
+  // Starlight would otherwise title the tab "trackbed | trackbed".
+  assert.deepEqual(home.frontmatter.head, [
+    { tag: "title", content: HOME_TAB_TITLE },
+  ]);
+  assert.equal(
     home.body,
-    /^- one thing\n\nThis site documents trackbed v1\.2\.3\./,
+    [
+      "- one thing",
+      "",
+      `## ${firstPage.heading}`,
+      "",
+      `Run [\`/trackbed:pr:create --draft\`](/skills/pr-create/). See [gates](/${firstGuide.slug}/#gates) and [contributing](https://github.com/trackbed/skills/blob/main/CONTRIBUTING.md).`,
+      "",
+      "This site documents trackbed v1.2.3. See the [changelog](https://github.com/trackbed/skills/blob/main/trackbed/CHANGELOG.md) for what changed, or the [component catalog](https://github.com/trackbed/skills/blob/main/trackbed/docs/component-catalog.json) for a machine-readable index.",
+    ].join("\n"),
   );
   for (const action of home.frontmatter.hero.actions) {
     const slug = action.link.replace(/^\/|\/$/g, "");
@@ -324,6 +422,27 @@ test("builds the landing page and sidebar from the README and the catalog", (t) 
       ],
     },
   ]);
+});
+
+test("shows how to install before the README introduction's notices", (t) => {
+  const notices = [
+    "<!-- prettier-ignore-start -->",
+    "> [!NOTE]",
+    "> A personal project.",
+    "<!-- prettier-ignore-end -->",
+    "",
+  ];
+  const site = buildSite(
+    fixtureRepo(t, { "README.md": readmeText({ notices }) }),
+  );
+  const { body } = site.pages.find((page) => page.slug === "index");
+
+  assert.match(
+    body,
+    new RegExp(
+      `^- one thing\\n\\n## ${firstPage.heading}\\n\\nRun .*\\n\\n<!-- prettier-ignore-start -->\\n:::note\\nA personal project\\.\\n:::\\n<!-- prettier-ignore-end -->\\n\\nThis site documents`,
+    ),
+  );
 });
 
 test("links to the sources at the commit being documented", (t) => {
@@ -412,6 +531,27 @@ test("fails the sync when a source stops fitting the site", (t) => {
   assert.throws(
     withFile("README.md", `${readmeText()}\n[ship]: CONTRIBUTING.md\n`),
     /reference-style link or footnote \(\[ship\]: CONTRIBUTING\.md\)/,
+  );
+  // A skill people can start has a usage guide, and a guide has a skill.
+  assert.throws(
+    withFile(CREATE_USAGE, undefined),
+    /trackbed:pr:create has no usage guide: add trackbed\/docs\/usage\/pr-create\.md/,
+  );
+  assert.throws(
+    withFile(`${USAGE_DIR}/pr-gone.md`, usageText({ title: "pr:gone" })),
+    /usage\/pr-gone\.md matches no user-invocable skill/,
+  );
+  assert.throws(
+    withFile(`${USAGE_DIR}/git-commit-message.md`, usageText()),
+    /usage\/git-commit-message\.md matches no user-invocable skill/,
+  );
+  // The guide is checked against the skill it documents, and names its file.
+  assert.throws(
+    withFile(
+      CREATE_USAGE,
+      usageText({ options: ["| `--draft` | Open a draft. |"] }),
+    ),
+    /usage\/pr-create\.md: the Options table has no row for --base/,
   );
   // Errors from the Markdown rewrite name the file they are about.
   assert.throws(
