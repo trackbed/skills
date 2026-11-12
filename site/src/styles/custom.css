@@ -1,0 +1,34 @@
+/*
+ * Command names and paths in a table cell are single unbreakable words, and
+ * one of them can be wider than a phone. Let them break so the table fits its
+ * column instead of scrolling its last column out of view.
+ */
+.sl-markdown-content table :is(code, a) {
+  overflow-wrap: anywhere;
+}
+
+/*
+ * Where there is room, keep the name in a table's first column whole: breaking
+ * `[aspects]` or `--base <branch>` in the middle reads worse than a wider column.
+ * On a phone the name has to break, so give it enough width to break only once
+ * or twice.
+ */
+@media (min-width: 50rem) {
+  .sl-markdown-content table td:first-child code {
+    white-space: nowrap;
+  }
+}
+@media (max-width: 50rem) {
+  .sl-markdown-content table :is(td, th) {
+    padding-inline: 0.5rem;
+  }
+  .sl-markdown-content table td:first-child:has(code) {
+    width: 34%;
+  }
+}
+
+/* A screenshot has a light background of its own; give it an edge on a dark page. */
+.sl-markdown-content img {
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 0.5rem;
+}

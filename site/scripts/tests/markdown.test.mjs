@@ -196,3 +196,86 @@ test("numbers repeated headings the way GitHub does", () => {
     ["a", "updating", "b--c", "updating-1"],
   );
 });
+
+test("removes a table column by its header and keeps the rest of the table", () => {
+  const source = [
+    "| Skill | Invocation | Arguments | Description |",
+    "| --- | :-: | --- | --- |",
+    "| `/trackbed:pr:create` | User | `[a\\|b]` [x](docs/x.md) | Opens a PR. |",
+    "| `trackbed:git:fixup` | Auto | — | Fixes up. |",
+    "",
+    "| Name | Arguments |",
+    "| --- | --- |",
+    "| one | `[--flag]` |",
+    "",
+    "| Other | Table |",
+    "| --- | --- |",
+    "| stays | whole |",
+  ].join("\n");
+
+  const { text } = transformMarkdown(source, {
+    // A link or code span in a removed cell is not rewritten into nothing.
+    resolveLink: (url) => `/site/${url}`,
+    linkForCode: () => "/linked/",
+    dropTableColumns: ["Arguments"],
+  });
+
+  assert.equal(
+    text,
+    [
+      "| Skill | Invocation | Description |",
+      "| --- | :-: | --- |",
+      "| [`/trackbed:pr:create`](/linked/) | User | Opens a PR. |",
+      "| [`trackbed:git:fixup`](/linked/) | Auto | Fixes up. |",
+      "",
+      "| Name |",
+      "| --- |",
+      "| one |",
+      "",
+      "| Other | Table |",
+      "| --- | --- |",
+      "| stays | whole |",
+    ].join("\n"),
+  );
+});
+
+test("tags a block of host commands with the site's language for them", () => {
+  const block = (info, ...lines) => ["```" + info, ...lines, "```"].join("\n");
+  const source = [
+    block(
+      "bash",
+      "/trackbed:setup   # check the environment",
+      "",
+      "$trackbed:setup",
+    ),
+    block("text", "# Open a draft", "/trackbed:pr:create --draft"),
+    block("", "/plugin install trackbed@trackbed"),
+    // A shell command, a path, a block with its own options, and another language stay as written.
+    block("bash", "/trackbed:setup", "codex plugin add trackbed@trackbed"),
+    block("text", "/usr/local/bin"),
+    block('bash title="host"', "/trackbed:setup"),
+    block("json", "/trackbed:setup"),
+    block("bash", "# only a comment"),
+  ].join("\n\n");
+
+  const { text } = transformMarkdown(source, keepLinks);
+
+  assert.equal(
+    text,
+    [
+      block(
+        "slash",
+        "/trackbed:setup   # check the environment",
+        "",
+        "$trackbed:setup",
+      ),
+      block("slash", "# Open a draft", "/trackbed:pr:create --draft"),
+      block("slash", "/plugin install trackbed@trackbed"),
+      block("bash", "/trackbed:setup", "codex plugin add trackbed@trackbed"),
+      block("text", "/usr/local/bin"),
+      block('bash title="host"', "/trackbed:setup"),
+      block("json", "/trackbed:setup"),
+      block("bash", "# only a comment"),
+    ].join("\n\n"),
+  );
+});

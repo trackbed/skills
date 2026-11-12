@@ -166,6 +166,69 @@ function alertEdits(text, lineStarts, node) {
   return edits;
 }
 
+/** The language the site highlights host commands with (see astro.config.mjs). */
+export const HOST_COMMAND_LANGUAGE = "slash";
+const SHELL_LANGUAGES = new Set([null, "bash", "sh", "shell", "text"]);
+const HOST_COMMAND = /^[/$][a-z][\w:.-]*(?=\s|$)/;
+
+/** Whether every command line is typed into the host: `/plugin`, `$trackbed:setup`. */
+export function isHostCommandBlock(code) {
+  const lines = code
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line !== "" && !line.startsWith("#"));
+  return lines.length > 0 && lines.every((line) => HOST_COMMAND.test(line));
+}
+
+function hostCommandFenceEdit(text, node) {
+  if (!SHELL_LANGUAGES.has(node.lang ?? null) || node.meta) return null;
+  if (!isHostCommandBlock(node.value)) return null;
+  const start = node.position.start.offset;
+  const fence = /^(`{3,}|~{3,})[^\n]*/.exec(text.slice(start));
+  if (!fence) return null;
+  return {
+    start: start + fence[1].length,
+    end: start + fence[0].length,
+    replacement: HOST_COMMAND_LANGUAGE,
+  };
+}
+
+/** Edits that remove the columns of `table` whose header is in `headers`. */
+function tableColumnEdits(text, lineStarts, table, headers) {
+  if (headers.length === 0) return [];
+  const [headerRow, ...rows] = table.children;
+  const columns = headerRow.children
+    .map((cell, index) => (headers.includes(toString(cell)) ? index : -1))
+    .filter((index) => index !== -1);
+  if (columns.length === 0) return [];
+
+  const edits = [];
+  for (const row of [headerRow, ...rows]) {
+    for (const index of columns) {
+      const cell = row.children[index];
+      if (!cell) continue;
+      const start = cell.position.start.offset;
+      let end = cell.position.end.offset;
+      // The last cell holds the row's closing pipe, which the row keeps.
+      if (index === row.children.length - 1 && text[end - 1] === "|") end -= 1;
+      edits.push({ start, end, replacement: "" });
+    }
+  }
+
+  // The delimiter row (`| --- | --- |`) has no node of its own.
+  const lineStart = lineStarts[headerRow.position.end.line];
+  const lineEnd = text.indexOf("\n", lineStart);
+  const line = text.slice(lineStart, lineEnd === -1 ? text.length : lineEnd);
+  const cells = line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|");
+  const kept = cells.filter((_, index) => !columns.includes(index));
+  edits.push({
+    start: lineStart,
+    end: lineStart + line.length,
+    replacement: `|${kept.join("|")}|`,
+  });
+  return edits;
+}
+
 const RELATIVE_HTML_LINK =
   /\b(?:href|src)\s*=\s*["'](?![a-z][a-z0-9+.-]*:|\/\/)/i;
 
@@ -179,6 +242,10 @@ const RELATIVE_HTML_LINK =
  * - `linkForCode(value)` returns a URL to link an inline code span to, or null.
  * - `headingShift` moves every heading by that many levels.
  * - `dropTitle` removes the single `#` heading and returns its text as `title`.
+ * - `dropTableColumns` removes the table columns with these header texts.
+ *
+ * A code block that holds only host commands (`/trackbed:setup`) is tagged
+ * with the site's own language for them, so it is not shown as a terminal.
  */
 export function transformMarkdown(
   text,
@@ -187,6 +254,7 @@ export function transformMarkdown(
     linkForCode = () => null,
     headingShift = 0,
     dropTitle = false,
+    dropTableColumns = [],
   },
 ) {
   const tree = parseMarkdown(text);
@@ -200,6 +268,8 @@ export function transformMarkdown(
   }
 
   const edits = [];
+  /** Source ranges that are removed whole; rewrites inside them are moot. */
+  const removed = [];
   let title = null;
 
   walk(tree, (node, ancestors) => {
@@ -265,6 +335,22 @@ export function transformMarkdown(
         }
         break;
       }
+      case "table": {
+        const dropped = tableColumnEdits(
+          text,
+          lineStarts,
+          node,
+          dropTableColumns,
+        );
+        removed.push(...dropped);
+        edits.push(...dropped);
+        break;
+      }
+      case "code": {
+        const edit = hostCommandFenceEdit(text, node);
+        if (edit) edits.push(edit);
+        break;
+      }
       case "html": {
         if (RELATIVE_HTML_LINK.test(node.value)) {
           throw new Error(
@@ -277,5 +363,12 @@ export function transformMarkdown(
     }
   });
 
-  return { text: applyEdits(text, edits), title };
+  const kept = edits.filter(
+    (edit) =>
+      removed.includes(edit) ||
+      !removed.some(
+        (range) => edit.start >= range.start && edit.end <= range.end,
+      ),
+  );
+  return { text: applyEdits(text, kept), title };
 }
