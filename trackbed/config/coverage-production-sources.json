@@ -420,7 +420,8 @@
         "trackbed/skills/code:plan-to-pr/SKILL.md",
         "trackbed/skills/code:work-from-plan/SKILL.md",
         "trackbed/skills/linear:issue-implement/SKILL.md",
-        "trackbed/skills/linear:issue-to-pr/SKILL.md"
+        "trackbed/skills/linear:issue-to-pr/SKILL.md",
+        "trackbed/skills/pr:review-convergence/SKILL.md"
       ]
     },
     {

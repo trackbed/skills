@@ -28,23 +28,29 @@
 		# Exactly one worked example, in the format it defines.
 		[ "$(grep -c "^Decision needed · " "$format")" -eq 1 ]
 		grep -qF "Decision needed · SKILLS-22: resume review for the open finding, or stop here?" "$format"
-		grep -qF "1. Resume review (recommended): starts a new fix budget for this finding," "$format"
+		grep -qF "1. Resume review (recommended): starts a new fix budget of up to 2 cycles" "$format"
+		grep -qF "2. Stop here (0 cycles): the branch stays local for you to finish by hand." "$format"
 		grep -qF "State: nothing pushed, no PR, working tree clean; review archive in .context/linear-issue-to-pr/reviews/." "$format"
 
 		# Both workflows load the shared format and stop with it instead of a success report.
 		for skill in "$issue" "$plan"; do
 			grep -qF "Show every stop that waits on the user, in this file or a reference it loads, as a decision request: $read_rule" "$skill"
-			grep -qF "relay that exact question as a decision request and continue the same agent" "$skill"
+			grep -qF "On either path, when a blocked handoff carries a \`Decision request\`, show that request to the user unchanged, adding only the \`State:\` line this workflow owns." "$skill"
+			grep -qF "When the answer resumes review, continue the same run with it, in the same delegated agent when there is one, instead of starting a new invocation; any other answer ends the run on the blocked handoff it already returned." "$skill"
+			grep -qF "Ask each review question once, here: later stop and report steps report its answer and never ask it again, and a resumed run'"'"'s new blocked handoff is relayed the same way." "$skill"
+			grep -qF "When a blocked handoff returns \`Decision request: none\`, build the decision request from its exact blocker, unless it lists at least one open item and the user already declined each of them; then report those declines with the \`State:\` line." "$skill"
+			! grep -qF "relay that exact question as a decision request" "$skill" || exit 1
 		done
 		grep -qF "A blocked run shows a decision request, never a Step 5 success template." "$issue"
 		grep -qF "A run that stopped on a blocker or a question shows a decision request instead of either template." "$issue"
 		! grep -qF "or the workflow stopped on a blocker, replace the success wording" "$issue" || exit 1
 		grep -qF "Show each stop below that waits on the user as a decision request." "$issue"
-		grep -qF "show its exact blocker as a decision request whose \`State:\` line names the archive" "$issue"
+		grep -qF "Ask its review question only as Step 3 describes, with a \`State:\` line that names the archive; after an answer that ends the run, report that choice and the \`State:\` line without asking again." "$issue"
 		grep -qF "show the exact \`trackbed:pr:fix-ci\` blocker as a decision request whose \`State:\` line carries the Pull Request URL" "$issue"
 		grep -qF "Proceed with implementation and move the issue to {target-status-name}?\` Ask it as a decision request that keeps this question word for word; only its dialog header is short" "$issue"
 
 		grep -qF "A blocked run shows a decision request, never a success completion result." "$plan"
+		grep -qF "When review convergence stopped the run, ask its review question only as Step 6 describes; after an answer that ends the run, report that choice with the recovery above and do not ask again." "$plan"
 		grep -qF "When the workflow stops, produce the Completion Return Contract below for archive finalization, but show the user a decision request instead of a success result." "$plan"
 		! grep -qF "a check is skipped, or the workflow stops." "$plan" || exit 1
 		grep -qF "give only the recovery the matching Completion Return Contract item reports, so the archived selected-plan path is a retry option only for \`prepublication_blocked\`." "$plan"
@@ -100,6 +106,64 @@
 		grep -qF "Keep its question, evidence, and options unchanged; only put \`Decision needed · {execution-label}: \` before the question and add the \`State:\` line." "$plan"
 
 		grep -qF "Questions raised during implementation use the same format." "$guide"
+	'
+
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
+@test "review convergence hands back a ready decision request when it stops for the user" {
+	run bash -c '
+		set -e
+		cd "'"$BATS_TEST_DIRNAME"'/.."
+		format="shared/implementation/references/decision-request.md"
+		skill="skills/pr:review-convergence/SKILL.md"
+		policy="skills/pr:review-convergence/references/review-convergence.md"
+		guide="docs/shipping.md"
+		review_guide="docs/review.md"
+
+		# The request is the last field of the handoff template, after the field it is built from.
+		request=$(grep -nF "Decision request: {none | follows}" "$skill" | cut -d: -f1)
+		body=$(grep -nF "{only after \`follows\`: the decision request, from its first line through its last option, with no \`State:\` line}" "$skill" | cut -d: -f1)
+		[ "$body" -eq $((request + 1)) ]
+		[ "$(sed -n "$((body + 1))p" "$skill")" = "\`\`\`" ]
+		grep -qF -- "- Required unresolved: {none | gate + summary + why unresolved + smallest next decision or dependency}" "$skill"
+		grep -qF "after reading \`\${CLAUDE_PLUGIN_ROOT}/shared/implementation/references/decision-request.md\`, the shared format." "$skill"
+		grep -qF "A caller shows it to the user unchanged and adds only the \`State:\` line it owns." "$skill"
+		grep -qF "In direct user mode, show the same request yourself, with a \`State:\` line that says review pushed nothing, names \`{work-branch}\` and whether the worktree is clean, and names \`{review-archive}\`, then wait for the answer." "$skill"
+		grep -qF "then wait for the answer. When the answer resumes review, return the resumed run'"'"'s handoff; otherwise, including a dismissed or unanswered request, print this handoff with the request as its last field, followed by its \`State:\` line, before stopping." "$skill"
+		grep -qF "stop with paths or commits and return a \`Decision request\` that asks the user to resolve ownership." "$skill"
+
+		# When the request is built, how findings are grouped, and what each option says.
+		grep -qF "## Decision Request" "$policy"
+		grep -qF "Every question this policy asks the user about an open finding or Gut Check item reaches them through the handoff'"'"'s \`Decision request\` field" "$policy"
+		grep -qF "a finding whose final disposition is \`required_unresolved\` or \`blocked\`, or a Gut Check item whose final disposition is \`blocked\`, that the user has not already declined in an earlier request. Otherwise return \`Decision request: none\`." "$policy"
+		grep -qF "Validation-only mode always returns \`none\`" "$policy"
+		grep -qF "Each open item'"'"'s \`next_decision_or_dependency\` and \`attempted_fix_evidence\` are its raw material." "$policy"
+		grep -qF "Put open items that one answer settles into one decision" "$policy"
+		grep -qF "Give an item its own decision when it needs its own product, scope, public-contract, security, or external-access choice." "$policy"
+		grep -qF "Each open item appears in exactly one decision, never in two and never left out." "$policy"
+		grep -qF "**Work item:** \`{work-id}\`, or \`{work-branch}\` in a direct run without a tracker issue." "$policy"
+		! grep -qF "Decision needed · {work-id}" "$policy" || exit 1
+		grep -qF "Number several decisions as the shared format'"'"'s Several Decisions section shows." "$policy"
+		grep -qF "When the run ended at a bounded stop or with no cycles left, resuming starts a new budget of up to \`MAX_AUTOMATIC_REMEDIATION_CYCLES\` cycles for the covered items, under the Bounded Stop rule; otherwise resuming continues the current loop on the cycles left, which the option states. Resumed decisions in one request share that budget" "$policy"
+		grep -qF "one or two sentences for each open item the decision covers" "$policy"
+		grep -qF "the recommended option gives its reason, and each option says what it costs in fix cycles." "$policy"
+		grep -qF "**No \`State:\` line:** the caller adds the one it owns" "$policy"
+		grep -qF "The user'"'"'s answer to a decision applies to every item that decision covers and to nothing else." "$policy"
+		grep -qF "An answer that resumes nothing, such as stopping here, ends the run: the blocked handoff already returned stands, and no new request follows." "$policy"
+		grep -qF "When the user resumes some decisions and declines others, record each declined answer in its items'"'"' \`next_decision_or_dependency\`; those items keep their disposition and never return in a later request" "$policy"
+
+		# Each ask about an open item goes through the request.
+		grep -qF "Stop the workflow and ask through the Decision Request" "$policy"
+		grep -qF "as the one decision you need in the Decision Request" "$policy"
+		grep -qF "Ask once for the exact decision or dependency through the Decision Request" "$policy"
+		grep -qF "Treat that reply as confirmation only for the findings its decision covers" "$policy"
+
+		# The shared format and guides describe the relay.
+		grep -qF "such as the \`Decision request\` field from \`trackbed:pr:review-convergence\`, show it unchanged and add only the \`State:\` line." "$format"
+		grep -qF "\`pr:review-convergence\` writes the request itself, and the workflow shows it unchanged with its own \`State:\` line." "$guide"
+		grep -qF "it asks one [decision request](shipping.md#decision-requests)" "$review_guide"
+		grep -qF "2. Stop here (0 cycles): the branch stays local for you to finish by hand." "$guide"
 	'
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
