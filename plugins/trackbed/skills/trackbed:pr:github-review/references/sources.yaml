@@ -1,0 +1,57 @@
+sources:
+  - id: github-cli-pr-commands
+    url: https://cli.github.com/manual/gh_pr
+    title: "GitHub CLI gh pr command reference"
+    rationale: "The skill uses this source for listing review-requested PRs (gh pr list --search), reading PR context (gh pr view), and the gh CLI conventions used throughout the workflow."
+    usage: inspiration
+    last_reviewed_at: 2026-07-01
+    fetch_mode: curl-html
+    baseline_hash: "sha256:942dc20e453a203a438e45de88efc625e8b7a9ec6feb5ba2a556238a93c0ed0b"
+  - id: github-search-review-requested
+    url: https://docs.github.com/en/search-github/searching-on-github/searching-issues-and-pull-requests
+    title: "GitHub search syntax for issues and pull requests"
+    rationale: "The skill uses this source for the user-review-requested:@me search qualifier that surfaces PRs awaiting the user's direct review."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:7e88cd419f39188f8f882b34a8104b74f7d153697b27722196dd4311bfe083a4"
+  - id: github-rest-pull-reviews
+    url: https://docs.github.com/en/rest/pulls/reviews
+    title: "GitHub REST API endpoints for pull request reviews"
+    rationale: "The skill uses this source for reading prior review verdicts, creating an unsubmitted PENDING review by omitting event, attaching inline comments, and submitting a review only after a separate confirmed user action in Step 14."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:7b99f729cd6599835c6ac4ebcf67ce7b523736a7c1cf98fc8afb30f5d9341c3f"
+  - id: github-rest-pull-review-comments
+    url: https://docs.github.com/en/rest/pulls/comments
+    title: "GitHub REST API endpoints for pull request review comments"
+    rationale: "The skill uses this source for inline comment IDs, diff sides, full ranges, file subjects, original revisions, and the manual-posting appendix for thread replies."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:4140e04f34b55d1f2f3e9393530e1f0e998aecd4fc83e8478e395e07771e0da5"
+  - id: github-graphql-pull-review-threads
+    url: https://docs.github.com/en/graphql/reference/pulls
+    title: "GitHub GraphQL Pull requests reference"
+    rationale: "The skill uses this source for reviewThreads anchors, outdated and resolution state, and comment submission state when mapping an ongoing review conversation."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:b8511e2b9174efee14420a1fd0830ee48f7838dd3c00a2f2201d44c6ac9778e0"
+  - id: github-rest-issue-comments
+    url: https://docs.github.com/en/rest/issues/comments
+    title: "GitHub REST API endpoints for issue comments"
+    rationale: "The skill uses this source for listing the PR's general (non-inline) discussion comments when mapping an ongoing review conversation."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:487b508c97e0e4d040158dc482ad9c3c388ca114523eca04fb1e575dbb4bdd8e"
+  - id: egm-codex-integration
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/4ac6b173c15704339bcd654f22a16b4c30120385/docs/codex.md
+    title: "google/elephant-goldfish-model - Codex integration"
+    rationale: "Naming the Codex fork_context spawn variant for clarity readers is informed by this source; reviewed at upstream commit 4ac6b173c15704339bcd654f22a16b4c30120385."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_commit: "6a8001ea31ccf72430ba0603a467ec6df9f69dd7"
+    baseline_hash: "sha256:d1a64b8df61b7012a4fc112381b1946a8c98e125e92d1c21e05bc419b0fa6cdf"

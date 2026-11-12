@@ -1,0 +1,147 @@
+sources:
+  - id: github-gh-stack-agent-skill
+    url: https://raw.githubusercontent.com/github/gh-stack/main/skills/gh-stack/SKILL.md
+    title: "GitHub gh-stack — official agent skill"
+    rationale: "SKILL.md and references/cli-agent-rules.md adapt the stack definition, diagram, non-interactive agent rules, view --json schema, and mid-stack workflows from GitHub's official gh-stack agent skill. Passages that went stale against gh-stack v0.3.0 (availability, view --short, merge limits, restructuring, and worktree adoption) are rewritten in local words, and the exit codes moved to the shared stack-operations reference in local words; the remaining copied passages and tables keep this notice."
+    usage: copied
+    license: "MIT"
+    notice: references/github-gh-stack-LICENSE
+    upstream_path: skills/gh-stack/SKILL.md
+    upstream_commit: a1b4a3d4d0bcde9ec3a78ab99b2d63af121857a9
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "bd0a32504f9ae9f795875a9e6bb90ff7408fda08"
+    baseline_hash: "sha256:0fe9beb1f46e022036be7c7d825b1eb2b1d96bbbf816259e0411218ae28c24e0"
+  - id: github-stacked-prs-docs
+    url: https://docs.github.com/en/pull-requests/get-started/about-stacked-prs
+    title: "GitHub Docs — About stacked pull requests"
+    rationale: "The stack model (server-side stacks, branch protection and CI evaluated against the stack base, cascading merges, and support for merge-commit, squash, and rebase merges) and lifecycle workflow are derived from the official documentation."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:1ca53cffa2b36344ce3fbcb60c5885d561a4e6b610d005ee0a6d6a54fdf2d3b5"
+  - id: github-stacked-prs-graphql-api
+    url: https://docs.github.com/en/pull-requests/reference/stacked-pull-requests-rest-and-graphql-apis
+    title: "GitHub Docs — Stacked pull requests APIs and webhooks"
+    rationale: "The fail-closed membership resolver uses the documented PullRequest.stack field to distinguish an unstacked PR from a server-side stack that is not tracked by the local extension."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:2a225a00236cfabd53fa7a64ef8c2982bbe30f77185467afe4252e664ab1312f"
+  - id: github-gh-stack-v0.1.0-merge
+    url: https://raw.githubusercontent.com/github/gh-stack/v0.1.0/cmd/merge.go
+    title: "gh-stack v0.1.0 merge implementation"
+    rationale: "The non-interactive gh stack merge workflow follows the tagged implementation's explicit target, confirmation, and merge-method handling."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "bd0a32504f9ae9f795875a9e6bb90ff7408fda08"
+    baseline_hash: "sha256:7718414f7c1c45d2d91ff2cf0417b26414694a3d19a045877321d1c24163502e"
+  - id: github-gh-stack-v0.1.0-rebase
+    url: https://raw.githubusercontent.com/github/gh-stack/v0.1.0/cmd/rebase.go
+    title: "gh-stack v0.1.0 rebase implementation"
+    rationale: "The amended-parent and post-rewrite safety requirements follow the tagged implementation's validated rebase boundaries and final stack verification."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "bd0a32504f9ae9f795875a9e6bb90ff7408fda08"
+    baseline_hash: "sha256:4459fd1baa89433f7d537321a2e9870317fd037fcd13e8c8c7f0484cb2138bd5"
+  - id: github-gh-stack-v0.1.0-sync
+    url: https://raw.githubusercontent.com/github/gh-stack/v0.1.0/cmd/sync.go
+    title: "gh-stack v0.1.0 sync implementation"
+    rationale: "The stale-trunk and non-interactive divergence safeguards follow the tagged implementation's remote-trunk fetch, cascade-rebase, verification, and push flow."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "bd0a32504f9ae9f795875a9e6bb90ff7408fda08"
+    baseline_hash: "sha256:558eabaf6d725e19878deafce66e725c4a2505b8ac4c25c8155297d381a984a6"
+  - id: github-gh-stack-atomic-push
+    url: https://raw.githubusercontent.com/github/gh-stack/2a49e6751238633db504655d8a8eba3e433e827d/cmd/push.go
+    title: "GitHub gh-stack — atomic push defaults"
+    rationale: "Clearing GH_STACK_NO_ATOMIC preserves atomic Git ref updates without claiming atomic PR/API updates."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_commit: "2a49e6751238633db504655d8a8eba3e433e827d"
+    baseline_hash: "sha256:1cc68cd2956308dfe71c82a2cbcd27ff351e3277503c75bb45ddf3c1b68131e4"
+  - id: github-gh-stack-checkout-targets
+    url: https://raw.githubusercontent.com/github/gh-stack/bd0a32504f9ae9f795875a9e6bb90ff7408fda08/cmd/checkout.go
+    title: "gh-stack checkout target resolution"
+    rationale: "Remote checkout uses the resolved stack number because numeric operands and PR URLs both take the stack-first resolution path; importing selects the top branch, so recovery restores the entry branch."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_commit: "bd0a32504f9ae9f795875a9e6bb90ff7408fda08"
+    baseline_hash: "sha256:ac9b7ac2972602f0f0039c56a43df0b8fe2aeb4dbe31636796285318743ee568"
+  - id: github-gh-stack-merge-targets
+    url: https://raw.githubusercontent.com/github/gh-stack/bd0a32504f9ae9f795875a9e6bb90ff7408fda08/cmd/merge.go
+    title: "gh-stack merge target resolution"
+    rationale: "Whole-stack merges use the stack number; partial PR targets require proof that no stack uses that number because a stack match removes the PR boundary. The shared merge-outcome checks follow how merge exits 0 after only queuing the PRs, exits 3 when a conflict means nothing landed, and exits 4 while a merge may still be running on GitHub."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "bd0a32504f9ae9f795875a9e6bb90ff7408fda08"
+    baseline_hash: "sha256:ed42daf1737069e09e4053a6e2e1e769b2cb8cd4315525fac00e9b9e3f5f3396"
+  - id: github-gh-stack-link-targets
+    url: https://raw.githubusercontent.com/github/gh-stack/bd0a32504f9ae9f795875a9e6bb90ff7408fda08/cmd/link.go
+    title: "gh-stack link target resolution"
+    rationale: "Link operands preserve selected PR identity, check leading bare PR numbers for stack and local-branch collisions, pass explicit PR URLs unchanged, and avoid PR-to-branch conversion that could publish unselected commits."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_commit: "bd0a32504f9ae9f795875a9e6bb90ff7408fda08"
+    baseline_hash: "sha256:59ea3b1695d380c4e5c832e4b77ef9a93245d10f5153b040d958abc2434526ca"
+  - id: github-stacked-prs-rest-api
+    url: https://docs.github.com/en/rest/pulls/stacks
+    title: "GitHub REST stack endpoints"
+    rationale: "The merge target lookup uses the pull_request filter and the ordered pull_requests response; merge and link collision guards check every page of repository stack numbers."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    fetch_mode: curl-html
+    baseline_hash: "sha256:ea23f7c02701734e576c3a2c48c910d7d929090224c5982e7974eafd8d3133d3"
+  - id: github-gh-stack-pr-lookup
+    url: https://raw.githubusercontent.com/github/gh-stack/bd0a32504f9ae9f795875a9e6bb90ff7408fda08/internal/github/github.go
+    title: "gh-stack PR lookup by head branch"
+    rationale: "PR-to-branch substitution can discard the selected PR identity because head-branch lookup returns the first open PR; link keeps the user's original PR identifier."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_commit: "bd0a32504f9ae9f795875a9e6bb90ff7408fda08"
+    baseline_hash: "sha256:60d11935bfe51154682c4738eb212c678a7b6cb9ec9fc91a2b9238ef125ea083"
+  - id: github-gh-stack-v0.3.0-release
+    url: https://github.com/github/gh-stack/releases/tag/v0.3.0
+    title: "gh-stack v0.3.0 release notes"
+    rationale: "The v0.3.0 minimum version follows the release's atomic-push default, its fix for replaying already-merged commits after a merge, and its handling of a base branch that GitHub retargets."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    fetch_mode: availability
+    baseline_hash: ""
+  - id: github-gh-stack-v0.3.0-troubleshooting
+    url: https://raw.githubusercontent.com/github/gh-stack/v0.3.0/skills/gh-stack/references/troubleshooting.md
+    title: "gh-stack v0.3.0 agent skill — troubleshooting reference"
+    rationale: "The rebase-before-rebuild restructure steps, init adoption of worktree chains through the shared local catalog, and link for branches that other tools manage follow this reference."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_hash: ""
+  - id: github-gh-stack-v0.3.0-commands
+    url: https://raw.githubusercontent.com/github/gh-stack/v0.3.0/skills/gh-stack/references/commands.md
+    title: "gh-stack v0.3.0 agent skill — command reference"
+    rationale: "The view --short correction (never a TUI, but human-formatted, so parse --json) and the shared worktree tracking that makes link unnecessary for worktree chains follow this reference."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_hash: ""
+  - id: github-gh-stack-v0.3.0-worktree-rebase
+    url: https://raw.githubusercontent.com/github/gh-stack/2a49e6751238633db504655d8a8eba3e433e827d/cmd/rebase.go
+    title: "gh-stack v0.3.0 worktree-scoped rebase"
+    rationale: "The shared stack-operations reference follows how rebase runs each stack branch in the worktree that has it checked out, names the conflict worktree, accepts --continue from any worktree, keeps one paused-rebase record for the clone, and requires --accept-base-change to drop an unmerged old base."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "2a49e6751238633db504655d8a8eba3e433e827d"
+    baseline_hash: "sha256:be5c462c9bde91f90620461b5c7fd0288a600721ca35a7c705bab3d9d74927d6"
+  - id: github-gh-stack-v0.3.0-worktree-sync
+    url: https://raw.githubusercontent.com/github/gh-stack/2a49e6751238633db504655d8a8eba3e433e827d/cmd/sync.go
+    title: "gh-stack v0.3.0 worktree-scoped sync"
+    rationale: "The other-workspace preflight follows how sync fast-forwards and rebases stack branches and the trunk in the worktrees that have them checked out, and restores every branch before it returns a conflict. The shared sync-outcome check follows how sync exits 0 after a divergence abort or a failed push."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "2a49e6751238633db504655d8a8eba3e433e827d"
+    baseline_hash: "sha256:4f1fb9c8ace2c206c673c9f2a49fc76a480be4feadd177cf40a99f6e0721f3fe"
+  - id: github-gh-stack-v0.3.0-exit-codes
+    url: https://raw.githubusercontent.com/github/gh-stack/2a49e6751238633db504655d8a8eba3e433e827d/cmd/utils.go
+    title: "gh-stack v0.3.0 exit codes and base retargeting"
+    rationale: "The shared exit-code table, written in local words, follows the exit codes this file defines, including the clone-wide lock (exit 8), and its retarget check that stops without --accept-base-change. The sync-outcome check detects the divergence-abort notice that this file prints before sync exits 0."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "2a49e6751238633db504655d8a8eba3e433e827d"
+    baseline_hash: "sha256:20b15a58d16fecd76e965f3571b1274cad9eda5d0bf8cacf4e2da31b45794aec"

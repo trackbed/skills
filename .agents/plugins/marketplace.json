@@ -1,0 +1,20 @@
+{
+  "name": "trackbed",
+  "interface": {
+    "displayName": "trackbed"
+  },
+  "plugins": [
+    {
+      "name": "trackbed",
+      "source": {
+        "source": "local",
+        "path": "./plugins/trackbed"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

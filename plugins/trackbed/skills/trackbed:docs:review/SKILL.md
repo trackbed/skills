@@ -1,0 +1,214 @@
+---
+name: trackbed:docs:review
+description: "Review one Markdown document outside tracked SIW workflows: requirements, implementation plans, strategy drafts, README/docs drafts, proposals, and decision drafts. Classifies the document, tests it with a fresh reader, selects focused review lenses, and returns a verdict with severity-ordered findings inline by default or in a requested report file. Not for source-code review, PR diffs, live-product review, or documents under siw/; use SIW audit skills for tracked SIW artifacts."
+argument-hint: "[markdown-path] [--trade-offs] [--inline|--file|--output <path>] [--visual]"
+disable-model-invocation: true
+user-invocable: true
+---
+
+# Document Review
+
+Review one Markdown document without changing it. Classify the document, apply focused review lenses, and return concrete findings with section or line references.
+
+**Arguments:** "$ARGUMENTS"
+
+## Boundaries
+
+This skill reviews document quality only.
+
+- **Does:** Review one Markdown document for comprehension, coherence, scope, feasibility, product fit, security/privacy risk, design implications, and reader usefulness when those lenses apply.
+- **Does:** Return findings inline by default, or write a generated report only when `--file` or `--output <path>` is present.
+- **Does:** With `--trade-offs`, also look for trade-offs an implementation plan, proposal, or decision draft accepts as unavoidable, and report them as advisory options in their own section.
+- **Does not:** Edit the source document, review source code, inspect PR diffs, test running software, or create tracking issues.
+- **Does not:** Replace SIW audits. Documents under `siw/` route to `$trackbed:siw:spec-audit`, with `--product` for product judgment.
+
+## Workflow
+
+1. **Parse arguments**
+   - Extract exactly one Markdown path from `$ARGUMENTS`.
+   - Recognize `--trade-offs`, `--inline`, `--file`, and `--output <path>`.
+   - If `--trade-offs` is present, set `TRADE_OFFS=true`; otherwise set `TRADE_OFFS=false`. The false-compromise read in step 7 runs only when it is `true`.
+   - If no path is provided, ask for one Markdown document path.
+   - If more than one path is provided, stop and ask the user to choose one document. Do not batch documents.
+   - If `--inline` is present, set `OUTPUT_MODE=inline`.
+   - If `--file` is present, set `OUTPUT_MODE=file` and `OUTPUT_PATH=DOC_REVIEW.md`.
+   - If `--output <path>` is present, set `OUTPUT_MODE=file` and `OUTPUT_PATH` to that path. `--output` overrides `--file`.
+   - If no output flag is present, set `OUTPUT_MODE=inline`.
+   - If `--visual` is present, set `VISUAL_REPORT=true`; otherwise set `VISUAL_REPORT=false`. Reject `--visual` when `OUTPUT_MODE=inline`: the visual report mirrors the report file, which is written only with `--file` or `--output <path>`, so `--visual` needs one of them.
+
+2. **Validate the target**
+   - Confirm the path exists, is readable, and has a Markdown extension (`.md`, `.markdown`, `.mdown`, or `.mkd`).
+   - If the path is under `siw/`, stop before reviewing:
+     - Use `$trackbed:siw:spec-audit <path>` for specs, plans, issue definitions, phase docs, or implementation-facing SIW documents.
+     - Use `$trackbed:siw:spec-audit --product <path>` for product strategy, value proposition, or product narrative SIW documents.
+   - If the user asks to review source code, PR changes, or a live app instead, route to the relevant code, PR, QA, or product review skill.
+
+3. **Validate report output**
+   - If `OUTPUT_MODE=file`, resolve `OUTPUT_PATH` inside the current working directory or repository root.
+   - Reject an output path that resolves to the source document.
+   - Reject an output path outside the working tree unless the user explicitly supplied an absolute path.
+   - Treat the report as generated output: overwriting `DOC_REVIEW.md` or the explicit `--output` path is allowed.
+
+4. **Read the document with locations**
+   - Read the full document with line numbers.
+   - Build a section map from Markdown headings, including heading text and start line.
+   - Do not inspect source-code files to verify implementation claims. If a claim requires codebase verification, handle it as step 8 and the Error Handling table direct rather than silently expanding scope.
+
+5. **Classify the document**
+   - Choose exactly one primary type:
+     - `requirements`: feature requirements, PRD, user stories, acceptance criteria.
+     - `implementation-plan`: step plan, migration plan, rollout plan, technical approach.
+     - `strategy`: product/company/team strategy, goals, positioning, priorities.
+     - `readme-docs`: README, guide, runbook, API docs, user docs, onboarding docs.
+     - `proposal-decision`: proposal, RFC, decision draft, option comparison.
+   - If the document mixes types, choose the type that best matches its primary job and note secondary types in coverage.
+   - If the document is too ambiguous to classify, emit a `CONFUSION:` block naming the ambiguity and ask what the document is meant to achieve.
+
+6. **Select review lenses**
+   - Always apply:
+     - `comprehension`: whether a first reader can say what the document means, tested by the cold reader in step 7.
+     - `coherence`: internal consistency, terminology, narrative order, contradictions, missing connective tissue.
+     - `scope`: boundaries, non-goals, unowned work, vague commitments, hidden expansion.
+   - Apply `feasibility` to requirements, implementation plans, proposals, migrations, timelines, staffing assumptions, or technical commitments, including deployment and rollout ordering. When the document adds a runtime path, stored data, or a paid or rate-limited dependency, `feasibility` also asks how someone will notice the new path failing and find out why, how a half-finished migration or rollout is undone and what happens to data written in between, and what the feature costs to run at expected load, including quotas and LLM token spend. A docs-only or refactor-only document gets no finding from these questions.
+   - Apply `product` when the document takes a debatable product position that nothing upstream (a cited strategy, spec, or decision) already settles: problem framing, a predicted user outcome, adoption or metric claims, or build-versus-defer prioritization. Choosing among mechanisms for an already-agreed outcome is an implementation choice, not a product position.
+   - Apply `security-privacy` when the document changes authentication, authorization, permissions, or operational access; exposes an endpoint externally; integrates across a trust boundary; or handles sensitive data (credentials, secrets, personal data, payments) or its compliance obligations. Ordinary data handling and internal schema or storage changes that leave who can read or write the data unchanged do not trigger it.
+   - Apply `design-ux` when the document describes UI, onboarding, workflows, user behavior, navigation, copy, accessibility, or service/API experience.
+   - Apply `reader-success` to README/docs documents, runbooks, tutorials, API docs, onboarding docs, and documents intended to help someone complete a task.
+
+7. **Run the comprehension read**
+   - Read `${CODEX_HOME:-$HOME/.codex}/plugins/cache/trackbed/trackbed/1.0.1/shared/writing/references/comprehension-read.md` and launch one cold reader as `${CODEX_HOME:-$HOME/.codex}/plugins/cache/trackbed/trackbed/1.0.1/shared/agents/references/cold-reader.md` describes, with the document's absolute path as `{document-paths}`. The rest of this review shares your context, so this reader is the only part that shows what the document gets across without it.
+   - You may continue with step 8 while it runs. Add its findings with the `comprehension` lens before step 9, using the rules in that reference, and record its status for the report.
+   - When `TRADE_OFFS=true`, also run the false-compromise read. Read `references/false-compromise-read.md`. When the primary type from step 5 is `implementation-plan` or `proposal-decision`, launch a second, separate cold reader the same way with that reference's prompt, the document's absolute path as `{document-path}`, and nothing else. For any other type, record `skipped (<type> is not a proposal, decision draft, or implementation plan)`. Turn the reply into false-compromise findings and record the read's status under that reference's rules, before step 9.
+
+8. **Review for findings**
+   - Findings must be grounded in the document. Cite the nearest section heading and line number when available.
+   - Admit a finding above `Nit` only when the document's instructions contradict each other or its stated goal, or when a reader who follows it as written (plus what it references) would do the wrong thing or measurably avoidable work. Judge omissions against what a competent reader or implementer can already infer: a missing section, extra detail, a finer threshold, or a restated point is not a finding by itself.
+   - Keep an omission, even one a careful implementer might catch, when following the document as written could cost or misdirect money, expose the system to attack, or damage persisted data, unless the document or something it references already prevents that harm. If that prevention would depend on code this skill does not read, keep the finding and mark it `UNVERIFIED`.
+   - Before reporting something as missing or contradictory, search the rest of the document and drop the finding if another section already answers it. Do not reopen a decision the document records as settled (a decision log, non-goals, a cited ADR) unless that decision itself causes a concrete defect. When two lenses disagree, resolve it against the document's stated goal, and report a tradeoff only when the text leaves the choice open.
+   - State each problem independently of its fix; a plausible addition does not prove something is missing. The concrete fix is the smallest edit that removes the stated consequence.
+   - "No findings" is a normal result for a sound document, not a failed review.
+   - Do not report taste preferences, speculative concerns, or items that require reviewing source code, except a costly omission kept under the rule above.
+   - Deduplicate findings by root cause. If one issue appears in multiple places, cite the strongest location and mention repeats in the body.
+   - Severity definitions:
+     - `Critical`: the document could drive materially wrong work, unsafe behavior, a major product misdecision, or an irreversible execution mistake.
+     - `Major`: a normal reader or implementer is likely to make the wrong call, miss required work, or proceed with an untestable plan.
+     - `Minor`: clarity, completeness, or sequencing issue that creates friction but is unlikely to cause the wrong work by itself.
+     - `Nit`: small wording or structure edit with a concrete reader benefit; drop pure preferences.
+
+9. **Synthesize the report**
+   - When there are findings, open the report with a verdict before the first finding, so the author can act on its first lines:
+
+   ```text
+   ## Verdict
+
+   <Whether the author can use the document as it stands.> <The one or two problems that matter most, with their IDs.> <What the author still has to decide, or "Nothing is left for you to decide.">
+   ```
+
+   - Then, under `## Findings`, list findings ordered by severity, then by document order.
+   - Use stable IDs: `DOC-001`, `DOC-002`, etc.
+   - Each finding must use this structure:
+
+   ```text
+   ### DOC-001: <short finding title> [<Severity>]
+   Location: `<path>` - <section heading or "front matter">, line <line-or-range>
+   Lens: <lens>
+   UNVERIFIED: <the code that could rule this out; include only when step 8 marks the finding>
+
+   Problem: <what is wrong, stated concretely>
+
+   Why it matters: <impact on reader, decision, implementation, safety, or outcome>
+
+   Concrete fix: <specific edit or decision that would resolve it>
+   ```
+
+   - After findings, include the following. Omit the Comprehension Read section when the read did not run. Omit the False Compromises section and its Coverage line when `TRADE_OFFS=false`, and omit only the section when the false-compromise read was skipped or failed:
+
+   ```text
+   ## Comprehension Read
+
+   **The proposal, as a first reader understood it:** <THE PROPOSAL, verbatim>
+   **The system today, as a first reader understood it:** <THE SYSTEM TODAY, verbatim>
+
+   Compare these with what you meant. A wrong restatement means the document misleads its first reader.
+
+   ## False Compromises
+
+   <Include only when TRADE_OFFS=true and the false-compromise read ran: "No false compromise found." or its findings, each in this form:>
+
+   ### FC-001: <short trade-off title> [Minor]
+   Location: `<path>` - <section heading>, line <line-or-range>
+   Trade-off: <what the document gives up> for <what it gains>
+   Pattern: <pattern name>: <how it could remove the conflict>
+   Pattern cost: <what the pattern itself costs>
+
+   ## Coverage
+
+   **Document type:** <primary type; secondary: ... if applicable>
+   **Lenses reviewed:** <comma-separated list>
+   **Comprehension read:** <status from the reference>
+   **False-compromise read:** <status from its reference; include only when TRADE_OFFS=true>
+   **Residual risk:** <open unknowns, or "None identified">
+   ```
+
+   - If there are no findings, say the following, with the same omissions. False-compromise findings are advisory and never count as findings here:
+
+   ```text
+   No findings.
+
+   ## Comprehension Read
+
+   **The proposal, as a first reader understood it:** <THE PROPOSAL, verbatim>
+   **The system today, as a first reader understood it:** <THE SYSTEM TODAY, verbatim>
+
+   Compare these with what you meant. A wrong restatement means the document misleads its first reader.
+
+   ## False Compromises
+
+   <Include only when TRADE_OFFS=true and the false-compromise read ran: "No false compromise found." or its findings, each in this form:>
+
+   ### FC-001: <short trade-off title> [Minor]
+   Location: `<path>` - <section heading>, line <line-or-range>
+   Trade-off: <what the document gives up> for <what it gains>
+   Pattern: <pattern name>: <how it could remove the conflict>
+   Pattern cost: <what the pattern itself costs>
+
+   ## Coverage
+
+   **Document type:** <primary type>
+   **Lenses reviewed:** <comma-separated list>
+   **Comprehension read:** <status from the reference>
+   **False-compromise read:** <status from its reference; include only when TRADE_OFFS=true>
+   **Residual risk:** <open unknowns, or "None identified">
+   ```
+
+   - Under Residual risk, list only open unknowns that no finding covers, such as an unverified assumption, an unchecked source-code claim, or missing context. Do not repeat a finding, list a check that passed, or bring back a concern step 8 rejected.
+
+10. **Deliver output**
+    - If `OUTPUT_MODE=inline`, return the report in the final response.
+    - If `OUTPUT_MODE=file`, write the report to `OUTPUT_PATH` and return a brief summary with the path, the verdict when there is one, and finding counts by severity.
+    - If `VISUAL_REPORT=true`, after writing the report and before returning that summary, add the page at `OUTPUT_PATH` with `.html` in place of `.md`, so `DOC_REVIEW.md` gets `DOC_REVIEW.html`. Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CODEX_HOME:-$HOME/.codex}/plugins/cache/trackbed/trackbed/1.0.1/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CODEX_HOME:-$HOME/.codex}/plugins/cache/trackbed/trackbed/1.0.1/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `findings`, from the template `${CODEX_HOME:-$HOME/.codex}/plugins/cache/trackbed/trackbed/1.0.1/shared/visual/assets/report-findings.html`. Its reader is the document's author, deciding which claims and gaps to revise. The page has no follow-up command.
+    - Treat `DOC_REVIEW.md` as a working artifact that should not be committed and can be cleaned up by `$trackbed:workflow:cleanup-artifacts`.
+
+## Error Handling
+
+| Condition | Response |
+| --- | --- |
+| Missing path | Ask for one Markdown document path. |
+| Multiple paths | Ask the user to choose exactly one document. |
+| Missing or unreadable file | Stop with the exact path and say what could not be read. |
+| Non-Markdown input | Route to `$trackbed:docs:to-markdown` first, then review the resulting Markdown. |
+| Path under `siw/` | Route to the relevant SIW audit skill and do not run this generic review. |
+| Output path equals input path | Reject and ask for a different output path or use inline output. |
+| Source-code verification needed | Keep a costly omission from step 8 as a finding marked `UNVERIFIED`; list any other unchecked source-code claim under Residual risk. Do not inspect code as part of this skill. |
+| Comprehension read cannot run or fails | Record the status under Coverage, omit the Comprehension Read section, and finish the other lenses. Never write the restatements yourself. |
+| False-compromise read cannot run, fails, or does not apply to the document type | Record the status under Coverage, omit the False Compromises section, and finish the review. Never report "No false compromise found." for a read that did not run. |
+
+## Examples
+
+```bash
+$trackbed:docs:review docs/proposal.md
+$trackbed:docs:review README.md --file
+$trackbed:docs:review docs/strategy.md --output STRATEGY_REVIEW.md
+$trackbed:docs:review docs/proposal.md --trade-offs
+$trackbed:docs:review docs/proposal.md --file --visual
+```

@@ -1,0 +1,33 @@
+sources:
+  - id: addy-documentation-and-adrs
+    url: https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/documentation-and-adrs/SKILL.md
+    title: "Addy Osmani agent-skills - documentation and ADRs"
+    rationale: "The ADR lifecycle states, the rule to keep superseded records, and matching the repository's existing ADR convention from in-repository signals before using a default are adapted from this source."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
+    baseline_hash: "sha256:7fed35f9c5b95d8e3623ad24d78d209c3267ab62d7157fc03954c76a7e58adf4"
+  - id: nygard-architecture-decisions
+    url: https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions
+    title: "Michael Nygard - Documenting Architecture Decisions"
+    rationale: "The fallback ADR template and decision-record framing are based on the Nygard-style ADR pattern."
+    usage: inspiration
+    last_reviewed_at: 2026-07-06
+    fetch_mode: availability
+    baseline_hash: "sha256:85b65c94c5001da6ff36c7240c40bbb4485f10090c62950aec629ab22aa1ef9f"
+  - id: pocock-domain-model
+    url: https://raw.githubusercontent.com/mattpocock/skills/main/skills/engineering/domain-modeling/SKILL.md
+    title: "Matt Pocock skills - domain-model"
+    rationale: "The 3-criterion test (hard-to-reverse, surprising-without-context, result-of-real-tradeoff) that gates ADR writes nobody requested, and the inline ADR-offer pattern and canonical offer message the discovery interview uses, are adapted from this source."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
+    baseline_hash: "sha256:152e2c97239affb12a60c5f4a7e74ab546a49ae169688c81f4e2ccc42dafa579"
+  - id: egm-rejection-attribution
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/de27902a154c4a92dd52aac50082d53873e6ac91/skills/egm-draft/SKILL.md
+    title: "google/elephant-goldfish-model - egm-draft rejection attribution (#249)"
+    rationale: "Taking deciders only from the user, a linked record, or a stated project convention, and never crediting a role no source names, is informed by this source's rule that a rejection is the author's unless a linked issue, discussion, or PR shows otherwise; reviewed at upstream commit de27902a154c4a92dd52aac50082d53873e6ac91."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "de27902a154c4a92dd52aac50082d53873e6ac91"
+    baseline_hash: "sha256:2c107ecd3751635df1eedef261c7e14a79e7bb9429d20753c3f0df5834e1dbec"

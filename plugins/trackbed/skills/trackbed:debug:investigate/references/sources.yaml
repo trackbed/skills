@@ -1,0 +1,8 @@
+sources:
+  - id: addy-debugging-and-error-recovery
+    url: https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/debugging-and-error-recovery/SKILL.md
+    title: "Addy Osmani agent-skills - debugging and error recovery"
+    rationale: "Treating error output as untrusted, the bounded follow-up when a bug will not reproduce, rechecking the original failure after a fix, and keeping bisect commands valid across the whole range follow this source; the earlier port in e546723 was reverted in 829e55e1, and the shared reproduce, isolate, and trace steps predate it."
+    usage: inspiration
+    last_reviewed_at: 2026-06-10
+    baseline_hash: "sha256:2539c0078466755c192123c34758aa432da5d29529340037113eeaecb6647b0e"

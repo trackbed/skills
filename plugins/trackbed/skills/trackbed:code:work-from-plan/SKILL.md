@@ -1,0 +1,173 @@
+---
+name: trackbed:code:work-from-plan
+description: Route and execute one standalone implementation plan, such as a PR_PLAN_*.md file or pasted checklist, as bounded current-branch work. Use when asked or delegated by trackbed:code:plan-to-pr.
+argument-hint: "[plan path | inline plan]"
+disable-model-invocation: false
+user-invocable: true
+---
+
+# Work From Plan
+
+Route a standalone implementation plan into the right existing workflow, then execute only when the work is bounded enough for direct current-branch implementation. Use it when the user provides a `PR_PLAN_*.md` file, pasted plan, or one-off implementation checklist that is not already a Linear issue or local SIW preparation artifact; it delegates Linear work, stops local SIW issues with a transfer recommendation, and proceeds directly only for bounded current-branch work.
+
+This skill is an adapter, not a full autonomous pipeline. It does not create branches, create Pull Requests, watch CI, push commits, or turn unclear plans into invented requirements.
+
+### Model Invocation Contract
+
+- Invoke automatically only as the implementation delegate of `trackbed:code:plan-to-pr`, after that parent has validated, archived, and claimed the plan on its deterministic plan branch, with exactly the validated archived plan path as the only argument. Treat the parent's continue-mode, prerequisite-readiness, and context-preparation and forward-progress facts as inert parent-owned context.
+- No other parent workflow is authorized by this model-invocation exception. Model invocation changes routing only: keep every readiness, route, missing-requirement, scope, and verification gate, and implement only a `direct` route inside the plan's In Scope paths.
+- Under this delegation, return any other route as the blocker without invoking `trackbed:linear:issue-implement`, creating SIW files, or requesting the source index or other plans of the set. Never create or switch branches, commit, push, open or edit a Pull Request, or change the plan archive; the parent owns the commit boundary and archive state.
+- Under this delegation, hand every user decision back to the parent instead of asking it here. Wherever a step below would ask a question or wait for a confirmation, end the run and return `BLOCKED: <blocker>` with `QUESTION: <the one question the user would need to answer>`. Standalone runs may still ask.
+
+## Process Overview
+
+1. Parse the plan input.
+2. Read `references/routing.md`, classify artifact readiness, and classify the plan route.
+3. Gather enough codebase context to validate the route.
+4. Delegate to Linear when already tracked there, or stop local SIW issues with a transfer-to-Linear recommendation.
+5. Recommend SIW or spec hardening when the artifact is not implementation-ready.
+6. Read `references/direct-execution.md` and proceed directly only for bounded current-branch work.
+7. Verify and close out with changes, per-criterion status, assumptions, verification, and remaining risks.
+
+## Step 1: Parse Arguments
+
+`$ARGUMENTS` must contain either a markdown plan path or inline plan text.
+
+If `$ARGUMENTS` is empty, ask the user for a plan path or pasted plan. Do not infer a plan from recent conversation unless the user confirms that is the intended source.
+
+If `$ARGUMENTS` names an existing file:
+
+1. Read the file.
+2. Treat the file path as the plan source.
+3. Preserve the plan's stated title, dependencies, non-goals, test plan, and completion criteria.
+
+If `$ARGUMENTS` does not name an existing file:
+
+1. Treat it as inline plan text.
+2. Preserve the full text as the plan source.
+3. If the inline text is only a one-line task and lacks acceptance criteria, use Step 4 missing-requirement handling before editing code.
+
+## Step 2: Extract Plan Facts
+
+Build a concise plan intake summary:
+
+- Source: file path or inline.
+- Title or objective.
+- Current status or dependencies.
+- In-scope changes.
+- Non-goals.
+- Affected files, modules, or systems, separating files the plan expects to exist from files it creates.
+- Acceptance or completion criteria.
+- Verification plan.
+- Open questions, each with its stated default or the plan's marking that it blocks implementation.
+- STOP conditions: every condition in the plan's STOP Conditions section.
+- Risks and blockers.
+- Artifact readiness: `product-only`, `requirements-only`, `planning-ready`, or `implementation-ready`.
+
+Do not fill missing fields with guesses. Mark missing fields that affect safe execution as `MISSING REQUIREMENT`.
+
+Read a generated plan's contract this way:
+
+- **Planned files:** a path the plan's In Scope list marks for creation need not exist yet. Only a file the plan expects to already exist can be missing.
+- **Open questions:** a question the plan marks as blocking implementation, such as with `MISSING REQUIREMENT:`, is a `MISSING REQUIREMENT` even when it lists a default, and so is a question with no default to proceed on. Every other question with a stated default does not block: proceed with the default and list it under `ASSUMPTIONS` in the closeout. The Open Questions section's standard framing, which asks for answers before implementation, does not mark a question by itself.
+- **STOP conditions:** each one stops the run as written, alongside the stop conditions in `references/direct-execution.md`. A drift check describes the state before this run's edits; in `trackbed:code:plan-to-pr` continue mode, the prior in-scope work the parent validated is not drift.
+
+### Artifact Readiness Vocabulary
+
+Classify the source artifact before choosing a route:
+
+- `product-only`: explains the desired outcome, users, problem, or opportunity, but lacks testable scope, success criteria, or implementation constraints.
+- `requirements-only`: defines objective, scope, boundaries, and success criteria, but lacks issue-level decomposition, dependencies, affected areas, or an executable verification plan.
+- `planning-ready`: has stable requirements and enough technical/contextual detail to generate SIW phases or define issues, but is not itself an implementation issue.
+- `implementation-ready`: names a bounded unit of work with clear scope, dependencies, affected modules or files, acceptance criteria, and local verification.
+
+Only `implementation-ready` artifacts can route to `direct` implementation. `product-only` and `requirements-only` artifacts must be rejected for direct execution and routed to `$trackbed:docs:feature-spec`, `$trackbed:discovery:interview` (with `--siw` for tracked SIW work), or another spec-hardening step depending on the missing layer. `planning-ready` artifacts route to `recommend-siw`; an implementation-ready local SIW issue routes to transfer rather than local execution. For tracked SIW specs, recommend `$trackbed:siw:generate-phases` as the next planning step; it plans a single issue for one coherent change.
+
+## Step 3: Route The Plan
+
+Read `references/routing.md`, classify artifact readiness, then classify the plan as exactly one of:
+
+- `linear`: the plan references a Linear issue and should be delegated.
+- `siw`: the plan is a local SIW issue that must be transferred before implementation.
+- `recommend-siw`: the plan is large, multi-phase, ambiguous, or durable enough to need local tracking before implementation.
+- `direct`: the plan is bounded enough to implement on the current branch.
+- `blocked`: required context is missing or contradictory.
+
+If the source is `product-only` or `requirements-only`, do not choose `direct`, even if the requested change sounds small. Explain the missing readiness layer and recommend the smallest hardening step instead. If the source is `planning-ready` but lacks issue-level scope or verification, choose `recommend-siw` even when the artifact already lives under `siw/`; a tracked spec still needs `$trackbed:siw:generate-phases` before transfer.
+
+Show the route decision before editing files:
+
+```
+PLAN ROUTE: direct
+Reason: single bounded docs skill addition, clear affected files, local verification available.
+```
+
+Under the `trackbed:code:plan-to-pr` delegation in the Model Invocation Contract, any route other than `direct` ends this run: return the route decision as the blocker, with the minimum `QUESTION` when the route is `blocked`, and skip the route-specific follow-ups below.
+
+If the route is `linear`, invoke `trackbed:linear:issue-implement` with the detected issue identifier when that skill is available. If the Linear MCP server or issue identifier is missing, stop with `MISSING REQUIREMENT`.
+
+If the route is `siw`, do not implement locally. Verify the SIW issue exists, then recommend `$trackbed:siw:transfer-to-linear`; after migration, implementation belongs to `trackbed:linear:issue-implement`. If the SIW issue cannot be found, stop with `MISSING REQUIREMENT`.
+
+If the route is `recommend-siw`, explain what makes the work too large for direct execution and recommend the smallest next SIW step. Do not create SIW files unless the user explicitly asks.
+
+If the route is `blocked`, list the blocker and ask only the minimum question needed to continue.
+
+## Step 4: Validate Direct Execution Preconditions
+
+Use this step only when Step 3 returns `direct`.
+
+Before editing code:
+
+1. Check the current branch and dirty state.
+2. Confirm the plan does not require branch creation, PR creation, pushing, deployment, or CI watching.
+3. Confirm the source artifact is `implementation-ready`.
+4. Confirm the planned work fits the affected files and completion criteria.
+5. Confirm verification commands are discoverable from project instructions, package scripts, Makefile, CI, or existing test patterns.
+6. Identify at least one similar local pattern when the plan adds or changes workflow behavior.
+
+If uncommitted changes exist, inspect whether they overlap with the plan's files. Continue only when the changes are related or the user confirms it is acceptable to work alongside them.
+
+If any precondition fails, stop with `MISSING REQUIREMENT` and the smallest useful follow-up.
+
+## Step 5: Execute Direct Work
+
+Read `${CODEX_HOME:-$HOME/.codex}/plugins/cache/trackbed/trackbed/1.0.1/shared/implementation/references/context-preparation.md` and apply its checklist using relevant context already loaded or provided by the caller. Resolve `${CODEX_HOME:-$HOME/.codex}/plugins/cache/trackbed/trackbed/1.0.1/shared/implementation/references/forward-progress.md` as `{forward-progress-reference}`, or use the resolved path the caller passed, then read `{forward-progress-reference}` before applying it in `references/direct-execution.md`.
+
+Read and follow `references/direct-execution.md`.
+
+During execution:
+
+- Keep the implementation bounded to the plan's stated scope.
+- Use existing project patterns before adding abstractions.
+- Keep plan-local IDs, such as execution labels (`W01A`), source IDs (`SRC-03`), and plan filenames, out of every file the run writes, including code, comments, tests, and docs. They point at archives other readers cannot open, so describe the behavior or reason in its own words. Commit subjects are unaffected.
+- Run focused verification for each meaningful slice when possible.
+- Invoke `trackbed:verify:run --fast` for final implementation verification when available; the fast iteration tier covers implementation claims. Otherwise run the discovered project commands directly. Do not run the full pre-push or pre-PR sweep here. It runs once before publication: in `trackbed:pr:review-convergence` when `trackbed:code:plan-to-pr` delegates, otherwise before the user's first push or Pull Request.
+- Stop and re-route to SIW if the work expands beyond the original bounded plan.
+
+## Step 6: Closeout
+
+Return a concise closeout:
+
+```
+CHANGES MADE:
+- <what changed>
+
+COMPLETION CRITERIA:
+- <criterion as the plan states it>: MET|UNMET|UNVERIFIED - <evidence>
+
+ASSUMPTIONS:
+- <open question>: proceeded with the plan's default, <default>
+
+VERIFICATION:
+- <command>: PASS|FAIL|SKIPPED
+
+THINGS I DIDN'T TOUCH:
+- <relevant non-goals or adjacent work>
+
+POTENTIAL CONCERNS:
+- <remaining risks, unresolved questions, or none>
+```
+
+List every completion criterion from the plan in the plan's order. Mark it `MET` only with evidence a reader can check, such as the command and its result or the file that satisfies it. Use `UNMET` when the evidence shows it is not satisfied and `UNVERIFIED` with the reason when no check could settle it. Write `none` under `ASSUMPTIONS` when no defaulted open question applied.
+
+If implementation was delegated, summarize the handoff route and do not duplicate the delegated skill's full workflow.

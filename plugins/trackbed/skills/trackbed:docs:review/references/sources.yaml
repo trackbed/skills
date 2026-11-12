@@ -1,0 +1,48 @@
+sources:
+  - id: compound-ce-doc-review
+    url: https://github.com/EveryInc/compound-engineering-plugin/tree/main/skills/ce-doc-review
+    title: "EveryInc compound-engineering-plugin - ce-doc-review"
+    rationale: "Document classification, conditional review-lens selection, severity-ordered finding schema, synthesis flow, the leading verdict, keeping costly omissions, and the residual-risk bar are adapted from this source."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "7dc50943bbf959dbe6a93a175e41e5fff8395e00"
+    baseline_hash: "sha256:2c47b2744759567b2066301898d604f3d0c6b3f368b9c5f45b69b2ffe6f399c1"
+  - id: egm-comprehension-persona
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/403d8881d62022490637d740657b33f01e321ea8/agents/comprehension.md
+    title: "google/elephant-goldfish-model - comprehension reviewer"
+    rationale: "Testing a document with a fresh reader who restates it, and showing the author that restatement, is informed by this source; reviewed at upstream commit 403d8881d62022490637d740657b33f01e321ea8."
+    usage: inspiration
+    last_reviewed_at: 2026-11-02
+    baseline_commit: "6a8001ea31ccf72430ba0603a467ec6df9f69dd7"
+    baseline_hash: "sha256:974f4972f717dc7b102a9b1407b3a625749149f2ae905727241e919f43cc3fa5"
+  - id: egm-claude-integration
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/403d8881d62022490637d740657b33f01e321ea8/docs/claude.md
+    title: "google/elephant-goldfish-model - Claude Code integration"
+    rationale: "Running the comprehension read in a plugin agent that starts without the project's instruction files is informed by this source's omitClaudeMd reviewer adapters; reviewed at upstream commit 403d8881d62022490637d740657b33f01e321ea8."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_hash: "sha256:b2723722b419b1c368db423885a4421dda71278cf1f22b9928c7b722a0ab6730"
+  - id: egm-codex-integration
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/4ac6b173c15704339bcd654f22a16b4c30120385/docs/codex.md
+    title: "google/elephant-goldfish-model - Codex integration"
+    rationale: "Starting the comprehension reader on Codex without the conversation, recording that it may still receive project and user-level instruction files, and telling it to ignore them are informed by this source; reviewed at upstream commit 4ac6b173c15704339bcd654f22a16b4c30120385."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_hash: "sha256:d1a64b8df61b7012a4fc112381b1946a8c98e125e92d1c21e05bc419b0fa6cdf"
+  - id: egm-inventive-catalyst
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/6a8001ea31ccf72430ba0603a467ec6df9f69dd7/agents/inventive_catalyst.md
+    title: "google/elephant-goldfish-model - inventive catalyst reviewer"
+    rationale: "The opt-in false-compromise read, which asks whether a trade-off a design accepts as unavoidable could be removed, treats a clean result as normal, excludes physical, mathematical, and theoretical limits, and requires every suggested pattern to state its own cost, is informed by this source. Its pattern catalog is not copied; the read uses trackbed's own list. Reviewed at upstream commit 6a8001ea31ccf72430ba0603a467ec6df9f69dd7."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "6a8001ea31ccf72430ba0603a467ec6df9f69dd7"
+    baseline_hash: "sha256:e766638298dfa42859172df62d1c0a4faa9ade143bcfc92837b5843a684e1da4"
+  - id: egm-brainstorm-lenses
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/403d8881d62022490637d740657b33f01e321ea8/skills/egm-brainstorm/SKILL.md
+    title: "google/elephant-goldfish-model - egm-brainstorm lenses"
+    rationale: "The feasibility lens's questions about failure signals, rollback, and running cost are informed by this source's cost and quota, migration and backward-compatibility, and observability lenses; reviewed at upstream commit 403d8881d62022490637d740657b33f01e321ea8."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "6a8001ea31ccf72430ba0603a467ec6df9f69dd7"
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:fb594315b47dca4bbea878fc77cec42a1a3ef8c75a8b903b1812260391a13ed9"

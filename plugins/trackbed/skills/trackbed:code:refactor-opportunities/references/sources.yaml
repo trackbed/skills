@@ -1,0 +1,49 @@
+sources:
+  - id: addy-code-simplification
+    url: https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/code-simplification/SKILL.md
+    title: "Addy Osmani agent-skills - code simplification"
+    rationale: "The four When NOT to flag pre-filters (already-clean code, code not yet understood, performance-critical code, and code about to be rewritten) follow this source's list of cases where simplification does not apply, and the Rule of 500 automation trigger in Phase 3 step 9 comes from its guidance on scripting large refactors; the local text restates both in original wording."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
+    baseline_hash: "sha256:f0c5ed754057eb0c1e027e2587f59de816651feb5e837242296c43ea21cf621d"
+  - id: pocock-improve-codebase-architecture-skill
+    url: https://raw.githubusercontent.com/mattpocock/skills/main/skills/engineering/improve-codebase-architecture/SKILL.md
+    title: "Matt Pocock skills - improve-codebase-architecture (SKILL.md)"
+    rationale: "The commit-history hot-spot seeding for full-codebase scans, the post-report offer to record rejected candidates as ADRs, the three deepening-candidate patterns in references/checklist.md and the shared architecture glossary, and the checklist's hard-to-test-through-its-interface pattern are adapted from this source's Explore phase and grilling loop."
+    usage: inspiration
+    last_reviewed_at: 2026-10-30
+    baseline_commit: "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
+    baseline_hash: "sha256:35b03a3db61e0f5aa333ea59b54963e45a3d2ace6649b2ef4f9576603e2582a6"
+  - id: pocock-improve-codebase-architecture-deepening
+    url: https://raw.githubusercontent.com/mattpocock/skills/main/skills/engineering/codebase-design/DEEPENING.md
+    title: "Matt Pocock skills - codebase-design (DEEPENING.md)"
+    rationale: "The deletion-test heuristic, adapter-count seam rule (one adapter = hypothetical seam, two = real seam), internal-seam principle, and replace-don't-layer test-migration rule in the shared architecture glossary (shared/architecture/references/architecture-language.md) are adapted from this source."
+    usage: inspiration
+    last_reviewed_at: 2026-10-19
+    baseline_commit: "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
+    baseline_hash: "sha256:f3dd099ce99289bd213914d8ee3e2429b78309c3957ca4583f7659551b1d53c1"
+  - id: pocock-improve-codebase-architecture-language
+    url: https://raw.githubusercontent.com/mattpocock/skills/main/skills/engineering/codebase-design/SKILL.md
+    title: "Matt Pocock skills - codebase-design (SKILL.md)"
+    rationale: "The architectural glossary (Module/Interface/Implementation/Depth/Seam/Adapter/Leverage/Locality) in the shared architecture glossary, including depth measured at the interface rather than by implementation size, is adapted from this source."
+    usage: inspiration
+    last_reviewed_at: 2026-10-19
+    baseline_commit: "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
+    baseline_hash: "sha256:2c20617f87ec8af6a434859f381b2f061a69b530444e74eb39e78bb016a6d1e2"
+  - id: aihero-codebases-ai-agents-love
+    url: https://www.aihero.dev/how-to-make-codebases-ai-agents-love
+    title: "AI Hero - How To Make Codebases AI Agents Love"
+    rationale: "The deepening-candidate direction — replacing many shallow modules with fewer deep ones behind simple interfaces — follows this article's argument that agents navigate and verify a codebase through its module interfaces."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:5cef0c99088b7d110dcb3c211c10d00d6d8dd7bdd03add3d6b9a2249fad3f893"
+  - id: aihero-improve-codebase-architecture-guide
+    url: https://www.aihero.dev/skills-improve-codebase-architecture
+    title: "AI Hero - The /improve-codebase-architecture Skill"
+    rationale: "The --for planned-change mode follows this guide's advice to point the scan at the next change and ask what would make it easy. The Phase 4 step 10 hand-off follows its advice to take one candidate per session, record the decision in a spec, and turn the rest into tickets. The checklist's hard-to-test pattern follows its use of the scan to find missing seams before testing legacy code, the plain 'nothing worth changing' outcome follows its warning that the scan rarely calls code fine, and the closing --for suggestion after an undirected run follows its advice to aim the scan at a planned change."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:5f9c90be2bb2a9f78e72faf2d3a16a7c1c4e8ce791ae6ca68ceba6bb5536c4ae"

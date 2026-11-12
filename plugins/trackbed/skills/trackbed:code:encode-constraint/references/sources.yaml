@@ -1,0 +1,17 @@
+sources:
+  - id: poteto-codebase-is-memory
+    url: https://x.com/poteto/status/2109699980248408574
+    title: "@poteto X post on the codebase as agent memory"
+    rationale: "The premise that agents extend existing code, so every observed mistake should become a mechanical constraint rather than a rule, and the preference for making anti-patterns impossible through types, primitives, and APIs."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    fetch_mode: availability
+    baseline_hash: "sha256:2592542350958491eb1e1b3ed2ccefa032b429827cf272b0cd7a357d7d94b2c6"
+  - id: addy-constraint-driven-development
+    url: https://github.com/addyosmani/agent-skills/tree/main/skills/constraint-driven-development
+    title: "Addy Osmani agent-skills - constraint-driven development"
+    rationale: "The post-wiring review of ways a check can pass without a fix comes from its guidance on guarding the bar; the red and legitimate-exception runs through the real verification command from its rule to run each enforced command against a known violation and a clean control; the shrink-only baseline from its ratchets; and the distinct could-not-judge exit status from its floor-guard and quality-gate exit codes."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
+    baseline_hash: "sha256:1d640c709888ca7828a0a7806421e20ffefc866826caca02c90aa5c8dd374c72"
