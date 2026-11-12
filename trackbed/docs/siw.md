@@ -179,9 +179,9 @@ An explicitly abandoned preparation run may skip transfer and use `/trackbed:wor
 
 | Skill | Arguments | Purpose |
 | --- | --- | --- |
-| `/trackbed:discovery:interview --siw` | `[topic \| spec paths \| siw] [--apply] [--decision-tree]` | Discover or strengthen requirements |
+| `/trackbed:discovery:interview --siw` | `[topic \| spec paths \| siw] [--apply] [--visual] [--decision-tree]` | Discover or strengthen requirements |
 | `/trackbed:siw:init` | `[spec paths \| folder \| discover] [--auto]` | Create the local preparation container |
-| `/trackbed:siw:spec-audit` | `[spec paths \| report \| siw] [--product] [--auto] [--apply [--dry-run] [--threshold 60-100] [--allow-dirty]] [--inline] [--team] [--model opus\|sonnet\|haiku]` | Audit specification quality, plus product quality with `--product` |
+| `/trackbed:siw:spec-audit` | `[spec paths \| report \| siw] [--product] [--auto] [--apply [--dry-run] [--threshold 60-100] [--allow-dirty]] [--inline] [--visual] [--team] [--model opus\|sonnet\|haiku]` | Audit specification quality, plus product quality with `--product` |
 | `/trackbed:siw:resolve-audit` | `[report] [finding IDs] [--auto]` | Resolve decision findings into local issues |
 | `/trackbed:siw:generate-phases` | `[spec path] [--auto]` | Generate the initial issue set |
 | `/trackbed:siw:transfer-to-linear` | `[siw-dir] [--project ...] [--team ...] [--dry-run] [--skip-done] [--skip-existing\|--retry]` | Migrate planning artifacts into Linear |

@@ -334,8 +334,10 @@ NODE
 
 @test "spec-audit stays self-contained within the plugin when copied without sibling skills" {
 	local plugin_dir="$BATS_TEST_TMPDIR/standalone"
-	mkdir -p "$plugin_dir/skills"
+	mkdir -p "$plugin_dir/skills" "$plugin_dir/scripts"
 	cp -R "$BATS_TEST_DIRNAME/../shared" "$plugin_dir/shared"
+	# The --visual report step names this plugin-level helper.
+	cp "$BATS_TEST_DIRNAME/../scripts/visual-report.py" "$plugin_dir/scripts/visual-report.py"
 	cp -R \
 		"$BATS_TEST_DIRNAME/../skills/siw:spec-audit" \
 		"$plugin_dir/skills/siw:spec-audit"

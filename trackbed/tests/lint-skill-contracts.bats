@@ -3896,7 +3896,7 @@ EOF
   [[ "$skill_text" == *'After its final aggregated audit succeeds, run `Post Conductor Diff Comments` below and then stop.'* ]]
 
   skill_text="$(cat "$BATS_TEST_DIRNAME/../skills/pr:overengineering-review/SKILL.md")"
-  [[ "$skill_text" == *'argument-hint: "[--subagent-model <model>] [--base <branch>] [--inline] [--no-diff-comments] [--requirements <text>]"'* ]]
+  [[ "$skill_text" == *'argument-hint: "[--subagent-model <model>] [--base <branch>] [--inline] [--visual] [--no-diff-comments] [--requirements <text>]"'* ]]
 
   run grep -rlF 'Synced Conductor diff-comment contract (keep aligned across review producers):' \
     "$BATS_TEST_DIRNAME/../skills"

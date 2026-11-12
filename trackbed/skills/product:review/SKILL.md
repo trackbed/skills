@@ -1,7 +1,7 @@
 ---
 name: product:review
 description: (experimental) Whole-product review across flows and surfaces. Requires a live app URL or auto-detected local dev server. Evaluates navigation coherence, feature discoverability, onboarding, cross-flow consistency, dead ends, friction, and trust/safety. Produces PRODUCT_AUDIT_OVERVIEW.md, or replies inline with --inline. Not for branch-scoped PR review (use pr:product-review) or pre-implementation spec audit (use siw:spec-audit --product).
-argument-hint: "<url|auto> [--flows <flow1,flow2,...>] [--focus <dimension>] [--inline]"
+argument-hint: "<url|auto> [--flows <flow1,flow2,...>] [--focus <dimension>] [--inline] [--visual]"
 disable-model-invocation: true
 user-invocable: true
 trackbed-platforms: [claude-code, codex]
@@ -24,6 +24,7 @@ Extract from `$ARGUMENTS`:
    - `--flows <flow1,flow2,...>` — comma-separated list of flow names to scope the review (e.g., `onboarding,settings,billing`)
    - `--focus <dimension>` — specific review dimension to emphasize (e.g., `discoverability`, `consistency`, `trust-safety`)
    - `--inline` — reply with the full report inline instead of writing `PRODUCT_AUDIT_OVERVIEW.md`. Note: inline runs do not update the overview file, so previous-review deduplication and "Resolved since last review" tracking (Step 3b) only accrue across file-mode runs.
+   - `--visual` — also write the interactive page `PRODUCT_AUDIT_OVERVIEW.html` beside `PRODUCT_AUDIT_OVERVIEW.md` (see Step 8). Reject `--visual` together with `--inline`: the visual report mirrors `PRODUCT_AUDIT_OVERVIEW.md`, which inline mode does not write.
 
 Store parsed values:
 
@@ -31,6 +32,7 @@ Store parsed values:
 - `SCOPED_FLOWS` — list of flow names, or empty (review all discovered flows)
 - `FOCUS_DIMENSION` — specific dimension to emphasize, or empty (all dimensions weighted equally)
 - `INLINE_MODE` — boolean (default: false)
+- `VISUAL_REPORT` — boolean (default: false); `true` when `--visual` is present
 
 **Normalize `--focus` to a dimension label.** Map the supplied token to a dimension from `references/review-dimensions.md`:
 
@@ -344,6 +346,8 @@ When using the template:
 - Include every non-conditional section from `assets/report-template.md`.
 - Omit `Previously Reported` and `Resolved Since Last Review` only when no previous review exists.
 - Keep final finding IDs sequential (`PROD-001`, `PROD-002`, ...), matching Step 7.
+
+When `VISUAL_REPORT=true`, add `PRODUCT_AUDIT_OVERVIEW.html` beside the written `PRODUCT_AUDIT_OVERVIEW.md` before the completion confirmation. Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `findings`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-findings.html`. Its reader is a product owner deciding which problems in the whole product experience to fix first. Follow-up commands for the page: `/trackbed:code:breakdown-findings`, `/trackbed:linear:breakdown-findings`.
 
 After generating the report or inline reply, read `references/usage-and-errors.md` and use its completion confirmation format.
 

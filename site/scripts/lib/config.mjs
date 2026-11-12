@@ -54,6 +54,7 @@ export const GUIDE_PAGES = [
   { file: "review.md", slug: "guides/review" },
   { file: "shipping.md", slug: "guides/shipping" },
   { file: "siw.md", slug: "guides/siw" },
+  { file: "visual-reports.md", slug: "guides/visual-reports" },
   { file: "hooks.md", slug: "guides/hooks" },
   { file: "mcp-servers.md", slug: "guides/mcp-servers" },
 ];
@@ -89,6 +90,7 @@ export const SIDEBAR_BEFORE_COMPONENTS = [
       "guides/review",
       "guides/shipping",
       "guides/siw",
+      "guides/visual-reports",
       "guides/hooks",
       "guides/mcp-servers",
     ],

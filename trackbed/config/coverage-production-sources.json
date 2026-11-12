@@ -46,6 +46,9 @@
       ],
       "trackbed/skills/pr:walkthrough/assets/walkthrough-runtime.js": [
         "trackbed/tests/pr-walkthrough.bats"
+      ],
+      "trackbed/shared/visual/assets/report-runtime.js": [
+        "trackbed/tests/visual-report-guidance.bats"
       ]
     },
     "excluded": {
@@ -108,7 +111,8 @@
       "trackbed/scripts/risk-signals.py",
       "trackbed/scripts/risk_patterns.py",
       "trackbed/scripts/resolve-stack-context.py",
-      "trackbed/scripts/summarize-semantic-scan.py"
+      "trackbed/scripts/summarize-semantic-scan.py",
+      "trackbed/scripts/visual-report.py"
     ],
     "contract_only": {
       "trackbed/scripts/generate-component-reference.py": [
@@ -673,6 +677,32 @@
       "kind": "guidance",
       "suite": "trackbed/tests/visual-explain-guidance.bats",
       "skills": ["trackbed/skills/visual:explain/SKILL.md"]
+    },
+    {
+      "kind": "guidance",
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skills": [
+        "trackbed/skills/pr:code-review/SKILL.md",
+        "trackbed/skills/pr:product-review/SKILL.md",
+        "trackbed/skills/code:copy-review/SKILL.md",
+        "trackbed/skills/pr:convention-review/SKILL.md",
+        "trackbed/skills/pr:overengineering-review/SKILL.md",
+        "trackbed/skills/pr:github-review/SKILL.md",
+        "trackbed/skills/code:refactor-opportunities/SKILL.md",
+        "trackbed/skills/code:agent-readiness/SKILL.md",
+        "trackbed/skills/code:outside-view/SKILL.md",
+        "trackbed/skills/deps:audit/SKILL.md",
+        "trackbed/skills/code:audit-security/SKILL.md",
+        "trackbed/skills/qa/SKILL.md",
+        "trackbed/skills/product:review/SKILL.md",
+        "trackbed/skills/docs:review/SKILL.md",
+        "trackbed/skills/siw:spec-audit/SKILL.md",
+        "trackbed/skills/discovery:strategic-inquiry/SKILL.md",
+        "trackbed/skills/code:breakdown-findings/SKILL.md",
+        "trackbed/skills/pr:github-review-reply/SKILL.md",
+        "trackbed/skills/code:deprecate/SKILL.md",
+        "trackbed/skills/discovery:interview/SKILL.md"
+      ]
     },
     {
       "kind": "registry",

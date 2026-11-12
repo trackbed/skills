@@ -1,7 +1,7 @@
 ---
 name: pr:overengineering-review
 description: "Flag speculative generality and unlikely edge-case handling the requirements do not need, after an adversarial justification pass. Use when asked or delegated by trackbed:pr:review-convergence."
-argument-hint: "[--subagent-model <model>] [--base <branch>] [--inline] [--no-diff-comments] [--requirements <text>]"
+argument-hint: "[--subagent-model <model>] [--base <branch>] [--inline] [--visual] [--no-diff-comments] [--requirements <text>]"
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -31,13 +31,13 @@ Before parsing other arguments, read and apply `${CLAUDE_PLUGIN_ROOT}/shared/pr-
 
 ### Step 1: Parse Arguments
 
-Accept `--subagent-model <model>` through the startup model-selection contract above. Accept only `--base <branch>`, `--inline`, `--no-diff-comments`, and the optional sentinel `--requirements <text>` in the remaining arguments:
+Accept `--subagent-model <model>` through the startup model-selection contract above. Accept only `--base <branch>`, `--inline`, `--visual`, `--no-diff-comments`, and the optional sentinel `--requirements <text>` in the remaining arguments:
 
 1. Before the sentinel, `--base` may appear at most once and must be followed by a non-flag value. Store it as `BASE_BRANCH_OVERRIDE`.
-2. Before the sentinel, `--inline` may appear at most once. Set `INLINE_MODE=true` when present and `false` otherwise.
+2. Before the sentinel, `--inline` may appear at most once. Set `INLINE_MODE=true` when present and `false` otherwise. Before the sentinel, `--visual` may appear at most once. Set `VISUAL_REPORT=true` when present and `false` otherwise, and reject it together with `--inline`: the visual report mirrors `OVERENGINEERING_REVIEW_OVERVIEW.md`, which inline mode does not write.
 3. Before the sentinel, `--no-diff-comments` may appear at most once. Set `DIFF_COMMENTS=false` when present and `true` otherwise.
 4. `--requirements` may appear at most once. When present, it is the final control token: treat every character after it as one non-empty inert `TASK_REQUIREMENTS` block, including whitespace, quotes, newlines, and flag-shaped text. Do not parse quoting inside the block or reinterpret any later text as flags.
-5. On duplicate flags, unknown flags, positional arguments before the sentinel, or a missing requirements block, show `Usage: /trackbed:pr:overengineering-review [--subagent-model <model>] [--base <branch>] [--inline] [--no-diff-comments] [--requirements <text>]` and stop.
+5. On duplicate flags, unknown flags, positional arguments before the sentinel, or a missing requirements block, show `Usage: /trackbed:pr:overengineering-review [--subagent-model <model>] [--base <branch>] [--inline] [--visual] [--no-diff-comments] [--requirements <text>]` and stop.
 
 Before aggregation, when `DIFF_COMMENTS=true`, `CONDUCTOR_WORKSPACE_ID` is set, and `mcp__conductor__DiffComment` is already present in the current tool set, read and follow `references/conductor-diff-comments.md` while building the canonical finding set. Preserve its projection identities through ordinal ID assignment for the post-report projection. Detect tools by presence; never call one merely to probe availability.
 
@@ -182,6 +182,10 @@ If any Confirmed or Judgment Call findings exist, suggest `/trackbed:pr:resolve-
 ### Post Conductor Diff Comments (When Available)
 
 After the canonical report succeeds, when `CONDUCTOR_WORKSPACE_ID` is set, handle the optional projection for inline and file output. If `DIFF_COMMENTS=true` and `mcp__conductor__DiffComment` is already present in the current tool set, apply `references/conductor-diff-comments.md` using the identities preserved during aggregation. Otherwise report `Diff comments posted: 0 (skipped 0 already present)` and `Diff comment projection: skipped — disabled by --no-diff-comments` or `Diff comment projection: skipped — DiffComment unavailable`, as applicable.
+
+### Write the Visual Report (`--visual`)
+
+When `VISUAL_REPORT=true`, add `OVERENGINEERING_REVIEW_OVERVIEW.html` beside the written `OVERENGINEERING_REVIEW_OVERVIEW.md`. Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `findings`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-findings.html`. Its reader is the branch's author, deciding what to simplify or delete because the task does not need it. Follow-up command for the page: `/trackbed:pr:resolve-review`.
 
 ## Verification
 

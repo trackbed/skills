@@ -45,6 +45,8 @@ const SKIPPABLE = {
   relevance: "Relevance validation: skipped (no findings)",
   "slop-meta": "Slop meta-review: skipped (no findings)",
 };
+// The untracked root report and its `--visual` page are review output, not review scope.
+const ROOT_REPORT_FILES = ["REVIEW_OVERVIEW.md", "REVIEW_OVERVIEW.html"];
 const COMPLETE = ["succeeded", "skipped"];
 const hash = (value) => crypto.createHash("sha256").update(value).digest("hex");
 const jsonHash = (value) => hash(JSON.stringify(value));
@@ -74,7 +76,7 @@ function snapshot(root, base) {
   )
     .toString()
     .split("\0")
-    .filter((name) => name && name !== "REVIEW_OVERVIEW.md");
+    .filter((name) => name && !ROOT_REPORT_FILES.includes(name));
   const files = [...new Set([...tracked, ...untracked])].sort().map((name) => {
     const file = path.join(root, name);
     let state;

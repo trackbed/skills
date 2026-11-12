@@ -1,0 +1,1464 @@
+/*
+ * Visual report runtime styles.
+ * scripts/visual-report.py copies this file into the page's runtime style element.
+ * Never paste it into a page by hand. The page contract and the tokens and
+ * classes a page may use are in shared/visual/references/visual-report.md.
+ *
+ * The page is built to be read: a verdict first, an outline of every entry
+ * beside the text, prose held to a comfortable line length, and each entry
+ * ordered as title, location, what is wrong, evidence, fix, then details.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --font-body: "Avenir Next", "Segoe UI", "Helvetica Neue", Helvetica, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+
+  --bg: light-dark(#f5f4ef, #131518);
+  --surface: light-dark(#ffffff, #1b1e22);
+  --surface2: light-dark(#eeece5, #22262b);
+  --surface-elevated: light-dark(#fbfaf7, #272b31);
+  --border: light-dark(rgba(20, 24, 28, 0.12), rgba(235, 238, 242, 0.12));
+  --border-bright: light-dark(rgba(20, 24, 28, 0.26), rgba(235, 238, 242, 0.26));
+  --text: light-dark(#1a1d21, #e9e7e1);
+  --text-dim: light-dark(#565c64, #aab1bb);
+  --accent: light-dark(#0b6259, #63cdbd);
+  --accent-dim: light-dark(rgba(11, 98, 89, 0.1), rgba(99, 205, 189, 0.14));
+  --green: light-dark(#17663a, #7dd69b);
+  --green-dim: light-dark(rgba(23, 102, 58, 0.1), rgba(125, 214, 155, 0.14));
+  --red: light-dark(#a8261d, #ff9a8f);
+  --red-dim: light-dark(rgba(168, 38, 29, 0.1), rgba(255, 154, 143, 0.14));
+  --orange: light-dark(#8f4a05, #f5b26b);
+  --orange-dim: light-dark(rgba(143, 74, 5, 0.1), rgba(245, 178, 107, 0.14));
+  --yellow: light-dark(#6f5800, #e2c563);
+  --yellow-dim: light-dark(rgba(111, 88, 0, 0.1), rgba(226, 197, 99, 0.14));
+  --blue: light-dark(#3a5a78, #9cc2e3);
+  --blue-dim: light-dark(rgba(58, 90, 120, 0.1), rgba(156, 194, 227, 0.14));
+  --violet: light-dark(#5d5475, #c5b9ea);
+  --violet-dim: light-dark(rgba(93, 84, 117, 0.1), rgba(197, 185, 234, 0.14));
+
+  --radius: 6px;
+  --shadow: 0 1px 2px light-dark(rgba(20, 24, 28, 0.08), rgba(0, 0, 0, 0.4));
+  --nav-width: 304px;
+  --measure: 70ch;
+  --bar-height: 56px;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* A class that sets display must not undo the hidden attribute. */
+[hidden] {
+  display: none !important;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 20px;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+}
+
+main[data-report] {
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 44px 32px calc(var(--bar-height) + 96px);
+}
+
+body.tr-has-nav main[data-report] {
+  margin-left: calc(var(--nav-width) + max(0px, (100vw - var(--nav-width) - 940px) / 2));
+  margin-right: auto;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: 2.25rem;
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: 1.45rem;
+}
+
+h3 {
+  font-size: 1.2rem;
+}
+
+/* A label over a block of an entry or section: "Evidence", "Suggested fix". */
+h4 {
+  margin: 18px 0 6px;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text-dim);
+}
+
+p,
+ul,
+ol,
+dl,
+pre,
+table,
+blockquote {
+  margin: 0 0 12px;
+}
+
+/* Prose stays at a line length the eye can follow; tables, code, and figures may run wider. */
+p,
+li,
+dd,
+blockquote,
+figcaption {
+  max-width: var(--measure);
+}
+
+ul,
+ol {
+  padding-left: 22px;
+}
+
+li + li {
+  margin-top: 4px;
+}
+
+a {
+  color: var(--accent);
+  text-underline-offset: 2px;
+}
+
+code,
+pre,
+kbd {
+  font-family: var(--font-mono);
+  font-size: 0.87em;
+}
+
+code {
+  background: var(--surface2);
+  border-radius: 4px;
+  padding: 1px 5px;
+  overflow-wrap: anywhere;
+}
+
+kbd {
+  display: inline-block;
+  min-width: 1.7em;
+  padding: 0 5px;
+  border: 1px solid var(--border-bright);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--surface);
+  text-align: center;
+}
+
+pre {
+  position: relative;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+  font-size: 1em;
+  overflow-wrap: normal;
+}
+
+blockquote {
+  border-left: 3px solid var(--border-bright);
+  padding: 2px 0 2px 14px;
+  color: var(--text-dim);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.93rem;
+}
+
+.tr-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  margin-bottom: 12px;
+}
+
+.tr-table-wrap table {
+  margin: 0;
+}
+
+th,
+td {
+  text-align: left;
+  vertical-align: top;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+tr:last-child > td {
+  border-bottom: 0;
+}
+
+th {
+  background: var(--surface2);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+th.tr-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+th.tr-sortable::after {
+  content: " \2195";
+  opacity: 0.45;
+}
+
+th.tr-sortable[aria-sort="ascending"]::after {
+  content: " \2191";
+  opacity: 1;
+}
+
+th.tr-sortable[aria-sort="descending"]::after {
+  content: " \2193";
+  opacity: 1;
+}
+
+th.tr-sortable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* ---------- Report header: the verdict is the first thing read ---------- */
+
+[data-report-header] {
+  padding-bottom: 20px;
+  margin-bottom: 22px;
+  border-bottom: 2px solid var(--text);
+}
+
+[data-report-header] > p:not(.tr-provenance, .tr-snapshot) {
+  max-width: 62ch;
+  margin: 12px 0 0;
+  font-size: 1.2rem;
+  line-height: 1.5;
+}
+
+.tr-provenance {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 18px;
+  max-width: none;
+  margin: 16px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.tr-provenance b {
+  font-weight: 700;
+}
+
+.tr-snapshot {
+  max-width: none;
+  margin: 4px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+/* ---------- Classes a page may use ---------- */
+
+.tr-legend {
+  margin: 0 0 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.tr-legend > summary {
+  padding: 8px 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tr-legend > :not(summary) {
+  margin: 0 14px 12px;
+}
+
+/* A count and a few words, side by side, so four cards cost one short row. */
+.tr-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+  margin: 0 0 16px;
+}
+
+.tr-kpi {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+}
+
+.tr-kpi > b {
+  flex: 0 0 auto;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.tr-kpi > span {
+  min-width: 0;
+  font-size: 0.88rem;
+  line-height: 1.3;
+  color: var(--text-dim);
+}
+
+.tr-callout {
+  max-width: none;
+  background: var(--accent-dim);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 10px 14px;
+  margin: 0 0 12px;
+}
+
+.tr-callout[data-tone="warn"] {
+  background: var(--orange-dim);
+  border-left-color: var(--orange);
+}
+
+.tr-callout[data-tone="bad"] {
+  background: var(--red-dim);
+  border-left-color: var(--red);
+}
+
+.tr-callout[data-tone="good"] {
+  background: var(--green-dim);
+  border-left-color: var(--green);
+}
+
+.tr-callout > :last-child {
+  margin-bottom: 0;
+}
+
+/* Longer labeled content: one label per row. */
+dl.tr-fields {
+  display: grid;
+  grid-template-columns: minmax(96px, max-content) minmax(0, 1fr);
+  gap: 6px 18px;
+}
+
+dl.tr-fields > dt {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  padding-top: 1px;
+}
+
+dl.tr-fields > dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Short facts the reader rarely needs: one quiet line at the end of an entry. */
+dl.tr-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 22px;
+  margin: 16px 0 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 0.86rem;
+  color: var(--text-dim);
+}
+
+dl.tr-meta > div {
+  display: flex;
+  gap: 6px;
+}
+
+dl.tr-meta dt {
+  font-weight: 700;
+}
+
+dl.tr-meta dd {
+  margin: 0;
+  max-width: none;
+}
+
+/* A scorecard: one row per thing measured, with its score as a bar. The name
+   and the score each stay on one line; the note beside them wraps. */
+table[data-scorecard] td:first-child,
+td:has(> meter) {
+  white-space: nowrap;
+}
+
+/* A longer explanation the reader can open, such as what a score rests on. */
+details:not(.tr-legend) {
+  margin: 0 0 12px;
+}
+
+details:not(.tr-legend) > summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+details:not(.tr-legend)[open] > summary {
+  margin-bottom: 8px;
+}
+
+meter {
+  width: 96px;
+  height: 10px;
+  margin-right: 8px;
+  vertical-align: baseline;
+  border: 0;
+  border-radius: 5px;
+  background: var(--surface2);
+}
+
+meter::-webkit-meter-bar {
+  height: 10px;
+  border: 0;
+  border-radius: 5px;
+  background: var(--surface2);
+}
+
+meter::-webkit-meter-optimum-value,
+meter::-webkit-meter-suboptimum-value,
+meter::-webkit-meter-even-less-good-value {
+  border-radius: 5px;
+  background: var(--accent);
+}
+
+meter::-moz-meter-bar {
+  border-radius: 5px;
+  background: var(--accent);
+}
+
+meter[data-tone="bad"]::-webkit-meter-optimum-value {
+  background: var(--red);
+}
+
+meter[data-tone="bad"]::-moz-meter-bar {
+  background: var(--red);
+}
+
+meter[data-tone="warn"]::-webkit-meter-optimum-value {
+  background: var(--orange);
+}
+
+meter[data-tone="warn"]::-moz-meter-bar {
+  background: var(--orange);
+}
+
+/* What runs when: one column per wave or stage, each holding links to its entries. */
+.tr-lanes {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(170px, 1fr);
+  gap: 12px;
+  overflow-x: auto;
+  margin: 0 0 16px;
+}
+
+.tr-lanes > div {
+  min-width: 0;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.tr-lanes h4 {
+  margin: 0 0 6px;
+}
+
+.tr-lanes a {
+  display: block;
+  padding: 3px 0;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+/* An evidence image, such as a screenshot, shown at a size that fits the column. */
+.tr-figure img {
+  display: block;
+  max-width: min(100%, 720px);
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.tr-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.tr-cols > * {
+  min-width: 0;
+}
+
+.tr-figure {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin: 0 0 16px;
+}
+
+.tr-figure > figcaption {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+}
+
+.tr-figure svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* ---------- Sections ---------- */
+
+[data-section] {
+  margin-top: 44px;
+  scroll-margin-top: 20px;
+}
+
+[data-section] > h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-bright);
+}
+
+.tr-fold {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tr-fold::before {
+  content: "\25BE";
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  transition: transform 0.12s ease;
+}
+
+.tr-fold[aria-expanded="false"]::before {
+  transform: rotate(-90deg);
+}
+
+.tr-folded > h2 {
+  margin-bottom: 0;
+  color: var(--text-dim);
+}
+
+.tr-section-count {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+.tr-section-empty {
+  font-size: 0.92rem;
+  color: var(--text-dim);
+}
+
+/* ---------- Entries ---------- */
+
+[data-entry] {
+  --sev: var(--border-bright);
+  --sev-dim: var(--surface2);
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--sev);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin: 0 0 16px;
+  scroll-margin-top: 20px;
+}
+
+[data-entry]:focus {
+  outline: none;
+}
+
+[data-entry][data-severity="critical"] {
+  --sev: var(--red);
+  --sev-dim: var(--red-dim);
+}
+
+[data-entry][data-severity="high"] {
+  --sev: var(--orange);
+  --sev-dim: var(--orange-dim);
+}
+
+[data-entry][data-severity="medium"] {
+  --sev: var(--yellow);
+  --sev-dim: var(--yellow-dim);
+}
+
+[data-entry][data-severity="low"] {
+  --sev: var(--blue);
+  --sev-dim: var(--blue-dim);
+}
+
+[data-entry][data-severity="suggestion"] {
+  --sev: var(--violet);
+  --sev-dim: var(--violet-dim);
+}
+
+/* The entry the reader is on, by scrolling, the outline, or the keyboard. */
+[data-entry].tr-current {
+  box-shadow:
+    0 0 0 2px var(--accent),
+    var(--shadow);
+}
+
+[data-entry].tr-dismissed > .tr-entry-head h3,
+[data-entry].tr-dismissed > .tr-entry-head .tr-where {
+  color: var(--text-dim);
+}
+
+.tr-entry-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 14px 18px 12px 10px;
+  cursor: pointer;
+}
+
+.tr-entry-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tr-entry-head h3 {
+  overflow-wrap: anywhere;
+}
+
+.tr-eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  max-width: none;
+  margin: 0 0 6px;
+}
+
+.tr-where {
+  max-width: none;
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+}
+
+.tr-toggle {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  margin-top: 1px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tr-toggle::before {
+  content: "\25BE";
+  display: inline-block;
+  transition: transform 0.12s ease;
+}
+
+.tr-toggle[aria-expanded="false"]::before {
+  transform: rotate(-90deg);
+}
+
+.tr-toggle:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.tr-id,
+.tr-tag,
+.tr-sev,
+.tr-decision {
+  font-size: 0.78rem;
+  line-height: 1.5;
+  padding: 1px 7px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.tr-id {
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  border: 1px solid var(--border-bright);
+}
+
+.tr-sev {
+  background: var(--sev-dim);
+  color: var(--sev);
+  font-weight: 700;
+}
+
+.tr-tag {
+  background: var(--surface2);
+  color: var(--text-dim);
+}
+
+.tr-decision {
+  font-weight: 700;
+  background: var(--green-dim);
+  color: var(--green);
+}
+
+.tr-dismissed .tr-decision {
+  background: var(--surface2);
+  color: var(--text-dim);
+}
+
+.tr-entry-body {
+  padding: 0 22px 6px 44px;
+}
+
+/* The first paragraph says what is wrong and why it matters. */
+.tr-entry-body > p:first-child {
+  font-size: 1.06rem;
+}
+
+.tr-entry-body > :last-child {
+  margin-bottom: 12px;
+}
+
+/* What to do about it stands apart from the description. */
+[data-copy]:not(pre, code) {
+  position: relative;
+  max-width: none;
+  margin: 0 0 12px;
+  padding: 10px 64px 10px 14px;
+  background: var(--accent-dim);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+[data-copy]:not(pre, code) > :last-child {
+  margin-bottom: 0;
+}
+
+.tr-triage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px 12px 44px;
+  border-top: 1px solid var(--border);
+}
+
+.tr-triage input[type="text"] {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+/* ---------- Controls ---------- */
+
+.tr-btn,
+.tr-chip,
+.tr-mini {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-bright);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.tr-btn {
+  padding: 4px 12px;
+  font-size: 0.9rem;
+}
+
+.tr-btn:hover,
+.tr-chip:hover,
+.tr-mini:hover {
+  border-color: var(--text-dim);
+}
+
+.tr-btn[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--surface);
+}
+
+.tr-btn[data-tone="dismiss"][aria-pressed="true"] {
+  background: var(--text-dim);
+  border-color: var(--text-dim);
+}
+
+.tr-btn.tr-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--surface);
+  font-weight: 700;
+}
+
+.tr-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tr-mini {
+  margin-left: 4px;
+  padding: 0 6px;
+  font-family: var(--font-body);
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+  text-decoration: none;
+  vertical-align: 1px;
+}
+
+a.tr-mini {
+  display: inline-block;
+}
+
+.tr-copy-block {
+  position: relative;
+}
+
+.tr-copy-block > .tr-mini {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  margin: 0;
+  background: var(--surface);
+}
+
+.tr-loc {
+  white-space: nowrap;
+}
+
+/* A location in running text: its copy and open buttons appear above it on hover or focus. */
+.tr-loc-quiet {
+  position: relative;
+  text-decoration: underline dotted var(--border-bright);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.tr-loc-actions {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  z-index: 5;
+  gap: 4px;
+  padding: 3px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-bright);
+  border-radius: 4px;
+  box-shadow: var(--shadow);
+}
+
+.tr-loc-quiet:hover > .tr-loc-actions,
+.tr-loc-quiet:focus-within > .tr-loc-actions {
+  display: inline-flex;
+}
+
+.tr-loc-actions > .tr-mini {
+  margin: 0;
+}
+
+:is(.tr-btn, .tr-chip, .tr-mini, .tr-toggle, .tr-fold, .tr-nav a, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+input[type="text"],
+input[type="search"],
+select,
+textarea {
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-bright);
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+/* ---------- Summary and filters ---------- */
+
+.tr-deck {
+  overflow: hidden;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin: 0 0 6px;
+}
+
+.tr-deck > :not(.tr-bar) {
+  margin: 12px 18px;
+}
+
+/* How the entries divide by severity, as a strip along the top edge. */
+.tr-bar {
+  display: flex;
+  height: 5px;
+  background: var(--surface2);
+}
+
+.tr-bar > span {
+  display: block;
+  min-width: 3px;
+  background: var(--sev);
+}
+
+.tr-bar > span[data-severity="critical"] {
+  --sev: var(--red);
+}
+
+.tr-bar > span[data-severity="high"] {
+  --sev: var(--orange);
+}
+
+.tr-bar > span[data-severity="medium"] {
+  --sev: var(--yellow);
+}
+
+.tr-bar > span[data-severity="low"] {
+  --sev: var(--blue);
+}
+
+.tr-bar > span[data-severity="suggestion"] {
+  --sev: var(--violet);
+}
+
+.tr-deck-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+}
+
+.tr-total {
+  font-weight: 700;
+}
+
+.tr-deck-find {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.tr-deck-find input[type="search"] {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.tr-deck-more {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.tr-facet {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.tr-facet-name {
+  flex: 0 0 104px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.tr-facet-lead {
+  margin-bottom: 0;
+}
+
+.tr-facet-lead > .tr-facet-name {
+  display: none;
+}
+
+.tr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  font-size: 0.88rem;
+}
+
+.tr-chip > b {
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.tr-chip[data-severity] {
+  border-left: 3px solid var(--sev);
+}
+
+.tr-chip[data-severity="critical"] {
+  --sev: var(--red);
+}
+
+.tr-chip[data-severity="high"] {
+  --sev: var(--orange);
+}
+
+.tr-chip[data-severity="medium"] {
+  --sev: var(--yellow);
+}
+
+.tr-chip[data-severity="low"] {
+  --sev: var(--blue);
+}
+
+.tr-chip[data-severity="suggestion"] {
+  --sev: var(--violet);
+}
+
+.tr-chip[aria-pressed="true"] {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+}
+
+.tr-chip[aria-pressed="true"] > b {
+  color: var(--bg);
+}
+
+.tr-chip[data-empty="true"] {
+  opacity: 0.5;
+}
+
+.tr-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.tr-toolbar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  color: var(--text-dim);
+}
+
+.tr-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  max-width: none;
+  min-height: 30px;
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+}
+
+/* ---------- Outline: every section and entry, beside the text ---------- */
+
+.tr-nav {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 8px 12px;
+  background: var(--surface-elevated);
+  border-bottom: 1px solid var(--border);
+}
+
+.tr-nav-title,
+.tr-nav-divider,
+.tr-nav-entries {
+  display: none;
+}
+
+.tr-nav a {
+  color: var(--text-dim);
+  text-decoration: none;
+  border-radius: 4px;
+}
+
+.tr-nav a:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.tr-nav-section {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.tr-nav-section > span:last-child {
+  font-weight: 400;
+}
+
+.tr-nav-section[aria-current="true"] {
+  color: var(--text);
+}
+
+@media (min-width: 1180px) {
+  .tr-nav {
+    position: fixed;
+    top: 0;
+    bottom: var(--bar-height);
+    left: 0;
+    width: var(--nav-width);
+    flex-direction: column;
+    gap: 0;
+    overflow: hidden auto;
+    padding: 44px 12px 24px;
+    border-bottom: 0;
+    border-right: 1px solid var(--border);
+  }
+
+  .tr-nav-title {
+    display: block;
+    max-width: none;
+    margin: 0 0 8px 10px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-dim);
+  }
+
+  .tr-nav-section {
+    margin-top: 10px;
+    color: var(--text);
+  }
+
+  /* Reference sections sit apart from the ones the reader decides on. */
+  .tr-nav-divider {
+    display: block;
+    max-width: none;
+    margin: 18px 0 0 10px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-dim);
+  }
+
+  .tr-nav-reference {
+    margin-top: 4px;
+    font-weight: 400;
+    color: var(--text-dim);
+  }
+
+  .tr-nav-entries {
+    display: block;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .tr-nav-entries > li {
+    max-width: none;
+    margin: 0;
+  }
+
+  .tr-nav-entry {
+    display: grid;
+    grid-template-columns: 8px minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 8px;
+    padding: 4px 10px 4px 12px;
+    font-size: 0.86rem;
+    line-height: 1.4;
+  }
+
+  .tr-nav-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--sev, var(--border-bright));
+    transform: translateY(-1px);
+  }
+
+  .tr-nav-entry[data-severity="critical"] {
+    --sev: var(--red);
+  }
+
+  .tr-nav-entry[data-severity="high"] {
+    --sev: var(--orange);
+  }
+
+  .tr-nav-entry[data-severity="medium"] {
+    --sev: var(--yellow);
+  }
+
+  .tr-nav-entry[data-severity="low"] {
+    --sev: var(--blue);
+  }
+
+  .tr-nav-entry[data-severity="suggestion"] {
+    --sev: var(--violet);
+  }
+
+  .tr-nav-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tr-nav-mark {
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  .tr-nav-entry[data-triage="accepted"] .tr-nav-mark {
+    color: var(--green);
+  }
+
+  .tr-nav-entry[data-triage="dismissed"] .tr-nav-text {
+    text-decoration: line-through;
+  }
+
+  .tr-nav-entry[aria-current="true"] {
+    background: var(--accent-dim);
+    color: var(--text);
+  }
+}
+
+@media (max-width: 1179.98px) {
+  body.tr-has-nav main[data-report] {
+    margin-left: auto;
+  }
+}
+
+/* ---------- Bottom bar: move between entries, then hand the triage back ---------- */
+
+.tr-triage-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  min-height: var(--bar-height);
+  padding: 10px 20px;
+  background: var(--surface-elevated);
+  border-top: 1px solid var(--border-bright);
+  box-shadow: 0 -4px 16px light-dark(rgba(20, 24, 28, 0.08), rgba(0, 0, 0, 0.4));
+  font-size: 0.9rem;
+}
+
+.tr-bar-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.tr-bar-end {
+  margin-left: auto;
+}
+
+.tr-position,
+.tr-triage-counts {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.tr-status {
+  color: var(--text-dim);
+}
+
+.tr-manual,
+.tr-help {
+  flex: 1 1 100%;
+}
+
+.tr-manual > textarea {
+  display: block;
+  width: 100%;
+  max-width: 900px;
+  height: 180px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.tr-help {
+  padding: 6px 0 4px;
+  border-top: 1px solid var(--border);
+}
+
+.tr-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  margin: 0 0 8px;
+}
+
+.tr-keys > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.tr-keys dd {
+  margin: 0;
+  max-width: none;
+}
+
+.tr-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  main[data-report] {
+    padding: 24px 16px calc(var(--bar-height) + 150px);
+  }
+
+  h1 {
+    font-size: 1.7rem;
+  }
+
+  [data-report-header] > p:not(.tr-provenance, .tr-snapshot) {
+    font-size: 1.08rem;
+  }
+
+  .tr-entry-body,
+  .tr-triage {
+    padding-left: 18px;
+    padding-right: 16px;
+  }
+
+  .tr-facet-name {
+    flex-basis: 100%;
+  }
+
+  /* A phone has no room for the command name and no keyboard for shortcuts. */
+  .tr-triage-bar code,
+  .tr-bar-end {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .tr-toggle::before,
+  .tr-fold::before {
+    transition: none;
+  }
+}
+
+@media print {
+  :root {
+    color-scheme: light;
+  }
+
+  .tr-nav,
+  .tr-triage-bar,
+  .tr-toolbar,
+  .tr-result,
+  .tr-mini,
+  .tr-toggle,
+  .tr-triage {
+    display: none !important;
+  }
+
+  body.tr-has-nav main[data-report],
+  main[data-report] {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  [data-entry] {
+    break-inside: avoid;
+    box-shadow: none;
+  }
+
+  .tr-entry-body[hidden],
+  .tr-section-body[hidden] {
+    display: block !important;
+  }
+}

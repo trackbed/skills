@@ -65,7 +65,7 @@ SHELLCHECK_FILES = \
 
 JAVASCRIPT_BROWSER_ASSETS = $(filter-out \
 	skills/pr:walkthrough/assets/d3.v7.9.0.min.js, \
-	$(wildcard skills/*/assets/*.js))
+	$(wildcard skills/*/assets/*.js shared/*/assets/*.js))
 
 # Keep ShellCheck warning-clean by default so new shell risks stay visible.
 lint: lint-shell lint-python lint-js skill-contracts
@@ -473,6 +473,7 @@ coverage-bats-contract: check-coverage-inventory-deps check-python-static-invent
 				test ! -d "$$directory" || find "$$directory" -type f -name '*.js'; \
 			done; \
 			test ! -d "$(PLUGIN_REL)/skills" || find "$(PLUGIN_REL)/skills" -type f \( -path '*/scripts/*.js' -o -path '*/assets/*.js' \); \
+			test ! -d "$(PLUGIN_REL)/shared" || find "$(PLUGIN_REL)/shared" -type f -path '*/assets/*.js'; \
 			test ! -d ".agents/skills" || find ".agents/skills" -type f -path '*/scripts/*.js'; \
 		} | sort -u >"$$tmpdir/javascript.discovered"; \
 		{ \

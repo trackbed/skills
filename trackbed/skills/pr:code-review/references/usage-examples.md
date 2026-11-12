@@ -80,3 +80,10 @@ Load this only when the user asks for examples or when validating argument parsi
 /trackbed:pr:code-review --inline
 # Replies with the full report instead of writing REVIEW_OVERVIEW.md
 ```
+
+## Visual report
+
+```text
+/trackbed:pr:code-review --visual
+# Writes REVIEW_OVERVIEW.md as usual, then adds REVIEW_OVERVIEW.html: an interactive page to filter, triage, and copy a resolve prompt from
+```

@@ -1,7 +1,7 @@
 ---
 name: pr:code-review
 description: "Review branch changes for tests, errors, types, module architecture, security, performance, slop, lean deletion, refactor fit, and simplification. Outputs REVIEW_OVERVIEW.md with actionable findings, or replies inline with --inline. --team cross-validates; --loop applies fixes and verifies convergence. Not for UX, visual, or accessibility; use trackbed:pr:product-review."
-argument-hint: "[--subagent-model <model>] [aspects] [--emphasize <dim>...] [--base <branch>] [--previous-review <path>] [--no-cleanup] [--parallel] [parallel] [--team] [--inline] [--loop] [--no-diff-comments]"
+argument-hint: "[--subagent-model <model>] [aspects] [--emphasize <dim>...] [--base <branch>] [--previous-review <path>] [--no-cleanup] [--parallel] [parallel] [--team] [--inline] [--visual] [--loop] [--no-diff-comments]"
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -22,7 +22,7 @@ If the normalized arguments contain `--no-diff-comments`, set `DIFF_COMMENTS=fal
 
 ## Team Mode
 
-If `$ARGUMENTS` contains `--team`, remove that flag, read `references/review-discipline.md` and then `references/team-mode.md`, and follow that workflow instead of the standard workflow below. Pass the remaining arguments through as the team-mode arguments. The discipline reference remains authoritative for Team Mode reviewer prompts and aggregation. If Team Mode reaches its final aggregated summary, resume only at standard Step 12b below, then perform Team Mode cleanup; do not rerun another standard step.
+If `$ARGUMENTS` contains `--team`, remove that flag, read `references/review-discipline.md` and then `references/team-mode.md`, and follow that workflow instead of the standard workflow below. Pass the remaining arguments through as the team-mode arguments. The discipline reference remains authoritative for Team Mode reviewer prompts and aggregation. If Team Mode reaches its final aggregated summary, resume only at standard Step 12b below, continue to Step 12c when `VISUAL_REPORT=true`, then perform Team Mode cleanup; do not rerun another standard step.
 
 ## Review Workflow:
 
@@ -32,6 +32,7 @@ If `$ARGUMENTS` contains `--team`, remove that flag, read `references/review-dis
    - If `--base <branch>` flag → store as `BASE_BRANCH_OVERRIDE`
    - If `--previous-review <path>` flag → store as `PREVIOUS_REVIEW_PATH` and remove it and its value from the aspect list. Reject the flag if the path is missing, points to a directory, or cannot be read. Do not silently fall back to `REVIEW_OVERVIEW.md` when an explicit previous-review path is invalid.
    - If `--inline` flag → set `INLINE_MODE=true` and remove it from the aspect list
+   - If `--visual` flag → set `VISUAL_REPORT=true` and remove it from the aspect list; otherwise set `VISUAL_REPORT=false`. Reject `--visual` together with `--inline`: the visual report mirrors `REVIEW_OVERVIEW.md`, which inline mode does not write.
    - If `--no-cleanup` flag → set `NO_CLEANUP=true` and remove it from the aspect list; otherwise set `NO_CLEANUP=false`. Save this boolean as `noCleanup` in the execution plan while retaining `["all"]` for default scope. It drops the advisory cleanup dimensions `lean`, `refactor`, and `simplify` from the default `all` set so a follow-up pass over a small fix pays only for correctness reviewers. Reject it when an explicit aspect list or `--emphasize` names any of those three dimensions; the flag never removes a dimension the user asked for by name. `removal` remains independently applicable and can still require cleanup-reviewer.
    - If `--team` flag → use Team Mode and remove it from the aspect list
    - If `--parallel` appears anywhere in `$ARGUMENTS` → set `LAUNCH_MODE=parallel` and remove it from the aspect list. Default is `LAUNCH_MODE=sequential`.
@@ -174,7 +175,7 @@ If `$ARGUMENTS` contains `--team`, remove that flag, read `references/review-dis
    - Committed diff: `git diff "$MERGE_BASE"...HEAD`
    - Staged diff: `git diff --cached`
    - Unstaged diff: `git diff`
-   - Untracked files: `git ls-files --others --exclude-standard`
+   - Untracked files: `git ls-files --others --exclude-standard`, leaving out any file that `CHANGED_FILES` does not also list, such as a visual report page
    - PR description context: parsed title/body/url from `PR_CONTEXT_JSON`, if present
 
    Immediately before launching any standard reviewer, read `references/review-discipline.md` and pass its `Shared working tree`, `Reviewer calibration`, `Output markers`, and `Finding schema` sections to every reviewer. Treat that reference as authoritative; do not reconstruct or abbreviate those contracts in individual prompts.
@@ -361,6 +362,10 @@ Run this step after standard output and after Team Mode returns its final aggreg
 Project only from the canonical aggregated summary. Conductor comments are never a findings source of truth, and this step must never post to GitHub. Missing optional tools or an incompatible host schema leave the report/inline result valid and unchanged.
 
 Always end the run with `Reviewers launched: N` — the exact number of agent launches this run made, counting every primary reviewer, the relevance validator, and the slop meta-review, or `0` when the review ran in the main thread — followed by `Diff comments posted: N (skipped M already present)`, using zeroes when projection is disabled or unavailable; add one concise projection-limitation line when eligible findings were not projected, and the `Diff comments stale:` line when the synced contract reports stale comments. When the run resumed, follow `Reviewers launched: N` with `Agents reused: <M> (run <run-id>)`.
+
+12c. **Write the visual report (`--visual`)**
+
+When `VISUAL_REPORT=true`, add `REVIEW_OVERVIEW.html` beside the sealed `REVIEW_OVERVIEW.md`, after standard output and after Team Mode returns its final aggregated summary. Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `findings`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-findings.html`. Its reader is the branch's author, deciding what to fix before merge. Follow-up command for the page: `/trackbed:pr:resolve-review`. When `LOOP_MODE=true`, skip this step during the loop and run it once after the loop ends, from the final sealed report.
 
 13. **Provide Action Plan**
 

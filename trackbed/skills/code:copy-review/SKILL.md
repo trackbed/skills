@@ -1,7 +1,7 @@
 ---
 name: code:copy-review
 description: Review unnecessary, redundant, or duplicative UI text across a codebase or the current branch diff. Defaults to a full-codebase audit on the base branch and automatically uses PR/local diff review on non-base branches; use --pr to force diff review. Supports scoped audits, confidence thresholds, and inline output.
-argument-hint: "[--pr] [--base <branch>] [--threshold 0-100] [--inline] [--all | <scope-path>]"
+argument-hint: "[--pr] [--base <branch>] [--threshold 0-100] [--inline] [--visual] [--all | <scope-path>]"
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -21,16 +21,17 @@ Audit the full codebase for unnecessary UI text when invoked on the resolved bas
 1. If `--base <branch>` flag provided, store as `BASE_BRANCH_OVERRIDE`
 2. If `--threshold N` flag provided, store as `custom_threshold` (0-100). Only findings with confidence >= N will be reported. If not provided, set `custom_threshold=75`.
 3. If `--inline` flag provided, set `INLINE_MODE=true`
-4. If `--pr` is provided, set `FORCE_PR_MODE=true`.
-5. Reject invalid combinations before resolving the mode:
+4. If `--visual` flag provided, set `VISUAL_REPORT=true`; otherwise set `VISUAL_REPORT=false`. Reject `--visual` together with `--inline`: the visual report mirrors `COPY_REVIEW_OVERVIEW.md`, which inline mode does not write.
+5. If `--pr` is provided, set `FORCE_PR_MODE=true`.
+6. Reject invalid combinations before resolving the mode:
    - If `--pr` is combined with `--all` or a positional scope path, report that PR mode and audit scope cannot be combined, then stop.
    - If `--all` and a positional scope path are combined, or more than one positional scope path remains, report the conflicting scope arguments and stop.
    - If `--base` is combined with `--all` or a positional scope path, report that `--base` only applies to PR mode or automatic mode detection, then stop.
    - If an unknown option is provided, report it and stop.
-6. Select explicit audit mode before branch detection:
+7. Select explicit audit mode before branch detection:
    - If `--all` is provided, set `SCAN_MODE=true` and `TARGET_SCOPE` to the repo root.
    - If exactly one positional scope path is provided, set `SCAN_MODE=true` and store it as `TARGET_SCOPE`.
-7. If no explicit audit scope was provided, resolve the base with the shared plugin script:
+8. If no explicit audit scope was provided, resolve the base with the shared plugin script:
 
    ```bash
    RESOLVE_ARGS=(--strict)
@@ -44,12 +45,12 @@ Audit the full codebase for unnecessary UI text when invoked on the resolved bas
    CURRENT_BRANCH=$(git branch --show-current)
    ```
 
-8. Select the automatic mode:
+9. Select the automatic mode:
    - If `FORCE_PR_MODE=true`, set `SCAN_MODE=false` and skip the remaining automatic-detection rules.
    - Otherwise, if `CURRENT_BRANCH` is non-empty and equals `BASE_BRANCH`, set `SCAN_MODE=true` and `TARGET_SCOPE` to the repo root.
    - Otherwise, if `CURRENT_BRANCH` is non-empty and differs from `BASE_BRANCH`, set `SCAN_MODE=false`.
    - Otherwise HEAD is detached; compare `git rev-parse HEAD` with `git rev-parse "$BASE_REF"` and use full-codebase audit mode when they match or PR/local diff mode when they differ.
-9. Always report the selected mode before scanning: `Copy review mode: codebase audit ({scope}).` or `Copy review mode: PR/local diff against {BASE_REF}.`
+10. Always report the selected mode before scanning: `Copy review mode: codebase audit ({scope}).` or `Copy review mode: PR/local diff against {BASE_REF}.`
 
 ### Step 2: Load Rubric and Project Review Conventions
 
@@ -128,7 +129,7 @@ When `SCAN_MODE=false`, launch **trackbed:copy-reviewer** using the platform's a
 - Committed PR diff: `git diff "$MERGE_BASE"...HEAD`
 - Staged local diff: `git diff --cached`
 - Unstaged local diff: `git diff`
-- Untracked local files list: `git ls-files --others --exclude-standard` (agent should treat these as new files and review full file content)
+- Untracked local files list: `git ls-files --others --exclude-standard`, leaving out any file that `CHANGED_FILES` does not also list, such as a visual report page (agent should treat these as new files and review full file content)
 - No report threshold: the agent reports every finding with its confidence, and Step 7 applies `custom_threshold`
 - Focus instruction: **"Focus on text redundancy introduced by this diff. Apply the shared copy-review rubric to each text element in changed code."**
 
@@ -141,7 +142,7 @@ When `SCAN_MODE=true`, run this section instead of Steps 3 and 5.
 1. Use `TARGET_SCOPE` exactly as selected in Step 1: the repo root for `--all` or automatic base-branch audit mode, otherwise the requested positional scope path.
 2. Read `package.json` and relevant build configuration to understand the UI stack and directory layout.
 3. Discover instruction files that apply within `TARGET_SCOPE` and merge their project conventions and target-audience guidance with the conventions from Step 2.
-4. Enumerate files inside `TARGET_SCOPE` and filter them using the UI-relevant file rules in `references/copy-review-rubric.md`. Skip `node_modules`, `dist`, build artifacts, generated files, lock files, and vendored code.
+4. Enumerate files inside `TARGET_SCOPE` and filter them using the UI-relevant file rules in `references/copy-review-rubric.md`. Skip `node_modules`, `dist`, build artifacts, generated files, lock files, vendored code, and visual report pages (an untracked `.html` file holding `<main data-report`).
 5. Count the resulting files and report `Codebase scan scope: {scope}; UI-relevant files: {count}.` before proceeding.
 6. If the count is zero, reply inline with `No UI-relevant files in scope: {scope}.` and stop without creating or updating `COPY_REVIEW_OVERVIEW.md`.
 
@@ -220,6 +221,10 @@ Otherwise:
 - Include all sections even if empty (with count of 0)
 - Treat the file as a working artifact that should **not** be committed and can be cleaned up by `/trackbed:workflow:cleanup-artifacts`
 
+### Write the Visual Report (`--visual`)
+
+When `VISUAL_REPORT=true`, add `COPY_REVIEW_OVERVIEW.html` beside the written `COPY_REVIEW_OVERVIEW.md`, in diff review and codebase scan mode alike. Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `findings`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-findings.html`. Its reader owns the interface text and is deciding which labels and helper text to cut. Follow-up command for the page: `/trackbed:pr:resolve-review`.
+
 ### Step 10: Provide Action Plan
 
 If Critical or Important findings were found:
@@ -267,6 +272,10 @@ To resolve findings: `/trackbed:pr:resolve-review`
 
 ```
 /trackbed:code:copy-review --all
+```
+
+```
+/trackbed:code:copy-review --visual
 ```
 
 ```

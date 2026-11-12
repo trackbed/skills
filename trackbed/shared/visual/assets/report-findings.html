@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PR Review Summary · REVIEW_OVERVIEW.md</title>
+    <!--
+      Authoring template for the --visual report style, shape "findings": a review
+      or audit whose reader asks what is wrong, how bad it is, and what to fix first.
+      The contract is in shared/visual/references/visual-report.md; this file shows
+      it applied to a small code review. Replace every value: nothing here is
+      boilerplate to keep.
+
+      One trackbed-followup per command the reader can paste the triage prompt into.
+    -->
+    <meta name="trackbed-followup" content="/trackbed:pr:resolve-review" />
+    <!-- Leave both runtime elements empty. scripts/visual-report.py fills them. -->
+    <style data-trackbed-runtime></style>
+    <style>
+      /* Styles for this page's own figures only, built on the runtime tokens. */
+      .hot-files text {
+        font: 13px var(--font-mono);
+        fill: var(--text);
+      }
+      .hot-files rect {
+        fill: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <main
+      data-report
+      data-shape="findings"
+      data-noun="finding findings"
+      data-producer="trackbed:pr:code-review"
+      data-source="REVIEW_OVERVIEW.md"
+      data-generated="2026-01-15T14:02:00+0100"
+      data-commit="1a2b3c4d5e6f"
+      data-root="/Users/example/project"
+      data-facets="severity action-class reviewer"
+    >
+      <!-- The verdict, what stands in the way, and the next step, before anything else.
+           Name each finding by what it is and link it to its entry. -->
+      <header data-report-header>
+        <h1>PR Review Summary</h1>
+        <p>
+          Not ready to merge. Two findings block it:
+          <a href="#entry-CR-001">the export route trusts a tenant ID from the URL</a>, and
+          <a href="#entry-CR-002">the retry helper hides its final error</a>. Fix those two; the third is optional.
+        </p>
+      </header>
+
+      <!-- Explain the labels this report uses, in its own terms. Closed by default. -->
+      <details class="tr-legend">
+        <summary>How to read this report</summary>
+        <dl class="tr-fields">
+          <dt>Critical</dt>
+          <dd>Must be fixed before merge.</dd>
+          <dt>Important</dt>
+          <dd>Should be fixed before merge unless a maintainer decides otherwise.</dd>
+          <dt>Suggestion</dt>
+          <dd>Optional. Safe to leave.</dd>
+          <dt>gated_auto</dt>
+          <dd><code>/trackbed:pr:resolve-review</code> can fix it without a decision from you.</dd>
+          <dt>advisory</dt>
+          <dd>Optional cleanup; nothing depends on it.</dd>
+        </dl>
+      </details>
+
+      <div class="tr-kpis">
+        <div class="tr-kpi"><b>3</b><span>findings from this branch</span></div>
+        <div class="tr-kpi"><b>2</b><span>block merge</span></div>
+        <div class="tr-kpi"><b>1</b><span>filtered as pre-existing</span></div>
+        <div class="tr-kpi"><b>9 of 9</b><span>reviewers finished</span></div>
+      </div>
+
+      <!-- Sections the reader decides on come first, most severe first. -->
+      <section data-section id="critical">
+        <h2>Critical issues</h2>
+        <article
+          data-entry
+          data-id="CR-001"
+          data-severity="critical"
+          data-action-class="gated_auto"
+          data-reviewer="security-reviewer"
+        >
+          <!-- Title: the problem as a statement. Then where. Then what is wrong and what it causes. -->
+          <h3>Export route reads the tenant ID from the query string</h3>
+          <p data-where><code data-loc>src/routes/export.ts:42</code></p>
+          <p>
+            Any signed-in user can download another tenant's rows by changing <code>?tenant=</code> in the URL, because
+            the route never checks the value against the session.
+          </p>
+          <h4>Evidence</h4>
+          <pre><code>const rows = await exportRows(req.query.tenant);</code></pre>
+          <p>This runs before any ownership check, and <code>req.session.tenantId</code> is never read.</p>
+          <h4>Suggested fix</h4>
+          <div data-copy="suggested fix">
+            <p>
+              Take the tenant from <code>req.session.tenantId</code> and reject a mismatching query value with 403, as
+              <code data-loc>src/routes/board.ts:31</code> already does.
+            </p>
+          </div>
+          <!-- Facts the reader rarely needs go last, in one quiet line. Leave out what the
+               entry's header already shows, such as its facets. -->
+          <dl class="tr-meta">
+            <div>
+              <dt>Confidence</dt>
+              <dd>95</dd>
+            </div>
+            <div>
+              <dt>Owner</dt>
+              <dd>resolver</dd>
+            </div>
+          </dl>
+        </article>
+      </section>
+
+      <section data-section id="important">
+        <h2>Important issues</h2>
+        <!-- The report says "Important"; the shared scale calls that level "high". -->
+        <article
+          data-entry
+          data-id="CR-002"
+          data-severity="high"
+          data-severity-label="Important"
+          data-action-class="gated_auto"
+          data-reviewer="silent-failure-hunter"
+        >
+          <h3>Retry helper returns undefined after its last attempt fails</h3>
+          <p data-where><code data-loc>src/lib/retry.ts:18-31</code></p>
+          <p>
+            When every attempt fails, callers receive <code>undefined</code> and cannot tell an exhausted retry from an
+            empty result, so a failed save looks like a successful one.
+          </p>
+          <h4>Evidence</h4>
+          <pre><code>} catch (error) {
+  log.warn("retry failed", error);
+}</code></pre>
+          <p>The block logs and falls through; no path rethrows.</p>
+          <h4>Suggested fix</h4>
+          <div data-copy="suggested fix"><p>Rethrow the last error once the attempts are used up.</p></div>
+        </article>
+      </section>
+
+      <section data-section id="suggestions">
+        <h2>Suggestions</h2>
+        <article
+          data-entry
+          data-id="CR-003"
+          data-severity="suggestion"
+          data-action-class="advisory"
+          data-reviewer="cleanup-reviewer"
+        >
+          <h3>Two copies of the CSV header builder</h3>
+          <p data-where>
+            <code data-loc>src/routes/export.ts:70</code> and <code data-loc>src/api/client.ts:112</code>
+          </p>
+          <p>The same eight lines build the header row in both files, so a new column has to be added twice.</p>
+        </article>
+      </section>
+
+      <!-- Reference material comes last, in as few sections as read well. Both carry
+           data-triage="off" (nothing here is a decision) and data-collapsed (starts folded). -->
+      <section data-section id="filtered" data-triage="off" data-collapsed>
+        <h2>Filtered as pre-existing</h2>
+        <article data-entry data-id="E-01" data-reviewer="code-reviewer">
+          <h3>Unused import in a file this branch does not touch</h3>
+          <p data-where><code data-loc>src/legacy/adapter.ts:3</code></p>
+          <p>It was there before this branch, so it is out of scope for this review.</p>
+        </article>
+      </section>
+
+      <!-- One section gathers the report's remaining reference sections as labeled blocks. -->
+      <section data-section id="about" data-triage="off" data-collapsed>
+        <h2>About this review</h2>
+        <h4>Coverage</h4>
+        <p>All nine reviewers finished, so no dimension is missing from the findings above.</p>
+        <table data-sortable>
+          <thead>
+            <tr>
+              <th>Reviewer</th>
+              <th>Status</th>
+              <th>Findings</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>security-reviewer</td>
+              <td>succeeded</td>
+              <td>1</td>
+            </tr>
+            <tr>
+              <td>silent-failure-hunter</td>
+              <td>succeeded</td>
+              <td>1</td>
+            </tr>
+          </tbody>
+        </table>
+        <h4>Where the findings are</h4>
+        <!-- A figure goes where it helps, never above the findings. Give an inline SVG a width. -->
+        <figure class="tr-figure hot-files">
+          <svg width="440" viewBox="0 0 440 46" role="img" aria-label="Findings per file: export.ts 2, retry.ts 1">
+            <text x="0" y="15">src/routes/export.ts</text>
+            <rect x="180" y="3" width="200" height="15" />
+            <text x="388" y="15">2</text>
+            <text x="0" y="38">src/lib/retry.ts</text>
+            <rect x="180" y="26" width="100" height="15" />
+            <text x="288" y="38">1</text>
+          </svg>
+          <figcaption>Two of the three findings are in the export route, including the one security issue.</figcaption>
+        </figure>
+        <h4>Nothing found</h4>
+        <p>The slop check and the previous-review comparison found nothing.</p>
+      </section>
+    </main>
+    <script data-trackbed-runtime></script>
+  </body>
+</html>

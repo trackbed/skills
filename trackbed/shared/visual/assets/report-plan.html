@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PR plan set · PR_PLAN_INDEX.md</title>
+    <!--
+      Authoring template for the --visual report style, shape "plan": a plan or a
+      set of plans whose reader asks what to run first, what waits on what, and
+      what each step delivers. The contract is in
+      shared/visual/references/visual-report.md; this file shows it applied to a
+      small plan set. Replace every value: nothing here is boilerplate to keep.
+
+      A plan page has no trackbed-followup when each plan launches on its own.
+    -->
+    <!-- Leave both runtime elements empty. scripts/visual-report.py fills them. -->
+    <style data-trackbed-runtime></style>
+  </head>
+  <body>
+    <!-- data-noun names the entries. The facet listed first is the one beside the total:
+         for a plan that is the wave or stage, never severity. A field with one value on
+         every plan, such as a status of TODO, is a quiet detail and not a facet. -->
+    <main
+      data-report
+      data-shape="plan"
+      data-noun="plan plans"
+      data-producer="trackbed:code:breakdown-findings"
+      data-source="PR_PLAN_INDEX.md"
+      data-generated="2026-01-15T14:02:00+0100"
+      data-commit="1a2b3c4d5e6f"
+      data-root="/Users/example/project"
+      data-facets="wave size"
+      data-accept-label="Run"
+      data-dismiss-label="Skip"
+    >
+      <!-- What the plans achieve as a whole, and where to start. -->
+      <header data-report-header>
+        <h1>PR plan set</h1>
+        <p>
+          Three plans turn the review's findings into Pull Requests. Start with
+          <a href="#entry-W01A">one typed shape for API errors</a> and
+          <a href="#entry-W01B">removing the dead exports</a>, which can run side by side. The third plan waits on
+          the first.
+        </p>
+      </header>
+
+      <details class="tr-legend">
+        <summary>How to read this plan set</summary>
+        <dl class="tr-fields">
+          <dt>W01A</dt>
+          <dd>Wave 1, lane A. Plans in the same wave can run at the same time; a later wave waits on an earlier one.</dd>
+          <dt>Size</dt>
+          <dd>S is one or two files, M is three to five, L is six to eight.</dd>
+          <dt>Run and Skip</dt>
+          <dd>Mark the plans you intend to launch; the copied prompt lists them in order.</dd>
+        </dl>
+      </details>
+
+      <div class="tr-kpis">
+        <div class="tr-kpi"><b>3</b><span>plans</span></div>
+        <div class="tr-kpi"><b>2</b><span>can start now</span></div>
+        <div class="tr-kpi"><b>1</b><span>waits on another plan</span></div>
+      </div>
+
+      <!-- What runs when: one column per wave, each plan a link to its entry. -->
+      <div class="tr-lanes">
+        <div>
+          <h4>Wave 1: start now</h4>
+          <a href="#entry-W01A">W01A Typed API errors</a>
+          <a href="#entry-W01B">W01B Dead exports</a>
+        </div>
+        <div>
+          <h4>Wave 2: after W01A</h4>
+          <a href="#entry-W02A">W02A Error messages in the client</a>
+        </div>
+      </div>
+
+      <!-- One section per wave or stage, in the order the work runs. -->
+      <section data-section id="wave-1">
+        <h2>Wave 1: can start now</h2>
+        <article data-entry data-id="W01A" data-wave="wave-1" data-size="M">
+          <!-- Title: what the plan delivers. Then its file. Then why it matters and why it sits here. -->
+          <h3>Give API errors one typed shape</h3>
+          <p data-where><a href="PR_PLAN_W01A_TYPED_API_ERRORS.md">PR_PLAN_W01A_TYPED_API_ERRORS.md</a></p>
+          <p>
+            Every route returns the same error object, so the client can show a real message in place of "Something
+            went wrong". It comes first because <a href="#entry-W02A">W02A</a> builds on that shape.
+          </p>
+          <h4>Depends on</h4>
+          <p>Nothing. It can start now.</p>
+          <h4>Unblocks</h4>
+          <p><a href="#entry-W02A">W02A: Show the API's error message in the client</a></p>
+          <h4>Done when</h4>
+          <ul>
+            <li>All eleven routes under <code>src/routes</code> throw <code>ApiError</code>.</li>
+            <li><code>npm run typecheck</code> and <code>npm run check -- routes</code> pass.</li>
+          </ul>
+          <h4>Launch</h4>
+          <pre
+            data-copy="launch command"
+          ><code>/trackbed:code:plan-to-pr PR_PLAN_W01A_TYPED_API_ERRORS.md --ship</code></pre>
+          <dl class="tr-meta">
+            <div>
+              <dt>Impact</dt>
+              <dd>HIGH</dd>
+            </div>
+            <div>
+              <dt>Leverage</dt>
+              <dd>HIGH</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd>TODO</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article data-entry data-id="W01B" data-wave="wave-1" data-size="S">
+          <h3>Remove the exports nothing imports</h3>
+          <p data-where><a href="PR_PLAN_W01B_REMOVE_DEAD_EXPORTS.md">PR_PLAN_W01B_REMOVE_DEAD_EXPORTS.md</a></p>
+          <p>Fourteen exports in the legacy adapter have no caller, and each one slows a reader down.</p>
+          <h4>Depends on</h4>
+          <p>Nothing. It can run beside <a href="#entry-W01A">W01A</a>; the two touch different files.</p>
+          <h4>Launch</h4>
+          <pre
+            data-copy="launch command"
+          ><code>/trackbed:code:plan-to-pr PR_PLAN_W01B_REMOVE_DEAD_EXPORTS.md --ship</code></pre>
+        </article>
+      </section>
+
+      <section data-section id="wave-2">
+        <h2>Wave 2: after wave 1</h2>
+        <article data-entry data-id="W02A" data-wave="wave-2" data-size="M">
+          <h3>Show the API's error message in the client</h3>
+          <p data-where><a href="PR_PLAN_W02A_ADOPT_TYPED_ERRORS.md">PR_PLAN_W02A_ADOPT_TYPED_ERRORS.md</a></p>
+          <p>People see what went wrong and what to do about it, which is the change they will notice.</p>
+          <h4>Depends on</h4>
+          <p><a href="#entry-W01A">W01A</a> has to land first: this plan reads the typed error it adds.</p>
+          <h4>Launch</h4>
+          <p>After W01A lands:</p>
+          <pre
+            data-copy="launch command"
+          ><code>/trackbed:code:plan-to-pr PR_PLAN_W02A_ADOPT_TYPED_ERRORS.md --ship</code></pre>
+        </article>
+      </section>
+
+      <!-- Reference material comes last, folded, with nothing to decide. -->
+      <section data-section id="about" data-triage="off" data-collapsed>
+        <h2>About this plan set</h2>
+        <h4>Where the plans came from</h4>
+        <p>Nine findings in <code>REVIEW_OVERVIEW.md</code>, grouped into three plans. None was rejected.</p>
+        <h4>Left out</h4>
+        <p>Renaming the legacy adapter: it is an owner decision and has no plan here.</p>
+      </section>
+    </main>
+    <script data-trackbed-runtime></script>
+  </body>
+</html>

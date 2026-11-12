@@ -10,12 +10,21 @@
     "--auto selects only default-scope working-dir disposables for deletion; it never selects shared-diagram, permanent-spec, or siw-only entries.",
     "scopes: the cleanup modes that select an entry. default is direct and --auto cleanup; siw is the direct-user-only --siw mode. Absent means [\"default\"]. Every siw/ entry includes siw, except named permanent specs that the siw-spec-files detector already covers, and only siw/ entries may.",
     "match_any / exclude: optional basename filters applied to every expansion of a glob entry; a match must fit one match_any pattern and no exclude pattern.",
-    "Register only fixed default producer outputs here. Never register user-supplied or custom output paths."
+    "Register only fixed default producer outputs here. Never register user-supplied or custom output paths.",
+    "A -visual entry is the HTML page a producer writes beside its Markdown output with --visual; register one for every fixed default page name, with the same category, retention, producer, and scopes as its source."
   ],
   "artifacts": [
     {
       "id": "review-overview",
       "path": "REVIEW_OVERVIEW.md",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:pr:code-review"
+    },
+    {
+      "id": "review-overview-visual",
+      "path": "REVIEW_OVERVIEW.html",
       "type": "file",
       "category": "working-dir",
       "retention": "disposable",
@@ -30,8 +39,24 @@
       "producer": "trackbed:pr:product-review"
     },
     {
+      "id": "product-review-overview-visual",
+      "path": "PRODUCT_REVIEW_OVERVIEW.html",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:pr:product-review"
+    },
+    {
       "id": "product-audit-overview",
       "path": "PRODUCT_AUDIT_OVERVIEW.md",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:product:review"
+    },
+    {
+      "id": "product-audit-overview-visual",
+      "path": "PRODUCT_AUDIT_OVERVIEW.html",
       "type": "file",
       "category": "working-dir",
       "retention": "disposable",
@@ -54,8 +79,24 @@
       "producer": "trackbed:code:copy-review"
     },
     {
+      "id": "copy-review-overview-visual",
+      "path": "COPY_REVIEW_OVERVIEW.html",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:code:copy-review"
+    },
+    {
       "id": "convention-review-overview",
       "path": "CONVENTION_REVIEW_OVERVIEW.md",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:pr:convention-review"
+    },
+    {
+      "id": "convention-review-overview-visual",
+      "path": "CONVENTION_REVIEW_OVERVIEW.html",
       "type": "file",
       "category": "working-dir",
       "retention": "disposable",
@@ -70,8 +111,24 @@
       "producer": "trackbed:pr:overengineering-review"
     },
     {
+      "id": "overengineering-review-overview-visual",
+      "path": "OVERENGINEERING_REVIEW_OVERVIEW.html",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:pr:overengineering-review"
+    },
+    {
       "id": "codebase-weakness-report",
       "path": "CODEBASE_WEAKNESS_REPORT.md",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:code:refactor-opportunities"
+    },
+    {
+      "id": "codebase-weakness-report-visual",
+      "path": "CODEBASE_WEAKNESS_REPORT.html",
       "type": "file",
       "category": "working-dir",
       "retention": "disposable",
@@ -86,6 +143,14 @@
       "producer": "trackbed:code:outside-view"
     },
     {
+      "id": "outside-view-report-visual",
+      "path": "OUTSIDE_VIEW_REPORT.html",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:code:outside-view"
+    },
+    {
       "id": "refactor-opportunities-overview",
       "path": "REFACTOR_OPPORTUNITIES_OVERVIEW.md",
       "type": "file",
@@ -94,8 +159,24 @@
       "producer": "trackbed:code:refactor-opportunities"
     },
     {
+      "id": "refactor-opportunities-overview-visual",
+      "path": "REFACTOR_OPPORTUNITIES_OVERVIEW.html",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:code:refactor-opportunities"
+    },
+    {
       "id": "dependency-audit",
       "path": "DEPENDENCY_AUDIT.md",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:deps:audit"
+    },
+    {
+      "id": "dependency-audit-visual",
+      "path": "DEPENDENCY_AUDIT.html",
       "type": "file",
       "category": "working-dir",
       "retention": "disposable",
@@ -270,6 +351,14 @@
       "producer": "trackbed:code:agent-readiness"
     },
     {
+      "id": "agent-native-audit-visual",
+      "path": "AGENT_NATIVE_AUDIT.html",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:code:agent-readiness"
+    },
+    {
       "id": "github-pr-review-overview",
       "path": "GITHUB_PR_REVIEW_OVERVIEW.md",
       "type": "file",
@@ -278,8 +367,24 @@
       "producer": "trackbed:pr:github-review"
     },
     {
+      "id": "github-pr-review-overview-visual",
+      "path": "GITHUB_PR_REVIEW_OVERVIEW.html",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:pr:github-review"
+    },
+    {
       "id": "github-stack-review-overview",
       "path": "GITHUB_STACK_REVIEW_OVERVIEW.md",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:pr:github-review"
+    },
+    {
+      "id": "github-stack-review-overview-visual",
+      "path": "GITHUB_STACK_REVIEW_OVERVIEW.html",
       "type": "file",
       "category": "working-dir",
       "retention": "disposable",
@@ -310,6 +415,22 @@
       "producer": "trackbed:docs:review"
     },
     {
+      "id": "doc-review-visual",
+      "path": "DOC_REVIEW.html",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:docs:review"
+    },
+    {
+      "id": "strategic-inquiry-visual",
+      "path": "STRATEGIC_INQUIRY.html",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:discovery:strategic-inquiry"
+    },
+    {
       "id": "github-review-reply-plan",
       "path": "GITHUB_REVIEW_REPLY_PLAN.md",
       "type": "file",
@@ -318,8 +439,24 @@
       "producer": "trackbed:pr:github-review-reply"
     },
     {
+      "id": "github-review-reply-plan-visual",
+      "path": "GITHUB_REVIEW_REPLY_PLAN.html",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:pr:github-review-reply"
+    },
+    {
       "id": "qa-report",
       "path": "QA_REPORT.md",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:qa"
+    },
+    {
+      "id": "qa-report-visual",
+      "path": "QA_REPORT.html",
       "type": "file",
       "category": "working-dir",
       "retention": "disposable",
@@ -344,6 +481,14 @@
     {
       "id": "audit-spec-report",
       "path": "AUDIT_SPEC_REPORT.md",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:siw:spec-audit"
+    },
+    {
+      "id": "audit-spec-report-visual",
+      "path": "AUDIT_SPEC_REPORT.html",
       "type": "file",
       "category": "working-dir",
       "retention": "disposable",
@@ -377,6 +522,15 @@
       "scopes": ["default", "siw"]
     },
     {
+      "id": "siw-audit-spec-report-visual",
+      "path": "siw/AUDIT_SPEC_REPORT.html",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:siw:spec-audit",
+      "scopes": ["default", "siw"]
+    },
+    {
       "id": "siw-log",
       "path": "siw/LOG.md",
       "type": "file",
@@ -403,6 +557,14 @@
       "producer": "trackbed:code:breakdown-findings"
     },
     {
+      "id": "pr-plan-index-visual",
+      "path": "PR_PLAN_INDEX.html",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:code:breakdown-findings"
+    },
+    {
       "id": "breakdown-findings-drafts",
       "path": ".context/breakdown-findings/",
       "type": "dir",
@@ -421,6 +583,14 @@
     {
       "id": "deprecation-plans",
       "path": "DEPRECATION_PLAN_*.md",
+      "type": "glob",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:code:deprecate"
+    },
+    {
+      "id": "deprecation-plans-visual",
+      "path": "DEPRECATION_PLAN_*.html",
       "type": "glob",
       "category": "working-dir",
       "retention": "disposable",
@@ -516,6 +686,15 @@
     {
       "id": "siw-spec-strengthening-plan",
       "path": "siw/SPEC_STRENGTHENING_PLAN.md",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:discovery:interview",
+      "scopes": ["siw"]
+    },
+    {
+      "id": "siw-spec-strengthening-plan-visual",
+      "path": "siw/SPEC_STRENGTHENING_PLAN.html",
       "type": "file",
       "category": "working-dir",
       "retention": "disposable",

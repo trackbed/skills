@@ -737,6 +737,36 @@ test("untracked root report publication does not stale evidence", (t) => {
   );
 });
 
+test("the untracked visual page beside the root report does not stale evidence", (t) => {
+  const f = fixture(t);
+  f.complete();
+  f.draft();
+  f.ok("seal", "--report", f.report);
+  fs.copyFileSync(f.report, path.join(f.root, "REVIEW_OVERVIEW.md"));
+  fs.writeFileSync(
+    path.join(f.root, "REVIEW_OVERVIEW.html"),
+    "<!doctype html>",
+  );
+  f.ok(
+    "check",
+    "--report",
+    path.join(f.root, "REVIEW_OVERVIEW.md"),
+    "--aspects",
+    "all",
+  );
+  fs.writeFileSync(path.join(f.root, "OTHER.html"), "<!doctype html>");
+  assert.notEqual(
+    f.command(
+      "check",
+      "--report",
+      path.join(f.root, "REVIEW_OVERVIEW.md"),
+      "--aspects",
+      "all",
+    ).status,
+    0,
+  );
+});
+
 test("report fields, required sections and consumer repository must match", (t) => {
   const f = fixture(t, ["code"]);
   f.complete();

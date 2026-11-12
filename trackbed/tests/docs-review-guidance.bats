@@ -33,7 +33,7 @@ setup() {
 }
 
 @test "the false-compromise read is opt-in and leaves the default review unchanged" {
-	grep -qF 'argument-hint: "[markdown-path] [--trade-offs] [--inline|--file|--output <path>]"' "$SKILL"
+	grep -qF 'argument-hint: "[markdown-path] [--trade-offs] [--inline|--file|--output <path>] [--visual]"' "$SKILL"
 	grep -qF 'If `--trade-offs` is present, set `TRADE_OFFS=true`; otherwise set `TRADE_OFFS=false`.' "$SKILL"
 	grep -qF 'The false-compromise read in step 7 runs only when it is `true`.' "$SKILL"
 	grep -qF 'Omit the False Compromises section and its Coverage line when `TRADE_OFFS=false`' "$SKILL"

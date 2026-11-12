@@ -1,6 +1,7 @@
 ---
 name: code:deprecate
 description: "Plan and execute deprecation of code, features, APIs, modules, or persistent data shapes, treating code as a liability. Covers the decision to deprecate (5-question checklist), Hyrum's Law risk assessment, Advisory vs Compulsory paths, Strangler / Adapter / Feature-Flag / Database Expand-Migrate-Contract patterns, and a four-step workflow: build replacement → announce → migrate incrementally → remove old. Emits SIMPLICITY CHECK, NOTICED BUT NOT TOUCHING, UNVERIFIED, and ASK FIRST markers. Use when removing legacy systems, evolving database schemas, sunsetting features, retiring API versions, or cleaning up zombie code with unknown owners."
+argument-hint: "[deprecation target] [--visual]"
 disable-model-invocation: true
 user-invocable: true
 ---
@@ -24,6 +25,10 @@ Plan and execute the removal of code, features, APIs, or modules. Removing code 
 - Refactoring without removing a public or call-site surface — use `trackbed:code:refactor-pass`.
 - Renaming a symbol or moving a file with no behavioral or contract change — a codemod plus PR review is enough.
 - Purging a single dead function discovered in passing — make the deletion in the PR that proves it is unreferenced, without the four-step workflow.
+
+## Arguments
+
+If the arguments contain `--visual`, set `VISUAL_REPORT=true` and remove the flag, so it is never read as part of the deprecation target or its plan slug; otherwise set `VISUAL_REPORT=false`.
 
 ## Choose the surface first
 
@@ -164,6 +169,8 @@ Owner: <team or person> Surface: <Compile-time / internal-only | Runtime / inter
 ```
 
 On re-invocation, list all `DEPRECATION_PLAN_*.md` files in the repository root first. If exactly one matches the current target's slug, read it; if several plans exist and the target is ambiguous, list them and ask the user which deprecation to resume. If no plan matches but durable project docs archive a Keep and maintain or Defer decision for the target, check its revisit trigger before anything else: when it has fired or the user asks to re-decide, re-run Step 1 with current evidence in a new plan; otherwise report the archived decision and stop. Then use `## Step Status`, `## Open Markers`, `## Completion Gates`, and—when Database Expand/Migrate/Contract is selected—`## Database Migration Phase Status` to find the earliest incomplete exit criterion across Step 1 through Step 4.4 and the overall completion gates, then resume there. The database phase-status checklist is the authoritative state for database phase progression; do not infer completion from descriptive prose or the reference table. If an existing plan lacks a status or evidence field for a required gate, treat that gate as incomplete until the evidence is recorded. Do not jump straight to removal because a previous session announced the deprecation. For an Advisory deprecation with an `announced` entry in `## Migration Log`, run the Step 4.3 Advisory progress check before resuming.
+
+When `VISUAL_REPORT=true`, add `DEPRECATION_PLAN_<slug>.html` beside the plan as this invocation's last step, from `DEPRECATION_PLAN_<slug>.md` as this invocation leaves it. Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `plan`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-plan.html`. Its reader owns the deprecation and is checking how far the migration has come and what is still open; it is a status view, so nothing on it is accepted or dismissed. Follow-up command for the page: `/trackbed:code:deprecate`. An invocation that ends with the plan deleted adds no page, and deletes an earlier `DEPRECATION_PLAN_<slug>.html` beside it when that file is a visual report page: nothing is left for it to mirror.
 
 ## Step 1 — Decide whether to deprecate
 

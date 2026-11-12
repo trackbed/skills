@@ -40,7 +40,9 @@ STACK_CONTEXT is empty unless --stack-context was given.
 This supports one-invocation, non-evaluating reads with shell read -d ''.
 
 Review-preparation options are opt-in; without them the collected scope and
-legacy output formats are unchanged:
+legacy output formats are unchanged. One exclusion always applies: an untracked
+visual report page (an .html entry of hooks/confirm-review-artifacts.txt at the
+repository root or directly under siw/) never enters the scope.
   --exclude-review-artifacts     Drop repository-root paths matching
                                  hooks/confirm-review-artifacts.txt from the
                                  collected scope.
@@ -264,6 +266,48 @@ filter_review_artifacts() {
   CHANGED_FILES=${kept%$'\n'}
 }
 
+# A visual report page is review output that a skill writes beside its report
+# with --visual, never review scope: read as a new file it would be reviewed as
+# changed UI. Drop every untracked page from the untracked listing whether or
+# not the caller asked for --exclude-review-artifacts. Pages are written at the
+# repository root or directly under siw/, so only those two places are matched.
+# A tracked file of the same name stays in scope as ordinary content, and a
+# missing artifact list leaves the listing as it is.
+untracked_without_visual_pages() {
+  local line untracked_file candidate pattern
+  local page_patterns=()
+
+  if [ -f "$REVIEW_ARTIFACT_LIST_FILE" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+      line="${line%%#*}"
+      line="${line#"${line%%[![:space:]]*}"}"
+      line="${line%"${line##*[![:space:]]}"}"
+      case "$line" in
+        *.html) page_patterns+=("$line") ;;
+      esac
+    done < "$REVIEW_ARTIFACT_LIST_FILE"
+  fi
+
+  git ls-files --others --exclude-standard | while IFS= read -r untracked_file; do
+    candidate="${untracked_file#siw/}"
+    case "$candidate" in
+      */*) ;;
+      *)
+        for pattern in ${page_patterns[@]+"${page_patterns[@]}"}; do
+          # shellcheck disable=SC2254
+          # Artifact entries intentionally support shell-style globs.
+          case "$candidate" in
+            $pattern)
+              continue 2
+              ;;
+          esac
+        done
+        ;;
+    esac
+    printf '%s\n' "$untracked_file"
+  done
+}
+
 while [ $# -gt 0 ]; do
   case "$1" in
     --decode-json)
@@ -368,7 +412,7 @@ CHANGED_FILES=$({
   git diff --name-only "$MERGE_BASE"...HEAD
   git diff --name-only --cached
   git diff --name-only
-  git ls-files --others --exclude-standard
+  untracked_without_visual_pages
 } | sed '/^$/d' | sort -u)
 
 if [ "$EXCLUDE_REVIEW_ARTIFACTS" = true ]; then

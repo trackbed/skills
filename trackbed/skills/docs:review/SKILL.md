@@ -1,7 +1,7 @@
 ---
 name: docs:review
 description: "Review one Markdown document outside tracked SIW workflows: requirements, implementation plans, strategy drafts, README/docs drafts, proposals, and decision drafts. Classifies the document, tests it with a fresh reader, selects focused review lenses, and returns a verdict with severity-ordered findings inline by default or in a requested report file. Not for source-code review, PR diffs, live-product review, or documents under siw/; use SIW audit skills for tracked SIW artifacts."
-argument-hint: "[markdown-path] [--trade-offs] [--inline|--file|--output <path>]"
+argument-hint: "[markdown-path] [--trade-offs] [--inline|--file|--output <path>] [--visual]"
 disable-model-invocation: true
 user-invocable: true
 ---
@@ -34,6 +34,7 @@ This skill reviews document quality only.
    - If `--file` is present, set `OUTPUT_MODE=file` and `OUTPUT_PATH=DOC_REVIEW.md`.
    - If `--output <path>` is present, set `OUTPUT_MODE=file` and `OUTPUT_PATH` to that path. `--output` overrides `--file`.
    - If no output flag is present, set `OUTPUT_MODE=inline`.
+   - If `--visual` is present, set `VISUAL_REPORT=true`; otherwise set `VISUAL_REPORT=false`. Reject `--visual` when `OUTPUT_MODE=inline`: the visual report mirrors the report file, which is written only with `--file` or `--output <path>`, so `--visual` needs one of them.
 
 2. **Validate the target**
    - Confirm the path exists, is readable, and has a Markdown extension (`.md`, `.markdown`, `.mdown`, or `.mkd`).
@@ -185,6 +186,7 @@ This skill reviews document quality only.
 10. **Deliver output**
     - If `OUTPUT_MODE=inline`, return the report in the final response.
     - If `OUTPUT_MODE=file`, write the report to `OUTPUT_PATH` and return a brief summary with the path, the verdict when there is one, and finding counts by severity.
+    - If `VISUAL_REPORT=true`, after writing the report and before returning that summary, add the page at `OUTPUT_PATH` with `.html` in place of `.md`, so `DOC_REVIEW.md` gets `DOC_REVIEW.html`. Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `findings`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-findings.html`. Its reader is the document's author, deciding which claims and gaps to revise. The page has no follow-up command.
     - Treat `DOC_REVIEW.md` as a working artifact that should not be committed and can be cleaned up by `/trackbed:workflow:cleanup-artifacts`.
 
 ## Error Handling
@@ -208,4 +210,5 @@ This skill reviews document quality only.
 /trackbed:docs:review README.md --file
 /trackbed:docs:review docs/strategy.md --output STRATEGY_REVIEW.md
 /trackbed:docs:review docs/proposal.md --trade-offs
+/trackbed:docs:review docs/proposal.md --file --visual
 ```

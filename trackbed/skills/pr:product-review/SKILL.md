@@ -1,7 +1,7 @@
 ---
 name: pr:product-review
 description: "Assess product value, UX heuristics, visual consistency, and accessibility of local changes with specialist agents. Use when asked or delegated by trackbed:pr:github-review with --inline."
-argument-hint: "[--subagent-model <model>] [app-url|auto] [--categories a11y,ux,product,visual] [--threshold 0-100] [--base <branch>] [--parallel] [--team] [--inline] [--no-diff-comments]"
+argument-hint: "[--subagent-model <model>] [app-url|auto] [--categories a11y,ux,product,visual] [--threshold 0-100] [--base <branch>] [--parallel] [--team] [--inline] [--visual] [--no-diff-comments]"
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -22,11 +22,13 @@ Before selecting a workflow, read and apply `${CLAUDE_PLUGIN_ROOT}/shared/pr-rev
 
 If `$ARGUMENTS` contains `--no-diff-comments`, set `DIFF_COMMENTS=false` and remove that flag. Otherwise set `DIFF_COMMENTS=true`. Preserve this value for Team Mode and standard review output.
 
+If `$ARGUMENTS` contains `--visual`, set `VISUAL_REPORT=true` and remove that flag. Otherwise set `VISUAL_REPORT=false`. Reject `--visual` together with `--inline`: the visual report mirrors `PRODUCT_REVIEW_OVERVIEW.md`, which inline mode does not write. Preserve this value for Team Mode.
+
 Before aggregation, when `DIFF_COMMENTS=true`, `CONDUCTOR_WORKSPACE_ID` is set, and `mcp__conductor__DiffComment` is already present in the current tool set, read and follow `references/conductor-diff-comments.md` while building the canonical finding set. Preserve its projection identities through ordinal ID assignment for the post-audit projection, including in Team Mode. Detect tools by presence; never call one merely to probe availability.
 
 ## Team Mode
 
-If `$ARGUMENTS` contains `--team`, remove that flag, read `references/team-mode.md`, and follow that workflow instead of the standard workflow below. Pass the remaining arguments through as the team-mode arguments. After its final aggregated audit succeeds, run `Post Conductor Diff Comments` below and then stop.
+If `$ARGUMENTS` contains `--team`, remove that flag, read `references/team-mode.md`, and follow that workflow instead of the standard workflow below. Pass the remaining arguments through as the team-mode arguments. After its final aggregated audit succeeds, run `Post Conductor Diff Comments` below and then stop. When `VISUAL_REPORT=true`, also run `Write the Visual Report` below before stopping.
 
 ## Audit Workflow
 
@@ -233,7 +235,7 @@ For each applicable agent, launch the reviewer using the platform's agent-invoca
 - Committed PR diff: `git diff "$MERGE_BASE"...HEAD` (using the base resolved in Step 3)
 - Staged local diff: `git diff --cached`
 - Unstaged local diff: `git diff`
-- Untracked local files list: `git ls-files --others --exclude-standard` (agents should treat these as new files and review full file content)
+- Untracked local files list: `git ls-files --others --exclude-standard`, leaving out any file that `CHANGED_FILES` does not also list, such as a visual report page (agents should treat these as new files and review full file content)
 - The `app_url` and browser MCP type (if visual mode), plus the instruction to end its output with `Browser evidence: yes` when it inspected `app_url` in the browser, or `Browser evidence: no`
 - When `STACK_CONTEXT` reports `stacked`: the stack context JSON and the `Reviewer rules` section of the stacked Pull Request reference
 - No report threshold: each agent reports every finding with its confidence, and Step 8 applies the threshold
@@ -334,6 +336,10 @@ When file output is used, `PRODUCT_REVIEW_OVERVIEW.md` is a working artifact —
 ### Post Conductor Diff Comments (When Available)
 
 After the canonical audit succeeds, when `CONDUCTOR_WORKSPACE_ID` is set, handle the optional projection for Team Mode, inline output, and file output. If `DIFF_COMMENTS=true` and `mcp__conductor__DiffComment` is already present in the current tool set, apply `references/conductor-diff-comments.md` using the identities preserved during aggregation. Otherwise report `Diff comments posted: 0 (skipped 0 already present)` and `Diff comment projection: skipped — disabled by --no-diff-comments` or `Diff comment projection: skipped — DiffComment unavailable`, as applicable.
+
+### Write the Visual Report (`--visual`)
+
+When `VISUAL_REPORT=true`, add `PRODUCT_REVIEW_OVERVIEW.html` beside the written `PRODUCT_REVIEW_OVERVIEW.md`, after standard file output and after Team Mode writes its aggregated audit. Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `findings`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-findings.html`. Its reader is the branch's author, deciding which product, usability, visual, and accessibility problems to fix before release. Follow-up command for the page: `/trackbed:pr:resolve-review`.
 
 ### Step 12: Provide Action Plan
 

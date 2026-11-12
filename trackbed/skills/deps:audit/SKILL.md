@@ -1,7 +1,7 @@
 ---
 name: deps:audit
 description: "(experimental) Audit project dependencies for outdated packages, security vulnerabilities, and staleness. Generates a prioritized upgrade plan with risk assessment."
-argument-hint: "[--auto]"
+argument-hint: "[--auto] [--visual]"
 disable-model-invocation: true
 user-invocable: true
 ---
@@ -14,6 +14,7 @@ Parse `$ARGUMENTS` for `--auto` before Step 1.
 
 - If present, set `AUTO_MODE=true` and remove the flag from the remaining input.
 - `--auto` means: audit all detected ecosystems, write `DEPENDENCY_AUDIT.md`, and stop in review-only mode without applying updates or creating SIW issues.
+- If `--visual` is present, set `VISUAL_REPORT=true` and remove the flag from the remaining input; otherwise set `VISUAL_REPORT=false`.
 
 ---
 
@@ -118,6 +119,8 @@ Present these options:
 4. Write `DEPENDENCY_AUDIT.md`, then create a SIW workflow with one issue per Phase 4 campaign (via `/trackbed:siw:init`)
 5. Generate a visual HTML report via `/trackbed:visual:explain`, no changes
 
+When `VISUAL_REPORT=true`, present only options 2-4: the visual report mirrors `DEPENDENCY_AUDIT.md`, which options 1 and 5 do not write.
+
 For option 4: `/trackbed:siw:init` is user-invoked (the model cannot invoke it directly) — write the report, then present the exact `/trackbed:siw:init` command for the user to run. On a host without slash commands, present the equivalent `$trackbed:siw:init` mention instead. Never read that skill's `SKILL.md` and run its steps yourself.
 
 ### Writing the report
@@ -128,6 +131,8 @@ When the chosen action writes the report:
 - Populate one report file at `<project-root>/DEPENDENCY_AUDIT.md`.
 - **Overwrite** any existing `DEPENDENCY_AUDIT.md` without prompting (the report is a snapshot, not append-only). Note the overwrite in the Step 7 summary.
 - For multi-ecosystem audits, render one populated copy of every top-level template section per ecosystem under a `## Ecosystem: <name>` heading, in the order ecosystems are listed in `PACKAGE_MANAGER`. Keep the top-of-file `Summary` section as a single combined view across ecosystems.
+
+**Visual report (`--visual`).** When `VISUAL_REPORT=true`, add `DEPENDENCY_AUDIT.html` beside the written `DEPENDENCY_AUDIT.md`. Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `assessment`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-assessment.html`. Its reader is a maintainer deciding what to upgrade now, what to schedule, and how risky each upgrade is; the upgrade phases are the things measured. Follow-up commands for the page: `/trackbed:code:breakdown-findings`, `/trackbed:linear:breakdown-findings`.
 
 ### Applying Phase 2 (option 3)
 

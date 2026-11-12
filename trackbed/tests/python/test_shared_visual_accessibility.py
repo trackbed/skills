@@ -121,6 +121,49 @@ class PaletteContrastTests(unittest.TestCase):
         self.assertIn("sample scheme 0: --red-dim missing or not rgba", failures)
 
 
+REPORT_RUNTIME = VISUAL / "assets" / "report-runtime.css"
+PAIRED_HEX = re.compile(r"--([a-z0-9-]+):\s*light-dark\(\s*#([0-9a-fA-F]{6}),\s*#([0-9a-fA-F]{6})\s*\);")
+PAIRED_DIM = re.compile(
+    r"--([a-z0-9-]+)-dim:\s*light-dark\(\s*rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\),"
+    r"\s*rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)\s*\);"
+)
+REPORT_COLORS = ("accent", "green", "red", "orange", "yellow", "blue", "violet")
+
+
+def paired_scheme(text: str, scheme: int) -> str:
+    """Rewrite one side of every `light-dark()` pair as a plain `:root` block."""
+    lines = [f"--{m.group(1)}: #{m.group(2 + scheme)};" for m in PAIRED_HEX.finditer(text)]
+    for match in PAIRED_DIM.finditer(text):
+        red, green, blue, alpha = match.groups()[1 + scheme * 4 : 5 + scheme * 4]
+        lines.append(f"--{match.group(1)}-dim: rgba({red}, {green}, {blue}, {alpha});")
+    return ":root { " + " ".join(lines) + " }"
+
+
+class ReportRuntimePaletteTests(unittest.TestCase):
+    """The visual report runtime defines each token once, as a light and dark pair."""
+
+    def setUp(self) -> None:
+        self.text = REPORT_RUNTIME.read_text(encoding="utf-8")
+
+    def test_every_token_a_report_page_may_use_has_both_schemes(self) -> None:
+        tokens = {match.group(1) for match in PAIRED_HEX.finditer(self.text)}
+        tints = {match.group(1) for match in PAIRED_DIM.finditer(self.text)}
+        self.assertEqual(tokens, {*SURFACES, *TEXT_TOKENS, *REPORT_COLORS})
+        self.assertEqual(tints, set(REPORT_COLORS))
+        self.assertIn("color-scheme: light dark;", self.text)
+
+    def test_report_text_and_colors_meet_the_contrast_floor_in_both_schemes(self) -> None:
+        failures = []
+        for scheme, name in enumerate(("light", "dark")):
+            failures += palette_failures(paired_scheme(self.text, scheme), f"report-runtime.css {name}")
+        self.assertEqual(failures, [])
+
+    def test_the_paired_checker_reads_each_side(self) -> None:
+        sample = "--bg: light-dark(#ffffff, #000000); --text: light-dark(#111111, #eeeeee);"
+        self.assertEqual(paired_scheme(sample, 0), ":root { --bg: #ffffff; --text: #111111; }")
+        self.assertEqual(paired_scheme(sample, 1), ":root { --bg: #000000; --text: #eeeeee; }")
+
+
 class DiagramNameTests(unittest.TestCase):
     TAG = re.compile(r"<(pre|canvas|svg)\b([^>]*)>", re.S)
     INLINE_CODE = re.compile(r"`[^`\n]+`")

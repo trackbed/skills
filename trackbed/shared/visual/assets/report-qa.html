@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QA report · QA_REPORT.md</title>
+    <!--
+      Authoring template for the --visual report style, shape "qa": a run against a
+      live app whose reader asks whether it is ready to ship, what was exercised,
+      and what broke. The contract is in shared/visual/references/visual-report.md;
+      this file shows it applied to a small run. Replace every value: nothing here
+      is boilerplate to keep.
+
+      One trackbed-followup per command the reader can paste the triage prompt into.
+    -->
+    <meta name="trackbed-followup" content="/trackbed:code:breakdown-findings" />
+    <!-- Leave both runtime elements empty. scripts/visual-report.py fills them. -->
+    <style data-trackbed-runtime></style>
+  </head>
+  <body>
+    <main
+      data-report
+      data-shape="qa"
+      data-noun="finding findings"
+      data-producer="trackbed:qa diff-aware"
+      data-source="QA_REPORT.md"
+      data-generated="2026-01-15T14:02:00+0100"
+      data-commit="1a2b3c4d5e6f"
+      data-root="/Users/example/project"
+      data-facets="severity category"
+    >
+      <!-- The ship decision first, then what blocks it and how much was covered. -->
+      <header data-report-header>
+        <h1>QA report</h1>
+        <p>
+          Not ready to ship. <a href="#entry-QA-001">New accounts cannot sign in</a>, which blocks the release. Three
+          of four journeys were run; <a href="#tested">one could not be reached</a>.
+        </p>
+      </header>
+
+      <details class="tr-legend">
+        <summary>How to read this report</summary>
+        <dl class="tr-fields">
+          <dt>Blocker</dt>
+          <dd>A core journey fails. Fix before shipping.</dd>
+          <dt>Major</dt>
+          <dd>A journey works but a person would notice the fault.</dd>
+          <dt>Minor</dt>
+          <dd>Cosmetic, or an edge case.</dd>
+          <dt>Health score</dt>
+          <dd>A weighted score out of 100 across eight categories; the detail is at the end.</dd>
+        </dl>
+      </details>
+
+      <div class="tr-kpis">
+        <div class="tr-kpi"><b>62 / 100</b><span>health score</span></div>
+        <div class="tr-kpi"><b>1</b><span>blocker</span></div>
+        <div class="tr-kpi"><b>3 of 4</b><span>journeys run</span></div>
+        <div class="tr-kpi"><b>1</b><span>journey passed</span></div>
+      </div>
+
+      <!-- Findings first, worst first. Each one is written from what a person sees. -->
+      <section data-section id="blockers">
+        <h2>Blockers</h2>
+        <!-- The report says "Blocker"; the shared scale calls that level "critical". -->
+        <article
+          data-entry
+          data-id="QA-001"
+          data-severity="critical"
+          data-severity-label="Blocker"
+          data-category="functional"
+        >
+          <!-- Title: what is broken, as a person meets it. Where: the route or screen. -->
+          <h3>New accounts cannot sign in</h3>
+          <p data-where>Route <code>/login</code></p>
+          <p>
+            Signing in with an account created today shows "Something went wrong" and stays on the sign-in page, so a
+            new customer cannot reach the product at all.
+          </p>
+          <h4>Steps to reproduce</h4>
+          <ol>
+            <li>Open <code>/signup</code> and create an account.</li>
+            <li>Sign out, then open <code>/login</code>.</li>
+            <li>Enter the new account's email and password and choose Sign in.</li>
+          </ol>
+          <h4>Expected and actual</h4>
+          <dl class="tr-fields">
+            <dt>Expected</dt>
+            <dd>The board opens.</dd>
+            <dt>Actual</dt>
+            <dd>An error banner appears and the page does not change.</dd>
+          </dl>
+          <h4>Evidence</h4>
+          <!-- An evidence image keeps the relative path the report cites, with an alt that says what it shows. -->
+          <figure class="tr-figure">
+            <img src="qa-evidence/qa-001-login-error.png" alt="Sign-in page showing a red banner: Something went wrong" />
+            <figcaption>The banner after step 3.</figcaption>
+          </figure>
+          <pre><code>401 /api/session
+{"error":"profile_missing"}</code></pre>
+          <h4>Suggested fix</h4>
+          <div data-copy="suggested fix">
+            <p>Create the profile row when the account is created, in <code data-loc>src/api/signup.ts:38</code>.</p>
+          </div>
+        </article>
+      </section>
+
+      <section data-section id="major">
+        <h2>Major</h2>
+        <article
+          data-entry
+          data-id="QA-002"
+          data-severity="high"
+          data-severity-label="Major"
+          data-category="visual"
+        >
+          <h3>The task title overlaps the due date on narrow screens</h3>
+          <p data-where>Route <code>/board</code>, at 375 pixels wide</p>
+          <p>Long titles run under the due date, so neither can be read on a phone.</p>
+          <h4>Steps to reproduce</h4>
+          <ol>
+            <li>Open <code>/board</code> at a width of 375 pixels.</li>
+            <li>Look at any task whose title is longer than one line.</li>
+          </ol>
+          <h4>Suggested fix</h4>
+          <div data-copy="suggested fix"><p>Let the title wrap, and move the due date to its own line.</p></div>
+        </article>
+      </section>
+
+      <!-- What was run, and the result of each journey. It stays open: it is half the answer. -->
+      <section data-section id="tested" data-triage="off">
+        <h2>What was tested</h2>
+        <p>Four journeys touched by this branch. One could not be reached because sign-in is broken.</p>
+        <table data-tested data-sortable>
+          <thead>
+            <tr>
+              <th>Journey</th>
+              <th>Route</th>
+              <th>Result</th>
+              <th>Finding</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Sign in as a new account</td>
+              <td><code>/login</code></td>
+              <td>Failed</td>
+              <td><a href="#entry-QA-001">QA-001</a></td>
+            </tr>
+            <tr>
+              <td>Read the board on a phone</td>
+              <td><code>/board</code></td>
+              <td>Failed</td>
+              <td><a href="#entry-QA-002">QA-002</a></td>
+            </tr>
+            <tr>
+              <td>Create a task</td>
+              <td><code>/board</code></td>
+              <td>Passed</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>Change notification settings</td>
+              <td><code>/settings</code></td>
+              <td>Not reached: needs a new account</td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Reference material comes last, folded. -->
+      <section data-section id="about" data-triage="off" data-collapsed>
+        <h2>About this run</h2>
+        <h4>Health score</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Score</th>
+              <th>Findings</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Functional</td>
+              <td><meter min="0" max="100" value="40" data-tone="bad">40 of 100</meter> 40</td>
+              <td>1</td>
+            </tr>
+            <tr>
+              <td>Visual</td>
+              <td><meter min="0" max="100" value="70" data-tone="warn">70 of 100</meter> 70</td>
+              <td>1</td>
+            </tr>
+          </tbody>
+        </table>
+        <h4>Scope</h4>
+        <p>A diff-aware run against <code>http://localhost:3000</code>, in a browser, at desktop and phone widths.</p>
+      </section>
+    </main>
+    <script data-trackbed-runtime></script>
+  </body>
+</html>
