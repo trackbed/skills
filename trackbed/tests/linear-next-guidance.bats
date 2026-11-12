@@ -253,3 +253,25 @@ PY
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
+
+@test "Linear next checks the full backlog with --all" {
+	run bash -c '
+    set -e
+    cd "'"$BATS_TEST_DIRNAME"'/.."
+    skill="skills/linear:next/SKILL.md"
+
+    grep -qF "[--limit <n>|--all]" "$skill"
+    grep -qF "\`--all\`: check the full backlog. Collect every candidate that matches the other filters, with no per-pool cap" "$skill"
+    grep -qF "instead of stopping once \`--count\` ready issues and a parallel set are found" "$skill"
+    grep -qF "It widens coverage only" "$skill"
+    grep -qF "Cannot be combined with \`--limit\`." "$skill"
+    grep -qF "If \`--all\` and \`--limit\` are combined, stop and ask the user to choose one." "$skill"
+    grep -qF "to \`--all\`." "$skill"
+    grep -qF "With \`--all\`, the pool has no cap" "$skill"
+    grep -qF "Never stop paging early or sample the backlog." "$skill"
+    grep -qF "With \`--all\`, skip the early stop: enrich and assess every candidate collected in Step 4" "$skill"
+    grep -qF "\`full backlog ({assessed} of {collected} candidates assessed)\`" "$skill"
+  '
+
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
