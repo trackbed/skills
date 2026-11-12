@@ -24,6 +24,8 @@ Use it to hand one Linear issue to the agent and get back a reviewed, verified b
 | `--cycles <1-5>` | How many fix-and-review rounds the review may take. The default is 2. |
 | `--depth <balanced\|full>` | Raise the review profile above the one the branch's risk calls for. It never lowers it. |
 | `--adversarial-review` | Also get a review from the other model provider on medium- and high-risk work. You decide any of its findings the run wants to reject. |
+| `--rebase` | With `--ship`, rebase the opened Pull Request onto its base once if the base moved, and force-push it, instead of asking. |
+| `--no-rebase` | With `--ship`, keep the pushed branch as it is if the base moved, and do not ask. You cannot combine it with `--rebase`. |
 | `--launch-confirmed` | Skip the start confirmation for an issue that is not started yet, because you already gave it. `trackbed:linear:next` sets this when it launches a run. |
 
 ## Examples
