@@ -11,16 +11,59 @@ The site renders sources that already exist in this repository. No page content 
 | Home, Start Here, Workflows, the Skills and Agents overviews, Reference | `##` sections of the root `README.md` |
 | Guides | The user-facing guides under `trackbed/docs/` |
 | One page per skill and agent | `trackbed/docs/component-catalog.json` for the list, each component's frontmatter, and the README summaries in `trackbed/scripts/synced-contracts.yaml` |
+| The arguments, options, examples, and results on a skill's page | That skill's [usage guide](#usage-guides) under `trackbed/docs/usage/` |
 
 `npm run sync` writes the pages to `src/content/docs/` and the sidebar to `src/generated/site.json`. Both are git-ignored and rebuilt on every run. On the way it:
 
 - rewrites repository links to site pages, or to GitHub for files the site does not carry;
 - links every `` `trackbed:<name>` `` code span to that skill's or agent's page;
-- lists, on each component page, the guides and skills that mention it.
+- lists, on each component page, the guides and skills that mention it;
+- puts the Quick Start on the home page, between the README's introduction and its notices;
+- leaves the Arguments column off the skills overview, because each skill's page shows its arguments and four columns do not fit a narrow screen;
+- tags a code block that holds only host commands, such as `/trackbed:setup`, so it is highlighted as a command and not drawn as a terminal;
+- adds each component's short names to its page for search, so `pr:code-review` and `code-review` find `trackbed:pr:code-review`.
 
 A link whose target no longer exists fails the sync, and the build validates every internal link and anchor. A skill missing from the README's skill tables, and a reference-style link or footnote in the README, fail it too: the README is split into pages, which would separate such a link from its definition.
 
 Links to files on GitHub point at the commit Vercel is building, so they keep working on the live site after `main` moves on. Local and CI builds link to `main`, and "Edit page" links always do.
+
+## Usage guides
+
+Every skill a person can start has a usage guide at `trackbed/docs/usage/<name>.md`, where `<name>` is the skill's name with `:` replaced by `-`. It is written for someone who has not read the skill: when to use it, what each argument and option does, a few examples, and what comes back. The site puts it on the skill's page, and it reads as a normal Markdown file on GitHub.
+
+```markdown
+# pr:create
+
+When to use it, what it does, and what it changes.
+
+## Before you run it
+
+## Arguments
+
+## Options
+
+| Option | Effect |
+| --- | --- |
+| `--draft` | Open the Pull Request as a draft. |
+
+## Examples
+
+## What you get
+```
+
+The sync checks each guide against its skill, and fails when:
+
+- a user-invocable skill has no guide, or a guide matches no such skill;
+- the title is not the skill's short name, or a heading is not one of the five above, in that order;
+- `Examples` or `What you get` is missing;
+- the flags in the first column of the Options table differ from the flags in the skill's `argument-hint`;
+- an example is not a command for this skill, or uses a flag the `argument-hint` does not list.
+
+So a flag added to or removed from a skill fails the Docs Site job until the guide says so too. The checks cannot tell whether an explanation is true; read the guide against the skill when you change either.
+
+## Images
+
+An image under `site/public/` is served by the site, and the README or a guide can show it with an ordinary relative link, which also works on GitHub. Any other image is loaded from GitHub. `site/public/og.png` is the image shown when a link to the site is shared; its source is [scripts/og-card.html](scripts/og-card.html), which says how to render it again.
 
 ## Placing new material
 

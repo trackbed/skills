@@ -91,6 +91,7 @@ user-invocable: true
 
 - **PREFER** moving reference data, prompts, and examples to `references/`, templates to `assets/`, and executable behavior to `scripts/`, with explicit on-demand read instructions from `SKILL.md`; see [Anthropic's skill documentation](https://code.claude.com/docs/en/skills#add-supporting-files).
 - **CAN** use `/trackbed:skill:create` for guided skill scaffolding.
+- **ALWAYS** give every user-invocable skill a usage guide at `trackbed/docs/usage/<domain>-<skill-name>.md`, and update it in the same change that adds, renames, or removes one of the skill's flags: the documentation site shows it on the skill's page, and its sync fails when the Options table and the `argument-hint` list different flags, per [site/README.md](site/README.md#usage-guides).
 
 ### Hooks
 
