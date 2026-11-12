@@ -13,6 +13,7 @@ function encodeRepoPath(repoPath) {
 }
 
 const GITHUB_VIEWS = { file: "blob", directory: "tree", image: "raw" };
+const SITE_PUBLIC_DIR = "site/public/";
 
 /**
  * A repository path on GitHub as it is at `ref` (a branch, tag, or commit).
@@ -42,8 +43,9 @@ function decodeLinkPath(rawPath) {
  * Build the function that turns a link written in a repository file into the
  * link the site should carry: a site page when the target is on the site,
  * otherwise the file on GitHub. A link whose target does not exist throws, so
- * link rot in the sources fails the build instead of shipping. An image always
- * points at the file's bytes on GitHub.
+ * link rot in the sources fails the build instead of shipping. An image under
+ * `site/public/` is served by the site; any other image points at the file's
+ * bytes on GitHub.
  *
  * - `pathKind(repoPath)` returns "file", "directory", or null.
  * - `filePages` maps a repository file to the page that renders all of it.
@@ -78,7 +80,12 @@ export function createLinkResolver({
     if (kind === null) {
       throw new Error(`link target does not exist: ${url}`);
     }
-    if (image) return githubUrl(target, { ref: sourceRef, kind: "image" });
+    if (image) {
+      // Astro serves `site/public/` from the site's root.
+      return target.startsWith(SITE_PUBLIC_DIR)
+        ? `/${target.slice(SITE_PUBLIC_DIR.length)}`
+        : githubUrl(target, { ref: sourceRef, kind: "image" });
+    }
 
     if (target === README_PATH) {
       if (anchor === null) return pageUrl(HOME_PAGE);
