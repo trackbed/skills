@@ -188,7 +188,7 @@
     child="skills/linear:issue-implement/SKILL.md"
     branch_setup="skills/linear:issue-implement/references/branch-setup.md"
 
-    grep -qF "argument-hint: \"<ISSUE-ID> [--continue] [--strict] [--cycles <1-5>] [--depth <balanced|full>] [--adversarial-review] [--launch-confirmed] [--ship]\"" "$parent"
+    grep -qF "argument-hint: \"<ISSUE-ID> [--continue] [--strict] [--cycles <1-5>] [--depth <balanced|full>] [--adversarial-review] [--launch-confirmed] [--ship] [--rebase|--no-rebase]\"" "$parent"
     grep -qF "Stop on any unrelated or ambiguous path" "$parent"
     grep -qF "require \`{confirmed-state-id}\` to equal \`{target-status-id}\`" "$parent"
     grep -qF "issue no Linear write" "$parent"
@@ -595,6 +595,30 @@ PYTEST
     grep -qF "invoke \`trackbed:verify:run\` with \`--full\`" "$shared_contract"
     ! grep -qF "trackbed:pr:overengineering-review --requirements" "$shipping"
     ! grep -qF "trackbed:pr:overengineering-review --requirements" "$shared_contract"
+  '
+
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
+@test "Linear issue to PR settles base drift with --rebase or --no-rebase only under --ship" {
+	run bash -c '
+    set -e
+    cd "'"$BATS_TEST_DIRNAME"'/.."
+    skill="skills/linear:issue-to-pr/SKILL.md"
+    shipping="skills/linear:issue-to-pr/references/shipping-contract.md"
+
+    grep -qF "\`rebase_flag\` as \`{rebase-flag}\` (JSON \`null\` when absent)" "$skill"
+    grep -qF "\`--rebase\` and \`--no-rebase\` answer the base-drift question in advance and require \`--ship\`; the helper refuses them together." "$skill"
+    grep -qF "\`--rebase\` is the user'"'"'s permission to rebase the Pull Request this run opened onto its base once and force-push it through the guarded \`trackbed:pr:rebase --force-push\` path." "$skill"
+    grep -qF "the Pull Request branch it opened, bypassing a lease mismatch" "$skill"
+    grep -qF "7. Invoke \`trackbed:pr:fix-ci --no-consolidate\`, plus \`{rebase-flag}\` when set, until CI is green" "$skill"
+    grep -qF "Base drift: {fix-ci'"'"'s Base drift value: in sync | kept — {N} commits behind origin/{base}; {reason} | rebased onto origin/{base} — {--rebase | user'"'"'s answer}}" "$skill"
+
+    grep -qF "When Step 1 recorded \`{rebase-flag}\`, append it: \`trackbed:pr:fix-ci --no-consolidate --rebase\` or \`trackbed:pr:fix-ci --no-consolidate --no-rebase\`." "$shipping"
+    grep -qF "The later-session recovery invocation is always \`trackbed:pr:fix-ci --no-consolidate\` without \`{rebase-flag}\`, because the grant expires with this invocation." "$shipping"
+    grep -qF "Keep its \`Base drift:\` line for the final report." "$shipping"
+    grep -qF "\`--rebase\` additionally authorizes one rebase of the Pull Request this invocation opened onto its base, and its force-push" "$shipping"
+    grep -qF "It never authorizes a second rebase, a rebase of another branch, or a push that bypasses a lease mismatch." "$shipping"
   '
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }

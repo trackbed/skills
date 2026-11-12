@@ -218,6 +218,7 @@ class ArgumentTests(HelperCase):
             "cycles": 2,
             "cycles_explicit": False,
             "depth": None,
+            "rebase_flag": None,
         }
         self.assertEqual({key: payload[key] for key in expected}, expected)
         state_file = Path(payload["state_file"])
@@ -239,6 +240,16 @@ class ArgumentTests(HelperCase):
             self.assertEqual(self.invoke("args", "--", f"DISC-1 --depth {depth} --ship")["depth"], depth)
         for value in "1234":
             self.assertEqual(self.invoke("args", "--", f"DISC-1 --cycles {value}")["cycles"], int(value))
+
+    def test_rebase_flags_record_the_drift_answer_for_shipping(self) -> None:
+        self.assertIsNone(self.invoke("args", "--", "DISC-1 --ship")["rebase_flag"])
+        for flag in ("--rebase", "--no-rebase"):
+            with self.subTest(flag=flag):
+                payload = self.invoke("args", "--", f"{flag} DISC-1 --continue --ship")
+                self.assert_status(payload, "ok")
+                self.assertEqual(payload["rebase_flag"], flag)
+                state = json.loads(Path(payload["state_file"]).read_text(encoding="utf-8"))
+                self.assertEqual(state["args"]["rebase_flag"], flag)
 
     def test_split_and_joined_tokens_parse_identically(self) -> None:
         def facts(payload: dict[str, Any]) -> dict[str, Any]:
@@ -277,6 +288,12 @@ class ArgumentTests(HelperCase):
             "--depth --ship DISC-1": "depth_value_invalid",
             "DISC-1 --depth full --depth full": "duplicate_flag",
             "DISC-1 --depth=full": "unknown_flag",
+            "DISC-1 --ship --rebase --no-rebase": "rebase_flags_conflict",
+            "DISC-1 --no-rebase --ship --rebase": "rebase_flags_conflict",
+            "DISC-1 --ship --rebase --rebase": "duplicate_flag",
+            "DISC-1 --rebase": "rebase_requires_ship",
+            "DISC-1 --no-rebase --strict": "rebase_requires_ship",
+            "DISC-1 --rebase=yes --ship": "unknown_flag",
             "": "issue_id_missing",
             "--ship --strict": "issue_id_missing",
             "DISC-1 DISC-2": "extra_positional",
@@ -303,6 +320,7 @@ class ArgumentTests(HelperCase):
                         "--adversarial-review",
                         "--launch-confirmed",
                         "--ship",
+                        "--rebase|--no-rebase",
                     ],
                 )
                 self.assertNotIn("state_file", payload)
@@ -329,6 +347,7 @@ class ArgumentTests(HelperCase):
             ("malformed", "{"),
             ("other-tool", json.dumps(dict(document, tool="other"))),
             ("bad-args", json.dumps(dict(document, args=dict(document["args"], cycles=9)))),
+            ("bad-rebase-flag", json.dumps(dict(document, args=dict(document["args"], rebase_flag="--force")))),
             ("old-schema", json.dumps(dict(document, schema_version=0))),
         ):
             candidates[name] = self.tmp / f"{name}.json"
