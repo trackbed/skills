@@ -59,3 +59,48 @@
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
+
+@test "implementation questions reach the user as one decision request with options and a recommendation" {
+	run bash -c '
+		set -e
+		cd "'"$BATS_TEST_DIRNAME"'/.."
+		implement="skills/linear:issue-implement/SKILL.md"
+		examples="skills/linear:issue-implement/references/question-examples.md"
+		work="skills/code:work-from-plan/SKILL.md"
+		plan="skills/code:plan-to-pr/SKILL.md"
+		guide="docs/shipping.md"
+		read_format="read \`\${CLAUDE_PLUGIN_ROOT}/shared/implementation/references/decision-request.md\`"
+
+		# issue-implement collects blocking questions and asks them all at once in the shared format.
+		step=$(sed -n "/^### 5.2 Ask Clarifying Questions$/,/^### 5.3 /p" "$implement")
+		printf "%s\n" "$step" | grep -qF "Collect every question that blocks implementation before asking any of them."
+		printf "%s\n" "$step" | grep -qF "Ask the remaining questions together in one decision request: $read_format and follow it for this request, with the issue identifier as the work item."
+		printf "%s\n" "$step" | grep -qF "with the recommended option first and marked \`(recommended)\`"
+		printf "%s\n" "$step" | grep -qF "In the host'"'"'s question dialog, send every question in one call"
+		printf "%s\n" "$step" | grep -qF "Never wait for one answer before asking the next question."
+		! printf "%s\n" "$step" | grep -qF "Use AskUserQuestion for each unclear aspect" || exit 1
+
+		# The --auto default rule is unchanged.
+		printf "%s\n" "$step" | grep -qF "In \`AUTO_MODE\`, first choose conservative defaults when the codebase and issue text clearly support them"
+		printf "%s\n" "$step" | grep -qF "If an ambiguity would change product scope, data model, security posture, public API, or user-visible behavior, ask even in \`AUTO_MODE\`."
+
+		# Out of scope: the approach selection and the Linear state gate keep their wording.
+		grep -qF "question: \"How would you like to proceed with implementing this issue?\"" "$implement"
+		grep -qF "this exact question: \`Proceed with implementation and move the issue to {target-status-name}?\`" skills/linear:issue-implement/references/status-transition.md
+
+		# The example request numbers three decisions, puts a recommended option first in each, and closes with one State line.
+		[ "$(grep -c "^Decision [0-9] of 3 · {issue-id}: " "$examples")" -eq 3 ]
+		[ "$(grep -c "^1\. .* (recommended): " "$examples")" -eq 3 ]
+		[ "$(grep -c "^State: " "$examples")" -eq 1 ]
+
+		# work-from-plan returns its question in the format; plan-to-pr relays it unchanged.
+		grep -qF "Write the question in the shared decision-request format: $read_format first." "$work"
+		grep -qF "numbered options that say what each one causes, the recommended option first and ending with \`(recommended)\`" "$work"
+		grep -qF "Leave out the work item and the \`State:\` line; the parent adds them." "$work"
+		grep -qF "Keep its question, evidence, and options unchanged; only put \`Decision needed · {execution-label}: \` before the question and add the \`State:\` line." "$plan"
+
+		grep -qF "Questions raised during implementation use the same format." "$guide"
+	'
+
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
