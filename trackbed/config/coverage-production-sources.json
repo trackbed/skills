@@ -415,6 +415,14 @@
     },
     {
       "kind": "guidance",
+      "suite": "trackbed/tests/decision-request-guidance.bats",
+      "skills": [
+        "trackbed/skills/code:plan-to-pr/SKILL.md",
+        "trackbed/skills/linear:issue-to-pr/SKILL.md"
+      ]
+    },
+    {
+      "kind": "guidance",
       "suite": "trackbed/tests/issue-and-plan-to-pr-guidance.bats",
       "skills": [
         "trackbed/skills/code:breakdown-findings/SKILL.md",
