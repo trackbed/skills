@@ -1,7 +1,7 @@
 ---
 name: linear:next
 description: "Requires Linear MCP. Finds up to 10 valuable, unstarted, ready-to-start issues from a Linear team by default, using structured flags or a free-form query, including explicit states and autonomous agent-readiness. Actively finds a strong parallel set and gives every reported issue a plain-language summary. In a Conductor cloud workspace, offers to start confirmed issues in new workspaces. Use when deciding what to pick up next. Not for creating, editing, or closing Linear issues."
-argument-hint: "[team or selection query] [--state <name>] [--agent-ready] [--interest <preference>] [--mine|--unassigned|--both] [--project <name>] [--label <name>] [--count <n>] [--limit <n>]"
+argument-hint: "[team or selection query] [--state <name>] [--agent-ready] [--interest <preference>] [--mine|--unassigned|--both] [--project <name>] [--label <name>] [--count <n>] [--limit <n>|--all]"
 disable-model-invocation: true
 user-invocable: true
 permissions:
@@ -35,6 +35,7 @@ Parse `$ARGUMENTS` before Step 1.
 - `--label <name>`: filter to a label.
 - `--count <n>`: number of ready issues to try to find and rank. Default 10, maximum 25.
 - `--limit <n>`: cap collected candidates per pool after priority-ordered pagination. Default 150, maximum 250.
+- `--all`: check the full backlog. Collect every candidate that matches the other filters, with no per-pool cap, and enrich and assess every one of them before ranking instead of stopping once `--count` ready issues and a parallel set are found. It widens coverage only: state, assignee pool, project, label, and agent-ready filters still apply, and `--count` still sizes the ranked shortlist. Cannot be combined with `--limit`.
 - `--interest <description>`: describe the kind of work the user wants to do, such as `frontend polish`, `small bug fixes`, `backend architecture`, `high customer impact`, `low coordination`, or `docs and cleanup`. Treat this as a ranking preference, not a hard filter, unless the user explicitly says `only`.
 
 Treat unflagged input as a free-form selection query when it begins with a selection request such as `find`, `identify`, `list`, `show`, `recommend`, or `select`, or when it contains an explicit constraint about state, assignee, readiness, project, label, count, or work preference. Extract only constraints stated by the user; do not invent filters from descriptive filler. In particular:
@@ -43,13 +44,14 @@ Treat unflagged input as a free-form selection query when it begins with a selec
 - Map `assigned to me`, `unassigned`, or an explicit request for both to the corresponding candidate pool.
 - Map phrases such as `ready for autonomous agent-driven implementation`, `agent-ready`, or `can be implemented autonomously` to `--agent-ready` semantics.
 - Map a requested number of issues, such as `find 5 issues`, to `--count`.
+- Map a request to check the whole backlog, such as `look through the full backlog` or `check every issue`, to `--all`.
 - Preserve other work-type language as the interest preference, and preserve `only` as a hard preference filter.
 
 For example, `Please identify Linear issues that are in Backlog or To-do state that are ready for autonomous agent-driven implementation` means: infer the team in Step 2, include only workflow states matching `Backlog` or `To-do`, enable agent-ready filtering, and do not interpret the sentence as a team name.
 
 When unflagged input has no selection-query signal and no leading team match was found, first try the whole value as the team name/key/ID. If it resolves, use it as the team. If it does not resolve and the text contains additional words, treat it as a selection query only when its constraints can be parsed unambiguously; otherwise ask one short clarification question. If a team resolves and extra unflagged text remains, treat that remainder as selection-query text.
 
-If mutually exclusive assignee flags are combined, stop and ask the user to choose one pool. Reject unknown flags, a `--count` outside 1-25, a `--limit` outside 1-250, or an empty flag value with one short message naming the offending token. Allow repeated `--state`; reject other repeated singleton flags.
+If mutually exclusive assignee flags are combined, stop and ask the user to choose one pool. If `--all` and `--limit` are combined, stop and ask the user to choose one. Reject unknown flags, a `--count` outside 1-25, a `--limit` outside 1-250, or an empty flag value with one short message naming the offending token. Allow repeated `--state`; reject other repeated singleton flags.
 
 ## Workflow
 
@@ -78,15 +80,16 @@ If mutually exclusive assignee flags are combined, stop and ask the user to choo
      - `unassigned`: `assignee: null`
    - For each pool, collect candidates in priority order before recency: Urgent (`priority: 1`), High (`2`), Medium (`3`), Low (`4`), then None (`0`).
    - For each priority bucket, call Linear MCP `list_issues` with selected `team`, pool assignee filter, available `state` filters, optional `project`, optional `label`, priority, and a page `limit` no larger than the remaining pool cap. Follow the returned cursor until that bucket is exhausted or the pool cap is reached.
+   - With `--all`, the pool has no cap: use the tool's largest page size and follow every cursor until every bucket is exhausted. Never stop paging early or sample the backlog.
    - If the Linear tool cannot filter by state in one call, run the priority-paged query once per available state and merge results.
    - If the Linear tool cannot filter by priority, page through `list_issues` until the pool cap is reached, then sort locally by Linear priority before enrichment and report the weaker confidence if the pool cap was reached.
    - Dedupe by issue identifier or UUID.
-   - If any pool hits the cap before all pages are exhausted, state that ranking is based on the highest-priority collected candidates and suggest increasing `--limit` or narrowing by project/label.
+   - Without `--all`, if any pool hits the cap before all pages are exhausted, state that ranking is based on the highest-priority collected candidates and suggest increasing `--limit` or narrowing by project/label.
 
 5. **Enrich the shortlist.**
    - If there are no candidates, report that no available assigned/unassigned issues were found for the team and filters.
    - Enrich candidates in batches of up to 25, ordered by Linear priority, due date, project metadata, blocker/unblock hints, customer-impact hints, and match against the `--interest` terms when present. For each candidate, call Linear MCP `get_issue` with `includeRelations: true`, `includeCustomerNeeds: true`, and `includeReleases: true` when supported.
-   - After each batch, apply Steps 6-8 provisionally. Continue through further batches until `--count` issues pass every readiness and hard-filter requirement and the best recommendation has four good parallel candidates, or every candidate collected in Step 4 has been enriched and assessed. Reaching the collection cap bounds the candidate set but is not by itself a reason to stop enriching it. A good parallel candidate must pass all readiness and hard-filter requirements and be independent of both the recommendation and every other issue in the proposed parallel set.
+   - After each batch, apply Steps 6-8 provisionally. Continue through further batches until `--count` issues pass every readiness and hard-filter requirement and the best recommendation has four good parallel candidates, or every candidate collected in Step 4 has been enriched and assessed. Reaching the collection cap bounds the candidate set but is not by itself a reason to stop enriching it. With `--all`, skip the early stop: enrich and assess every candidate collected in Step 4, so the ranked shortlist and parallel set are chosen from the full backlog. A good parallel candidate must pass all readiness and hard-filter requirements and be independent of both the recommendation and every other issue in the proposed parallel set.
    - With `--agent-ready`, every issue in the recommendation, parallel set and ranked shortlist must also be `agent-ready`. Never classify an issue as agent-ready from title keywords alone. A candidate may pass provisionally only when every applicable checklist item has concrete evidence from its description, fetched relations and metadata, reachable linked inputs, or relevant comments.
    - Call Linear MCP `list_comments` only when a high-value candidate's description and fetched relations do not establish a required decision or dependency, or when recent comments may have superseded that evidence. If required evidence is still unavailable, classify the issue as `needs-refinement` under `--agent-ready`; without that hard filter, disclose the evidence gap and lower confidence rather than claiming it is `agent-ready`.
    - Do not stop after the first batch merely because it contains one strong recommendation. Finding up to `--count` ready issues and a defensible parallel set is part of the required result.
@@ -122,7 +125,7 @@ If mutually exclusive assignee flags are combined, stop and ask the user to choo
 9. **Report the recommendation.** Use this structure:
 
    ```text
-   Applied criteria: {team, states, assignee pool, project/label, agent-ready, interest, count}
+   Applied criteria: {team, states, assignee pool, project/label, agent-ready, interest, count, coverage}
    Recommended next issue: {IDENTIFIER} - {title}
    Plain-language summary: {one or two concise sentences explaining the problem or outcome and why it matters}
    Why this one: {3-5 bullets on value, readiness, urgency, unblock impact}
@@ -146,6 +149,8 @@ If mutually exclusive assignee flags are combined, stop and ask the user to choo
    | --- | --- | --- | --- | --- |
    | ... | ... | ... | ... | ... |
    ```
+
+   Report `coverage` as `full backlog ({assessed} of {collected} candidates assessed)` with `--all`, and otherwise as the per-pool cap and whether any pool reached it.
 
    Every issue shown anywhere in the report must include its plain-language summary. Omit the Agent-readiness field and columns when autonomous readiness was not requested. Omit empty sections except `Parallel candidates`; when fewer than two good parallel candidates exist, preserve that section and explain the exhausted search rather than silently omitting it.
 
