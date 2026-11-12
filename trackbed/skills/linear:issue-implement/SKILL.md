@@ -327,9 +327,11 @@ Review the issue and exploration results to identify:
 
 ### 5.2 Ask Clarifying Questions
 
-Use AskUserQuestion for each unclear aspect before proceeding. In `AUTO_MODE`, first choose conservative defaults when the codebase and issue text clearly support them: prefer the smallest in-scope implementation, prefer the existing local pattern with the strongest precedent, and prefer the narrowest test set that covers the acceptance criteria. If an ambiguity would change product scope, data model, security posture, public API, or user-visible behavior, ask even in `AUTO_MODE`.
+Collect every question that blocks implementation before asking any of them. In `AUTO_MODE`, first choose conservative defaults when the codebase and issue text clearly support them: prefer the smallest in-scope implementation, prefer the existing local pattern with the strongest precedent, and prefer the narrowest test set that covers the acceptance criteria. If an ambiguity would change product scope, data model, security posture, public API, or user-visible behavior, ask even in `AUTO_MODE`.
 
-Read example question patterns from `references/question-examples.md` when composing prompts.
+Ask the remaining questions together in one decision request: read `${CLAUDE_PLUGIN_ROOT}/shared/implementation/references/decision-request.md` and follow it for this request, with the issue identifier as the work item. When there are several, number each one (`Decision 1 of 3`). Give each question the evidence that changes the choice and options that say what each one causes, with the recommended option first and marked `(recommended)`. In the host's question dialog, send every question in one call; when they do not fit in one call, send the request as one message instead. Never wait for one answer before asking the next question. Ask again only about a question that an answer raised.
+
+Read example questions from `references/question-examples.md` when composing the request.
 
 ### 5.3 Create Technical Plan
 

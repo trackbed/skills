@@ -418,6 +418,8 @@
       "suite": "trackbed/tests/decision-request-guidance.bats",
       "skills": [
         "trackbed/skills/code:plan-to-pr/SKILL.md",
+        "trackbed/skills/code:work-from-plan/SKILL.md",
+        "trackbed/skills/linear:issue-implement/SKILL.md",
         "trackbed/skills/linear:issue-to-pr/SKILL.md"
       ]
     },

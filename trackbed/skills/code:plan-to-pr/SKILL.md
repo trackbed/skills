@@ -154,7 +154,7 @@ Then invoke `trackbed:code:work-from-plan` with exactly `{active-plan}` as its o
 - only validated in-scope source paths changed; and
 - the current branch remains `{plan-branch}`.
 
-An `UNMET` or `UNVERIFIED` criterion is a blocker. When the delegate returns `BLOCKED` with a `QUESTION`, stop and relay that question verbatim as a decision request. Carry its `ASSUMPTIONS` list into the Step 7 report.
+An `UNMET` or `UNVERIFIED` criterion is a blocker. When the delegate returns `BLOCKED` with a `QUESTION`, stop and relay that question verbatim as a decision request. Keep its question, evidence, and options unchanged; only put `Decision needed · {execution-label}: ` before the question and add the `State:` line. Carry its `ASSUMPTIONS` list into the Step 7 report.
 
 ### Implementation Commit Boundary
 

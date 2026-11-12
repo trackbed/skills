@@ -691,7 +691,8 @@
 
     # Delegated runs return a blocker and question instead of prompting.
     grep -qF "Under this delegation, hand every user decision back to the parent instead of asking it here." "$skill"
-    grep -qF "return \`BLOCKED: <blocker>\` with \`QUESTION: <the one question the user would need to answer>\`. Standalone runs may still ask." "$skill"
+    grep -qF "return \`BLOCKED: <blocker>\` with \`QUESTION: <the one question the user would need to answer>\`." "$skill"
+    grep -qF "Standalone runs may still ask, as a decision request." "$skill"
     grep -qF "return the route decision as the blocker, with the minimum \`QUESTION\` when the route is \`blocked\`" "$skill"
     grep -qF "Under \`trackbed:code:plan-to-pr\` delegation, return that question with the blocker instead of asking it." "$direct"
     grep -qF "Under \`trackbed:code:plan-to-pr\` delegation, return that question with the blocker instead of asking it." "$routing"

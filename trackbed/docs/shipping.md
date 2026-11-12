@@ -112,6 +112,8 @@ State: nothing pushed, no PR, working tree clean; review archive in .context/lin
 
 When the host has a question dialog and the choice is a few fixed options, the request uses it: a short header, the question and evidence in the question, and each option's consequence in its description. Cancelling the dialog is not an answer: the workflow repeats the request as a message and stops without choosing for you.
 
+Questions raised during implementation use the same format. `issue-implement` collects every question that blocks its plan and asks them all in one request. `work-from-plan` returns its blocking question with options and a recommendation, and `plan-to-pr` shows it without rewriting it.
+
 The [shared format](../shared/implementation/references/decision-request.md) defines every rule.
 
 ## Unattended by Default
