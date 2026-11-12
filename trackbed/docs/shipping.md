@@ -61,6 +61,8 @@ After implementation, `issue-to-pr` freezes the Linear issue's bounded requireme
 - With `--strict`, every review finding receives an evidence-based disposition rather than blind implementation.
 - With `--adversarial-review`, review includes a pass by the model provider opposite your host on medium- and high-risk work, and the final report gains an `Independent review` line.
 - With `--ship`, `issue-to-pr` opens the Pull Request against the validated base branch and runs `/trackbed:pr:fix-ci --no-consolidate` until CI and review feedback are clear.
+- If the base moves after the Pull Request opens, `/trackbed:pr:fix-ci` keeps the pushed head without asking unless the movement touches the Pull Request's files, CI configuration, lockfiles, or shared build tooling. Then it asks whether to rebase.
+- Add `--rebase` or `--no-rebase` to `--ship` to answer in advance. `--rebase` rebases the Pull Request once through `/trackbed:pr:rebase --force-push`, and `--no-rebase` never rebases or asks. The final report's `Base drift` line says what happened.
 - Omit `--ship` to stop after implementation, review, and verification.
 
 The checked independent-review line also goes into the generated PR description. If CI remediation changes the tree, the final validation pass requests another provider review unless the full change's stable patch ID matches the completed review. A light-profile skip cannot be reused as a completed review.
@@ -129,7 +131,7 @@ These five skills run in auto mode when you type them. Pass `--manual` to keep t
 | `/trackbed:pr:rebase` | Continues past red flags and force-pushes with a lease, without verification | Keeps every conflict, red-flag, verification, and confirmation gate |
 
 - `/trackbed:pr:rebase --force-push` is the safe unattended option: it skips only the final confirmation and keeps every other gate. Both skills that delegate a rebase use it.
-- `/trackbed:pr:fix-ci --no-consolidate` also turns off auto mode, so `--ship` never rebases an open Pull Request without asking.
+- `/trackbed:pr:fix-ci --no-consolidate` also turns off auto mode, so `--ship` never rebases an open Pull Request without your `--rebase` flag or your answer; `--manual` asks every time.
 - `--check`, `--all-open`, and `--scope-plan` keep their own gates.
 - The default covers only the message being answered: a slash command or `$` mention at its start, or the skill's name later in it when your wording asks for a run. A saved prompt your host sends as your message counts too. The parent delegations each skill names keep the gates their own flags select.
 - A mention that only discusses the skill, a request from an earlier message, and a request that arrives through another agent, including a subagent that preloads the skill, do not. In those cases, and when the model picks one of these skills for a request that does not name it, the skill behaves as `--manual`, or as `--no-update` for `trackbed:pr:generate-description`.
