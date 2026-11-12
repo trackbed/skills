@@ -120,12 +120,14 @@ PY
 	local contract="$REPO_ROOT/shared/implementation/references/pr-shipping-contract.md"
 
 	grep -qF 'if `--no-consolidate` is present, set `NO_CONSOLIDATE=true` and `AUTO_MODE=false`' "$FIX_CI"
-	grep -qF 'so the user decides whether to rebase a branch that is behind its base' "$FIX_CI"
+	grep -qF 'Skip consolidation after CI passes and turn off auto mode. It never rebases without `--rebase` or the user'"'"'s answer' "$FIX_CI"
 	grep -qF 'It also turns off auto mode in that delegated skill' "$contract"
 	grep -qF 'This contract does not authorize rewriting an existing remote branch, force-pushing an already-open Pull Request' "$contract"
 
 	grep -qF -- '`{fix-ci-invocation}`: `trackbed:pr:fix-ci --no-consolidate`.' \
 		"$REPO_ROOT/skills/linear:issue-to-pr/references/shipping-contract.md"
+	grep -qF 'unless `{fix-ci-invocation}` carries a scope plan or the user'"'"'s `--rebase` or `--no-rebase`, it keeps base drift that cannot affect the Pull Request without a question and asks about drift that can.' "$contract"
+	grep -qF 'The one exception is a caller grant, named in its shipping reference, of one guarded rebase of the Pull Request this invocation opened; only that grant, or the user'"'"'s own answer to the delegated skill'"'"'s base-drift question, lets `{fix-ci-invocation}` force-push it.' "$contract"
 	grep -qF '$trackbed:pr:fix-ci --no-consolidate --scope-plan {validated-scope-plan}' \
 		"$REPO_ROOT/skills/code:plan-to-pr/references/shipping-contract.md"
 }

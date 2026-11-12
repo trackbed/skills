@@ -89,7 +89,7 @@ PY
   grep -qE '^description: .*trackbed:pr:rebase, or trackbed:pr:shape-up\."$' "$FIX_CI"
   grep -qF '`trackbed:pr:rebase`, or `trackbed:pr:shape-up`, with the parent'"'"'s exact bounded flags' "$FIX_CI"
   grep -qF 'exactly `--rebase --no-consolidate` for shape-up'"'"'s first branch pass and exactly `--no-rebase --no-consolidate` for each later one' "$FIX_CI"
-  grep -qF 'Only `trackbed:pr:shape-up` passes `--rebase` as a parent' "$FIX_CI"
+  grep -qF 'Only `trackbed:pr:shape-up` and `trackbed:linear:issue-to-pr` pass `--rebase` as a parent' "$FIX_CI"
   grep -qF 'if `--no-consolidate` is present, set `NO_CONSOLIDATE=true` and `AUTO_MODE=false`' "$FIX_CI"
   grep -qF 'When `PLAN_SCOPE_ACTIVE=false` and `REBASE_MODE=true`, the user already chose' "$FIX_CI"
   grep -qF 'if `--no-rebase` is present, set `REBASE_MODE=false`, and reject it together with `--rebase` or `--scope-plan`' "$FIX_CI"

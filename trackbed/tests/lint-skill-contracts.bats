@@ -1476,15 +1476,15 @@ EOF
   local watch_line
   skill_text="$(cat "$BATS_TEST_DIRNAME/../skills/pr:fix-ci/SKILL.md")"
 
-  [[ "$skill_text" == *'neither `REBASE_MODE` nor `AUTO_MODE` has already decided, use `AskUserQuestion`'* ]]
-  [[ "$skill_text" == *'**Rebase then fix CI (Recommended)**'* ]]
+  [[ "$skill_text" == *'When `PLAN_SCOPE_ACTIVE=false` and no rule above has already decided, read `${CLAUDE_PLUGIN_ROOT}/shared/implementation/references/decision-request.md` and ask in that format with `AskUserQuestion`.'* ]]
+  [[ "$skill_text" == *'**Rebase then fix CI (recommended)** - Rebases onto `origin/$BASE` and force-pushes the Pull Request with a lease, which restarts CI and can dismiss approvals'* ]]
   [[ "$skill_text" == *'Require success and the same `BASE` recorded in Step 2'* ]]
   [[ "$skill_text" == *'Invoke `$trackbed:pr:rebase --force-push --base <BASE>` through the platform skill mechanism'* ]]
-  [[ "$skill_text" == *'**Skip rebase and fix CI**'* ]]
+  [[ "$skill_text" == *'**Skip rebase and fix CI** - Keeps the pushed head and fixes CI on the current base'* ]]
   [[ "$skill_text" == *'do not watch the stale remote branch or silently choose the skip path'* ]]
   [[ "$skill_text" == *'Do not run `git rebase` or force-push inline from this skill'* ]]
 
-  choice_line="$(grep -nF 'use `AskUserQuestion` and present exactly these choices:' <<<"$skill_text" | cut -d: -f1)"
+  choice_line="$(grep -nF 'Present exactly these choices, each with what it causes:' <<<"$skill_text" | cut -d: -f1)"
   delegate_line="$(grep -nF 'Invoke `$trackbed:pr:rebase --force-push --base <BASE>` through the platform skill mechanism' <<<"$skill_text" | cut -d: -f1)"
   resume_line="$(grep -nF 'return to Step 1 with the original parsed `fix-ci` modes still active' <<<"$skill_text" | cut -d: -f1)"
   skip_line="$(grep -nF '**Skip rebase and fix CI**' <<<"$skill_text" | cut -d: -f1)"
@@ -1516,7 +1516,7 @@ EOF
 
   rebase_line="$(grep -nF 'When `PLAN_SCOPE_ACTIVE=false` and `REBASE_MODE=true`, the user already chose: take choice 1 below' <<<"$skill_text" | cut -d: -f1)"
   no_rebase_line="$(grep -nF 'When `PLAN_SCOPE_ACTIVE=false` and `REBASE_MODE=false`, the caller already chose: take choice 2 below' <<<"$skill_text" | cut -d: -f1)"
-  choice_line="$(grep -nF 'use `AskUserQuestion` and present exactly these choices:' <<<"$skill_text" | cut -d: -f1)"
+  choice_line="$(grep -nF 'Present exactly these choices, each with what it causes:' <<<"$skill_text" | cut -d: -f1)"
   delegate_line="$(grep -nF 'Invoke `$trackbed:pr:rebase --force-push --base <BASE>` through the platform skill mechanism' <<<"$skill_text" | cut -d: -f1)"
 
   auto_line="$(grep -nF '`AUTO_MODE=true`, decide from that inspection instead of asking' <<<"$skill_text" | cut -d: -f1)"
@@ -1528,6 +1528,36 @@ EOF
   [ "$no_rebase_line" -lt "$auto_line" ]
   [ "$auto_line" -lt "$choice_line" ]
   [ "$choice_line" -lt "$delegate_line" ]
+}
+
+@test "fix-ci --no-consolidate keeps unrelated base drift and asks only when it can affect the PR" {
+  local skill_text
+  local auto_line
+  local keep_line
+  local ask_line
+  skill_text="$(cat "$BATS_TEST_DIRNAME/../skills/pr:fix-ci/SKILL.md")"
+
+  [[ "$skill_text" == *'Initialize `AUTO_MODE=true` and `KEEP_UNRELATED_DRIFT=false`.'* ]]
+  [[ "$skill_text" == *'set `NO_CONSOLIDATE=true` and `AUTO_MODE=false`, and set `KEEP_UNRELATED_DRIFT=true` unless `--manual` is also present'* ]]
+  [[ "$skill_text" == *'- `--manual` - Turn off auto mode: ask every time a branch is behind its base, even with `--no-consolidate`'* ]]
+  [[ "$skill_text" == *'It never rebases without `--rebase` or the user'"'"'s answer, and keeps the pushed head when the drift cannot affect the Pull Request (Step 2).'* ]]
+  [[ "$skill_text" == *'A guarded parent'"'"'s `--no-consolidate` run that does not pass `--manual` still keeps unrelated base drift under Step 2, because keeping the pushed head rewrites nothing.'* ]]
+  [[ "$skill_text" == *'Take choice 2 without asking when no path that moved on the base is a file this Pull Request changes (`git diff --no-renames --name-only "origin/$BASE"...HEAD`), a CI workflow or configuration file, a lockfile, or shared build tooling, and say so in one line'* ]]
+  [[ "$skill_text" == *'When any moved path is one of those, or you cannot tell (including when the fetch failed), ask.'* ]]
+  [[ "$skill_text" == *'inspect what moved (`git log --no-renames --name-only --format= HEAD.."origin/$BASE"`)'* ]]
+  [[ "$skill_text" == *'Once a proven rebase sets `rebased onto …`, keep it for the rest of the invocation; a later pass through Step 2 does not overwrite it.'* ]]
+  [[ "$skill_text" == *'The evidence says how many commits the branch is behind `origin/$BASE` and lists the moved paths that touch this Pull Request'"'"'s files, CI configuration, lockfiles, or shared build tooling'* ]]
+  [[ "$skill_text" == *'Record the result as `BASE_DRIFT_OUTCOME` for Step 12'* ]]
+  [[ "$skill_text" == *'Also return `Base drift: {BASE_DRIFT_OUTCOME}` on its own line'* ]]
+  [[ "$skill_text" == *'Only `trackbed:pr:shape-up` and `trackbed:linear:issue-to-pr` pass `--rebase` as a parent'* ]]
+  [[ "$skill_text" == *'issue-to-pr only when its user typed `--rebase` with `--ship`'* ]]
+
+  auto_line="$(grep -nF '`AUTO_MODE=true`, decide from that inspection instead of asking' <<<"$skill_text" | cut -d: -f1)"
+  keep_line="$(grep -nF 'When `PLAN_SCOPE_ACTIVE=false`, `REBASE_MODE` is unset, and `KEEP_UNRELATED_DRIFT=true`, never rebase without an answer.' <<<"$skill_text" | cut -d: -f1)"
+  ask_line="$(grep -nF 'Present exactly these choices, each with what it causes:' <<<"$skill_text" | cut -d: -f1)"
+  [ -n "$keep_line" ]
+  [ "$auto_line" -lt "$keep_line" ]
+  [ "$keep_line" -lt "$ask_line" ]
 }
 
 @test "scoped fix-ci lifecycle preserves valid state transitions" {
@@ -1567,7 +1597,7 @@ EOF
   [[ "$scoped_plan_text" == *'atomically refresh both the workflow checkpoint head/tree and execution-result completion commit and Pull Request head OID'* ]]
   [[ "$scoped_plan_text" == *'In initial lifecycle mode, immediately after every proven push use the atomic archive update contract above to replace only the archived workflow-state checkpoint head/tree'* ]]
   [[ "$scoped_plan_text" == *'never adding an execution result'* ]]
-  [[ "$skill_text" == *'When `PLAN_SCOPE_ACTIVE=false` and neither `REBASE_MODE` nor `AUTO_MODE` has already decided, use `AskUserQuestion` and present exactly these choices:'* ]]
+  [[ "$skill_text" == *'When `PLAN_SCOPE_ACTIVE=false` and no rule above has already decided, read `${CLAUDE_PLUGIN_ROOT}/shared/implementation/references/decision-request.md` and ask in that format with `AskUserQuestion`.'* ]]
   [[ "$skill_text" == *'Invoke `$trackbed:pr:rebase --force-push --base <BASE>` through the platform skill mechanism'* ]]
   [[ "$skill_text" == *'When `PLAN_SCOPE_ACTIVE=true`, fail closed without invoking `/trackbed:pr:rebase` or changing history'* ]]
   [[ "$skill_text" == *'require a refreshed or explicitly re-authorized scoped plan before continuing'* ]]
