@@ -307,6 +307,8 @@ Accepted findings are excluded from `--fail-on` threshold calculations only when
 node --test trackbed/tests/node/review-execution.test.js trackbed/tests/node/review-completion-eval.test.js
 ```
 
+The execution helper's `record --manifest` command records a batch of reviewer jobs in one call.
+
 The [completion evaluation guide](../evals/review-completion/README.md) provides seven early-stop and control cases for live model checks. Passing fixture tests is not a claim that Astra passed those live cases.
 
 ### Cold Reader Isolation Probe
@@ -365,6 +367,34 @@ A suite is a folder under `evals/` holding a `suite.json` and one folder per cas
 - Run `make -C trackbed test-bats-file BATS_TEST_FILE=tests/skill-eval-suites.bats`. It validates every case and builds every Git fixture without starting a model.
 
 Shell commands in a run have no network, so `gh` and Linear lookups fail there; the `pr-generate-description` prompts pass `--base main` for that reason. On macOS the script puts wrappers for the real developer tools first on `PATH`, because the `/usr/bin` launchers for Git, Python, and Make cannot run inside the runner's sandbox.
+
+### Bash Hook Invocation Benchmark
+
+Run the reusable process-level benchmark for the hooks registered against the `Bash` matcher:
+
+```bash
+./trackbed/scripts/benchmark-hook-overhead.sh
+./trackbed/scripts/benchmark-hook-overhead.sh --iterations 50 --warmups 5
+```
+
+The benchmark uses temporary hook-state files to run enabled and disabled arms through the normal toggle mechanism. It launches the Bash-matched hook processes concurrently to mirror [Claude Code's matching-hook execution model](https://code.claude.com/docs/en/hooks#hook-handler-fields) and measures them for `echo hi` and `git status --short`; it does not include the hook dispatcher or execution of the user's command. Samples are interleaved, and added gating overhead is the median of the paired enabled-minus-disabled samples.
+
+#### 2026-07-29 measurement and decision
+
+This measurement predates the removal of `noninteractive-git`, so it covers the three Bash-matched hooks registered at the time.
+
+The baseline and optimized versions were each measured twice with 30 samples per arm after three warmups on an x86_64 Vercel cloud sandbox running Linux 6.12.76 with glibc 2.34 and Python 3.11.15. The bare `python3 -c pass` startup median was 8.9-9.5 ms. Values below are the ranges across the two consecutive runs:
+
+| Command | Version | Enabled parallel set | Disabled parallel set | Added gating overhead |
+| --- | --- | --: | --: | --: |
+| `echo hi` | Before | 62.981-64.495 ms | 6.573-6.962 ms | 56.013-57.814 ms |
+| `echo hi` | After | 48.402-50.104 ms | 7.024-7.078 ms | 41.249-42.447 ms |
+| `git status --short` | Before | 63.428-64.167 ms | 7.017-7.098 ms | 56.135-57.182 ms |
+| `git status --short` | After | 48.843-49.459 ms | 6.643-6.697 ms | 42.021-42.035 ms |
+
+The default acceptance threshold was 150 ms of median added gating latency. The corrected parallel baseline was already below that threshold for both command shapes; the earlier serial experiment had incorrectly summed three handlers that Claude Code runs concurrently. Component timing still showed no dominant hook: all three baseline hooks took roughly 55-60 ms.
+
+The shared safety wrapper now launches the parser as the `git_command_parser` module from its own directory with an explicit `PYTHONPATH=.`, allowing normal Python bytecode caching while preventing safe-path mode or an inherited module path from redirecting the import. The repeated measurement reduced steady-state added gating latency by roughly 24-29%. The 174 `block-rm-rf` cases, 149 `noninteractive-git` cases, the parallel benchmark contract test, and manual missing-`python3` checks continued to block or allow the expected commands.
 
 ### Test Structure
 

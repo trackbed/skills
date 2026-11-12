@@ -1,30 +1,29 @@
 # Implementing and Shipping
 
-This guide covers the workflows that implement work and publish it as a Pull Request: choosing the base branch, Linear issue to Pull Request, plan to Pull Request, Pull Request creation, history rewrites, and verification. The root [README](../../README.md#workflows) has the short version of each workflow.
+This guide covers the skills that implement work and publish it as a Pull Request. [Workflows](../../README.md#workflows) has the short version of each one.
 
-## Base Branch
+| You want to | Run | Read |
+| --- | --- | --- |
+| Take a Linear issue to an open Pull Request | `/trackbed:linear:issue-to-pr <ISSUE-ID> --ship` | [Linear Issue to Pull Request](#linear-issue-to-pull-request) |
+| Implement a saved plan the same way | `/trackbed:code:plan-to-pr <plan> --ship` | [Plan to Pull Request](#plan-to-pull-request) |
+| Publish the branch you have | `/trackbed:pr:create` | [Publishing a Pull Request](#publishing-a-pull-request) |
+| Get an open Pull Request ready to merge | `/trackbed:pr:shape-up` | [Shaping Up an Open Pull Request](#shaping-up-an-open-pull-request) |
+| Rewrite a branch's commits into a clear history | `/trackbed:git:recreate-commits` | [Rewriting History](#rewriting-history) |
+| Start new work from a branch other than the default | `git config --local trackbed.baseBranch <branch>` | [Base Branch](#base-branch) |
 
-The skills select a workbench branch separately for each repository. Review of an existing Pull Request uses its target branch; creating independent work uses the repository workbench even when the current branch has a Pull Request.
-
-For new work, set the local Git configuration when the workbench differs from the remote default:
-
-```bash
-git config --local trackbed.baseBranch development
-```
-
-Repositories configured before 1.0.0 can keep `kramme.baseBranch`; the skills read it when `trackbed.baseBranch` is unset.
-
-- For a repository where `main` is the workbench and releases use tags, the remote default can remain `main`; no setting is needed when Conductor also names `main`. Set `trackbed.baseBranch` to `main` if a host suggests a different branch.
-- An explicit `--base <branch>` on a base-aware skill overrides the default for that run.
-- Without an explicit or local setting, the shared resolver checks Conductor's configured branch when it has a local `origin` tracking ref, then `origin/HEAD`, `origin/main`, and `origin/master`.
-- A failed GitHub PR lookup stops existing-branch workflows unless GitHub confirms there is no PR; it cannot silently choose the workbench.
-- New worktrees can use a cached workbench ref during a fetch failure, and local repositories without `origin` or a configured workbench start from `HEAD`.
-
-Configure the workbench in each repository rather than assuming a branch's role from its name.
+Two things hold across these skills. When a run cannot decide something safely, it stops with a [decision request](#decision-requests). And five of them [run without prompts](#unattended-by-default) unless you pass `--manual`.
 
 ## Linear Issue to Pull Request
 
 `/trackbed:linear:issue-to-pr` takes one Linear issue through implementation, review convergence, verification, and optional publication. The [issue-to-pr definition](../skills/linear:issue-to-pr/SKILL.md) owns Linear sequencing and shipping safeguards.
+
+```text
+/trackbed:linear:issue-to-pr DISC-202 --ship             # implement, review, verify, open the PR, and fix CI
+/trackbed:linear:issue-to-pr DISC-202                    # stop after verification, before anything is published
+/trackbed:linear:issue-to-pr DISC-202 --continue --ship  # resume an interrupted run
+```
+
+You get a branch with the implementation committed, a summary of what review found and what to check yourself, and with `--ship` an open Pull Request whose checks pass.
 
 ### Before Implementation
 
@@ -198,3 +197,23 @@ Automatic stack-wide rewriting additionally requires `--authorize-history-rewrit
 ## Verification
 
 The optional regression red-green check in `/trackbed:verify:run` restores the fix by stash commit ID and retains the stash entry, reporting its tag and commit ID for later identification. It leaves cleanup to the user because other workspaces share the stash list.
+
+## Base Branch
+
+The skills select a workbench branch separately for each repository. Review of an existing Pull Request uses its target branch; creating independent work uses the repository workbench even when the current branch has a Pull Request.
+
+For new work, set the local Git configuration when the workbench differs from the remote default:
+
+```bash
+git config --local trackbed.baseBranch development
+```
+
+Repositories configured before 1.0.0 can keep `kramme.baseBranch`; the skills read it when `trackbed.baseBranch` is unset.
+
+- For a repository where `main` is the workbench and releases use tags, the remote default can remain `main`; no setting is needed when Conductor also names `main`. Set `trackbed.baseBranch` to `main` if a host suggests a different branch.
+- An explicit `--base <branch>` on a base-aware skill overrides the default for that run.
+- Without an explicit or local setting, the shared resolver checks Conductor's configured branch when it has a local `origin` tracking ref, then `origin/HEAD`, `origin/main`, and `origin/master`.
+- A failed GitHub PR lookup stops existing-branch workflows unless GitHub confirms there is no PR; it cannot silently choose the workbench.
+- New worktrees can use a cached workbench ref during a fetch failure, and local repositories without `origin` or a configured workbench start from `HEAD`.
+
+Configure the workbench in each repository rather than assuming a branch's role from its name.

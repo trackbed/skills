@@ -1,6 +1,15 @@
 # Recommended MCP Servers
 
-These MCP servers enhance the plugin's capabilities. See the root [README](../../README.md#optional-tools-by-capability) for a summary.
+The plugin works without any MCP server. Each server below adds one capability, so install only the ones you need. [Optional Tools by Capability](../../README.md#optional-tools-by-capability) lists the other optional tools.
+
+| Server | Needed for |
+| --- | --- |
+| [Linear](#linear) | The Linear workflows, such as `/trackbed:linear:issue-to-pr` |
+| [Context7](#context7) | Up-to-date library documentation |
+| [Nx MCP](#nx-mcp) | Nx workspace tools in `/trackbed:verify:run` |
+| [Chrome DevTools](#chrome-devtools), [Claude in Chrome](#claude-in-chrome), or [Playwright](#playwright) | Browser QA and live product review; one of the three is enough |
+| [Granola](#granola) | Granola meeting notes |
+| [Magic Patterns](#magic-patterns) | Magic Patterns designs |
 
 ## Linear
 

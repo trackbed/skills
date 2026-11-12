@@ -2,13 +2,17 @@
 
 A cross-host agent workflow plugin for Claude Code and Codex that automates the daily development lifecycle:
 
-- **Plan** — requirements discovery, feature specs, and initial issue definition with SIW (Structured Implementation Workflow)
-- **Build** — guided implementation of Linear issues, up to a full issue-to-PR pipeline
-- **Review** — specialized review agents for code quality, conventions, product, UX, and accessibility
-- **Test & verify** — browser-driven QA with evidence capture and project-aware verification runs
-- **Explain** — self-contained HTML diagrams, PR walkthroughs, and codebase onboarding guides
+- **[Plan](#prepare-with-siw-implement-with-linear)** — requirements discovery, feature specs, and initial issue definition with SIW (Structured Implementation Workflow)
+- **[Build](#implement-and-ship-a-linear-issue)** — guided implementation of Linear issues, up to a full issue-to-PR pipeline
+- **[Review](#review-and-ship-a-pr)** — specialized review agents for code quality, conventions, product, UX, and accessibility
+- **[Test & verify](#inspect-and-test-a-live-app)** — browser-driven QA with evidence capture and project-aware verification runs
+- **[Explain](#visual)** — self-contained HTML diagrams, PR walkthroughs, and codebase onboarding guides
 
 Claude Code is the canonical source, and Codex is a first-class native plugin generated from that same source. Install the host you use, or install both when you want to move between them.
+
+![A code review report as an interactive page: the verdict first, then the findings by severity, with an outline beside them](site/public/images/visual-report.png)
+
+Add `--visual` to a review, audit, or plan to read its report as a page like this one, shown here with sample findings. See [Visual Reports](trackbed/docs/visual-reports.md).
 
 <!-- prettier-ignore-start -->
 > [!IMPORTANT]
@@ -107,7 +111,7 @@ The enabled safety hooks fail closed when `jq` or Python is unavailable. Without
 | Security scans of local skill directories | [SkillSpector](https://github.com/NVIDIA/SkillSpector) |
 | AI-generated illustrations in visual diagrams | [surf-cli](https://github.com/nicobailon/surf-cli) |
 
-The Claude Code marketplace install does not need Node.js, and Codex marketplace installs need no checkout. [docs/mcp-servers.md](trackbed/docs/mcp-servers.md) covers MCP server setup. After installing on either host, run `/trackbed:setup` for a read-only environment check. Contributors need the broader toolchain described in [Development](#development).
+The Claude Code marketplace install does not need Node.js, and Codex marketplace installs need no checkout. The [MCP server guide](trackbed/docs/mcp-servers.md) covers MCP server setup. After installing on either host, run `/trackbed:setup` for a read-only environment check. Contributors need the broader toolchain described in [Development](#development).
 
 ## Installation & Updating
 
@@ -238,7 +242,7 @@ SIW refines non-trivial work into a spec-driven initial issue set, then migrates
 /trackbed:workflow:cleanup-artifacts --siw # retire local SIW files after verified transfer
 ```
 
-See [docs/siw.md](trackbed/docs/siw.md) for the full workflow reference.
+See the [SIW guide](trackbed/docs/siw.md) for the full workflow reference.
 
 ### Implement and ship a Linear issue
 
@@ -407,7 +411,7 @@ Each row gives a one-line summary. The full description lives in the skill's `SK
 
 #### Structured Implementation Workflow (SIW)
 
-Local specification refinement and initial issue planning before a one-way Linear transfer. See [docs/siw.md](trackbed/docs/siw.md).
+Local specification refinement and initial issue planning before a one-way Linear transfer. See the [SIW guide](trackbed/docs/siw.md).
 
 | Skill | Invocation | Arguments | Description |
 | --- | --- | --- | --- |
@@ -636,7 +640,7 @@ Specialized subagents for PR review and UX audit tasks. Review skills such as `/
 
 ## Hooks
 
-Event handlers defined once in the plugin source and packaged for both hosts. Each host maps them to its own lifecycle events. Toggle them with `/trackbed:hooks:toggle`; [docs/hooks.md](trackbed/docs/hooks.md) covers configuration, pattern lists, and formatter tables.
+Event handlers defined once in the plugin source and packaged for both hosts. Each host maps them to its own lifecycle events. Toggle them with `/trackbed:hooks:toggle`; the [Hook Reference](trackbed/docs/hooks.md) covers configuration, pattern lists, and formatter tables.
 
 <!-- prettier-ignore-start -->
 <!-- BEGIN SOURCE-SYNCED HOOK ROWS -->
@@ -726,12 +730,15 @@ Browse the documentation at [trackbed.dev](https://trackbed.dev). It has search 
 
 Guides in this repository:
 
+- [How trackbed Works](trackbed/docs/concepts.md) — skills, agents, hooks, reports, and how the two hosts differ
 - [Review Workflows](trackbed/docs/review.md) — reviewer models, review convergence, stacked PRs, GitHub review rules, and resuming runs
 - [Implementing and Shipping](trackbed/docs/shipping.md) — base-branch selection, Linear issue and plan to PR, PR creation, and history rewrites
 - [SIW Workflow Reference](trackbed/docs/siw.md)
 - [Visual Reports](trackbed/docs/visual-reports.md) — the `--visual` report style: what the page does and which skills support it
 - [Hook Reference](trackbed/docs/hooks.md)
 - [Recommended MCP Servers](trackbed/docs/mcp-servers.md)
+- [Troubleshooting](trackbed/docs/troubleshooting.md) — what to check when a command is missing, blocked, or stopped early
+- [Skill usage guides](trackbed/docs/usage) — arguments, options, examples, and results for each skill; the site shows them on the skill's page
 - [Agent Autonomy Model](trackbed/docs/agent-autonomy.md)
 - [Agent Portability Matrix](trackbed/docs/agent-portability.md)
 - [Repository Architecture](trackbed/docs/architecture.md)
