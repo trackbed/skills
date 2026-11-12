@@ -147,9 +147,13 @@ Diff comments posted: {cumulative newly posted count from the convergence policy
 Verification: {passed evidence with verified tree ID | reused (<tree ID>) | caller-owned after validation-only}
 Archive: .context/{archive-key}/reviews/
 Plan scope: {inactive | mode, validated scope plan, scope base, normalized paths}
+Decision request: {none | follows}
+{only after `follows`: the decision request, from its first line through its last option, with no `State:` line}
 ```
 
 Serialize `Requirements JSON` as exactly one JSON string value: escape control characters, quotes, and backslashes per RFC 8259, and place no raw requirement lines outside that value. Build `Unremediated issues` at every terminal handoff after review activity begins under the policy's final-state grouping rules; emit exactly `Unremediated issues: none` instead of the four groups when nothing qualifies. Serialize `Reviewer handoff JSON` as exactly one JSON object with only the `gut_check`, `findings`, and `focus` arrays defined by the policy's handoff ledgers; emit empty arrays when nothing qualifies. Return `Diff comments posted` only from the policy's cumulative nonnegative-integer ledger; never reconstruct it from Conductor state. Return `Review cost` verbatim from `ledger summary` in both modes; validation-only initializes a zero-cycle ledger so gate cost is still recorded. Callers must JSON-decode both JSON fields, compare the decoded requirements byte-for-byte with their frozen block, and validate every handoff entry's required keys, conditional recovery fields, and allowlisted disposition or kind before trusting later fields. Replace success wording with the exact limitation when coverage is degraded, a check is skipped, or a blocker remains. Never return `passed` with a nonzero required or blocked count, a dirty worktree, an out-of-scope plan path, or source changes after the latest focused check.
+
+Build `Decision request` under the policy's Decision Request section after reading `${CLAUDE_PLUGIN_ROOT}/shared/implementation/references/decision-request.md`, the shared format. Keep it the last field so its lines never mix with the fields above. A caller shows it to the user unchanged and adds only the `State:` line it owns. In direct user mode, show the same request yourself, with a `State:` line that says review pushed nothing, names `{work-branch}` and whether the worktree is clean, and names `{review-archive}`, then wait for the answer. When the answer resumes review, return the resumed run's handoff; otherwise, including a dismissed or unanswered request, print this handoff with the request as its last field, followed by its `State:` line, before stopping.
 
 ## Artifact Lifecycle
 
@@ -163,7 +167,7 @@ Serialize `Requirements JSON` as exactly one JSON string value: escape control c
 - **Invalid or incomplete invocation** — stop before review. Show direct usage to a user, or route an incomplete internal handoff back to its named caller; never infer a missing internal requirements block or plan scope.
 - **Dirty worktree, base branch, or empty branch diff** — stop without adopting or committing the state; require the caller's implementation boundary.
 - **Prepared-work mismatch or missing requirement** — report the exact omitted source or scope conflict. Do not widen the frozen contract.
-- **Gut check finds out-of-scope work** — stop with paths or commits and ask the caller to resolve ownership. Do not revert ambiguous work automatically.
+- **Gut check finds out-of-scope work** — stop with paths or commits and return a `Decision request` that asks the user to resolve ownership. Do not revert ambiguous work automatically.
 - **Review makes no progress or exhausts its budget** — follow the bounded stop and preserve the cycle ledger; require explicit approval before a new budget for remaining fingerprints.
 - **Risk floor unavailable** — stop before any quality gate when `profile` fails, for example without a trusted default-branch ref or a working `risk-signals.py`; report its stderr. Never guess a profile.
 - **Validation-only emits a required finding** — return it without editing and let the shipping caller stop with its existing Pull Request handoff.
