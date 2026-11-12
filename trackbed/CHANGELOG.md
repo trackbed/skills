@@ -34,6 +34,16 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 - `/kramme:text:clarify --humanize` now ships the MIT notice for the text its AI-writing pattern catalog retains from `blader/humanizer`, and credits humanizer as a copied source instead of an inspiration.
 - `/kramme:pr:generate-description` now finds repository PR templates when the agent's shell is zsh. The lookup looped over a variable named `path`, which zsh ties to `PATH`, so every later command in the lookup failed and it reported no template.
 
+## [1.0.1] - 2026-11-12
+
+### Added
+
+- Add an opt-in --visual HTML page beside reports (#1181)
+
+### Fixed
+
+- Keep skills working when gh-stack is older than v0.3.0 (#1182)
+
 ## [1.0.0] - 2026-11-10
 
 ### Added
@@ -1339,6 +1349,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 
 - Preserve skill resources in conversion (#222)
 
+[1.0.1]: https://github.com/trackbed/skills/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/trackbed/skills/compare/v0.91.0...v1.0.0
 [0.91.0]: https://github.com/Abildtoft/kramme-cc-workflow/compare/v0.90.0...v0.91.0
 [0.90.0]: https://github.com/Abildtoft/kramme-cc-workflow/compare/v0.89.0...v0.90.0
