@@ -120,7 +120,7 @@ GH
 
 load_assignments() {
 	local assignments
-	assignments=$(printf '%s\n' "$output" | grep -E '^(STACK_MEMBERSHIP|STACK_CLI_AVAILABLE|STACK_PR_NUMBER|STACK_NUMBER)=' || true)
+	assignments=$(printf '%s\n' "$output" | grep -E '^(STACK_MEMBERSHIP|STACK_CLI_AVAILABLE|STACK_CLI_SUPPORTED|STACK_PR_NUMBER|STACK_NUMBER)=' || true)
 	eval "$assignments"
 }
 
@@ -228,55 +228,81 @@ load_assignments() {
 	load_assignments
 	[ "$STACK_MEMBERSHIP" = "remote" ]
 	[ "$STACK_CLI_AVAILABLE" = "0" ]
+	[ "$STACK_CLI_SUPPORTED" = "0" ]
 	[ "$STACK_PR_NUMBER" = "17" ]
 	[ "$STACK_NUMBER" = "41" ]
 }
 
-@test "fails closed when gh-stack predates safe rewrite handling" {
-	export MOCK_EXTENSION_VERSION=0.0.8
+@test "an old gh-stack still resolves an unstacked branch with an upgrade warning" {
+	for version in 0.0.8 0.2.1; do
+		export MOCK_EXTENSION_VERSION="$version"
+		: >"$GH_LOG"
+		run "$SCRIPT"
 
-	run "$SCRIPT"
-
-	[ "$status" -eq 1 ]
-	[[ "$output" == *"gh-stack v0.0.8 is unsupported"* ]]
-	[[ "$output" == *"gh extension upgrade stack"* ]]
-	! grep -q 'command \[stack\] \[view\]' "$GH_LOG"
-	! grep -q 'command \[pr\] \[list\]' "$GH_LOG"
+		[ "$status" -eq 0 ]
+		[[ "$output" == *"Warning: gh-stack v$version is older than v0.3.0"* ]]
+		[[ "$output" == *"upgrade to v0.3.0 or newer with 'gh extension upgrade stack'."* ]]
+		load_assignments
+		[ "$STACK_MEMBERSHIP" = "none" ]
+		[ "$STACK_CLI_AVAILABLE" = "1" ]
+		[ "$STACK_CLI_SUPPORTED" = "0" ]
+		grep -q 'command \[stack\] \[view\] \[--json\]' "$GH_LOG"
+		grep -q 'command \[pr\] \[list\]' "$GH_LOG"
+	done
 }
 
-@test "rejects gh-stack older than v0.3.0 with an upgrade instruction" {
+@test "an old gh-stack still reports server-side membership" {
 	export MOCK_EXTENSION_VERSION=0.2.1
+	export MOCK_PR_NUMBER=17
+	export MOCK_STACK_NUMBER=41
 
 	run "$SCRIPT"
 
-	[ "$status" -eq 1 ]
-	[[ "$output" == *"gh-stack v0.2.1 is unsupported; upgrade to v0.3.0 or newer with 'gh extension upgrade stack'."* ]]
-	! grep -q 'command \[stack\] \[view\]' "$GH_LOG" || false
-	! grep -q 'command \[pr\] \[list\]' "$GH_LOG"
+	[ "$status" -eq 0 ]
+	load_assignments
+	[ "$STACK_MEMBERSHIP" = "remote" ]
+	[ "$STACK_CLI_SUPPORTED" = "0" ]
+	[ "$STACK_NUMBER" = "41" ]
 }
 
-@test "accepts gh-stack versions above the v0.3.0 floor" {
+@test "an old gh-stack that tracks the branch locally stops with an upgrade instruction" {
+	export MOCK_EXTENSION_VERSION=0.2.1
 	export MOCK_STACK_VIEW_STATUS=0
 
-	for version in 0.10.0 1.0.0; do
+	run "$SCRIPT"
+
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"Branch 'feature' is in a local gh-stack stack, and stack commands are unsafe on this gh-stack version; upgrade to v0.3.0 or newer with 'gh extension upgrade stack', then retry."* ]]
+	[[ "$output" != *"STACK_MEMBERSHIP="* ]]
+	! grep -q 'command \[pr\] \[list\]' "$GH_LOG"
+}
+
+@test "accepts gh-stack versions at or above the v0.3.0 floor" {
+	export MOCK_STACK_VIEW_STATUS=0
+
+	for version in 0.3.0 0.10.0 1.0.0; do
 		export MOCK_EXTENSION_VERSION="$version"
 		run "$SCRIPT"
 
 		[ "$status" -eq 0 ]
+		[[ "$output" != *"Warning:"* ]]
 		load_assignments
 		[ "$STACK_MEMBERSHIP" = "local" ]
 		[ "$STACK_CLI_AVAILABLE" = "1" ]
+		[ "$STACK_CLI_SUPPORTED" = "1" ]
 	done
 }
 
-@test "fails closed when the gh-stack version cannot be parsed" {
+@test "an unparseable gh-stack version is treated as unsupported, not as a failure" {
 	export MOCK_EXTENSION_VERSION=development
 
 	run "$SCRIPT"
 
-	[ "$status" -eq 1 ]
-	[[ "$output" == *"Could not parse the installed gh-stack version"* ]]
-	! grep -q 'command \[stack\] \[view\]' "$GH_LOG"
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"Warning: could not parse the installed gh-stack version"* ]]
+	load_assignments
+	[ "$STACK_MEMBERSHIP" = "none" ]
+	[ "$STACK_CLI_SUPPORTED" = "0" ]
 }
 
 @test "fails closed on an unexpected gh-stack error" {
