@@ -44,6 +44,7 @@ SUPPORTED_FLAGS = [
     "--adversarial-review",
     "--launch-confirmed",
     "--ship",
+    "--rebase|--no-rebase",
 ]
 BOOLEAN_FLAGS = {
     "--continue": "continue_mode",
@@ -53,6 +54,8 @@ BOOLEAN_FLAGS = {
     "--ship": "ship_mode",
 }
 VALUE_FLAGS = ("--cycles", "--depth")
+# The user's base-drift answer, forwarded to trackbed:pr:fix-ci.
+REBASE_FLAGS = ("--rebase", "--no-rebase")
 DEFAULT_CYCLES = 2
 DEPTHS = ("balanced", "full")
 ISSUE_ID_RE = re.compile(r"[A-Za-z0-9]+-[0-9]+")
@@ -103,7 +106,7 @@ class JsonArgumentParser(argparse.ArgumentParser):
 def parse_arguments(raw: str) -> JsonDict:
     tokens = [token for token in ASCII_WHITESPACE_RE.split(raw) if token]
     parsed: JsonDict = {name: False for name in BOOLEAN_FLAGS.values()}
-    parsed.update(cycles=DEFAULT_CYCLES, cycles_explicit=False, depth=None)
+    parsed.update(cycles=DEFAULT_CYCLES, cycles_explicit=False, depth=None, rebase_flag=None)
     seen: set[str] = set()
     positionals: list[str] = []
     index = 0
@@ -113,7 +116,7 @@ def parse_arguments(raw: str) -> JsonDict:
         if not token.startswith("-"):
             positionals.append(token)
             continue
-        if token not in BOOLEAN_FLAGS and token not in VALUE_FLAGS:
+        if token not in BOOLEAN_FLAGS and token not in VALUE_FLAGS and token not in REBASE_FLAGS:
             raise Stop("unknown_flag", f"Unknown flag {token!r}.", {"flag": token})
         if token in seen:
             raise Stop("duplicate_flag", f"{token} was supplied more than once.", {"flag": token})
@@ -130,6 +133,10 @@ def parse_arguments(raw: str) -> JsonDict:
                 raise Stop("depth_value_invalid", "--depth takes `balanced` or `full`.", {"value": value})
             index += 1
             parsed["depth"] = value
+        elif token in REBASE_FLAGS:
+            if parsed["rebase_flag"] is not None:
+                raise Stop("rebase_flags_conflict", "--rebase and --no-rebase cannot be combined.")
+            parsed["rebase_flag"] = token
         else:
             parsed[BOOLEAN_FLAGS[token]] = True
     if not positionals:
@@ -138,6 +145,8 @@ def parse_arguments(raw: str) -> JsonDict:
         raise Stop("extra_positional", "Only one issue identifier is allowed.", {"positionals": positionals})
     if not ISSUE_ID_RE.fullmatch(positionals[0]):
         raise Stop("issue_id_invalid", "The issue identifier must match {TEAM}-{number}.", {"value": positionals[0]})
+    if parsed["rebase_flag"] is not None and not parsed["ship_mode"]:
+        raise Stop("rebase_requires_ship", f"{parsed['rebase_flag']} applies only with --ship.")
     parsed["issue_id"] = positionals[0].upper()
     return parsed
 
@@ -254,6 +263,7 @@ def valid_args(args: Any) -> bool:
         and type(args.get("cycles")) is int
         and 1 <= args["cycles"] <= 5
         and args.get("depth", None) in (None, *DEPTHS)
+        and args.get("rebase_flag", None) in (None, *REBASE_FLAGS)
     )
 
 

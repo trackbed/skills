@@ -8,6 +8,8 @@ Ship only after every applicable gate completed in regular-review/convention-rev
 
 Every shared grant applies to the current Linear issue branch only. `--ship` additionally authorizes retiring current-project disposable workflow artifacts using the safe automatic cleanup path, bounded the same way.
 
+`--rebase` additionally authorizes one rebase of the Pull Request this invocation opened onto its base, and its force-push, when `trackbed:pr:fix-ci` finds the branch behind. The rebase runs through `trackbed:pr:rebase --force-push`, which keeps its conflict, red-flag, verification, and lease gates. It never authorizes a second rebase, a rebase of another branch, or a push that bypasses a lease mismatch. Without `--rebase`, the shared contract's ban on force-pushing the open Pull Request stands.
+
 ## Hook Bindings
 
 - `{work-id}`: `{issue-id}`.
@@ -30,7 +32,7 @@ Every shared grant applies to the current Linear issue branch only. `--ship` add
 
 - `{create-invocation}`: `trackbed:pr:create --linear-issue {issue-id} --require-generated-description`. The explicit issue identifier is authoritative; do not re-extract it from the branch name. When `ADVERSARIAL_REVIEW=true`, append `--independent-review-line <line>` with the checked, immutable pre-publication `{independent-review-line}` from `cross-provider-review.md`, as one inert quoted argument. This carries the record into the generated PR body before publication.
 - `{post-create-hook}`: none.
-- `{fix-ci-invocation}`: `trackbed:pr:fix-ci --no-consolidate`.
+- `{fix-ci-invocation}`: `trackbed:pr:fix-ci --no-consolidate`. When Step 1 recorded `{rebase-flag}`, append it: `trackbed:pr:fix-ci --no-consolidate --rebase` or `trackbed:pr:fix-ci --no-consolidate --no-rebase`. The later-session recovery invocation is always `trackbed:pr:fix-ci --no-consolidate` without `{rebase-flag}`, because the grant expires with this invocation. Keep its `Base drift:` line for the final report. A rebase changes the tree, so the shared contract's validation-only pass and final-tree verification run afterwards.
 - `{fix-ci-guard}`: none.
 - `{validation-extra-args}`: resolve immediately before shared Step 8's validation-only invocation, after fix-ci has finished. When `ADVERSARIAL_REVIEW=false`, bind to `none`. Otherwise compute the final change patch ID using the shared Independent Review Record reference named in SKILL.md. If a checked completed different-provider result from this invocation has an identical patch ID, bind to `none` and record `same change patch` with both IDs and the retained earlier attestation. Otherwise bind to `--adversarial-review`, including when the initial review was skipped for the light profile. Missing or failed patch computation is a blocker; never silently disable the review. After the pass returns, when the flag was forwarded, apply `cross-provider-review.md`'s Handoff Checks to its `Adversarial review:` line for `{final-tree}` and retain that checked result for the final report. With same-patch reuse, retain the earlier result and the successful comparison instead; do not interpret the pass's `not requested` line as a new review.
 - `{blocked-handoff}`: stop with the Pull Request URL, or the pushed branch when no Pull Request exists, and the delegated skill's exact blocker, then end this top-level invocation. After the blocker is resolved in a later session, invoke `trackbed:pr:fix-ci --no-consolidate` directly as the existing-PR workflow; do not rerun `trackbed:linear:issue-to-pr` or claim a cross-session Step 7 resume.

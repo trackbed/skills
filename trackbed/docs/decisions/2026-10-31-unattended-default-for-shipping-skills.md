@@ -16,7 +16,7 @@ The interactive default was also a safety property: a caller that forgot a flag 
 - Auto mode belongs to a direct user invocation, meaning a typed slash command or `$` mention or a request in the session that names the skill, and to the parent delegations each skill names. A saved PR-creation prompt that names `trackbed:pr:create` therefore gets auto mode. Every other invocation runs as `--manual`, whether or not it passes that flag, including one where the model picks the skill for a request that does not name it. `trackbed:pr:generate-description` instead treats such a call as `--no-update`, because its generated text has no side effect until it edits a Pull Request. [Amended 2026-11-10](#amendment-2026-11-10): a direct invocation covers only the request being answered.
 - `trackbed:pr:rebase` takes its former `--auto` behavior in full, including continuing past red flags and pushing without verification. The maintainer chose this knowingly.
 - `--force-push` now overrides that default instead of losing to it, so `trackbed:pr:fix-ci` and `trackbed:pr:create --rebase`, which both pass it, keep every rebase gate.
-- `--no-consolidate` turns off auto mode in `trackbed:pr:fix-ci`. Otherwise `trackbed:linear:issue-to-pr --ship` and `trackbed:code:plan-to-pr --ship` would inherit an unattended rebase decision and break their promise not to rewrite an open Pull Request. Their invocations stay byte-identical.
+- `--no-consolidate` turns off auto mode in `trackbed:pr:fix-ci`. Otherwise `trackbed:linear:issue-to-pr --ship` and `trackbed:code:plan-to-pr --ship` would inherit an unattended rebase decision and break their promise not to rewrite an open Pull Request. Their invocations stay byte-identical. [Amended 2026-11-12](#amendment-2026-11-12): drift that cannot affect the Pull Request no longer asks, and `trackbed:linear:issue-to-pr` appends the user's own `--rebase` or `--no-rebase`.
 - Modes with their own gates do not inherit the default: `trackbed:pr:generate-description --check`, `trackbed:pr:rebase --all-open`, and `trackbed:pr:fix-ci --scope-plan`.
 - Every other skill's `--auto` stays opt-in.
 
@@ -65,3 +65,17 @@ The Decision above counted a request "in the session" that names the skill as a 
 Keeping session-wide consent was rejected because a by-name request early in a session would keep authorizing unattended history rewrites and force-pushes for the rest of it, long after the request it answered was done.
 
 All five skills carry this rule as one synced paragraph that the skill-contract linter keeps identical. Like the rest of the model-invocation contracts, it is advisory: focused tests pin the wording, but nothing enforces it at run time.
+
+## Amendment (2026-11-12)
+
+`--no-consolidate` made `trackbed:pr:fix-ci` ask about every branch that was behind its base. After `trackbed:linear:issue-to-pr --ship` opened a Pull Request, that question was the most common stop: 57 of the 130 question dialogs across 125 measured runs. It came late, and 32 of the 57 got no answer, some because the dialog was cancelled or interrupted. The 25 answers split 15 rebase, 9 skip, and 1 other.
+
+- `--no-consolidate` still turns off auto mode and still never rebases on its own. When nothing that moved on the base touches the Pull Request's files, CI configuration, lockfiles, or shared build tooling, it keeps the pushed head without asking and says so in one line. Otherwise it asks in the shared decision request format, with how far behind the branch is, what overlaps, and what each option causes.
+- An explicit `--manual` keeps asking every time, as before.
+- `trackbed:linear:issue-to-pr` accepts `--rebase` or `--no-rebase` with `--ship` and passes it to `trackbed:pr:fix-ci`. `--rebase` is the user's permission to rebase and force-push the Pull Request that run opened, once, through `trackbed:pr:rebase --force-push` with every rebase gate. `--no-rebase` keeps the pushed head and never asks. The helper refuses the two together and refuses either without `--ship`.
+- Its final report gains a `Base drift` line that says whether the drift was kept or rebased.
+- `trackbed:code:plan-to-pr` is unchanged: its scoped mode keeps its own drift rule and never rebases.
+
+Keeping unrelated drift without asking still honors the `--ship` promise, because the pushed head is not rewritten. A rebase changes the tree, so the shared shipping contract's validation-only review and final-tree verification run afterwards, as they already did when the user answered "rebase".
+
+Two alternatives were rejected. Defaulting to a rebase would force-push an open Pull Request without the user's permission. Defaulting to a skip whenever drift exists would hide a base movement that can break the Pull Request.

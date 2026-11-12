@@ -1,7 +1,7 @@
 ---
 name: linear:issue-to-pr
 description: Requires Linear MCP and the GitHub gh CLI. Takes one Linear issue, including one transferred from SIW, through implementation, frozen requirements, review convergence, verification, and optional PR/CI stabilization. `--continue` resumes validated dirty work only on the exact unpublished Linear branch for an already-started issue. Fresh runs may rename the Conductor workspace. Not for implementation/review only, untransferred local SIW issues, stacked or existing PRs, or post-merge rollout.
-argument-hint: "<ISSUE-ID> [--continue] [--strict] [--cycles <1-5>] [--depth <balanced|full>] [--adversarial-review] [--launch-confirmed] [--ship]"
+argument-hint: "<ISSUE-ID> [--continue] [--strict] [--cycles <1-5>] [--depth <balanced|full>] [--adversarial-review] [--launch-confirmed] [--ship] [--rebase|--no-rebase]"
 disable-model-invocation: true
 user-invocable: true
 permissions:
@@ -36,7 +36,7 @@ Before any repository or Linear work, parse `$ARGUMENTS` with the skill-local he
 python3 "${CLAUDE_PLUGIN_ROOT}/skills/linear:issue-to-pr/scripts/preflight.py" args -- '<raw arguments>'
 ```
 
-Each helper call prints one JSON document; parse it as JSON and never `eval` or source it. For every helper call, missing or malformed output or a `status` other than `ok` is a blocker: stop and report `reason`, `message`, and `details`, and add the usage block below when `args` refused the arguments. Store `issue_id` as `{issue-id}`, `continue_mode` as `CONTINUE_MODE`, `strict_review` as `STRICT_REVIEW`, `adversarial_review` as `ADVERSARIAL_REVIEW`, `launch_confirmed` as `LAUNCH_CONFIRMED`, `ship_mode` as `SHIP_MODE`, `cycles` as `{cycles}`, `depth` as `{depth}` (JSON `null` when absent), and `state_file` as `{preflight-state}`, which carries the parsed mode and captured repository state between helper calls until Step 2 removes it. If the workflow stops after `args` succeeded and before that removal, run the helper's `cleanup` call from Step 2 first; a failed cleanup is reported but never changes the stop.
+Each helper call prints one JSON document; parse it as JSON and never `eval` or source it. For every helper call, missing or malformed output or a `status` other than `ok` is a blocker: stop and report `reason`, `message`, and `details`, and add the usage block below when `args` refused the arguments. Store `issue_id` as `{issue-id}`, `continue_mode` as `CONTINUE_MODE`, `strict_review` as `STRICT_REVIEW`, `adversarial_review` as `ADVERSARIAL_REVIEW`, `launch_confirmed` as `LAUNCH_CONFIRMED`, `ship_mode` as `SHIP_MODE`, `cycles` as `{cycles}`, `depth` as `{depth}` (JSON `null` when absent), `rebase_flag` as `{rebase-flag}` (JSON `null` when absent), and `state_file` as `{preflight-state}`, which carries the parsed mode and captured repository state between helper calls until Step 2 removes it. If the workflow stops after `args` succeeded and before that removal, run the helper's `cleanup` call from Step 2 first; a failed cleanup is reported but never changes the stop.
 
 Defaults:
 
@@ -46,6 +46,7 @@ Defaults:
 - `LAUNCH_CONFIRMED=false`: every non-backlog issue gets the Step 2 confirmation question.
 - `SHIP_MODE=false`: stop after clean review and final verification without rewriting history, pushing, or creating a Pull Request.
 - `CONTINUE_MODE=false`: require the ordinary clean-tree branch setup and start implementation from the delegated workflow's fresh preflight.
+- `{rebase-flag}` is `null`: `trackbed:pr:fix-ci` Step 2 decides base drift.
 
 `--strict` changes review disposition, not product authority. It does not permit inventing a missing requirement or bypassing a genuine manual blocker.
 
@@ -59,12 +60,14 @@ Defaults:
 
 `--continue` is explicit authorization to preserve and resume local work from an interrupted invocation. It does not accept arbitrary dirty state: Step 2 still requires the exact unpublished Linear branch, the issue already in the resolved target `started` status, no in-progress Git operation, a local change relative to the fetched base, and issue-related committed and dirty paths. It never authorizes a Linear transition, stashing, discarding, resetting, switching away from, or silently absorbing unrelated work.
 
-`--ship` is explicit authorization to retire current-project disposable workflow artifacts through `trackbed:workflow:cleanup-artifacts --auto`, let `trackbed:pr:create` perform the backup-protected local narrative rewrite without a nested reset prompt, create the previously absent remote issue branch once with an exact absence lease, self-assign, and open the Pull Request, then let `trackbed:pr:fix-ci --no-consolidate` push validated CI and review-feedback fixes until the checks are green. The cleanup skill keeps permanent specifications and shared diagrams in auto mode. Keeping CI fix commits unconsolidated avoids a post-creation history rewrite. `--ship` does not authorize rewriting an existing remote branch or Pull Request branch, bypassing a lease mismatch, force-pushing unrelated work, merging, or post-merge rollout.
+`--ship` is explicit authorization to retire current-project disposable workflow artifacts through `trackbed:workflow:cleanup-artifacts --auto`, let `trackbed:pr:create` perform the backup-protected local narrative rewrite without a nested reset prompt, create the previously absent remote issue branch once with an exact absence lease, self-assign, and open the Pull Request, then let `trackbed:pr:fix-ci --no-consolidate` push validated CI and review-feedback fixes until the checks are green. The cleanup skill keeps permanent specifications and shared diagrams in auto mode. Keeping CI fix commits unconsolidated avoids a post-creation history rewrite. `--ship` does not authorize rewriting an existing remote branch or, without `--rebase`, the Pull Request branch it opened, bypassing a lease mismatch, force-pushing unrelated work, merging, or post-merge rollout.
+
+`--rebase` and `--no-rebase` answer the base-drift question in advance and require `--ship`; the helper refuses them together. `--rebase` is the user's permission to rebase the Pull Request this run opened onto its base once and force-push it through the guarded `trackbed:pr:rebase --force-push` path. `--no-rebase` keeps the pushed head and never asks. `references/shipping-contract.md` binds both to `trackbed:pr:fix-ci`.
 
 If validation fails, stop with:
 
 ```text
-Usage: $trackbed:linear:issue-to-pr <ISSUE-ID> [--continue] [--strict] [--cycles <1-5>] [--depth <balanced|full>] [--adversarial-review] [--launch-confirmed] [--ship]
+Usage: $trackbed:linear:issue-to-pr <ISSUE-ID> [--continue] [--strict] [--cycles <1-5>] [--depth <balanced|full>] [--adversarial-review] [--launch-confirmed] [--ship] [--rebase|--no-rebase]
 Example: $trackbed:linear:issue-to-pr DISC-202 --strict --ship
 Continue: $trackbed:linear:issue-to-pr DISC-202 --continue --ship
 ```
@@ -190,7 +193,7 @@ If `SHIP_MODE=true`, resolve `${CLAUDE_PLUGIN_ROOT}/shared/implementation/refere
 4. Record the verified tree identity.
 5. Invoke `trackbed:pr:create --linear-issue {issue-id} --require-generated-description`.
 6. Prove that the initial remote Pull Request head matches the verified tree.
-7. Invoke `trackbed:pr:fix-ci --no-consolidate` until CI is green and review feedback is addressed.
+7. Invoke `trackbed:pr:fix-ci --no-consolidate`, plus `{rebase-flag}` when set, until CI is green and review feedback is addressed.
 8. Prove that the final remote Pull Request head matches the clean local result, and rerun project verification if CI remediation changed the tree.
 
 Never invoke `trackbed:pr:create` before `trackbed:pr:review-convergence` returns clean review and final-verification evidence for the current tree.
@@ -239,8 +242,9 @@ Independent review: {line from references/cross-provider-review.md | not request
 Verification: initial tree {verified-tree} passed; final tree {final-tree} {unchanged|passed CI on final head|passed fresh verification}
 CI: {green|none configured}; review feedback addressed; final tree {final-tree}
 CI coverage: {complete mapped CI evidence | local full sweep | incomplete}
+Base drift: {fix-ci's Base drift value: in sync | kept — {N} commits behind origin/{base}; {reason} | rebased onto origin/{base} — {--rebase | user's answer}}
 Pull Request: {url}
-History: narrative rewrite completed before PR creation; CI fix commits retained separately; final remote head matches the clean local tree
+History: narrative rewrite completed before PR creation; {no rebase after publication | one guarded rebase after publication}; CI fix commits retained separately; final remote head matches the clean local tree
 ```
 
 If coverage was degraded or a check was skipped, replace the success wording with the exact limitation. Never describe a partial or degraded run as clean. A run that stopped on a blocker or a question shows a decision request instead of either template.
