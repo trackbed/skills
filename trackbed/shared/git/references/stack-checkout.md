@@ -1,6 +1,6 @@
 # Import a remote stack and restore the entry branch
 
-Use this only after the membership resolver reports `STACK_MEMBERSHIP=remote`. Install gh-stack if unavailable. Import with the resolved stack number: a PR number or PR URL can select a different stack. Checkout by stack number lands on the topmost unmerged branch, so return to the recorded entry branch before retrying the caller.
+Use this only after the membership resolver reports `STACK_MEMBERSHIP=remote`. When it also reports `STACK_CLI_SUPPORTED=0`, gh-stack is missing or older than v0.3.0: install it with `gh extension install github/gh-stack` or upgrade it with `gh extension upgrade stack` before importing, and stop if the user declines. Import with the resolved stack number: a PR number or PR URL can select a different stack. Checkout by stack number lands on the topmost unmerged branch, so return to the recorded entry branch before retrying the caller.
 
 ```bash
 [[ "${STACK_NUMBER:-}" =~ ^[1-9][0-9]*$ ]] || {

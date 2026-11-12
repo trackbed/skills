@@ -57,7 +57,7 @@ Synced Conductor workspace boundary contract (keep aligned across git-mutating w
 
 When `CONDUCTOR_WORKSPACE_PATH` is set, capture and validate the entry branch as `{workspace-branch}` before any stack checkout. Stack operations may check out sibling stack branches as gh stack requires; finish by returning to `{workspace-branch}` and say so in the report.
 
-- **Extension missing:** the membership resolver records that local tracking is unavailable before checking GitHub. If GitHub reports an existing remote stack, do not create a duplicate manual chain. Otherwise offer to install the extension (`gh extension install github/gh-stack`); if declined, fall back to ordered branches each rooted on the previous, PRs opened with `gh pr create --base <parent-branch>`, and a note in each PR body naming its position in the chain.
+- **Extension missing or older than v0.3.0 (`STACK_CLI_SUPPORTED=0`):** the membership resolver still checks GitHub. If GitHub reports an existing remote stack, do not create a duplicate manual chain. Otherwise offer to install the extension (`gh extension install github/gh-stack`) or upgrade it (`gh extension upgrade stack`); if declined, fall back to ordered branches each rooted on the previous, PRs opened with `gh pr create --base <parent-branch>`, and a note in each PR body naming its position in the chain.
 - **Feature not enabled (exit code 9 from `submit`/`link`/`checkout`):** stacked PRs must be enabled for the repository. Stop without retrying, tell the user so, and offer the same manual-chain fallback — once the repository is enabled, re-run Step 1 and follow its route.
 
 One-time non-interactive setup (safe to re-run):
@@ -87,7 +87,7 @@ eval "$STACK_RESOLVED"
 
 The resolver treats “not tracked locally” as either a `gh stack view` exit 2 or a zero exit with empty output or the known “is not part of a stack” notice — gh-stack can report an untracked branch through either channel — then queries the branch PR's GraphQL `stack` field. A zero exit only proves local membership when stdout has the documented stack JSON shape and includes the current branch. Authentication, API, parsing, and unexpected CLI failures stop the workflow; they are never interpreted as “not stacked.”
 
-The minimum supported extension version is v0.3.0. Older versions push stack branches one at a time by default, can replay already-merged commits when rebasing after a merge, and do not follow a base branch that GitHub retargets. The resolver stops on them with the exact `gh extension upgrade stack` command instead of returning a membership result.
+The minimum supported extension version is v0.3.0. Older versions push stack branches one at a time by default, can replay already-merged commits when rebasing after a merge, and do not follow a base branch that GitHub retargets. An older or unparseable version does not block the resolver: it warns, reads membership with `gh stack view --json` only, and returns `STACK_CLI_SUPPORTED=0`, so unstacked branches and other skills keep working. Never run another `gh stack` command under that value. When that version tracks the branch locally, the resolver stops with the exact `gh extension upgrade stack` command instead, because every route for a local stack runs stack commands.
 
 ## Create a new stack
 
