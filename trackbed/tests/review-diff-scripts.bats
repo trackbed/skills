@@ -469,7 +469,8 @@ PY
 	run "$fake_scripts/collect-review-diff.sh"
 	[ "$status" -eq 0 ]
 	eval "$output"
-	[ "$CHANGED_FILES" = $'REVIEW_OVERVIEW.html\ncommitted.txt' ]
+	# The script's sort follows the runner's locale, so compare in C order.
+	[ "$(printf '%s\n' "$CHANGED_FILES" | LC_ALL=C sort)" = $'REVIEW_OVERVIEW.html\ncommitted.txt' ]
 }
 
 @test "collect-review-diff filtering does not evaluate hostile file names" {
