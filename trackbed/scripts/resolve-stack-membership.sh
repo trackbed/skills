@@ -12,6 +12,12 @@
 #   STACK_MEMBERSHIP=none   - this is not a GitHub repository, the branch has no
 #                             open PR, or its open PR is not stacked
 #
+# STACK_CLI_SUPPORTED=1 means the installed gh-stack is v0.3.0 or newer and safe
+# for stack rewrites and pushes. An older or unparseable version only reads
+# membership: the script warns on stderr, still reports none or remote, and
+# exits non-zero only when that version tracks the branch locally, because every
+# caller would then run stack commands the old version handles unsafely.
+#
 # Operational failures are never reported as "none": the script exits non-zero
 # so a caller cannot rewrite or push history under an unknown stack state.
 #
@@ -30,6 +36,7 @@ source "$SCRIPT_DIR/lib/shell-helpers.sh"
 emit_result() {
   quote_assignment STACK_MEMBERSHIP "$STACK_MEMBERSHIP"
   quote_assignment STACK_CLI_AVAILABLE "$STACK_CLI_AVAILABLE"
+  quote_assignment STACK_CLI_SUPPORTED "$STACK_CLI_SUPPORTED"
   quote_assignment STACK_PR_NUMBER "$STACK_PR_NUMBER"
   quote_assignment STACK_NUMBER "$STACK_NUMBER"
 }
@@ -70,6 +77,7 @@ CURRENT_BRANCH=$(git symbolic-ref --quiet --short HEAD) || {
 
 STACK_MEMBERSHIP=""
 STACK_CLI_AVAILABLE=0
+STACK_CLI_SUPPORTED=0
 STACK_PR_NUMBER=""
 STACK_NUMBER=""
 GH_STACK_MINIMUM_VERSION="0.3.0"
@@ -105,17 +113,15 @@ fi
 
 if GH_STACK_VERSION_OUTPUT=$(gh stack --version 2>&1); then
   STACK_CLI_AVAILABLE=1
+  GH_STACK_UPGRADE_HINT="upgrade to v$GH_STACK_MINIMUM_VERSION or newer with 'gh extension upgrade stack'"
   if [[ "$GH_STACK_VERSION_OUTPUT" =~ ([0-9]+)\.([0-9]+)\.[0-9]+ ]]; then
-    GH_STACK_VERSION=${BASH_REMATCH[0]}
-    GH_STACK_VERSION_MAJOR=${BASH_REMATCH[1]}
-    GH_STACK_VERSION_MINOR=${BASH_REMATCH[2]}
+    if ((10#${BASH_REMATCH[1]} > 0 || 10#${BASH_REMATCH[2]} >= 3)); then
+      STACK_CLI_SUPPORTED=1
+    else
+      echo "Warning: gh-stack v${BASH_REMATCH[0]} is older than v$GH_STACK_MINIMUM_VERSION, so stack membership is checked read-only and stack commands are unavailable; $GH_STACK_UPGRADE_HINT." >&2
+    fi
   else
-    echo "Could not parse the installed gh-stack version; upgrade to v$GH_STACK_MINIMUM_VERSION or newer with 'gh extension upgrade stack'." >&2
-    exit 1
-  fi
-  if ((GH_STACK_VERSION_MAJOR == 0 && GH_STACK_VERSION_MINOR < 3)); then
-    echo "gh-stack v$GH_STACK_VERSION is unsupported; upgrade to v$GH_STACK_MINIMUM_VERSION or newer with 'gh extension upgrade stack'." >&2
-    exit 1
+    echo "Warning: could not parse the installed gh-stack version, so stack membership is checked read-only and stack commands are unavailable; $GH_STACK_UPGRADE_HINT." >&2
   fi
 
   STACK_VIEW_STDERR_FILE=$(mktemp "${TMPDIR:-/tmp}/resolve-stack-membership-view-stderr.XXXXXX") || {
@@ -139,6 +145,10 @@ if GH_STACK_VERSION_OUTPUT=$(gh stack --version 2>&1); then
         echo "Cannot validate gh stack JSON because jq is unavailable; stack membership is unknown." >&2
         exit 1
       elif stack_view_reports_stack "$STACK_VIEW_OUTPUT"; then
+        if [ "$STACK_CLI_SUPPORTED" -eq 0 ]; then
+          echo "Branch '$CURRENT_BRANCH' is in a local gh-stack stack, and stack commands are unsafe on this gh-stack version; $GH_STACK_UPGRADE_HINT, then retry." >&2
+          exit 1
+        fi
         STACK_MEMBERSHIP="local"
         emit_result
         exit 0
