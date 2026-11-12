@@ -711,7 +711,7 @@
     # plan-to-pr consumes the per-criterion closeout, questions, and assumptions.
     grep -qF -- "- its closeout reports every completion criterion \`MET\` with evidence, and every plan-specific verification check passed;" "$parent"
     grep -qF "An \`UNMET\` or \`UNVERIFIED\` criterion is a blocker." "$parent"
-    grep -qF "When the delegate returns \`BLOCKED\` with a \`QUESTION\`, stop and relay that question verbatim." "$parent"
+    grep -qF "When the delegate returns \`BLOCKED\` with a \`QUESTION\`, stop and relay that question verbatim as a decision request." "$parent"
     grep -qF "Carry its \`ASSUMPTIONS\` list into the Step 7 report." "$parent"
     grep -qF "Assumptions: {defaulted open questions from the implementation closeout | none | not recorded (completion resume)}" "$parent"
   '

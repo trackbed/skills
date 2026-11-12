@@ -85,6 +85,35 @@ Its `--continue` mode requires the selected archived plan already to be `IN_PROG
 
 `/trackbed:code:breakdown-findings --reconcile` can infer `DONE` from a proven merged plan branch only while the selected in-scope source state still matches the landed implementation. Later scoped changes or reversions require review and block automatic completion and dependent unblocking, including with `--auto`.
 
+## Decision Requests
+
+When `issue-to-pr` or `plan-to-pr` stops and waits for you, it shows a decision request instead of a status report. A blocked run never reuses the success report. Every request has the same order:
+
+1. `Decision needed`, the issue or plan label, and the question, all on the first line.
+2. Only the evidence that changes the choice.
+3. Numbered options. The recommended one comes first and is marked, and each says what happens next.
+4. One `State:` line: what is published, what is not, and where the details are.
+
+The run recap and review notes stay out; they belong in the final report. Several decisions are numbered separately. A stop that needs an action, such as missing access, says what is needed, why, and the state.
+
+```text
+Decision needed · SKILLS-22: resume review for the open finding, or stop here?
+
+Review used its whole fix budget and one required finding is open: no
+test covers an end tag outside a dropped region. The reviewer proposed
+two tests that would close it.
+
+1. Resume review (recommended): starts a new fix budget for this finding,
+   adds the two tests, and reruns review and full verification.
+2. Stop here: the branch stays local for you to finish by hand.
+
+State: nothing pushed, no PR, working tree clean; review archive in .context/linear-issue-to-pr/reviews/.
+```
+
+When the host has a question dialog and the choice is a few fixed options, the request uses it: a short header, the question and evidence in the question, and each option's consequence in its description. Cancelling the dialog is not an answer: the workflow repeats the request as a message and stops without choosing for you.
+
+The [shared format](../shared/implementation/references/decision-request.md) defines every rule.
+
 ## Unattended by Default
 
 These five skills run in auto mode when you type them. Pass `--manual` to keep their prompts.
