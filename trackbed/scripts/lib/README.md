@@ -9,7 +9,8 @@ script; keep behavior shared by multiple scripts here.
 | File | Responsibility |
 | --- | --- |
 | `shell-helpers.sh` | Provides required-argument validation, shell assignment quoting, JSON object emit/decode with a single Python guard, and timeout-wrapped command execution. |
-| `skill-usage-cost.js` | Transcript indexing, per-session cost and token summaries, and rendering for `scripts/skill-usage.js cost`. |
+| `skill-usage-cost.js` | Transcript indexing for `scripts/skill-usage.js cost` and `decisions`, and per-session cost and token summaries and rendering for `cost`. |
+| `skill-usage-decision-requests.js` | Run selection, per-run counts of where a workflow stopped for the user, and rendering for `scripts/skill-usage.js decisions`. |
 | `skill-usage-hosts.js` | Host detection, plugin manifest version lookup, and Codex rollout parsing for `scripts/skill-usage.js`. |
 
 ## Usage
@@ -58,5 +59,13 @@ Run the focused tests and type check after changing `skill-usage-cost.js`:
 
 ```bash
 make -C trackbed test-node-file NODE_TEST_FILE=tests/node/skill-usage-cost.test.js
+make -C trackbed lint-js
+```
+
+Run the focused tests and type check after changing
+`skill-usage-decision-requests.js`:
+
+```bash
+make -C trackbed test-node-file NODE_TEST_FILE=tests/node/skill-usage-decision-requests.test.js
 make -C trackbed lint-js
 ```

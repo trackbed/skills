@@ -368,6 +368,63 @@ A suite is a folder under `evals/` holding a `suite.json` and one folder per cas
 
 Shell commands in a run have no network, so `gh` and Linear lookups fail there; the `pr-generate-description` prompts pass `--base main` for that reason. On macOS the script puts wrappers for the real developer tools first on `PATH`, because the `/usr/bin` launchers for Git, Python, and Make cannot run inside the runner's sandbox.
 
+### Decision Request Measurement
+
+`scripts/skill-usage.js decisions` counts how often `trackbed:linear:issue-to-pr` and `trackbed:code:plan-to-pr` runs stopped for the user. Use it to check whether a change to those workflows, or to a skill they delegate to, made the stops rarer or easier to answer. Run it from `trackbed/`:
+
+```bash
+node scripts/skill-usage.js decisions --since 2026-10-14 --until 2026-11-12
+node scripts/skill-usage.js decisions --since 14d --plugin-version 1.0.1
+```
+
+It reads the usage file and the Claude Code transcripts on this machine, and it prints counts only. `--plugin-version` compares releases; the version comes from each run's usage record. The [hooks guide](hooks.md#count-decision-requests-per-workflow) defines every number.
+
+**Baseline, measured on 2026-11-12:**
+
+```bash
+node scripts/skill-usage.js decisions --since 2026-10-14 --until 2026-11-12
+```
+
+| Measure | 2026-10-14 to 2026-11-11 (UTC) |
+| --- | --- |
+| Runs with a transcript | 121 |
+| Runs that stopped at least once | 90 (74%) |
+| Decision requests | 181, or 1.50 per run |
+| Dialog requests | 126: 88 answered, 36 cancelled, 2 unanswered |
+| Message requests | 55: 3 open with the decision |
+| Message length in words | median 378, 90th percentile 685, longest 769 |
+| Reply length in words | median 2, 90th percentile 4, longest 23 |
+| Review budget | 60 (25 dialogs, 35 messages) |
+| Base drift | 55 (54 dialogs, 1 message) |
+| Linear state gate | 13 (12 dialogs, 1 message) |
+| Other | 53 (35 dialogs, 18 messages) |
+| Not counted | 70 limit stalls, 31 report follow-ups |
+
+Every run was `trackbed:linear:issue-to-pr`; no `trackbed:code:plan-to-pr` run fell in the window. The runs used plugin versions 0.91.0 (83 runs), 0.90.0 (7), and unknown (31). Claude Code deletes old transcripts after its cleanup period, so a later rerun of this window can find fewer of them.
+
+The hand-made measurement that led to this command (Linear SKILLS-85) reported 125 runs, 85 that stopped, and about 173 requests for the same weeks. Its rules, replayed on the command's 121 runs, give the same 130 dialogs and 43 messages, so its four other runs added none. The command differs for these reasons:
+
+- **Runs (121, not 125).** The window ends before 2026-11-12 UTC, which leaves out two runs from that morning. The usage log also has no record of two sessions that a transcript search found.
+- **Runs that stopped (90, not 85).** Five more runs stopped only with a message that the first measurement set aside.
+- **Dialog requests (126, not 130).** The command stops counting at the final report, so four questions from commands the user ran afterwards are left out.
+- **Dialog outcomes (88 answered and 36 cancelled, not 93 and 35).** The four dialogs left out were answered. One more counts as cancelled because its result is marked as an error; the first measurement read only the wording of the result.
+- **Message requests (55, not 43).** Nine of the 43 were replies sent after the final report, which the command counts as report follow-ups. The command adds 21 messages that the first measurement set aside:
+  - 11 whose reply ran another command;
+  - 6 from a blocked run that reuses the report template;
+  - 1 whose reply came with an attachment;
+  - 1 of 30 words or fewer;
+  - 1 whose reply asked for the status;
+  - 1 whose reply was only `resume` or `continue`, after a message that asks.
+- **Message length (median 378 words, not 394).** The two medians cover different messages, as the point above describes. The reply median is 2 words in both.
+- **Kinds of dialog.** Review budget is 25, not 21. Base drift is 54, not 57. Other is 35, where the first measurement had 32 and a separate group of 8 blockers.
+  - The command also reads the option labels, which moves four dialogs to review budget: three from other and one from blockers.
+  - It counts base drift only for "base drift", or for "behind" together with "rebase". The first measurement took any mention of a rebase, so three dialogs move to other.
+  - It has no kind for blockers, so the remaining seven count as other.
+  - The four dialogs left out were other.
+- **Kinds of message (review budget 35, not 26).** The command classifies a message by its opening lines and its lines that ask. The first measurement used the user's reply. Seven of the 35 are among the added messages.
+- **Review budget and base drift in total.** Review budget is 60 where the first measurement had about 47, and base drift is 55 where it had about 58. Both follow from the two points above.
+- **Opening with the decision (3 of 55, not 5 of 43).** The command reads the first three non-empty lines. The first measurement counted a message when its last question mark sat in the first third of the text.
+
 ### Bash Hook Invocation Benchmark
 
 Run the reusable process-level benchmark for the hooks registered against the `Bash` matcher:
