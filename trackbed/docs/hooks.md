@@ -316,7 +316,7 @@ Counting starts at the message that invokes the workflow and stops at the workfl
 
 - **Limit stall.** A reply to a Claude Code error or placeholder message, or a reply that is only `resume` or `continue` to a message that asks nothing. A message asks when it holds a question mark or opens with a decision request's first line; such a reply to it is a message request. A limit stall is not a decision request.
 - **Report follow-up.** A user message after the final report. It is not a decision request.
-- **Final report.** A message with a `Pull Request:` line that holds a link or `not created (--ship was not supplied)`, a `Completion disposition: success` line, or the phrase "What to focus on in review". A message that opens with a decision request's first line never counts as a report.
+- **Final report.** A message with a `Pull Request:` line that holds a link or `not created (--ship was not supplied)`, a `Completion disposition: success` line, a line that opens with the "Needs your attention" label, or the phrase "What to focus on in review" from older reports. A message that opens with a decision request's first line never counts as a report.
 
 Two limits follow from these rules:
 
