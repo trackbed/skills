@@ -287,6 +287,46 @@ JSON rows have `entrySkill`, `sessions`, `sessionsWithTranscript`, `sessionsWith
 
 Stdout carries only skill names, agent types, counts, costs, and token weights. Prompts, subagent task descriptions, and paths stay off stdout; stderr diagnostics keep the `file=<path>` format.
 
+### Count decision requests per workflow
+
+`decisions` counts how often a `trackbed:linear:issue-to-pr` or `trackbed:code:plan-to-pr` run stopped for the user, and how easy those stops were to answer. Like `cost`, it joins the usage file with local Claude Code transcripts:
+
+```bash
+node scripts/skill-usage.js decisions --since 30d
+node scripts/skill-usage.js decisions --since 2026-10-14 --until 2026-11-12
+node scripts/skill-usage.js decisions --plugin-version 1.0.1 --json
+```
+
+The command is read-only, local, and offline. A run is a Claude Code session with an `explicit` record of one of the two workflows. Its first such record supplies the date and the plugin version. `--since` is inclusive and `--until` is exclusive. `--plugin-version` accepts a version, `unknown`, or `all` (the default). Codex sessions are excluded.
+
+Counting starts at the message that invokes the workflow and stops at the workflow's final report. Subagent records are skipped.
+
+- **Dialog request.** A call to a tool whose name contains `AskUserQuestion`. It is `answered` when a result came back, `cancelled` when the result is an error or says the question was cancelled or interrupted, and `unanswered` when no result exists.
+- **Message request.** The last assistant message before a reply from the user.
+  - `words` counts that message.
+  - `replyWords` counts the reply as typed: without any Conductor instruction block, and without the elements Claude Code stores around a slash command.
+  - `opensWithDecision` counts messages whose first three non-empty lines hold a question mark or start a decision request: `Decision needed`, `Decision N of M`, or `Action needed`.
+- **Kind.** The first match wins:
+  1. `state-gate`: the text says "proceed with implementation" or "move the issue to".
+  2. `base-drift`: it says "base drift", or both "behind" and "rebase".
+  3. `review-budget`: it says "budget", "cycle", or "round".
+  4. `other`: everything else.
+
+  A dialog is classified by its headers, questions, and option labels. A message is classified by its first three non-empty lines and its lines that hold a question mark, because the rest usually recaps the run.
+
+- **Limit stall.** A reply to a Claude Code error or placeholder message, or a reply that is only `resume` or `continue` to a message that asks nothing. A message asks when it holds a question mark or opens with a decision request's first line; such a reply to it is a message request. A limit stall is not a decision request.
+- **Report follow-up.** A user message after the final report. It is not a decision request.
+- **Final report.** A message with a `Pull Request:` line that holds a link or `not created (--ship was not supplied)`, a `Completion disposition: success` line, or the phrase "What to focus on in review". A message that opens with a decision request's first line never counts as a report.
+
+Two limits follow from these rules:
+
+- A run that stops after its Pull Request is open still prints the Pull Request line, so replies to it count as follow-ups.
+- A message the user never replied to is not counted, because nothing marks it as a request.
+
+JSON rows have `skill`, `runs`, `runsWithTranscript`, `runsWithDecisionRequest`, `decisionRequests`, `requestsPerRun`, `byKind` (`kind`, `dialog`, `message`), `dialogs` (`total`, `answered`, `cancelled`, `unanswered`), `messages` (`total`, `opensWithDecision`, and `words` and `replyWords` with `median`, `p90`, and `max`), `limitStalls`, and `reportFollowUps`. `runs` counts every selected run. `runsWithTranscript` counts runs whose transcript was read and holds the invoking message, and every number after it comes from those runs.
+
+`decisions` follows the same diagnostics and `--strict` contract as `cost`. Stdout carries only skill names and counts. Prompts, questions, replies, and paths stay off stdout; stderr diagnostics keep the `file=<path>` format.
+
 ## Codex Hook Command Support
 
 Current generated Codex hook commands are POSIX shell command strings. Windows compatibility is not promised until `commandWindows` support is added to the converter and covered by tests.

@@ -70,6 +70,7 @@ const SCAN_PRUNED_DIRS = new Set([
  * @property {boolean} [json]
  * @property {string} [file]
  * @property {string} [since]
+ * @property {string} [until]
  * @property {string} [kind]
  * @property {string} [platform]
  * @property {string} [pluginVersion]
@@ -144,6 +145,11 @@ async function main() {
     return;
   }
 
+  if (command === "decisions") {
+    await decisions(args);
+    return;
+  }
+
   console.error(`Unknown command: ${command}`);
   printHelp(1);
 }
@@ -155,6 +161,7 @@ function printHelp(exitCode) {
   scripts/skill-usage.js report [--file <path>] [--since <duration|date>] [--kind <explicit|tool|all>] [--platform <claude-code|codex|unknown|all>] [--plugin-version <version|unknown|all>] [--json] [--limit <n>] [--strict]
   scripts/skill-usage.js scan <file-or-dir...> [--since <duration|date>] [--json] [--limit <n>] [--strict]
   scripts/skill-usage.js cost [--file <path>] [--projects <dir>] [--since <duration|date>] [--json] [--limit <n>] [--strict]
+  scripts/skill-usage.js decisions [--file <path>] [--projects <dir>] [--since <duration|date>] [--until <duration|date>] [--plugin-version <version|unknown|all>] [--json] [--strict]
 
 Records are stored in:
   ${DEFAULT_USAGE_FILE}
@@ -173,6 +180,11 @@ their transcripts under --projects (default: $CLAUDE_CONFIG_DIR/projects or
 ~/.claude/projects). Costs are API-equivalent estimates from Claude Code
 cost-state records, not billed spend. Codex sessions are excluded.
 
+Decisions counts how often trackbed:linear:issue-to-pr and
+trackbed:code:plan-to-pr runs in the usage file stopped for the user, from
+the same transcripts. It prints counts and skill names only. --until is
+exclusive. Codex sessions are excluded.
+
 Environment:
   TRACKBED_SKILL_USAGE_FILE  Override the usage JSONL file path.
   TRACKBED_AGENT_PLATFORM    Override the detected platform of recorded events.
@@ -184,6 +196,7 @@ Examples:
   scripts/skill-usage.js scan ~/.claude/projects --json
   scripts/skill-usage.js scan ~/.codex/sessions --since 30d --json
   scripts/skill-usage.js cost --since 30d
+  scripts/skill-usage.js decisions --since 2026-10-14 --until 2026-11-12
 `;
   const stream = exitCode === 0 ? process.stdout : process.stderr;
   stream.write(help);
@@ -221,6 +234,14 @@ function parseArgs(args) {
     }
     if (arg.startsWith("--since=")) {
       parsed.since = arg.slice("--since=".length);
+      continue;
+    }
+    if (arg === "--until") {
+      parsed.until = args[++i];
+      continue;
+    }
+    if (arg.startsWith("--until=")) {
+      parsed.until = arg.slice("--until=".length);
       continue;
     }
     if (arg === "--kind") {
@@ -867,10 +888,8 @@ async function cost(args) {
   if (limit != null && (!Number.isInteger(limit) || limit < 1)) {
     throw new Error(`Invalid --limit value: ${parsed.limit}`);
   }
-  const claudeDir =
-    process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), ".claude");
   const projectsDir = path.resolve(
-    parsed.projects || path.join(claudeDir, "projects"),
+    parsed.projects || path.join(claudeConfigDir(), "projects"),
   );
 
   const diagnostics = createDiagnostics();
@@ -907,6 +926,71 @@ async function cost(args) {
     costReport.renderCost(rows, diagnostics, parsed.json, since),
   );
   applyStrictMode(parsed, diagnostics);
+}
+
+/** @param {string[]} args */
+async function decisions(args) {
+  // Loaded here so the per-prompt `record` hook path never pays for them.
+  const decisionReport = require("./lib/skill-usage-decision-requests");
+  const { indexTranscripts } = require("./lib/skill-usage-cost");
+  const parsed = parseArgs(args);
+  const file = usageFile(parsed);
+  const filters = {
+    since: parseSince(parsed.since),
+    until: parseSince(parsed.until, "--until"),
+    pluginVersion: parsed.pluginVersion || "all",
+  };
+  const projectsDir = path.resolve(
+    parsed.projects || path.join(claudeConfigDir(), "projects"),
+  );
+
+  const diagnostics = createDiagnostics();
+  const selector = decisionReport.createWorkflowRunSelector();
+  // Codex rollouts are not Claude Code transcripts.
+  await readUsageRecords(
+    file,
+    diagnostics,
+    (record) => {
+      if (record.platform !== PLATFORM_CODEX) selector.add(record);
+    },
+    !parsed.file && !configuredUsageFile(),
+  );
+
+  /** @type {import("./lib/skill-usage-decision-requests").DecisionDeps} */
+  const deps = {
+    readLines: readBoundedLines,
+    skipped: (input, count, reason) =>
+      recordSkippedLines(diagnostics, input, count, reason),
+    readFailure: (input, error) => recordReadFailure(diagnostics, input, error),
+    promptSkills: extractSlashSkillNames,
+    stripHostInstructions: stripConductorInstructions,
+  };
+  const transcripts = await indexTranscripts(projectsDir, deps);
+  const runs = [];
+  for (const { sessionId, skill } of selector.select(filters)) {
+    runs.push({
+      skill,
+      facts: await decisionReport.scanRunTranscript(
+        transcripts.get(sessionId)?.transcript,
+        skill,
+        deps,
+      ),
+    });
+  }
+
+  process.stdout.write(
+    decisionReport.renderDecisions(
+      decisionReport.buildDecisionRows(runs),
+      diagnostics,
+      parsed.json,
+      filters,
+    ),
+  );
+  applyStrictMode(parsed, diagnostics);
+}
+
+function claudeConfigDir() {
+  return process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), ".claude");
 }
 
 /**
@@ -1604,8 +1688,8 @@ function applyStrictMode(parsed, diagnostics) {
   }
 }
 
-/** @param {string | undefined} value @returns {Date | null} */
-function parseSince(value) {
+/** @param {string | undefined} value @param {string} [flag] @returns {Date | null} */
+function parseSince(value, flag = "--since") {
   if (!value) return null;
   const match = String(value).match(/^(\d+)([mhdw])$/);
   if (match) {
@@ -1623,7 +1707,7 @@ function parseSince(value) {
 
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
-    throw new Error(`Invalid --since value: ${value}`);
+    throw new Error(`Invalid ${flag} value: ${value}`);
   }
   return parsed;
 }
