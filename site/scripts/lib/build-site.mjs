@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import {
   COMPONENT_NAME,
@@ -14,12 +14,14 @@ import {
   HOME_PAGE,
   listsComponentMentions,
   PLUGIN_MANIFEST_PATH,
+  QUICK_START_PAGE,
   README_PAGES,
   README_PATH,
   README_SECTIONS_OFF_SITE,
   SIDEBAR_AFTER_COMPONENTS,
   SIDEBAR_BEFORE_COMPONENTS,
   SKILLS_PAGE,
+  USAGE_DIR,
 } from "./config.mjs";
 import { transformMarkdown } from "./markdown.mjs";
 import { agentPage, homePage, skillPage } from "./pages.mjs";
@@ -30,6 +32,7 @@ import {
   githubUrl,
   pageUrl,
 } from "./routes.mjs";
+import { readUsage, usagePath } from "./usage.mjs";
 
 /** An inline code span that starts with a component name: `/trackbed:pr:create --draft`. */
 const CODE_SPAN_COMPONENT = new RegExp(`^[/$]?(${COMPONENT_NAME})(?=\\s|$)`);
@@ -46,6 +49,39 @@ function checkGuidesPlaced(repoRoot) {
     if (!placed.has(name)) {
       throw new Error(
         `${GUIDES_DIR}/${name} is not placed: add it to GUIDE_PAGES or GUIDES_OFF_SITE in site/scripts/lib/config.mjs`,
+      );
+    }
+  }
+}
+
+/**
+ * Every skill a person can start has a usage guide, and every usage guide
+ * belongs to such a skill, so a renamed or removed skill cannot leave one
+ * behind.
+ */
+function checkUsageGuides(repoRoot, skills) {
+  const expected = new Map(
+    skills
+      .filter((skill) => skill.userInvocable)
+      .map((skill) => [path.posix.basename(usagePath(skill)), skill]),
+  );
+  const directory = path.join(repoRoot, USAGE_DIR);
+  const found = new Set(
+    existsSync(directory)
+      ? readdirSync(directory).filter((name) => name.endsWith(".md"))
+      : [],
+  );
+  for (const [name, skill] of expected) {
+    if (!found.has(name)) {
+      throw new Error(
+        `${skill.name} has no usage guide: add ${USAGE_DIR}/${name} (see site/README.md)`,
+      );
+    }
+  }
+  for (const name of found) {
+    if (!expected.has(name)) {
+      throw new Error(
+        `${USAGE_DIR}/${name} matches no user-invocable skill: rename or delete it`,
       );
     }
   }
@@ -132,26 +168,40 @@ export function buildSite(repoRoot, { sourceRef = DEFAULT_BRANCH } = {}) {
     }
   };
 
+  const readmeSection = (heading) =>
+    readme.sectionText(
+      readme.sections.find((section) => section.title === heading),
+    );
+  const quickStart = README_PAGES.find(
+    (page) => page.slug === QUICK_START_PAGE,
+  );
+
   pages.push(
     homePage({
       title: manifest.name,
       intro: readme.intro,
       renderIntro: (text) =>
         render(text, { sourceFile: README_PATH, slug: HOME_PAGE }).text,
+      quickStart: {
+        heading: quickStart.heading,
+        body: render(readmeSection(quickStart.heading), {
+          sourceFile: README_PATH,
+          slug: HOME_PAGE,
+        }).text.trim(),
+      },
       version: `v${manifest.version}`,
       fallbackTagline: manifest.description,
       sourceUrl,
     }),
   );
 
-  for (const { heading, slug } of README_PAGES) {
-    const sourceText = readme.sectionText(
-      readme.sections.find((section) => section.title === heading),
-    );
+  for (const { heading, slug, dropTableColumns } of README_PAGES) {
+    const sourceText = readmeSection(heading);
     const { text } = render(sourceText, {
       sourceFile: README_PATH,
       slug,
       headingShift: -1,
+      dropTableColumns,
     });
     addProsePage(
       {
@@ -204,9 +254,25 @@ export function buildSite(repoRoot, { sourceRef = DEFAULT_BRANCH } = {}) {
     }
   }
 
+  checkUsageGuides(repoRoot, skills);
+  const usageOf = (skill) => {
+    if (!skill.userInvocable) return null;
+    const sourceFile = usagePath(skill);
+    let usage;
+    try {
+      usage = readUsage(read(sourceFile), skill);
+    } catch (error) {
+      throw new Error(`${sourceFile}: ${error.message}`, { cause: error });
+    }
+    const part = (text) =>
+      text && render(text, { sourceFile, slug: skill.slug }).text.trim();
+    return { lead: part(usage.lead), sections: part(usage.sections) };
+  };
+
   for (const skill of skills) {
     pages.push(
       skillPage(skill, {
+        usage: usageOf(skill),
         category: categoryOf.get(skill.name) ?? null,
         guides: guidesMentioning(skill),
         refersTo: skills.filter(

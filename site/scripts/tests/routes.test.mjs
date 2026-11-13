@@ -34,6 +34,7 @@ const readme = analyzeReadme(README, {
 
 const files = new Map([
   ["README.md", "file"],
+  ["site/public/images/report.png", "file"],
   ["trackbed/docs", "directory"],
   ["trackbed/docs/review.md", "file"],
   ["trackbed/docs/development.md", "file"],
@@ -160,6 +161,32 @@ test("points images at the file's bytes, not at its GitHub page", () => {
   );
   assert.equal(image("https://example.com/a.png"), "https://example.com/a.png");
   assert.throws(() => image("missing.png"), /link target does not exist/);
+});
+
+test("serves an image under site/public/ from the site itself", () => {
+  const image = (url, sourceFile) =>
+    resolveLink(url, { sourceFile, currentPage: "index", image: true });
+
+  assert.equal(
+    image("site/public/images/report.png", "README.md"),
+    "/images/report.png",
+  );
+  assert.equal(
+    image("../../site/public/images/report.png", "trackbed/docs/review.md"),
+    "/images/report.png",
+  );
+  // A link to the same file is still a link to a repository file.
+  assert.equal(
+    resolveLink("site/public/images/report.png", {
+      sourceFile: "README.md",
+      currentPage: "index",
+    }),
+    "https://github.com/trackbed/skills/blob/main/site/public/images/report.png",
+  );
+  assert.throws(
+    () => image("site/public/images/gone.png", "README.md"),
+    /link target does not exist/,
+  );
 });
 
 test("decodes percent-escapes in a linked path", () => {

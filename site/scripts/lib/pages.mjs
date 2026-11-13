@@ -2,11 +2,12 @@ import { COMPONENT_NAME } from "./components.mjs";
 import {
   CATALOG_PATH,
   HOME_PAGE,
+  HOME_TAB_TITLE,
   README_PATH,
   REPO_URL,
   SKILLS_PAGE,
 } from "./config.mjs";
-import { nodeText, parseMarkdown } from "./markdown.mjs";
+import { HOST_COMMAND_LANGUAGE, nodeText, parseMarkdown } from "./markdown.mjs";
 import { githubEditUrl, pageUrl } from "./routes.mjs";
 
 const HOST_LABELS = { "claude-code": "Claude Code", codex: "Codex" };
@@ -78,6 +79,37 @@ function inlineLinks(label, components) {
   return `**${label}:** ${[...components].sort(byName).map(codeLink).join(", ")}`;
 }
 
+/**
+ * An invisible element whose attribute the search index reads as page text.
+ * Search matches a word from its start, and a component name is one word
+ * (`trackbed:pr:code-review`), so the names people type without the prefix
+ * would otherwise find nothing: `pr:code-review` and `code-review`. It closes
+ * the page so that it stays out of the excerpts of other matches.
+ */
+function searchNames(component) {
+  const short = component.shortName;
+  const names = new Set([short, short.slice(short.lastIndexOf(":") + 1)]);
+  return `<span data-pagefind-index-attrs="data-names" data-names="${[...names].join(" ")}"></span>`;
+}
+
+/** The frontmatter description, set apart as what the host reads. */
+function hostDescription(component, reads, componentsByName) {
+  const description = renderDescription(
+    component.description,
+    component,
+    componentsByName,
+  );
+  return section("Host description", `${reads}\n\n> ${description}`);
+}
+
+const HOST_READS = {
+  User: "The host shows this text in its command menu. It never starts this skill on its own.",
+  Background:
+    "The host reads this text to decide when to apply the skill. You cannot start it yourself.",
+};
+const HOST_READS_AUTO =
+  "The host shows this text in its command menu, and reads it to decide when to start the skill without being asked.";
+
 export function skillPage(skill, related) {
   const {
     category,
@@ -87,9 +119,10 @@ export function skillPage(skill, related) {
     agents,
     componentsByName,
     sourceUrl,
+    usage,
   } = related;
   const hosts = skill.hosts.map((host) => HOST_LABELS[host] ?? host).join(", ");
-  const usage = [`/${skill.name}`, skill.argumentHint]
+  const command = [`/${skill.name}`, skill.argumentHint]
     .filter(Boolean)
     .join(" ");
   const codex =
@@ -108,12 +141,12 @@ export function skillPage(skill, related) {
 
   const body = [
     skill.summary,
-    skill.userInvocable ? `\`\`\`text wrap\n${usage}\n\`\`\`` : null,
+    usage?.lead,
+    skill.userInvocable
+      ? `\`\`\`${HOST_COMMAND_LANGUAGE}\n${command}\n\`\`\``
+      : null,
     bulletList(facts),
-    section(
-      "Description",
-      renderDescription(skill.description, skill, componentsByName),
-    ),
+    usage?.sections,
     section("Guides", guideList(guides)),
     section(
       "Related",
@@ -125,6 +158,12 @@ export function skillPage(skill, related) {
         ].filter(Boolean),
       ),
     ),
+    hostDescription(
+      skill,
+      HOST_READS[skill.invocation] ?? HOST_READS_AUTO,
+      componentsByName,
+    ),
+    searchNames(skill),
   ];
 
   return {
@@ -151,12 +190,14 @@ export function agentPage(
   const body = [
     agent.summary,
     bulletList(facts),
-    section(
-      "Description",
-      renderDescription(agent.description, agent, componentsByName),
-    ),
     section("Used by", bulletList([...usedBy].sort(byName).map(codeLink))),
     section("Guides", guideList(guides)),
+    hostDescription(
+      agent,
+      "The host reads this text to decide when to launch the agent.",
+      componentsByName,
+    ),
+    searchNames(agent),
   ];
 
   return {
@@ -170,14 +211,29 @@ export function agentPage(
   };
 }
 
+/** Where the README introduction's closing notices (`> [!NOTE]`) begin. */
+function noticesStart(text) {
+  const blocks = parseMarkdown(text).children;
+  const index = blocks.findIndex(
+    (node) => node.type === "blockquote" && /^\[!/.test(nodeText(node)),
+  );
+  if (index === -1) return text.length;
+  // A comment that switches the formatter off belongs with the notice below it.
+  const before = blocks[index - 1];
+  const first = before?.type === "html" ? before : blocks[index];
+  return first.position.start.offset;
+}
+
 /**
- * The landing page is the README's introduction: its first paragraph becomes
- * the hero tagline and the rest follows as the page body.
+ * The landing page is the README's introduction with the Quick Start inside
+ * it: the first paragraph becomes the hero tagline, what the plugin does comes
+ * next, then how to install it, and the introduction's notices close the page.
  */
 export function homePage({
   title,
   intro,
   renderIntro,
+  quickStart,
   version,
   fallbackTagline,
   sourceUrl,
@@ -189,12 +245,15 @@ export function homePage({
     tagline = nodeText(first).replace(/\s*:$/, "");
     rest = intro.slice(first.position.end.offset);
   }
+  const split = noticesStart(rest);
 
   return {
     slug: HOME_PAGE,
     frontmatter: {
       title,
       description: tagline,
+      // Starlight would title the tab "trackbed | trackbed".
+      head: [{ tag: "title", content: HOME_TAB_TITLE }],
       template: "splash",
       editUrl: githubEditUrl(README_PATH),
       hero: {
@@ -220,8 +279,12 @@ export function homePage({
       },
     },
     body: [
-      renderIntro(rest).trim(),
+      renderIntro(rest.slice(0, split)).trim(),
+      `## ${quickStart.heading}\n\n${quickStart.body}`,
+      renderIntro(rest.slice(split)).trim(),
       `This site documents trackbed ${version}. See the [changelog](${sourceUrl("trackbed/CHANGELOG.md")}) for what changed, or the [component catalog](${sourceUrl(CATALOG_PATH)}) for a machine-readable index.`,
-    ].join("\n\n"),
+    ]
+      .filter(Boolean)
+      .join("\n\n"),
   };
 }

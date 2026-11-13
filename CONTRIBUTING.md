@@ -88,7 +88,7 @@ npm --prefix site test
 npm --prefix site run build
 ```
 
-The build fails on a link whose target file or heading is gone, and on a README section or guide that [site/scripts/lib/config.mjs](site/scripts/lib/config.mjs) does not place.
+The build fails on a link whose target file or heading is gone, and on a README section or guide that [site/scripts/lib/config.mjs](site/scripts/lib/config.mjs) does not place. It also fails when a user-invocable skill has no [usage guide](site/README.md#usage-guides), or when the guide's Options table and the skill's `argument-hint` list different flags.
 
 ### Optional pre-commit check
 

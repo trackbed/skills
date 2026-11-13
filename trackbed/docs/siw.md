@@ -2,6 +2,20 @@
 
 SIW is the local preparation workflow for complex initiatives. It turns uncertain intent into reviewed specifications and an approved first issue set, then migrates those artifacts one way into Linear. Linear owns implementation, Pull Requests, and ongoing issue management after transfer.
 
+## Quick Start
+
+```bash
+/trackbed:discovery:interview --siw "build a notification system" # optional deep discovery
+/trackbed:siw:init siw/DISCOVERY_BRIEF.md                         # create the SIW container and spec
+/trackbed:siw:spec-audit --apply                                  # validate and safely fix the spec; add --product to pressure-test product quality
+/trackbed:siw:generate-phases                                     # create the initial issue set
+/trackbed:siw:transfer-to-linear --dry-run                        # review the migration plan
+/trackbed:siw:transfer-to-linear                                  # make Linear the source of truth
+/trackbed:workflow:cleanup-artifacts --siw                        # retire local files after verification
+```
+
+`generate-phases` plans a single issue when the spec describes one coherent change that fits a single XS–L task. Larger changes receive a phased breakdown. To add work before transfer, update the spec and rerun it with **Append**; after transfer, use `/trackbed:linear:issue-define`. Use `/trackbed:siw:resolve-audit` when audit findings require decisions rather than mechanical edits.
+
 ## Workflow Boundary
 
 ```text
@@ -30,20 +44,6 @@ SIW does:
 SIW does not implement issues, prepare Pull Requests, maintain a long-running local backlog, or audit completed implementations. Use the Linear workflows after transfer.
 
 For an initiative too foggy to fit in one planning session, start with `/trackbed:discovery:wayfinder`. Wayfinder stores a temporary decision map under `.context/` and hands a planning-ready result into SIW or another workflow.
-
-## Quick Start
-
-```bash
-/trackbed:discovery:interview --siw "build a notification system" # optional deep discovery
-/trackbed:siw:init siw/DISCOVERY_BRIEF.md                         # create the SIW container and spec
-/trackbed:siw:spec-audit --apply                                  # validate and safely fix the spec; add --product to pressure-test product quality
-/trackbed:siw:generate-phases                                     # create the initial issue set
-/trackbed:siw:transfer-to-linear --dry-run                        # review the migration plan
-/trackbed:siw:transfer-to-linear                                  # make Linear the source of truth
-/trackbed:workflow:cleanup-artifacts --siw                        # retire local files after verification
-```
-
-`generate-phases` plans a single issue when the spec describes one coherent change that fits a single XS–L task. Larger changes receive a phased breakdown. To add work before transfer, update the spec and rerun it with **Append**; after transfer, use `/trackbed:linear:issue-define`. Use `/trackbed:siw:resolve-audit` when audit findings require decisions rather than mechanical edits.
 
 ## Files and Lifecycle
 

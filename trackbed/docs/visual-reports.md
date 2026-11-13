@@ -11,6 +11,8 @@ Skills that write a Markdown report or plan can also write an interactive HTML p
 
 The skill opens the page in your browser when it can and always prints its path as `Visual report: <path>`.
 
+![A code review report as an interactive page: the verdict first, then the findings by severity, with an outline beside them](../../site/public/images/visual-report.png)
+
 ## How the page is laid out
 
 The page is built to be read, so it puts understanding before controls:

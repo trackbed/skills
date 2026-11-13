@@ -1,27 +1,35 @@
 # Review Workflows
 
-This guide explains how the review skills behave and how to tune them. To pick a review skill, start with the review table in the root [README](../../README.md#review-and-ship-a-pr).
+This guide covers reviewing your own branch, reviewing someone else's Pull Request, and the review phase that the implementation workflows run for you. To choose between the review skills, see [which review to use](../../README.md#review-and-ship-a-pr).
+
+| You want to | Read |
+| --- | --- |
+| Review your branch before you open a Pull Request | [Code Review](#code-review) |
+| Run reviewers on a cheaper or a specific model | [Reviewer Models](#reviewer-models) |
+| Review one layer of a stack, or a whole stack | [Stacked Pull Requests](#stacked-pull-requests) |
+| Understand the review that `issue-to-pr` and `plan-to-pr` run | [Review Convergence](#review-convergence) |
+| See which Pull Requests wait on you | [Your Review Queue](#your-review-queue) |
+| Review a Pull Request you were asked to review | [Reviewing Someone Else's Pull Request](#reviewing-someone-elses-pull-request) |
+| Continue a review that was cut off | [Resuming Interrupted Reviews and Audits](#resuming-interrupted-reviews-and-audits) |
 
 ## Code Review
 
 `/trackbed:pr:code-review` runs specialized review agents on the current branch and writes `REVIEW_OVERVIEW.md`, or replies inline with `--inline`.
 
-### Challenge, Delete, Simplify
+```text
+/trackbed:pr:code-review                # review everything that changed on the branch
+/trackbed:pr:resolve-review             # fix the findings it reported
+/trackbed:pr:code-review --no-cleanup   # check the fixes without the cleanup advice
+```
 
-Code review uses a **challenge → delete → simplify** sequence: establish the required outcome, question unsupported implementation assumptions, consider removing unnecessary mechanisms, then simplify what remains.
+A run does this:
 
-- Standard and Team Mode reviews reconcile deletion and cleanup findings, so they do not recommend polishing code proposed for removal.
-- Conditional cleanup remains a separate tracked finding.
-- Resolution validates dependency graphs, processes connected findings sequentially after each dependency has a verified outcome, and keeps correctness and security findings ahead of cleanup.
+1. It finds the base branch and collects what changed: committed, staged, unstaged, and untracked files.
+2. It starts the reviewers that apply to those files, such as the ones for tests, error handling, types, security, and performance.
+3. It filters out findings your changes did not cause, and flags review suggestions that would themselves add clutter.
+4. It writes the report. Nothing in your code changes unless you pass `--loop`.
 
-### Skipping Advisory Cleanup
-
-`pr:code-review --no-cleanup` excludes only the advisory `lean`, `refactor`, and `simplify` dimensions. Removal review remains independently applicable.
-
-- The execution plan retains default `all` scope with `noCleanup: true`, records the skipped dimensions, and can seal and pass convergence's `--aspects all` completion check.
-- Combining the flag with explicitly requested cleanup aspects or cleanup emphasis is rejected.
-- When every reviewer returns zero findings, the relevance validator and slop meta-review are recorded as skipped instead of launched, and the report states each skip.
-- The execution helper's `record --manifest` command records a batch of reviewer jobs in one call.
+`REVIEW_OVERVIEW.md` lists Critical issues, Important issues, and Suggestions. Each finding has an ID, a location, a confidence score, and its evidence, and the report closes with a recommended action. `/trackbed:pr:resolve-review` reads the same file to fix the findings it can fix safely.
 
 ### Repository Standards and Review Policy
 
@@ -31,15 +39,31 @@ A repository can steer reviews with files it already keeps:
 - `pr:code-review` also reads `REVIEW.md` at the repository root and in every ancestor directory of a changed file. Every reviewer gets the checks it adds, and its severity definitions, exclusions, and caps apply once during aggregation. `## Coverage Status` counts the findings the policy removed or regraded.
 - Both skills read these files as they exist at the merge base, so a branch cannot loosen its own review. A changed `REVIEW.md` is reported as not applied.
 
+### Skipping Advisory Cleanup
+
+`pr:code-review --no-cleanup` excludes only the advisory `lean`, `refactor`, and `simplify` dimensions. Removal review remains independently applicable.
+
+- The execution plan retains default `all` scope with `noCleanup: true`, records the skipped dimensions, and can seal and pass convergence's `--aspects all` completion check.
+- Combining the flag with explicitly requested cleanup aspects or cleanup emphasis is rejected.
+- When every reviewer returns zero findings, the relevance validator and slop meta-review are recorded as skipped instead of launched, and the report states each skip.
+
 ### Closeout Loop and Re-Reviews
 
 - `pr:code-review --loop` runs only when you typed the flag or asked for review findings to be fixed; a review the model starts on its own never edits files.
 - The loop ends with a three-block summary of what it changed, what it left alone and why, and its remaining concerns. If its independent verifier fails, the loop reports termination as unverified instead of clean.
 - On a re-review, a finding marked `acknowledged` or `skipped` stays settled unless the new review brings new evidence of a real defect; a finding re-raised that way needs a maintainer decision.
 
+### Challenge, Delete, Simplify
+
+This is how code review decides what to recommend when findings overlap. It uses a **challenge → delete → simplify** sequence: establish the required outcome, question unsupported implementation assumptions, consider removing unnecessary mechanisms, then simplify what remains.
+
+- Standard and Team Mode reviews reconcile deletion and cleanup findings, so they do not recommend polishing code proposed for removal.
+- Conditional cleanup remains a separate tracked finding.
+- Resolution validates dependency graphs, processes connected findings sequentially after each dependency has a verified outcome, and keeps correctness and security findings ahead of cleanup.
+
 ### Completion Evidence
 
-`/trackbed:pr:code-review` records a frozen applicability plan, actual invocation IDs, saved reviewer results, and every required post-processing stage. Default `all` runs every applicable reviewer; explicit aspect filters remain supported.
+A review counts as finished only when every reviewer it planned has reported. To prove that, `/trackbed:pr:code-review` records a frozen applicability plan, actual invocation IDs, saved reviewer results, and every required post-processing stage. Default `all` runs every applicable reviewer; explicit aspect filters remain supported.
 
 - All modes, including `--team`, `--inline`, and loop reruns, require a locally validated completion seal tied to the current Git scope and exact report.
 - Missing reviewers, skipped stages, or stale evidence mean `INCOMPLETE`, even with zero findings.
