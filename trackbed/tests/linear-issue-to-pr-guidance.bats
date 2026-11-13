@@ -381,7 +381,7 @@ PYTEST
     grep -qF "Usage: \$trackbed:pr:review-convergence [--subagent-model <model>] [--strict] [--rounds <1-5>] [--depth <balanced|full>] [--adversarial-review [--adversarial-provider claude|codex] [--adversarial-model <id>]] [--derive | LINEAR-ISSUE | --requirements <authoritative requirements>]" "$skill"
     grep -qF "with no requirement argument it derives the contract from the current conversation" "$review_guide"
     grep -qF "with \`--derive\` it drafts a contract from conversation and committed branch evidence" "$review_guide"
-    grep -qF "set its maximum to one through five fix-and-rerun rounds with \`--rounds <1-5>\`" "$review_guide"
+    grep -qF "set it to one through five fix-and-rerun rounds with \`--rounds <1-5>\`" "$review_guide"
 
     for report in REVIEW_OVERVIEW CONVENTION_REVIEW_OVERVIEW OVERENGINEERING_REVIEW_OVERVIEW REFACTOR_OPPORTUNITIES_OVERVIEW; do
       grep -qF "\"path\": \".context/pr-review-convergence/reviews/$report.md\"" "$registry"

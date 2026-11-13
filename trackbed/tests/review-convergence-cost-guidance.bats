@@ -208,6 +208,33 @@ PY
 	require_phrases "$POLICY" 'When `ISOLATED=true`, the caller already runs this whole invocation inside one delegated agent'
 }
 
+@test "review runs one extra fix cycle before asking when the last cycle made progress" {
+	require_phrases "$POLICY" \
+		"### Extra Cycle" \
+		'`MAX_AUTOMATIC_REMEDIATION_CYCLES` is the budget before this one extra cycle.' \
+		"the cycle that used up the budget made material progress, measured as above;" \
+		"no open finding or Gut Check item is \`blocked\`, and none needs a decision, approval, or access that only the user can give under Manual Findings;" \
+		"fewer than five cycles have run, so the extra cycle never makes a sixth;" \
+		"stop conditions 1 and 2 have not fired;" \
+		"the budget just used up is the run's original budget, not one the user approved under the Bounded Stop rule;" \
+		"no extra cycle has run in this run." \
+		"no advisory item joins it, and deferred optional findings stay deferred" \
+		"The final tree therefore still gets a full-scope pass, and final verification still runs before a passing handoff." \
+		"returns a Decision Request whose evidence says the extra cycle ran" \
+		"and the Extra Cycle rule below does not allow one more cycle." \
+		"a user-approved budget never earns an extra cycle" \
+		"Record the approved budget with \`ledger init --resume\`, which keeps the run's ledger entries"
+	require_phrases "$CONVERGENCE" \
+		"extra cycle={ran|not run}; stop={converged|diminishing returns|validation-only}" \
+		"This is the budget before the policy's one extra cycle"
+	require_phrases "$LINEAR_SKILL" \
+		"Remediation: {cycles used}/{cycle budget}; extra cycle={ran|not run}; stop={converged|diminishing returns}" \
+		"It sets the budget before review convergence's one extra cycle"
+	require_phrases "$PLAN_SKILL" \
+		"Remediation: {cycles used}/{cycles}; extra cycle={ran|not run}; stop={converged|diminishing returns}" \
+		"is the budget before review convergence's one extra cycle"
+}
+
 @test "code review records empty downstream stages as skipped and batches ledger writes" {
 	require_phrases "$CODE_REVIEW" \
 		"If every primary reviewer returned zero findings, do not launch the validator" \

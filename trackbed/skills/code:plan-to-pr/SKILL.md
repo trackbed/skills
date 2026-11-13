@@ -26,7 +26,7 @@ Execute exactly one PR-sized plan that satisfies the generated-plan contract. Ac
 
 ## Step 1: Parse Arguments
 
-1. Parse the original user arguments before invoking the validator. Accept `--continue`, `--strict`, `--cycles <1-5>`, `--depth <balanced|full>`, and `--ship` at most once each, require exactly one remaining plan path, and reject every other user-supplied flag, including `--repo-root` and `--allow-worktree-drift`. `--cycles` takes exactly one ASCII digit from `1` through `5` and sets `{cycles}`, which defaults to `2`; `--depth` takes `balanced` or `full` and sets `{depth}`, which defaults to empty. Both are review-convergence controls: never pass them to the validator. Set `CONTINUE_MODE=true` only when `--continue` is present. Set `REPO_ROOT` from the canonical Git worktree root, build `VALIDATOR_ARGS` only from the validated public flags and plan path, and invoke the skill-local read-only validator without forwarding raw `$@`. Translate validated `--continue` to the validator's internal `--allow-worktree-drift`; never accept that internal flag directly from the user:
+1. Parse the original user arguments before invoking the validator. Accept `--continue`, `--strict`, `--cycles <1-5>`, `--depth <balanced|full>`, and `--ship` at most once each, require exactly one remaining plan path, and reject every other user-supplied flag, including `--repo-root` and `--allow-worktree-drift`. `--cycles` takes exactly one ASCII digit from `1` through `5` and sets `{cycles}`, which defaults to `2` and is the budget before review convergence's one extra cycle; `--depth` takes `balanced` or `full` and sets `{depth}`, which defaults to empty. Both are review-convergence controls: never pass them to the validator. Set `CONTINUE_MODE=true` only when `--continue` is present. Set `REPO_ROOT` from the canonical Git worktree root, build `VALIDATOR_ARGS` only from the validated public flags and plan path, and invoke the skill-local read-only validator without forwarding raw `$@`. Translate validated `--continue` to the validator's internal `--allow-worktree-drift`; never accept that internal flag directly from the user:
 
    ```bash
    VALIDATOR_ARGS=(--repo-root "$REPO_ROOT")
@@ -219,7 +219,7 @@ Implementation: complete
 Review profile: {light|balanced|full} ({floor and reasons from the handoff})
 Quality gates: complete ({standard|strict}; {active gates})
 Skipped gates: {gate + evidence-based reason | none}
-Remediation: {cycles used}/{cycles}; stop={converged|diminishing returns}
+Remediation: {cycles used}/{cycles}; extra cycle={ran|not run}; stop={converged|diminishing returns}
 Findings: 0 blocking unresolved; fixed={count}, rejected={count}, deferred optional={count}, blocked=0
 Verification: passed
 Pull Request: not created (--ship was not supplied)
@@ -243,7 +243,7 @@ Implementation: complete
 Review profile: {light|balanced|full} ({floor and reasons from the handoff})
 Quality gates: complete ({standard|strict}; {active gates})
 Skipped gates: {gate + evidence-based reason | none}
-Remediation: {cycles used}/{cycles}; stop={converged|diminishing returns}
+Remediation: {cycles used}/{cycles}; extra cycle={ran|not run}; stop={converged|diminishing returns}
 Findings: 0 blocking unresolved; fixed={count}, rejected={count}, deferred optional={count}, blocked=0
 Verification: initial tree {verified-tree} passed; final tree {final-tree} {unchanged|passed CI on final head|passed fresh verification}
 CI: {green|none configured}; review feedback addressed; final tree {final-tree}

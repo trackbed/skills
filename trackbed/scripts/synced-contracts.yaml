@@ -1149,7 +1149,7 @@
       "contains": [
         "with no requirement argument it derives the contract from the current conversation",
         "with `--derive` it drafts a contract from conversation and committed branch evidence",
-        "set its maximum to one through five fix-and-rerun rounds with `--rounds <1-5>`",
+        "set it to one through five fix-and-rerun rounds with `--rounds <1-5>`",
         "The same phase is also used by `trackbed:code:plan-to-pr`"
       ]
     },

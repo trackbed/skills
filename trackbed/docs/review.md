@@ -172,8 +172,9 @@ Callers such as `issue-to-pr` and `plan-to-pr` freeze the requirements that conv
 
 One bounded remediation budget prevents churn.
 
-- Direct and normal internal invocations can set its maximum to one through five fix-and-rerun rounds with `--rounds <1-5>`, defaulting to five and stopping early on convergence or diminishing returns.
+- Direct and normal internal invocations can set it to one through five fix-and-rerun rounds with `--rounds <1-5>`, defaulting to five and stopping early on convergence or diminishing returns.
 - `issue-to-pr` and `plan-to-pr` instead always forward a budget of two, which their own `--cycles <1-5>` flag overrules.
+- When the budget is used up and a required finding is still open, review runs one extra cycle without asking if the last cycle made progress, nothing needs your decision or access, and fewer than five cycles have run. It runs at most once per run, fixes only the open required findings, and still ends with a full-scope pass and full verification. The report shows `extra cycle=ran` when it did.
 - With `--strict`, every review finding receives an evidence-based disposition rather than blind implementation.
 
 When review stops with a required finding still open, or with a finding only you can decide, it asks one [decision request](shipping.md#decision-requests). Findings that one answer settles share a decision. Each option says what it does next and how many fix cycles it costs. A direct run shows you the request; `issue-to-pr` and `plan-to-pr` show it unchanged with their own `State:` line.

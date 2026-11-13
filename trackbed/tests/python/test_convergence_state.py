@@ -122,6 +122,77 @@ class ConvergenceStateTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("exceeds the budget", err)
 
+    def record(self, key: str, entry: object) -> tuple[int, dict, str]:
+        return self.invoke("ledger", "record", "--archive-key", key, "--entry", json.dumps(entry))
+
+    def test_ledger_allows_one_extra_cycle_once_the_budget_is_used(self) -> None:
+        key = "linear-issue-to-pr"
+        self.invoke("ledger", "init", "--archive-key", key, "--work-id", "W1", "--max-cycles", "2")
+        code, _, err = self.record(key, {"kind": "cycle", "extra": True})
+        self.assertEqual(code, 1)
+        self.assertIn("exactly used up", err)
+        self.assertEqual(self.record(key, [{"kind": "cycle"}, {"kind": "cycle"}])[0], 0)
+        _, summary, _ = self.invoke("ledger", "summary", "--archive-key", key)
+        self.assertFalse(summary["extra_cycle"])
+        code, _, err = self.record(key, {"kind": "cycle"})
+        self.assertEqual(code, 1)
+        self.assertIn("exceeds the budget of 2", err)
+        code, _, err = self.record(key, {"kind": "cycle", "extra": True})
+        self.assertEqual(code, 0, err)
+        for second, message in (({"kind": "cycle", "extra": True}, "exactly used up"), ({"kind": "cycle"}, "exceeds")):
+            code, _, err = self.record(key, second)
+            self.assertEqual(code, 1)
+            self.assertIn(message, err)
+        _, summary, _ = self.invoke("ledger", "summary", "--archive-key", key)
+        self.assertEqual((summary["cycles_used"], summary["max_cycles"], summary["extra_cycle"]), (3, 2, True))
+
+    def test_ledger_resume_keeps_the_run_and_allows_no_extra_cycle(self) -> None:
+        key = "linear-issue-to-pr"
+        self.invoke("ledger", "init", "--archive-key", key, "--work-id", "W1", "--max-cycles", "1")
+        code, _, err = self.record(key, [{"kind": "cycle"}, {"kind": "cycle", "extra": True}, {"kind": "cycle"}])
+        self.assertEqual(code, 1)
+        self.assertIn("exceeds the budget of 1", err)
+        self.assertEqual(self.record(key, [{"kind": "cycle"}, {"kind": "cycle", "extra": True}])[0], 0)
+        code, _, err = self.invoke(
+            "ledger", "init", "--archive-key", key, "--work-id", "W2", "--max-cycles", "2", "--resume"
+        )
+        self.assertEqual(code, 1)
+        self.assertIn("continues the ledger of 'W1'", err)
+        code, payload, err = self.invoke(
+            "ledger", "init", "--archive-key", key, "--work-id", "W1", "--max-cycles", "2", "--resume"
+        )
+        self.assertEqual((code, payload["max_cycles"]), (0, 4), err)
+        self.assertEqual(self.record(key, [{"kind": "cycle"}, {"kind": "cycle"}])[0], 0)
+        code, _, err = self.record(key, {"kind": "cycle", "extra": True})
+        self.assertEqual(code, 1)
+        self.assertIn("user-approved budget allows no extra cycle", err)
+        _, summary, _ = self.invoke("ledger", "summary", "--archive-key", key)
+        self.assertEqual((summary["cycles_used"], summary["max_cycles"], summary["extra_cycle"]), (4, 4, True))
+
+    def test_ledger_extra_cycle_never_passes_five_cycles(self) -> None:
+        key = "pr-review-convergence"
+        self.invoke("ledger", "init", "--archive-key", key, "--work-id", "W1", "--max-cycles", "5")
+        for batch in ([{"kind": "cycle"}] * 3, [{"kind": "cycle"}] * 2):
+            self.assertEqual(self.record(key, batch)[0], 0)
+            code, _, err = self.record(key, {"kind": "cycle", "extra": True})
+            self.assertEqual(code, 1)
+            self.assertIn("reaches the ceiling of 5 cycles", err)
+        self.invoke("ledger", "init", "--archive-key", key, "--work-id", "W1", "--max-cycles", "4")
+        self.assertEqual(self.record(key, [{"kind": "cycle"}] * 4 + [{"kind": "cycle", "extra": True}])[0], 0)
+        _, summary, _ = self.invoke("ledger", "summary", "--archive-key", key)
+        self.assertEqual((summary["cycles_used"], summary["extra_cycle"]), (5, True))
+
+    def test_ledger_rejects_extra_cycle_in_validation_only_and_malformed_flags(self) -> None:
+        key = "code-plan-to-pr"
+        self.invoke("ledger", "init", "--archive-key", key, "--work-id", "W1", "--max-cycles", "0")
+        code, _, err = self.record(key, {"kind": "cycle", "extra": True})
+        self.assertEqual(code, 1)
+        self.assertIn("no remediation budget", err)
+        for bad in ({"kind": "cycle", "extra": "yes"}, {"kind": "round", "round_kind": "full", "extra": True}):
+            code, _, err = self.record(key, bad)
+            self.assertEqual(code, 1)
+            self.assertIn("`extra` must be a boolean on a cycle entry", err)
+
     def test_ledger_records_a_batch_in_one_call(self) -> None:
         key = "linear-issue-to-pr"
         self.invoke("ledger", "init", "--archive-key", key, "--work-id", "W1", "--max-cycles", "1")
