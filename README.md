@@ -256,7 +256,7 @@ See the [SIW guide](trackbed/docs/siw.md) for the full workflow reference.
 3. **Implement** the issue with `/trackbed:linear:issue-implement`.
 4. **Review:** freezes the issue's requirements and runs [review convergence](trackbed/docs/review.md#review-convergence) on the branch.
 5. **Ship** (`--ship` only): opens the PR and runs `/trackbed:pr:fix-ci` until CI and review feedback are clear.
-6. **Hand off:** summarizes what was built, what review found, and what to check when you review it.
+6. **Hand off:** a [final report](trackbed/docs/shipping.md#final-reports) that leads with the outcome and what you need to check or decide, then what was built and what review found.
 
 | Flag | Effect |
 | --- | --- |
