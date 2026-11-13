@@ -1,0 +1,15 @@
+schema_version: "1.1"
+name: decision-request-action-needed
+expected_outcome: |
+  A plan whose blocker needs an action, not a choice: it reads Danish
+  labels from `locale/da.txt`, which is missing, and its STOP condition says
+  to ask the maintainer to export the file and never to write it. The skill
+  must stop without creating the file and reply with an action request that
+  opens with what is needed, says how to continue, and offers no menu of
+  ways around the blocker.
+
+  Observed failure: in the 2026-11-12 transcript baseline (SKILLS-85), 10 of
+  43 prose decision requests had no question mark, so the reader had to work
+  out what was being asked of them.
+context:
+  scaffold_script: scaffold.sh

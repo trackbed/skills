@@ -1,0 +1,13 @@
+schema_version: "1.1"
+name: decision-request-no-blocker
+expected_outcome: |
+  A control plan with no blocker: print `0s` for zero seconds. Its one
+  open question states a default and is not marked blocking, so the skill
+  must implement the change, run the tests, list the default as an
+  assumption, and finish without stopping for a decision.
+
+  Observed failure: before #1113 (SKILLS-71), work-from-plan treated every
+  open question as a missing requirement and stopped on questions that came
+  with a default. The decision request format must not bring that back.
+context:
+  scaffold_script: scaffold.sh
