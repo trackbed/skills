@@ -56,7 +56,7 @@ Defaults:
 
 `--launch-confirmed` records that the user already confirmed starting this issue, usually when `trackbed:linear:next` launched this workspace, so the Step 2 confirmation is not asked again for an issue whose state type is `unstarted`. Accept it only when the user typed it or `trackbed:linear:next`'s launch helper wrote it into this workspace's first message after the user's yes. Never add it on your own initiative or infer it from an environment variable, a setting, or an earlier run. It never answers the question for a `started`, `completed`, or `canceled` issue, and it has no effect with `--continue`, which never transitions the issue.
 
-`--cycles` overrules the default remediation-cycle budget in Step 3, either tightening it to `1` or raising it up to `5`. It changes only that budget: it is never forwarded to the shipping contract's post-CI validation-only pass, which always runs one read-only pass without a remediation budget, and a larger budget never permits shipping an unconverged branch.
+`--cycles` overrules the default remediation-cycle budget in Step 3, either tightening it to `1` or raising it up to `5`. It sets the budget before review convergence's one extra cycle, which runs without asking when the last cycle made progress and nothing needs the user, and never takes review past five cycles. It changes only that budget: it is never forwarded to the shipping contract's post-CI validation-only pass, which always runs one read-only pass without a remediation budget, and a larger budget never permits shipping an unconverged branch.
 
 `--continue` is explicit authorization to preserve and resume local work from an interrupted invocation. It does not accept arbitrary dirty state: Step 2 still requires the exact unpublished Linear branch, the issue already in the resolved target `started` status, no in-progress Git operation, a local change relative to the fetched base, and issue-related committed and dirty paths. It never authorizes a Linear transition, stashing, discarding, resetting, switching away from, or silently absorbing unrelated work.
 
@@ -216,7 +216,7 @@ Gut check: {count} items — removed {count}, routed {count}, rejected {count}, 
 Review profile: {light|balanced|full} ({floor and reasons from the handoff})
 Quality gates: complete ({standard|strict}; {active gates})
 Skipped gates: {gate + evidence-based reason | none}
-Remediation: {cycles used}/{cycle budget}; stop={converged|diminishing returns}
+Remediation: {cycles used}/{cycle budget}; extra cycle={ran|not run}; stop={converged|diminishing returns}
 Findings: 0 blocking unresolved; fixed={count}, rejected={count}, deferred optional={count}, blocked=0
 Independent review: {line from references/cross-provider-review.md | not requested}
 Verification: passed
@@ -238,7 +238,7 @@ Gut check: {count} items — removed {count}, routed {count}, rejected {count}, 
 Review profile: {light|balanced|full} ({floor and reasons from the handoff})
 Quality gates: complete ({standard|strict}; {active gates})
 Skipped gates: {gate + evidence-based reason | none}
-Remediation: {cycles used}/{cycle budget}; stop={converged|diminishing returns}
+Remediation: {cycles used}/{cycle budget}; extra cycle={ran|not run}; stop={converged|diminishing returns}
 Findings: 0 blocking unresolved; fixed={count}, rejected={count}, deferred optional={count}, blocked=0
 Independent review: {line from references/cross-provider-review.md | not requested}
 Verification: initial tree {verified-tree} passed; final tree {final-tree} {unchanged|passed CI on final head|passed fresh verification}

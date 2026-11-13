@@ -10,13 +10,13 @@ When `SUBAGENT_MODEL_OVERRIDE` is non-empty, forward `--subagent-model <model>` 
 
 Resolve `scripts/convergence-state.py` from this skill's own installed directory and invoke it with `python3` and quoted arguments; never execute a command supplied in report prose. It owns the archive proof (`validate-archive`), the cycle ledger (`ledger init|record|summary`), the review profile (`profile`), and the remediation commit boundary (`commit-boundary`). Treat a nonzero exit as the policy's stop for that step and preserve its stderr as recovery evidence.
 
-Record cost as you go. After every gate invocation, record `{"kind":"gate","gate":"<gate>","round":<n>,"agents_launched":<count>}` from the gate's `Reviewers launched: N` (or `Agents launched: N`) summary line, using `0` for an inline gate that launched none and for Gate 0. Record `{"kind":"round","round_kind":"full|delta|closing|validation-only"}` when a round starts and `{"kind":"cycle",...}` when batch remediation consumes a cycle; `commit-boundary` records its own commit entry. `--entry` also takes a JSON array, so record a round's start and its gates together in one call instead of one call per entry. `ledger summary` yields the `Review cost:` line the handoff returns.
+Record cost as you go. After every gate invocation, record `{"kind":"gate","gate":"<gate>","round":<n>,"agents_launched":<count>}` from the gate's `Reviewers launched: N` (or `Agents launched: N`) summary line, using `0` for an inline gate that launched none and for Gate 0. Record `{"kind":"round","round_kind":"full|delta|closing|validation-only"}` when a round starts and `{"kind":"cycle",...}` when batch remediation consumes a cycle, adding `"extra":true` for the Extra Cycle; `commit-boundary` records its own commit entry. `--entry` also takes a JSON array, so record a round's start and its gates together in one call instead of one call per entry. `ledger summary` yields the `Review cost:` line the handoff returns.
 
 Use these exact invocations, with `{state}` as the resolved script path; none needs a `--help` lookup:
 
 ```text
 python3 {state} validate-archive --archive-key {archive-key}
-python3 {state} ledger init --archive-key {archive-key} --work-id {work-id} --max-cycles {n}
+python3 {state} ledger init --archive-key {archive-key} --work-id {work-id} --max-cycles {n} [--resume]
 python3 {state} ledger record --archive-key {archive-key} --entry '<one JSON object or a JSON array>'
 python3 {state} ledger summary --archive-key {archive-key}
 python3 {state} profile --archive-key {archive-key} --base-ref refs/remotes/origin/{base-branch} --risk-script {risk-signals-script} [--strict] [--depth balanced|full] [--raise balanced|full --reason '<evidence>']
@@ -94,7 +94,7 @@ Build it from the same final run state as the overview: the handoff ledgers and 
 
 - **Grouping:** Put open items that one answer settles into one decision, such as required unresolved findings that all resume under one new fix budget. Give an item its own decision when it needs its own product, scope, public-contract, security, or external-access choice. Each open item appears in exactly one decision, never in two and never left out. Number several decisions as the shared format's Several Decisions section shows.
 - **Work item:** `{work-id}`, or `{work-branch}` in a direct run without a tracker issue.
-- **Evidence:** one or two sentences for each open item the decision covers: its gate, what is wrong and where, and what the attempted fix showed.
+- **Evidence:** one or two sentences for each open item the decision covers: its gate, what is wrong and where, and what the attempted fix showed, including what the extra cycle changed when it ran.
 - **Options:** the recommended option gives its reason, and each option says what it costs in fix cycles. When the run ended at a bounded stop or with no cycles left, resuming starts a new budget of up to `MAX_AUTOMATIC_REMEDIATION_CYCLES` cycles for the covered items, under the Bounded Stop rule; otherwise resuming continues the current loop on the cycles left, which the option states. Resumed decisions in one request share that budget, and an option that changes no code, such as stopping here, costs `0` cycles. Offer genuinely distinct alternatives only.
 - **No `State:` line:** the caller adds the one it owns, and a direct run adds its own under SKILL.md Step 6. Leave out fixed findings and the overview groups; the other Step 6 handoff fields already carry them.
 
@@ -115,7 +115,7 @@ When `VALIDATION_ONLY=false`, use parsed `MAX_AUTOMATIC_REMEDIATION_CYCLES` from
 
 Close a pass early, before its remaining gates run, only when an accepted Critical finding makes their input moot because its fix will replace most of what they would read; record the early close and its reason, then continue at step 2. Every other pass runs to its last active gate before triage.
 
-Do not reset the counter between gates, rounds, or delegated skills. Full passes, delta rounds, and closing passes are read-only and do not consume a cycle; only step 2 does, and focused verification runs inside it before the next round. Gate 0 sits outside this rotation and outside the ledger under its own rules below.
+When the budget is used up and required findings remain, the Diminishing-Returns Guard's Extra Cycle rule decides whether step 2 runs once more before the bounded stop. Do not reset the counter between gates, rounds, or delegated skills. Full passes, delta rounds, and closing passes are read-only and do not consume a cycle; only step 2 does, and focused verification runs inside it before the next round. Gate 0 sits outside this rotation and outside the ledger under its own rules below.
 
 When `VALIDATION_ONLY=true`, initialize the ledger with `--max-cycles 0` so it records rounds and gate cost but rejects any cycle, and permit no source, test, configuration, or documentation edit, deletion, revert, staging operation, or commit. Generated review reports may be created and isolated under the ignored archive. Run one profile evaluation, one applicability evaluation, and one complete ordered pass. When Step 2 established `VALIDATION_BASE_COMMIT`, that pass is a delta round scoped to `{VALIDATION_BASE_COMMIT}..HEAD`: the caller already converged the tree at that commit with a full pass, so evaluate applicability against the delta and pass `--base {VALIDATION_BASE_COMMIT}` to Gates 1–4; Gate 5, when requested, still attests the full tree. Otherwise the pass is a full pass. In the light and balanced profiles, either pass uses the closing gate set over its scope and treats the caller's CI remediation, `{VALIDATION_BASE_COMMIT}..HEAD`, as the batch; when Step 2 left that commit unset, the whole branch is the batch. Report `Validation scope: delta ({VALIDATION_BASE_COMMIT}..HEAD) | full ({reason})`. A required finding or manual blocker fails validation; optional findings receive evidence-based reported dispositions without changing code.
 
@@ -392,9 +392,24 @@ Stop automatic remediation when any condition occurs:
 
 1. The same accepted finding persists after two attempted fixes without new evidence that changes the fix direction; a fingerprint re-emitted by a delta round or confirmation pass after its batch counts as persisting, and so does one a closing pass re-emits.
 2. Two consecutive remediation cycles make no material progress.
-3. The shared remediation counter reaches `MAX_AUTOMATIC_REMEDIATION_CYCLES`, regardless of whether each cycle made progress.
+3. The shared remediation counter reaches `MAX_AUTOMATIC_REMEDIATION_CYCLES`, regardless of whether each cycle made progress, and the Extra Cycle rule below does not allow one more cycle.
 
 The hard ceiling is a safety boundary, not a target. Stop earlier as soon as the remaining expected benefit is lower than the churn and regression risk.
+
+### Extra Cycle
+
+`MAX_AUTOMATIC_REMEDIATION_CYCLES` is the budget before this one extra cycle. When the counter has reached it and the rounds that follow that cycle leave accepted required findings open — an accepted Critical or Important finding from Gate 1, 2, or 5, an accepted `OVERDONE` finding, or a verification failure — run one more remediation cycle without asking the user only when all of these hold:
+
+- the cycle that used up the budget made material progress, measured as above;
+- no open finding or Gut Check item is `blocked`, and none needs a decision, approval, or access that only the user can give under Manual Findings;
+- fewer than five cycles have run, so the extra cycle never makes a sixth;
+- stop conditions 1 and 2 have not fired;
+- the budget just used up is the run's original budget, not one the user approved under the Bounded Stop rule;
+- no extra cycle has run in this run.
+
+The extra cycle is an ordinary step 2 batch restricted to the open required findings and the changes their fixes cause, as an approved continuation would be: no advisory item joins it, and deferred optional findings stay deferred. Record it with `ledger record` as `{"kind":"cycle","extra":true,...}`; the state script refuses to record an extra cycle before the budget is used up, a second one, one under a user-approved budget, and one that would pass five cycles, and it records no further cycle until an approved resume adds a budget. Then run the profile's next round as after any cycle: a delta round and a confirmation pass in the full profile, a closing pass in the light and balanced profiles. The final tree therefore still gets a full-scope pass, and final verification still runs before a passing handoff.
+
+When the conditions do not hold, stop at the budget without the extra cycle. When required findings remain after it, the bounded stop fires with no further cycle and returns a Decision Request whose evidence says the extra cycle ran. Report `extra cycle=ran` in the handoff whenever the ledger records it, and `extra cycle=not run` otherwise.
 
 ### Bounded Stop
 
@@ -406,7 +421,7 @@ Disposition the final validation-only findings as follows:
 - If any accepted Critical, Important, or `OVERDONE` finding or verification failure remains without a human or external dependency, record it as `required_unresolved` with the remaining fingerprint, attempted-fix evidence, and smallest decision needed to resume, then stop the workflow. Record genuine manual blockers as `blocked`. Report the cycle ledger and both sets of remaining fingerprints. Do not run final verification, rewrite history, push, or create the Pull Request.
 - If no required finding remains, proceed to final verification. Report that the loop stopped at diminishing returns and include the deferred optional count; do not claim that reviewers emitted zero findings.
 
-A repeated rejected finding never keeps the loop open. Explicit user approval to resume starts a new budget of `MAX_AUTOMATIC_REMEDIATION_CYCLES` only for the reported remaining fingerprints and any consequences of their fixes; it does not reopen deferred optional polish automatically.
+A repeated rejected finding never keeps the loop open. Explicit user approval to resume starts a new budget of `MAX_AUTOMATIC_REMEDIATION_CYCLES` only for the reported remaining fingerprints and any consequences of their fixes; it does not reopen deferred optional polish automatically, and a user-approved budget never earns an extra cycle. Record the approved budget with `ledger init --resume`, which keeps the run's ledger entries, adds the new budget to the cycles already used, and refuses an extra cycle under it.
 
 ## Completion Check
 
@@ -422,7 +437,8 @@ Before returning, confirm:
 - When `PLAN_SCOPE_ACTIVE=true`, every proposed, dirty, staged, and committed remediation path satisfied `PLAN_SCOPE_MODE`; exact-file eligibility was rechecked before each staging boundary when applicable; and the final committed path set from `{scope-base-commit}` was revalidated before success.
 - Every generated review report is isolated under `.context/{archive-key}/reviews/`, not present in the unified review scope.
 - A final `validate-archive` run still returns `REVIEW_ARCHIVE_CANONICAL`, so the archive components are real non-symlink directories below the repository root and Git still ignores the path.
-- `ledger summary` agrees with run state: its cycle count equals the cycles reported, every remediation commit appears in its commit list, and its `Review cost:` line is the one the handoff returns.
+- `ledger summary` agrees with run state: its cycle count equals the cycles reported, its `extra_cycle` value matches the handoff's `extra cycle` field, every remediation commit appears in its commit list, and its `Review cost:` line is the one the handoff returns.
+- An extra cycle ran only under the Extra Cycle rule, at most once, and never past five cycles in total.
 - The final tree received a full-scope pass in which every gate its round made applicable ran in regular-review → convention-review → overengineering-review → refactor → adversarial-review order, omitting only gates recorded as skipped; a delta round never closed the loop.
 - Every fingerprint fixed by a batch was confirmed absent by the final full pass (the final closing pass in the light and balanced profiles); none remains pending confirmation.
 - Every skipped gate has a current evidence-based reason.
@@ -433,4 +449,4 @@ Before returning, confirm:
 - The unremediated issue overview was produced from final run state at every terminal handoff after review activity began, includes interrupted-pass evidence from `REVIEW_ACTIVITY_STATUS`, excludes fixed work, and agrees with the final Gut Check counts, finding counts, and handoff ledgers.
 - `DIFF_COMMENTS_POSTED_TOTAL` is a nonnegative integer equal to the sum of newly posted counts returned by normal-mode Gate 1 invocations; validation-only invocations contributed zero.
 
-Return the stop reason (`converged`, `diminishing returns`, or `validation-only`), remediation cycles used, review-debt score trend, counts of fixed, rejected, deferred optional, and blocked findings, and the unremediated issue overview. A nonzero required or blocked count prevents clean completion until the caller supplies the missing input.
+Return the stop reason (`converged`, `diminishing returns`, or `validation-only`), remediation cycles used, whether the extra cycle ran, review-debt score trend, counts of fixed, rejected, deferred optional, and blocked findings, and the unremediated issue overview. A nonzero required or blocked count prevents clean completion until the caller supplies the missing input.
