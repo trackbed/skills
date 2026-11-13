@@ -46,7 +46,7 @@ Use it to hand one plan file, sized for a single Pull Request, to the agent and 
 
 - The plan set moved from the repository root into `.context/code-plan-to-pr/<plan-set-id>/plans/`, where the run marks the plan `IN_PROGRESS` and then `DONE`. An attached plan is copied there and the attachment is left as it was. Plan files never enter the Pull Request.
 - A new local `plan/...` branch with the implementation committed.
-- A completion result: the review profile, the findings fixed, rejected, and deferred, the verification result, the archive path, and any default the run assumed for an open question in the plan.
+- A [final report](../shipping.md#final-reports) that starts with the outcome and what needs your attention, such as any default the run assumed for an open question in the plan. Then come what was built and what review found, and last the completion result: the review profile, the findings fixed, rejected, and deferred, the verification result, and the archive path.
 - With `--ship`, an open Pull Request whose checks pass. Without it, the result names `trackbed:pr:create` as the next step.
 
 When the run cannot decide something safely, it stops and shows a [decision request](../shipping.md#decision-requests). The [shipping guide](../shipping.md#plan-to-pull-request) covers the workflow.

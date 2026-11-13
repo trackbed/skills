@@ -62,4 +62,4 @@ Every shared grant applies to the prepared plan branch only. `--ship` additional
 
 ## Plan Result Notes
 
-- Report the entry count of the validated `CI remediation JSON` on the shipped completion result's `CI remediation:` line. Keep the merged final-tree `Reviewer handoff JSON` as validation evidence; this workflow does not summarize it.
+- Report the entry count of the validated `CI remediation JSON` on the shipped completion result's `CI remediation:` line. Use the merged initial and final-tree `Reviewer handoff JSON` the shared contract returns as the source for the Step 7 report's review sections.

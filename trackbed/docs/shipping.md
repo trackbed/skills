@@ -23,7 +23,7 @@ Two things hold across these skills. When a run cannot decide something safely, 
 /trackbed:linear:issue-to-pr DISC-202 --continue --ship  # resume an interrupted run
 ```
 
-You get a branch with the implementation committed, a summary of what review found and what to check yourself, and with `--ship` an open Pull Request whose checks pass.
+You get a branch with the implementation committed, a [final report](#final-reports) that starts with what you need to check or decide, and with `--ship` an open Pull Request whose checks pass.
 
 ### Before Implementation
 
@@ -66,12 +66,6 @@ After implementation, `issue-to-pr` freezes the Linear issue's bounded requireme
 
 The checked independent-review line also goes into the generated PR description. If CI remediation changes the tree, the final validation pass requests another provider review unless the full change's stable patch ID matches the completed review. A light-profile skip cannot be reused as a completed review.
 
-### Reviewer Handoff Summary
-
-When the workflow finishes successfully, its report closes with a reviewer handoff summary: what was implemented, what the convergence review uncovered, and what to focus on when reviewing the result. The focus list covers open questions, decisions the workflow made autonomously, and deferred optional findings.
-
-Shipped summaries merge CI remediation and final-tree validation evidence when publication fixes changed the branch, then pass the complete prose through `trackbed:text:clarify` for plain-language editing.
-
 ### Implementing an Issue Directly
 
 `/trackbed:linear:issue-implement` fetches issue details plus referenced Linear issues/documents when accessible, reports inaccessible referenced assets, and uses that context during planning.
@@ -85,6 +79,18 @@ It writes to Linear only with `--set-in-progress`. That flag moves the issue to 
 Its `--continue` mode requires the selected archived plan already to be `IN_PROGRESS`, the exact deterministic unpublished plan branch, and only in-scope existing changes.
 
 `/trackbed:code:breakdown-findings --reconcile` can infer `DONE` from a proven merged plan branch only while the selected in-scope source state still matches the landed implementation. Later scoped changes or reversions require review and block automatic completion and dependent unblocking, including with `--auto`.
+
+## Final Reports
+
+When `issue-to-pr` or `plan-to-pr` finishes successfully, its report puts what needs you first. Every report has the same order:
+
+1. The outcome in one or two sentences, with the Pull Request link when there is one.
+2. **Needs your attention:** questions the issue or plan left open, choices the run made on its own, things it could not verify, judgment calls and risks review surfaced, and limitations. Each item says what to check or decide, with a suggested answer when there is one. When nothing needs you, the report says so.
+3. **What was done:** the change as built.
+4. **What review uncovered:** what the review gates found and what happened to each finding.
+5. The status block, last, with the field names later steps and tools read.
+
+Shipped reports describe the final tree: they merge CI fixes and the final validation pass when publication changed the branch. `issue-to-pr` also passes the prose parts through `trackbed:text:clarify` for plain-language editing. The [shared format](../shared/implementation/references/final-report.md) defines every rule.
 
 ## Decision Requests
 

@@ -47,7 +47,7 @@ Use it to hand one Linear issue to the agent and get back a reviewed, verified b
 ## What you get
 
 - The issue moved to your team's started status in Linear, and a branch with the implementation committed.
-- A summary of what was built, what review found and fixed, and what to check when you review it yourself.
+- A [final report](../shipping.md#final-reports) that starts with the outcome and what needs your attention: open questions, choices the run made on its own, and limitations. What was built and what review found and fixed come after, and the status block comes last.
 - With `--ship`, an open Pull Request whose checks pass. Before publishing, `trackbed:workflow:cleanup-artifacts` removes the project's disposable reports and plans, including ones from other work, and keeps specifications and shared diagrams; the branch's commits are rewritten into a narrative history, with a backup.
 
 When the run cannot decide something safely, it stops and asks you one question with its recommendation. The [shipping guide](../shipping.md#linear-issue-to-pull-request) covers each step in full.

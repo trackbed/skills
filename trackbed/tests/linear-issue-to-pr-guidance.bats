@@ -674,7 +674,7 @@ PYTEST
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
-@test "Linear issue to PR closes its report with a reviewer handoff summary" {
+@test "Linear issue to PR builds its report sections from the reviewer handoff" {
 	run bash -c '
     set -e
     cd "'"$BATS_TEST_DIRNAME"'/.."
@@ -685,11 +685,11 @@ PYTEST
     fix_ci="skills/pr:fix-ci/SKILL.md"
     shipping_guide="docs/shipping.md"
 
-    grep -qF "### Reviewer Handoff Summary" "$parent"
-    grep -qF "after either success template" "$parent"
+    grep -qF "### Report Sections" "$parent"
+    grep -qF "Compose the four prose parts, which come before either status block" "$parent"
     grep -qF "**What was done**" "$parent"
-    grep -qF "**What review convergence uncovered**" "$parent"
-    grep -qF "**What to focus on in review**" "$parent"
+    grep -qF "**What review uncovered**" "$parent"
+    grep -qF "**Needs your attention**" "$parent"
     grep -qF "decisions this workflow made autonomously" "$parent"
     grep -qF "Treat that producer-owned JSON as the only source" "$parent"
     grep -qF "Never re-read \`.context/linear-issue-to-pr/reviews/\` here" "$parent"
@@ -716,8 +716,7 @@ PYTEST
     grep -qF "merge only \`findings\` and \`focus\` with the final-tree handoff" "$parent"
     grep -qF "retained rejected or blocked Gut Check items" "$parent"
     grep -qF "Deduplicate a routed Gut Check item linked to an owning finding fingerprint" "$parent"
-    grep -qF "Shipped summaries merge CI remediation and final-tree validation evidence" "$shipping_guide"
-    grep -qF "reviewer handoff summary" "$shipping_guide"
+    grep -qF "Shipped reports describe the final tree: they merge CI fixes and the final validation pass" "$shipping_guide"
 
     capture_line=$(grep -nF "JSON-decode the returned \`Reviewer handoff JSON\` field" "$parent" | cut -d: -f1)
     shipping_line=$(grep -nF "## Step 4: Stop or Ship" "$parent" | cut -d: -f1)

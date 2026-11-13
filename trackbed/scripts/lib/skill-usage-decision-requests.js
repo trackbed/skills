@@ -42,9 +42,12 @@ const COMMAND_ENTRY_PREFIXES = ["<command-name>", "<command-message>"];
 // repeats the command name, plus `command-name` and `command-args` elements.
 const COMMAND_MESSAGE_ELEMENT = /<command-message>[^<]*<\/command-message>/g;
 const COMMAND_TAGS = /<\/?command-(?:name|args)>/g;
-// The success report of either workflow, or the reviewer summary that closes
-// an issue-to-pr report. The wording comes from the report templates in
-// `skills/linear:issue-to-pr/SKILL.md` and `skills/code:plan-to-pr/SKILL.md`.
+// The success report of either workflow, found by a line of its status block or
+// by a line that opens with its "Needs your attention" label. The wording comes
+// from `shared/implementation/references/final-report.md` and the report steps
+// in `skills/linear:issue-to-pr/SKILL.md` and `skills/code:plan-to-pr/SKILL.md`;
+// "What to focus on in review" is the older issue-to-pr summary label, kept so
+// earlier transcripts still count.
 // A run blocked before publication says why no Pull Request was created, so
 // its report does not match. A run blocked after its Pull Request opened still
 // prints the link and does match; `docs/hooks.md` lists that limit.
@@ -52,6 +55,7 @@ const FINAL_REPORT_PATTERNS = [
   /^[ \t>*_`-]*Pull Request:[\s*_`]*(?:https?:\/\/|\[)/im,
   /^[ \t>*_`-]*Pull Request:[\s*_`]*not created \(--ship was not supplied\)/im,
   /^[ \t>*_`-]*Completion disposition:[\s*_`]*success/im,
+  /^[ \t>#*_`-]*Needs your attention\b/im,
   /what to focus on in review/i,
 ];
 
