@@ -21,7 +21,7 @@ When the user must act rather than choose, such as granting missing access, use 
 
 ## Relayed Questions
 
-When a delegated skill hands back a question for the user, keep its question wording on the first line and its options with their consequences. Add the work item and the `State:` line; do not add a recap.
+When a delegated skill hands back a question for the user, keep its question wording on the first line and its options with their consequences. Add the work item and the `State:` line; do not add a recap. When the delegated skill hands back a complete request without a `State:` line, such as the `Decision request` field from `trackbed:pr:review-convergence`, show it unchanged and add only the `State:` line.
 
 ## Channel
 
@@ -44,9 +44,10 @@ Review used its whole fix budget and one required finding is open: no
 test covers an end tag outside a dropped region. The reviewer proposed
 two tests that would close it.
 
-1. Resume review (recommended): starts a new fix budget for this finding,
-   adds the two tests, and reruns review and full verification.
-2. Stop here: the branch stays local for you to finish by hand.
+1. Resume review (recommended): starts a new fix budget of up to 2 cycles
+   for this finding, adds the two tests, and reruns review and full
+   verification; the proposed tests should close it.
+2. Stop here (0 cycles): the branch stays local for you to finish by hand.
 
 State: nothing pushed, no PR, working tree clean; review archive in .context/linear-issue-to-pr/reviews/.
 ```

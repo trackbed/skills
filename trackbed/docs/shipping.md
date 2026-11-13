@@ -95,7 +95,7 @@ When `issue-to-pr` or `plan-to-pr` stops and waits for you, it shows a decision 
 3. Numbered options. The recommended one comes first and is marked, and each says what happens next.
 4. One `State:` line: what is published, what is not, and where the details are.
 
-The run recap and review notes stay out; they belong in the final report. Several decisions are numbered separately. A stop that needs an action, such as missing access, says what is needed, why, and the state.
+The run recap and review notes stay out; they belong in the final report. Several decisions are numbered separately. When review stops for you, `pr:review-convergence` writes the request itself, and the workflow shows it unchanged with its own `State:` line. A stop that needs an action, such as missing access, says what is needed, why, and the state.
 
 ```text
 Decision needed · SKILLS-22: resume review for the open finding, or stop here?
@@ -104,9 +104,10 @@ Review used its whole fix budget and one required finding is open: no
 test covers an end tag outside a dropped region. The reviewer proposed
 two tests that would close it.
 
-1. Resume review (recommended): starts a new fix budget for this finding,
-   adds the two tests, and reruns review and full verification.
-2. Stop here: the branch stays local for you to finish by hand.
+1. Resume review (recommended): starts a new fix budget of up to 2 cycles
+   for this finding, adds the two tests, and reruns review and full
+   verification; the proposed tests should close it.
+2. Stop here (0 cycles): the branch stays local for you to finish by hand.
 
 State: nothing pushed, no PR, working tree clean; review archive in .context/linear-issue-to-pr/reviews/.
 ```

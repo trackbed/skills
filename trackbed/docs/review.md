@@ -176,6 +176,8 @@ One bounded remediation budget prevents churn.
 - `issue-to-pr` and `plan-to-pr` instead always forward a budget of two, which their own `--cycles <1-5>` flag overrules.
 - With `--strict`, every review finding receives an evidence-based disposition rather than blind implementation.
 
+When review stops with a required finding still open, or with a finding only you can decide, it asks one [decision request](shipping.md#decision-requests). Findings that one answer settles share a decision. Each option says what it does next and how many fix cycles it costs. A direct run shows you the request; `issue-to-pr` and `plan-to-pr` show it unchanged with their own `State:` line.
+
 ### Fix Batches
 
 `pr:review-convergence` keeps review spend proportional to risk and to what actually changed. Each quality round runs every applicable gate read-only and collects findings, then fixes the accepted ones as one batch that consumes one remediation cycle.

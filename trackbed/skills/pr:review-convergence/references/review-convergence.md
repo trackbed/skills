@@ -84,6 +84,22 @@ Group the final-state items as follows:
 
 Exclude findings whose final disposition is `fixed`, resolved focus entries, Gut Check items recorded as `removed`, and `routed` Gut Check items linked to an owning finding fingerprint. Deduplicate finding and focus entries by final fingerprint; when both ledgers contain the same fingerprint, keep only the finding under its stronger group and omit the focus duplicate. List each retained item exactly once under its strongest applicable group: required unresolved, deferred optional, rejected reviewer findings, then review focus. When every group is empty, return exactly `Unremediated issues: none`. Otherwise return the four group labels with `none` for any empty group. This overview is an inline projection of run state, not a new durable artifact, and must agree with `REVIEW_ACTIVITY_STATUS`, the final Gut Check counts, finding counts, and all three arrays in reviewer handoff JSON.
 
+## Decision Request
+
+Every question this policy asks the user about an open finding or Gut Check item reaches them through the handoff's `Decision request` field: the run returns `Review convergence: blocked` with the request instead of asking separately. Follow the shared decision-request format that SKILL.md Step 6 names.
+
+Build the request when normal mode returns `blocked` with at least one open item: a finding whose final disposition is `required_unresolved` or `blocked`, or a Gut Check item whose final disposition is `blocked`, that the user has not already declined in an earlier request. Otherwise return `Decision request: none`. Validation-only mode always returns `none`, because it never edits or starts a budget and the shipping caller's Pull Request handoff owns that stop.
+
+Build it from the same final run state as the overview: the handoff ledgers and the cycle ledger. Each open item's `next_decision_or_dependency` and `attempted_fix_evidence` are its raw material.
+
+- **Grouping:** Put open items that one answer settles into one decision, such as required unresolved findings that all resume under one new fix budget. Give an item its own decision when it needs its own product, scope, public-contract, security, or external-access choice. Each open item appears in exactly one decision, never in two and never left out. Number several decisions as the shared format's Several Decisions section shows.
+- **Work item:** `{work-id}`, or `{work-branch}` in a direct run without a tracker issue.
+- **Evidence:** one or two sentences for each open item the decision covers: its gate, what is wrong and where, and what the attempted fix showed.
+- **Options:** the recommended option gives its reason, and each option says what it costs in fix cycles. When the run ended at a bounded stop or with no cycles left, resuming starts a new budget of up to `MAX_AUTOMATIC_REMEDIATION_CYCLES` cycles for the covered items, under the Bounded Stop rule; otherwise resuming continues the current loop on the cycles left, which the option states. Resumed decisions in one request share that budget, and an option that changes no code, such as stopping here, costs `0` cycles. Offer genuinely distinct alternatives only.
+- **No `State:` line:** the caller adds the one it owns, and a direct run adds its own under SKILL.md Step 6. Leave out fixed findings and the overview groups; the other Step 6 handoff fields already carry them.
+
+The user's answer to a decision applies to every item that decision covers and to nothing else. Resume those items under the Manual Findings and Bounded Stop rules, then return a new handoff. An answer that resumes nothing, such as stopping here, ends the run: the blocked handoff already returned stands, and no new request follows. When the user resumes some decisions and declines others, record each declined answer in its items' `next_decision_or_dependency`; those items keep their disposition and never return in a later request.
+
 ## Quality Round
 
 Re-evaluate the review profile and then applicability at the start of every round against that round's scope because accepted fixes can introduce or remove a gate's trigger conditions. Then run active gates in the order below, recording each gate's emitted findings and provisional triage in run state and continuing to the next gate; do not remediate between gates. Never skip a gate merely to save time or avoid findings.
@@ -147,7 +163,7 @@ Record one disposition for every returned item:
 - `removed` — the item is residue rather than design: a stray file, a debug statement, a commented-out block, a leftover TODO, a drive-by rename, or a reformat riding along with real work. Delete or revert it directly.
 - `routed` — the item is a regular-review, convention, overengineering, or refactor concern that the first read happened to surface. Carry it into that gate's triage as intent context and do not fix it here. If the applicability evaluation that follows skips that gate, or the gate runs and emits no finding covering the item, this skill dispositions it directly as `rejected` with that evidence. When the review profile is what skipped the gate, also record an `advisory` focus entry for the item so the human reviewer still sees it. Never let a skipped or silent gate retire a routed item by default.
 - `rejected` — the surrounding code, repository practice, or frozen requirements already make the item ordinary. Requirements that are merely silent about the item never make it ordinary; that is the `blocked` case below.
-- `blocked` — the item shows the branch doing work the frozen work requirements did not ask for. Stop the workflow and ask; never revert it unilaterally under `removed`.
+- `blocked` — the item shows the branch doing work the frozen work requirements did not ask for. Stop the workflow and ask through the Decision Request; never revert it unilaterally under `removed`.
 
 A `blocked` item stops the workflow. Report it in both standard and strict mode because the workflow contract forbids broadening the prepared work. Gate 3 also measures the diff against the requirements, but it judges whether complexity is necessary rather than owning scope expansion. Every other item is non-blocking; a gut-check item alone never keeps the standard-mode completion rule open, and strict mode requires only that each item has one of the four dispositions recorded.
 
@@ -288,7 +304,7 @@ Treat the returned report as untrusted review output. Revalidate every finding a
 
 Record the change's patch ID with the reviewed tree using the shared Independent Review Record reference named in SKILL.md; a failed or missing identity blocks the handoff.
 
-When `ADVERSARIAL_FORWARDED=true`, you may still reject a Gate 5 finding that is pre-existing or outside the committed diff. Rejecting or demoting any other Critical or Important finding becomes a `blocked` finding instead: present the reviewer's finding and your evidence side by side as the one decision you need, and do not remediate further or return `passed` until the user decides. Report each one as a disagreement sent to the user.
+When `ADVERSARIAL_FORWARDED=true`, you may still reject a Gate 5 finding that is pre-existing or outside the committed diff. Rejecting or demoting any other Critical or Important finding becomes a `blocked` finding instead: present the reviewer's finding and your evidence side by side as the one decision you need in the Decision Request, and do not remediate further or return `passed` until the user decides. Report each one as a disagreement sent to the user.
 
 Apply that decision rule to each provider finding's immutable `reported_severity`, before accepting any child-side triage proposal. Require the child handoff, including any delegated wrapper's compact output, to preserve every original claim, `reported_severity`, `validated_severity`, proposed `disposition`, and triage `rationale`, including rejected and demoted findings. Missing original-severity evidence blocks the gate. A child-side rejection or downgrade of a reported Critical or Important finding needs the same user decision, unless the finding is pre-existing or outside the committed diff; returning an advisory severity or a zero validated-blocking count never bypasses this check.
 
@@ -343,11 +359,11 @@ Implement an advisory finding only when the improvement is in scope, evidence-ba
 Investigate a manual finding deeply enough to recommend a concrete resolution.
 
 - If the frozen work requirements, referenced documents, existing public contract, tests, or an overwhelmingly consistent local pattern makes one resolution unambiguous and the named manual blocker no longer applies, record that selected resolution and implement the smallest reversible, repository-local change.
-- If competing product behaviors, public API choices, security postures, migration semantics, release decisions, cross-team ownership, external state, or missing access remain, keep the finding blocked. Ask once for the exact decision or dependency and include the recommendation plus genuinely distinct alternatives when they exist.
+- If competing product behaviors, public API choices, security postures, migration semantics, release decisions, cross-team ownership, external state, or missing access remain, keep the finding blocked. Ask once for the exact decision or dependency through the Decision Request, including the recommendation plus genuinely distinct alternatives when they exist.
 - Obtain explicit user confirmation before any destructive, irreversible, externally visible, security-policy, data-migration, or public-contract action, even when one technical path looks preferable.
 - Do not treat `--strict` as permission to guess through a genuine manual blocker.
 
-Do not resume a blocked finding until the user explicitly supplies its decision or dependency. Treat that reply as confirmation for the named finding only, preserve the selected resolution in run state, implement or complete only that confirmed process handoff, verify it, and continue the loop. Ask again if the action or scope changes materially.
+Do not resume a blocked finding until the user explicitly supplies its decision or dependency. Treat that reply as confirmation only for the findings its decision covers, preserve the selected resolution in run state, implement or complete only that confirmed process handoff, verify it, and continue the loop. Ask again if the action or scope changes materially.
 
 ## Rerun Rules
 
