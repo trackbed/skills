@@ -59,6 +59,18 @@ Rejected for `light` and `balanced`: it was the largest cost bucket, and on a sm
 
 Deferred. Reviewers stay on the orchestrator's model by default; `TRACKBED_REVIEW_SUBAGENT_LEVEL=lower` remains the opt-in.
 
+## Amendment (2026-11-13)
+
+When the remediation budget runs out with a required finding still open, review now runs one extra fix cycle on its own before asking. This covers any budget below five, including the two-cycle budget both callers forward by default. In 125 measured `issue-to-pr` runs (Claude Code in Conductor, 2026-10-14 to 2026-11-12), review stopped about 47 times because the budget ran out, and about four answers in five asked for more work. `plan-to-pr` was not measured; it gets the same rule because it forwards the same budget. The maintainer approved the change on 2026-11-12 (SKILLS-89).
+
+- **When it runs.** Once the budget is used up and accepted required findings remain open, review runs one more fix cycle without asking when the cycle that used up the budget made material progress, no open finding needs the user's decision or access, fewer than five cycles have run, and neither the persisting-finding nor the two-cycles-without-progress stop has fired.
+- **What it fixes.** Only the open required findings and the changes their fixes cause, as an approved continuation would. Optional findings stay deferred.
+- **Limits.** At most once per run, never a sixth cycle, and never after a user-approved new budget. `convergence-state.py` records it as a cycle entry with `"extra": true` and refuses it before the budget is used up, a second time, under a user-approved budget, and past five cycles. `ledger init --resume` records an approved budget in the same ledger, so the run's history and the extra-cycle record survive the resume.
+- **After it.** The profile's next round still runs, so the final tree gets a full-scope pass and full verification before review reports success. If required findings remain, review stops with a decision request.
+- **Reporting.** The convergence handoff and both callers' reports show `extra cycle=ran` or `extra cycle=not run`.
+
+The callers' default budget of two, the direct default of five, and the ceiling of five are unchanged. The extra cycle replaces one the user approved about four times in five, so the added cost is roughly the remaining fifth.
+
 ## Adoption Review
 
-On 2027-01-20, re-measure the same two workflows with the same weighting and compare against the 2026-10-20 baseline: review-phase tokens and active minutes by profile, the profile distribution, cycles per run, validation-only cost, and how often human review or follow-up commits found defects on `light`-profile branches that a deeper profile would have caught.
+On 2027-01-20, re-measure the same two workflows with the same weighting and compare against the 2026-10-20 baseline: review-phase tokens and active minutes by profile, the profile distribution, cycles per run, how often the extra cycle ran and settled the open findings, validation-only cost, and how often human review or follow-up commits found defects on `light`-profile branches that a deeper profile would have caught.

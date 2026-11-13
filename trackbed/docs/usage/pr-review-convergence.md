@@ -21,7 +21,7 @@ Use it on a committed branch to review and fix it against a fixed set of require
 | --- | --- |
 | `--subagent-model <model>` | Run the review agents on this model: a model class, a model ID, or `inherit`. See [Reviewer Models](../review.md#reviewer-models). |
 | `--strict` | Require an evidence-based decision on every review finding, and use the full review profile. |
-| `--rounds <1-5>` | How many fix-and-review rounds the run may take. The default is 5. |
+| `--rounds <1-5>` | How many fix-and-review rounds the run may take before it asks you. The default is 5. Below five, one extra round runs without asking when the last round made progress and nothing needs you. |
 | `--depth <balanced\|full>` | Raise the review profile above the one the branch's risk calls for. It never lowers it. |
 | `--adversarial-review` | Once the other reviews have nothing left to fix, also get a review from the other model provider. The run stops as blocked when that review cannot run. |
 | `--adversarial-provider claude\|codex` | Choose the provider for that review. It must differ from the one you are running in, and needs `--adversarial-review`. |

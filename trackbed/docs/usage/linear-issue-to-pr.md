@@ -21,7 +21,7 @@ Use it to hand one Linear issue to the agent and get back a reviewed, verified b
 | `--ship` | Delete the project's disposable reports and plans, such as `REVIEW_OVERVIEW.md` and `PR_PLAN_*.md`, rewrite the branch into narrative commits, push it, open the Pull Request, and fix CI and review feedback until both are clear. Without it, the run stops after verification. |
 | `--continue` | Resume an interrupted run on the issue's own unpublished branch. The issue must already be started. |
 | `--strict` | Require an evidence-based decision on every review finding, and use the full review profile. |
-| `--cycles <1-5>` | How many fix-and-review rounds the review may take. The default is 2. |
+| `--cycles <1-5>` | How many fix-and-review rounds the review may take before it asks you. The default is 2. When the last round made progress and nothing needs you, review runs one extra round without asking, never more than five in total. |
 | `--depth <balanced\|full>` | Raise the review profile above the one the branch's risk calls for. It never lowers it. |
 | `--adversarial-review` | Also get a review from the other model provider on medium- and high-risk work. You decide any of its findings the run wants to reject. |
 | `--rebase` | With `--ship`, rebase the opened Pull Request onto its base once if the base moved, and force-push it, instead of asking. |

@@ -262,7 +262,7 @@ See the [SIW guide](trackbed/docs/siw.md) for the full workflow reference.
 | --- | --- |
 | `--ship` | Open the PR and stabilize CI; without it, the run stops after verification |
 | `--strict` | Give every review finding an evidence-based disposition; forces the `full` review profile |
-| `--cycles <1-5>` | Fix-and-rerun budget for review convergence (default 2) |
+| `--cycles <1-5>` | Fix-and-rerun budget for review convergence (default 2); review may add one extra cycle without asking |
 | `--depth balanced\|full` | Raise the review profile above the branch's risk floor; it never lowers it |
 | `--adversarial-review` | Also get a review from the model provider opposite your host on medium- and high-risk work; you decide any of its findings the run wants to reject |
 | `--continue` | Resume on the issue's exact unpublished branch; the issue must already be started and every changed path must belong to it |

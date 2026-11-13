@@ -22,7 +22,7 @@ Use it to hand one plan file, sized for a single Pull Request, to the agent and 
 | --- | --- |
 | `--continue` | Resume an interrupted run that left work behind. You must be on the plan's branch and pass the archived plan, which must be `IN_PROGRESS`, and every existing change must be inside the plan's paths. |
 | `--strict` | Require an evidence-based decision on every review finding, and use the full [review profile](../review.md#review-profiles). |
-| `--cycles <1-5>` | How many fix-and-review rounds the review may take. The default is 2. |
+| `--cycles <1-5>` | How many fix-and-review rounds the review may take before it asks you. The default is 2. When the last round made progress and nothing needs you, review runs one extra round without asking, never more than five in total. |
 | `--depth <balanced\|full>` | Raise the review profile above the one the branch's risk calls for. It never lowers it. |
 | `--ship` | Rewrite the branch into narrative commits, push it, open the Pull Request, and fix CI and review feedback until both are clear. Without it, the run stops after verification. |
 
