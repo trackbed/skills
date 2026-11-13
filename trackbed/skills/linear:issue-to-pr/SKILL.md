@@ -133,7 +133,7 @@ After the delegated skill returns, continue immediately only when all of these a
 
 If any condition is false, stop at that blocker. Do not start review or Pull Request creation for a partial implementation.
 
-Record for the final reviewer handoff every decision or assumption the delegated workflow made where the issue, referenced context, and repository conventions did not fully determine the behavior, and every question the issue left open that implementation had to answer.
+Record for the final report every decision or assumption the delegated workflow made where the issue, referenced context, and repository conventions did not fully determine the behavior, and every question the issue left open that implementation had to answer.
 
 ### Implementation Commit Boundary
 
@@ -185,7 +185,7 @@ Capture the returned gut-check counts, review profile, active and skipped gates,
 
 ## Step 4: Stop or Ship
 
-If `SHIP_MODE=false`, stop without invoking artifact cleanup or `trackbed:pr:create`. Report that implementation, review, and verification are complete using the Step 5 review-ready template, whose `Next:` and `Then:` lines carry the exact handoff commands.
+If `SHIP_MODE=false`, stop without invoking artifact cleanup or `trackbed:pr:create`. Report that implementation, review, and verification are complete with the Step 5 report, whose review-ready status block carries the exact handoff commands on its `Next:` and `Then:` lines.
 
 If `SHIP_MODE=true`, resolve `${CLAUDE_PLUGIN_ROOT}/shared/implementation/references/pr-shipping-contract.md` as `{pr-shipping-contract}`, read `references/shipping-contract.md` for this workflow's hook bindings, then read `{pr-shipping-contract}` and follow it completely with those bindings. That contract owns the complete order; in summary:
 
@@ -204,7 +204,11 @@ When `ADVERSARIAL_REVIEW=true`, append `--independent-review-line <line>` to the
 
 ## Step 5: Report the Outcome
 
-For a review-ready result without `--ship`, report:
+Read `${CLAUDE_PLUGIN_ROOT}/shared/implementation/references/final-report.md` and follow it. Draft the four prose parts from the sources under Report Sections, run the clarity pass, and post them with the status block for this result last, as one message. A run that stopped on a blocker or a question shows a decision request instead of either template.
+
+### Status Block
+
+For a review-ready result without `--ship`, end the report with:
 
 ```text
 Linear issue: {issue-id}
@@ -226,7 +230,7 @@ Then: $trackbed:pr:create --linear-issue {issue-id} --require-generated-descript
 Then: $trackbed:pr:fix-ci --no-consolidate
 ```
 
-For a shipped result, report:
+For a shipped result, end the report with:
 
 ```text
 Linear issue: {issue-id}
@@ -249,19 +253,24 @@ Pull Request: {url}
 History: narrative rewrite completed before PR creation; {no rebase after publication | one guarded rebase after publication}; CI fix commits retained separately; final remote head matches the clean local tree
 ```
 
-If coverage was degraded or a check was skipped, replace the success wording with the exact limitation. Never describe a partial or degraded run as clean. A run that stopped on a blocker or a question shows a decision request instead of either template.
+If coverage was degraded or a check was skipped, replace the success wording with the exact limitation and list it under **Needs your attention** as well. Never describe a partial or degraded run as clean.
 
-### Reviewer Handoff Summary
+### Report Sections
 
-Close the same final message, after either success template, with a short prose summary composed from the implementation decisions captured in Step 2, the validated initial `Reviewer handoff JSON` captured in Step 3, and, in ship mode, the validated `CI remediation JSON` plus any final-tree `Reviewer handoff JSON` returned through Step 4's shipping contract. Never re-read `.context/linear-issue-to-pr/reviews/` here. When final-tree validation ran, retain the initial `gut_check` array unchanged because validation-only does not rerun Gate 0, and merge only `findings` and `focus` with the final-tree handoff under the shipping contract so the summary describes the Pull Request's final reviewed tree rather than its pre-CI state. Cover exactly these three parts:
+Compose the four prose parts, which come before either status block, from the implementation decisions captured in Step 2, the validated initial `Reviewer handoff JSON` captured in Step 3, and, in ship mode, the validated `CI remediation JSON` plus any final-tree `Reviewer handoff JSON` returned through Step 4's shipping contract. Never re-read `.context/linear-issue-to-pr/reviews/` here. When final-tree validation ran, retain the initial `gut_check` array unchanged because validation-only does not rerun Gate 0, and merge only `findings` and `focus` with the final-tree handoff under the shipping contract so the report describes the Pull Request's final reviewed tree rather than its pre-CI state. Cover exactly these four parts:
 
+- **Outcome** — one or two sentences: `{issue-id}` is implemented and reviewed, and either the Pull Request link with its CI state or that no Pull Request was created because `--ship` was not supplied.
+- **Needs your attention** — open questions the issue left unanswered, decisions this workflow made autonomously that the issue did not settle, judgment calls and risk areas the gates surfaced, deferred optional findings the user may still want addressed, and every limitation the status block reports in place of success wording.
 - **What was done** — two to four sentences describing the final implemented behavior change against `{issue-requirements}`, naming the main areas of the codebase touched and any post-publication fixes from `CI remediation JSON`.
-- **What review convergence uncovered** — retained rejected or blocked Gut Check items, unlinked routed Gut Check items that did not reach their owning gate, and the material findings with their final dispositions: fixed, rejected with the evidence-based reason, deferred optional, required unresolved, or blocked. Deduplicate a routed Gut Check item linked to an owning finding fingerprint. Include final-tree validation findings when that pass ran, and state plainly when both the initial and final gates came back clean.
-- **What to focus on in review** — open questions the issue left unanswered, decisions this workflow made autonomously that the issue did not settle, judgment calls and risk areas the gates surfaced, and deferred optional findings the user may still want addressed. State plainly when nothing needs focused attention.
+- **What review uncovered** — retained rejected or blocked Gut Check items, unlinked routed Gut Check items that did not reach their owning gate, and the material findings with their final dispositions: fixed, rejected with the evidence-based reason, deferred optional, required unresolved, or blocked. Deduplicate a routed Gut Check item linked to an owning finding fingerprint. Include final-tree validation findings when that pass ran, and state plainly when both the initial and final gates came back clean.
 
-Draft the three parts first, then pass the complete draft as one block of raw text to `trackbed:text:clarify`, whose reader here is the user preparing to review this change. Post the clarified rewrite only when it preserves every fact, disposition, limitation, open question, and autonomous decision from the draft; restore anything the rewrite dropped before posting. If the clarify skill is unavailable, post the draft unchanged rather than blocking the report.
+### Clarity Pass
 
-Keep the summary factual and grounded in captured evidence. Never invent a finding, soften a limitation, or omit an autonomous decision because it seems minor; an empty part says so explicitly rather than disappearing.
+Draft the four parts first, then pass the complete draft as one block of raw text to `trackbed:text:clarify`, whose reader here is the user preparing to review this change. Say in the request that the bold labels and their order must stay, that each attention item must still open with what to check or decide, and that the rewrite is one step of this workflow, which continues after it. Post the clarified rewrite only when it preserves every fact, disposition, limitation, open question, and autonomous decision from the draft; restore anything the rewrite dropped before posting. If the clarify skill is unavailable, post the draft unchanged rather than blocking the report.
+
+The clarify output is input to this report, not the report itself. In the same response, check it, add the status block after it, and post the complete report; never end the turn on the rewrite alone.
+
+Keep the report factual and grounded in captured evidence. Never invent a finding, soften a limitation, or omit an autonomous decision because it seems minor; an empty part says so explicitly rather than disappearing.
 
 ## Artifact Lifecycle
 

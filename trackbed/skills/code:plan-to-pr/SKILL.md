@@ -199,7 +199,7 @@ When the host lets a delegated agent invoke skills and launch its own agents (Cl
 
 On either path, when a blocked handoff carries a `Decision request`, show that request to the user unchanged, adding only the `State:` line this workflow owns. When a blocked handoff returns `Decision request: none`, build the decision request from its exact blocker, unless it lists at least one open item and the user already declined each of them; then report those declines with the `State:` line. When the answer resumes review, continue the same run with it, in the same delegated agent when there is one, instead of starting a new invocation; any other answer ends the run on the blocked handoff it already returned. Ask each review question once, here: later stop and report steps report its answer and never ask it again, and a resumed run's new blocked handoff is relayed the same way.
 
-Invoke `trackbed:pr:review-convergence` once and capture its structured handoff. Continue only when it returns `Review convergence: passed`, normal mode, the exact work ID and branch, a clean current tree matching its review tree, complete ordered-gate evidence, no required or blocked finding, and passed final verification. JSON-decode its `Requirements JSON` field and require the decoded value to equal `{work-requirements}` byte-for-byte.
+Invoke `trackbed:pr:review-convergence` once and capture its structured handoff. Continue only when it returns `Review convergence: passed`, normal mode, the exact work ID and branch, a clean current tree matching its review tree, complete ordered-gate evidence, no required or blocked finding, and passed final verification. JSON-decode its `Requirements JSON` field and require the decoded value to equal `{work-requirements}` byte-for-byte. JSON-decode its `Reviewer handoff JSON` field, require exactly `gut_check`, `findings`, and `focus` arrays, and validate every entry against `trackbed:pr:review-convergence`'s documented keys, conditional recovery fields, and enum values; retain it as the only source for the Step 7 review sections.
 
 For plan scope, require the handoff's validated scope plan, scope mode, scope base, and normalized paths to equal `{validated-scope-plan}`, `PLAN_SCOPE_MODE`, `{branch-base-commit}`, and `SCOPE_PATHS`. Preserve those exact returned values as `{scope-base-commit}`, `VALIDATED_SCOPE_PATHS`, and `RECHECK_STANDALONE_SCOPE`; they are the only scope state the shipping contract may use. Stop at any missing invariant. Never reconstruct or restart the delegated remediation loop in this caller.
 
@@ -303,7 +303,16 @@ Review reports are produced and owned by `trackbed:pr:review-convergence`, consu
 
 ## Step 7: Report
 
-For a blocked completion, report a decision request: the blocker is its evidence, and its options and `State:` line give only the recovery the matching Completion Return Contract item reports, so the archived selected-plan path is a retry option only for `prepublication_blocked`. When review convergence stopped the run, ask its review question only as Step 6 describes; after an answer that ends the run, report that choice with the recovery above and do not ask again. On success, include the shared completion result plus:
+For a blocked completion, report a decision request: the blocker is its evidence, and its options and `State:` line give only the recovery the matching Completion Return Contract item reports, so the archived selected-plan path is a retry option only for `prepublication_blocked`. When review convergence stopped the run, ask its review question only as Step 6 describes; after an answer that ends the run, report that choice with the recovery above and do not ask again.
+
+On success, read `${CLAUDE_PLUGIN_ROOT}/shared/implementation/references/final-report.md` and follow it. Post one message that opens with four prose parts and ends with the status block:
+
+- **Outcome** — one or two sentences: `{execution-label}` is implemented and reviewed, and either the Pull Request link with its CI state or that no Pull Request was created because `--ship` was not supplied.
+- **Needs your attention** — each assumption from the implementation closeout's `ASSUMPTIONS` list as a choice to confirm (on a completion resume, that none were recorded), the Judgment Calls, risks, and advisory notes in the handoff's `focus` array, deferred optional findings, and every limitation the status block reports in place of success wording.
+- **What was done** — two to four sentences describing the implemented change against the plan's goal and completion criteria, naming the main areas touched and any post-publication fixes from the validated `CI remediation JSON`.
+- **What review uncovered** — from the validated `Reviewer handoff JSON`, or the merged initial and final-tree handoff the shipping contract returns: retained rejected or blocked Gut Check items, unlinked routed Gut Check items, and the material findings with their final dispositions. State plainly when the gates came back clean.
+
+End with the shared completion result from Step 6, its field names unchanged because archive finalization and usage tooling read them, followed by:
 
 ```text
 Plan: {selected basename} ({execution-label})

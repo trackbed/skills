@@ -587,6 +587,14 @@ test("scanner recognizes the report and gate wording the workflow skills ship", 
     ...issueReports.map((report) => ({ skill: ISSUE_TO_PR, report })),
     {
       skill: ISSUE_TO_PR,
+      report: "**Needs your attention:** nothing.",
+    },
+    {
+      skill: PLAN_TO_PR,
+      report: "**Needs your attention**\n\n1. Check the assumed default.",
+    },
+    {
+      skill: ISSUE_TO_PR,
       report: "**What to focus on in review**\n\nNothing.",
     },
     ...planReports.map((report) => ({ skill: PLAN_TO_PR, report })),
@@ -604,7 +612,12 @@ test("scanner recognizes the report and gate wording the workflow skills ship", 
     path.join(SKILLS_DIR, "linear:issue-to-pr/SKILL.md"),
     "utf8",
   );
-  assert.match(issueToPr, /\*\*What to focus on in review\*\*/);
+  assert.match(issueToPr, /\*\*Needs your attention\*\*/);
+  const planToPr = await fs.readFile(
+    path.join(SKILLS_DIR, "code:plan-to-pr/SKILL.md"),
+    "utf8",
+  );
+  assert.match(planToPr, /\*\*Needs your attention\*\*/);
   const gateQuestion = (
     await fs.readFile(
       path.join(
@@ -631,6 +644,16 @@ test("scanner recognizes a decorated or linked Pull Request line as the final re
     assert.equal(facts.reportFollowUps, 1, report);
     assert.equal(facts.messages.length, 0, report);
   }
+});
+
+test("scanner does not take a mid-run mention of the attention label for the report", () => {
+  const facts = scan([
+    human("/trackbed:linear:issue-to-pr ABC-1"),
+    says("m1", "Base drift needs your attention. Rebase now?"),
+    human("yes"),
+  ]);
+  assert.equal(facts.reportFollowUps, 0);
+  assert.equal(facts.messages.length, 1);
 });
 
 test("scanner recognizes a plan-to-pr completion and reports a run that never started", () => {
