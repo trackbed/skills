@@ -165,7 +165,7 @@ settings_block_is_closed() {
   run make --no-print-directory -C "$(plugin_root)" -n lint-shell
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *'evals/*/_lib/*.sh'* ]]
+  [[ "$output" == *'evals/_lib/*.sh'* ]]
   [[ "$output" == *'evals/*/*/scaffold.sh'* ]]
 }
 

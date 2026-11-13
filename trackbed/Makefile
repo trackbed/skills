@@ -58,7 +58,7 @@ SHELLCHECK_FILES = \
 	scripts/dev-server/*.sh \
 	scripts/lib/*.sh \
 	evals/skillopt/scripts/*.sh \
-	evals/*/_lib/*.sh \
+	evals/_lib/*.sh \
 	evals/*/*/scaffold.sh \
 	skills/*/scripts/*.sh \
 	skills/*/assets/*.sh

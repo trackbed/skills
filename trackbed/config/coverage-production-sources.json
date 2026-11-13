@@ -807,7 +807,7 @@
   ],
   "shell": {
     "contract_only": {
-      "trackbed/evals/pr-generate-description/_lib/git-fixture.sh": [
+      "trackbed/evals/_lib/git-fixture.sh": [
         "trackbed/tests/skill-eval-suites.bats"
       ],
       "trackbed/evals/pr-generate-description/pr-description-breaking-change/scaffold.sh": [
