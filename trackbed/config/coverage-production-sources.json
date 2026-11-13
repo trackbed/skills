@@ -23,6 +23,7 @@
       "trackbed/scripts/convert-plugin/legacy-install-cleanup.js",
       "trackbed/scripts/convert-plugin/loader.js",
       "trackbed/scripts/lib/skill-usage-cost.js",
+      "trackbed/scripts/lib/skill-usage-decision-requests.js",
       "trackbed/scripts/lib/skill-usage-hosts.js",
       "trackbed/scripts/probe-cold-reader-isolation.js",
       "trackbed/scripts/schemas/skill-contracts.js",
