@@ -11,13 +11,18 @@ Subcommands:
       Establish `.context/KEY/reviews/` without following symlinks, prove it is
       strictly below the repository root, and prove Git ignores it.
 
-  ledger init --archive-key KEY --work-id ID --max-cycles N
+  ledger init --archive-key KEY --work-id ID --max-cycles N [--resume]
   ledger record --archive-key KEY --entry JSON
   ledger summary --archive-key KEY
       Maintain the run-scoped cycle ledger under the validated archive and
       summarize cycles, rounds, commits, per-gate agent launches, and the review
       profile. `--entry` takes one JSON object or a non-empty JSON array of them;
-      an array is validated completely and appended in one write.
+      an array is validated completely and appended in one write. A cycle entry
+      with `"extra": true` records the policy's one extra cycle: it is accepted
+      only when a nonzero budget is exactly used up, never as a sixth cycle, and
+      never under a user-approved budget. `--resume` records that budget in the
+      existing ledger: it keeps every entry and allows N cycles beyond those
+      already used.
 
   profile --archive-key KEY --base-ref REF --risk-script PATH
           [--strict] [--depth balanced|full] [--raise balanced|full --reason TEXT]
@@ -54,6 +59,8 @@ ROUND_KINDS = ("full", "delta", "closing", "validation-only")
 SCOPE_MODES = ("none", "exact-files", "containment")
 PROFILES = ("light", "balanced", "full")
 RISK_LEVELS = ("low", "medium", "high")
+# Extra-cycle ceiling; `ledger init` does not cap --max-cycles.
+CYCLE_CEILING = 5
 FLOOR_PROFILES = {"low": "light", "medium": "balanced", "high": "full"}
 RISK_SCHEMA = "trackbed-pr-triage-risk-signals/v1"
 RISK_SCRIPT_NAME = "risk-signals.py"
@@ -154,12 +161,21 @@ def _write_ledger(path: Path, data: dict[str, Any]) -> None:
     os.replace(temporary, path)
 
 
-def ledger_init(key: str, work_id: str, max_cycles: int) -> dict[str, Any]:
+def ledger_init(key: str, work_id: str, max_cycles: int, resume: bool = False) -> dict[str, Any]:
     if max_cycles < 0:
         raise ValidationError("--max-cycles must be a nonnegative integer")
     path = ledger_path(key)
     if path.is_symlink():
         raise ValidationError(f"{path} is a symlink")
+    if resume:
+        existing = _load_ledger(path)
+        if existing.get("work_id") != work_id:
+            raise ValidationError(f"--resume continues the ledger of {existing.get('work_id')!r}, not {work_id!r}")
+        cycles_used = sum(1 for entry in existing["entries"] if entry.get("kind") == "cycle")
+        existing["max_cycles"] = cycles_used + max_cycles
+        existing["resumed"] = True
+        _write_ledger(path, existing)
+        return {"ledger": str(path), "work_id": work_id, "max_cycles": existing["max_cycles"], "resumed": True}
     data: dict[str, Any] = {
         "work_id": work_id,
         "max_cycles": max_cycles,
@@ -191,6 +207,8 @@ def _validate_entry(entry: Any) -> dict[str, Any]:
                 raise ValidationError(f"commit entries require a non-empty `{field}` string")
     if kind == "profile":
         raise ValidationError("profile entries are recorded only by the `profile` subcommand")
+    if "extra" in entry and (kind != "cycle" or not isinstance(entry["extra"], bool)):
+        raise ValidationError("`extra` must be a boolean on a cycle entry")
     return entry
 
 
@@ -205,12 +223,27 @@ def _append_entries(key: str, entries: list[dict[str, Any]]) -> dict[str, Any]:
         entry["sequence"] = len(data["entries"]) + len(appended) + 1
         entry["recorded_at"] = recorded_at
         if entry["kind"] == "cycle":
-            cycles_used += 1
-            if cycles_used > int(data.get("max_cycles", 0)):
+            budget = int(data.get("max_cycles", 0))
+            if entry.get("extra"):
+                if data.get("resumed"):
+                    raise ValidationError("a user-approved budget allows no extra cycle")
+                if budget < 1:
+                    raise ValidationError("this ledger has no remediation budget, so it allows no extra cycle")
+                if budget >= CYCLE_CEILING:
+                    raise ValidationError(
+                        f"the budget of {budget} already reaches the ceiling of {CYCLE_CEILING} cycles, "
+                        "so this ledger allows no extra cycle"
+                    )
+                if cycles_used != budget:
+                    raise ValidationError(
+                        f"the extra cycle is allowed only when the budget of {budget} is exactly used up "
+                        f"({cycles_used} used)"
+                    )
+            elif cycles_used + 1 > budget:
                 raise ValidationError(
-                    f"cycle {cycles_used} exceeds the budget of {data.get('max_cycles')}; "
-                    "the bounded stop must fire instead"
+                    f"cycle {cycles_used + 1} exceeds the budget of {budget}; the bounded stop must fire instead"
                 )
+            cycles_used += 1
             entry["cycle"] = cycles_used
         appended.append(entry)
     data["entries"].extend(appended)
@@ -252,6 +285,7 @@ def ledger_summary(key: str) -> dict[str, Any]:
         elif kind == "profile" and (profile is None or PROFILES.index(entry["profile"]) > PROFILES.index(profile)):
             profile = entry["profile"]
     cycles_used = sum(1 for entry in entries if entry.get("kind") == "cycle")
+    extra_cycle = any(entry.get("kind") == "cycle" and entry.get("extra") for entry in entries)
     total_agents = sum(per_gate.values())
     total_rounds = sum(rounds.values())
     round_parts = ", ".join(f"{kind}×{count}" for kind, count in rounds.items() if count)
@@ -265,6 +299,7 @@ def ledger_summary(key: str) -> dict[str, Any]:
         "work_id": data.get("work_id"),
         "max_cycles": data.get("max_cycles"),
         "cycles_used": cycles_used,
+        "extra_cycle": extra_cycle,
         "rounds": rounds,
         "agents_launched": per_gate,
         "total_agents": total_agents,
@@ -509,6 +544,7 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--archive-key", required=True)
     init.add_argument("--work-id", required=True)
     init.add_argument("--max-cycles", required=True, type=int)
+    init.add_argument("--resume", action="store_true", help="add an approved budget to the existing ledger")
     record = ledger_sub.add_parser("record")
     record.add_argument("--archive-key", required=True)
     record.add_argument("--entry", required=True, help="one JSON object or a non-empty JSON array of objects")
@@ -547,7 +583,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "ledger":
             key = require_archive_key(args.archive_key)
             if args.ledger_command == "init":
-                payload = ledger_init(key, args.work_id, args.max_cycles)
+                payload = ledger_init(key, args.work_id, args.max_cycles, args.resume)
             elif args.ledger_command == "record":
                 payload = ledger_record(key, args.entry)
             else:
