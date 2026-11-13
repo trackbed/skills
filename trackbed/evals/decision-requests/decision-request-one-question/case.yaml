@@ -1,0 +1,15 @@
+schema_version: "1.1"
+name: decision-request-one-question
+expected_outcome: |
+  A plan with one blocking product question: how `--round` treats a
+  remainder of exactly 30 seconds, which the plan marks MISSING REQUIREMENT
+  with no default. The skill must stop before editing and reply with one
+  decision request that opens with the decision, gives numbered options that
+  each say what they cause, and marks one of them recommended.
+
+  Observed failure: in the 2026-11-12 transcript baseline (SKILLS-85), the
+  question sat at the end of 22 of 43 prose decision requests, and
+  `skill-usage.js decisions` found only 3 of 55 message requests that opened
+  with the decision.
+context:
+  scaffold_script: scaffold.sh

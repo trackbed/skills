@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# duration: print a number of seconds as hours, minutes, and seconds.
+#   duration 3725  ->  1h 2m 5s
+#   duration 60    ->  1m
+set -euo pipefail
+
+total="${1:?usage: duration <seconds>}"
+if ! [[ "$total" =~ ^[0-9]+$ ]]; then
+  echo "duration: expected a whole number of seconds, got '$total'" >&2
+  exit 2
+fi
+
+hours=$((total / 3600))
+minutes=$((total % 3600 / 60))
+seconds=$((total % 60))
+
+parts=()
+if [ "$hours" -gt 0 ]; then parts+=("${hours}h"); fi
+if [ "$minutes" -gt 0 ]; then parts+=("${minutes}m"); fi
+if [ "$seconds" -gt 0 ]; then parts+=("${seconds}s"); fi
+
+echo "${parts[*]:-}"

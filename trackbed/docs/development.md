@@ -337,7 +337,7 @@ Add a row after every live run, passed or failed, so anyone can see when isolati
 make -C trackbed skill-eval-compare SUITE=pr-generate-description
 ```
 
-Each run is a real Claude Code session on your Claude login or `ANTHROPIC_API_KEY`, so no verification gate starts one. It needs Claude Code 2.1.269 or later. A full comparison of the `pr-generate-description` suite is 42 sessions: seven cases, three runs each, on two versions. On 2026-11-11 that cost about $28 at list price and took 14 minutes with `--concurrency 4`.
+Each run is a real Claude Code session on your Claude login or `ANTHROPIC_API_KEY`, so no verification gate starts one. It needs Claude Code 2.1.269 or later. A full comparison of the `pr-generate-description` suite is 42 sessions: seven cases, three runs each, on two versions. On 2026-11-11 that cost about $28 at list price and took 14 minutes with `--concurrency 4`. The `decision-requests` suite is 24 sessions; on 2026-11-13 it cost $6.80 at list price and took about 5 minutes with `--concurrency 4`.
 
 | To | Pass |
 | --- | --- |
@@ -365,6 +365,7 @@ A suite is a folder under `evals/` holding a `suite.json` and one folder per cas
 - Never write `---` inside a grader's or prompt's settings block: the runner ends the block there and the case fails to load. Write `-{3}` in a pattern.
 - Build fixtures from invented code. This repository is public, and the eval directory ships with the plugin. Name a fixture's `package.json` `package.fixture.json`; the fixture helper restores the name, and dependency scanners do not read the invented project as this repository's own.
 - Run `make -C trackbed test-bats-file BATS_TEST_FILE=tests/skill-eval-suites.bats`. It validates every case and builds every Git fixture without starting a model.
+- Register every new `.sh` file, including a case's `scaffold.sh`, in `config/coverage-production-sources.json` under `shell.contract_only`, and run `make -C trackbed coverage-bats-contract`.
 
 Shell commands in a run have no network, so `gh` and Linear lookups fail there; the `pr-generate-description` prompts pass `--base main` for that reason. On macOS the script puts wrappers for the real developer tools first on `PATH`, because the `/usr/bin` launchers for Git, Python, and Make cannot run inside the runner's sandbox.
 
@@ -424,6 +425,29 @@ The hand-made measurement that led to this command (Linear SKILLS-85) reported 1
 - **Kinds of message (review budget 35, not 26).** The command classifies a message by its opening lines and its lines that ask. The first measurement used the user's reply. Seven of the 35 are among the added messages.
 - **Review budget and base drift in total.** Review budget is 60 where the first measurement had about 47, and base drift is 55 where it had about 58. Both follow from the two points above.
 - **Opening with the decision (3 of 55, not 5 of 43).** The command reads the first three non-empty lines. The first measurement counted a message when its last question mark sat in the first third of the text.
+
+**Before and after an edit.** The command above counts stops only after a release has been in use. To check a change before it merges, run the `decision-requests` [eval suite](#skill-change-evals):
+
+```bash
+make -C trackbed skill-eval-compare SUITE=decision-requests
+```
+
+`trackbed:linear:issue-to-pr` cannot run in an eval, because it needs Linear and GitHub. The suite runs `trackbed:code:work-from-plan` instead, which can stop for a decision offline, on four invented plans. Each case's `expected_outcome` names the observed failure it comes from.
+
+| Case | The plan has | The skill must |
+| --- | --- | --- |
+| `decision-request-one-question` | one blocking product question | stop with one decision request |
+| `decision-request-two-questions` | two unrelated blocking questions | number the two decisions separately |
+| `decision-request-action-needed` | a missing file the user must supply | ask for the file, not offer choices |
+| `decision-request-no-blocker` | an open question with a default | finish without stopping |
+
+The reply checks test that the decision opens the reply, each option says what it causes, one option is marked recommended, several decisions are numbered, and no run recap comes first. Other checks confirm that a stopping run edits nothing and that the control edits and tests the code.
+
+**Comparison on 2026-11-13.** Base `ff53bdfe`, the commit before the shared format (#1184), against `a1ab3ef5`, whose skills match `5b9cb7d5` (#1190), with Claude Code 2.1.322. `trackbed:code:work-from-plan` adopted the format in #1186, and the candidate also includes #1187 and #1189:
+
+- **Verdict: better.** Checks passed rose from 61 of 93 to 75 of 93, and none got worse. Four checks moved from 0 of 3 to 3 of 3: the one-question case's recommended option and options that say what they cause, and the two-question case's numbered decisions and one recommendation per decision.
+- **Both versions fail every opening check.** "Opens the reply" and "no recap first" passed 0 of 3 on both versions in all three stopping cases. The skill prints its `PLAN ROUTE:` block and a summary of the plan before the request.
+- **The control passed every check on both versions,** so the format did not add stops.
 
 ### Bash Hook Invocation Benchmark
 

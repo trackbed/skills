@@ -807,7 +807,22 @@
   ],
   "shell": {
     "contract_only": {
-      "trackbed/evals/pr-generate-description/_lib/git-fixture.sh": [
+      "trackbed/evals/_lib/git-fixture.sh": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/decision-requests/_project/tests/run.sh": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/decision-requests/decision-request-action-needed/scaffold.sh": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/decision-requests/decision-request-no-blocker/scaffold.sh": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/decision-requests/decision-request-one-question/scaffold.sh": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/decision-requests/decision-request-two-questions/scaffold.sh": [
         "trackbed/tests/skill-eval-suites.bats"
       ],
       "trackbed/evals/pr-generate-description/pr-description-breaking-change/scaffold.sh": [

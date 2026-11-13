@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared helpers for the scaffold scripts in this suite. Each script sources
+# Shared helpers for the eval suites' scaffold scripts. Each script sources
 # this file and builds a small Git repository in the run's empty workspace:
 # a base commit on main, a local bare "origin" holding it, and a feature
 # branch with the change under test.

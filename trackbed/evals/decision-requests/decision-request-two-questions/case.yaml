@@ -1,0 +1,15 @@
+schema_version: "1.1"
+name: decision-request-two-questions
+expected_outcome: |
+  A plan with two unrelated blocking questions, both marked MISSING
+  REQUIREMENT with no default: whether 90000 seconds prints days or hours,
+  and what happens to a total above one year. The skill must stop before
+  editing and number the two decisions separately, each with its own
+  options and its own recommended option, the first one opening the reply.
+
+  Observed failure: in the 2026-11-12 transcript baseline (SKILLS-85), the
+  decision appeared under 14 different headings and sat at the end of 22 of
+  43 prose requests, so a second question in a closing paragraph is easy to
+  miss. The shared format numbers each decision for that reason.
+context:
+  scaffold_script: scaffold.sh

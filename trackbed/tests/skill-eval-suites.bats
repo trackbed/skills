@@ -149,13 +149,20 @@ settings_block_is_closed() {
       [ -z "$(git -C "$workspace" status --porcelain)" ]
       # Stored fixture manifests come back under their real name.
       [ -z "$(git -C "$workspace" ls-files '*package.fixture.json')" ]
+      # A fixture project's own tests must pass before the skill changes anything.
+      if [ -f "$workspace/tests/run.sh" ]; then
+        (cd "$workspace" && bash tests/run.sh > /dev/null) || {
+          echo "$name: the fixture's tests/run.sh fails before any change"
+          return 1
+        }
+      fi
     done < <(case_dirs "$suite")
   done < <(suite_dirs)
   [ "$found" -gt 0 ]
 }
 
 @test "fixture package manifests are stored under a name dependency scanners skip" {
-  run find "$(plugin_root)/evals" -path '*/fixtures/*' -name package.json
+  run find "$(plugin_root)/evals" -name package.json
 
   [ "$status" -eq 0 ]
   [ -z "$output" ]
@@ -165,7 +172,7 @@ settings_block_is_closed() {
   run make --no-print-directory -C "$(plugin_root)" -n lint-shell
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *'evals/*/_lib/*.sh'* ]]
+  [[ "$output" == *'evals/_lib/*.sh'* ]]
   [[ "$output" == *'evals/*/*/scaffold.sh'* ]]
 }
 
