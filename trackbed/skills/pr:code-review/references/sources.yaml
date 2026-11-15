@@ -39,6 +39,14 @@ sources:
     last_reviewed_at: 2026-11-04
     baseline_commit: "96608e078b2d5ea607c5c3b8b5a54d1c1fba6846"
     baseline_hash: "sha256:97be9e45d9f6ae8e251a363e08896bfd7ede9c1fa4027a183b40292030be53cb"
+  - id: sloyd-make-native
+    url: https://github.com/Sloydai/make-native/blob/add-make-native-skill/skills/make-native/SKILL.md
+    title: "Sloyd make-native - make-native"
+    rationale: "The refactor dimension's feature-fit question, its flags-that-restate-a-type, scattered-kind-check, mirrored-variant, re-derived-alias, and second-system anti-patterns, the advice to rewrite workaround-preserving tests, and the bug-fix exemption are adapted from this source; its runtime-data reads and author-rewrite workflow are not."
+    usage: inspiration
+    last_reviewed_at: 2026-11-15
+    baseline_commit: "f7df61dc1f257cde400f0d2533b774a97a34be3e"
+    baseline_hash: "sha256:546745ed5ec98b47ed27cb060fa5c80845610118f9cac992363cc305dd1ed122"
   - id: openclaw-autoreview
     url: https://github.com/openclaw/agent-skills/blob/main/skills/autoreview/SKILL.md
     title: "OpenClaw agent-skills - autoreview"

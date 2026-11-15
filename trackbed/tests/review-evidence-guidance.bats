@@ -8,6 +8,7 @@ setup() {
   TEAM="skills/pr:code-review/references/team-mode.md"
   SMELLS="skills/pr:code-review/references/fowler-smell-baseline.md"
   VALIDATOR="agents/pr-relevance-validator.md"
+  CLEANUP="agents/cleanup-reviewer.md"
 }
 
 absent() {
@@ -75,4 +76,16 @@ absent() {
   grep -qF 'as `manual` with the maintainer-decision blocker' "$SKILL"
   grep -qF "Acknowledged/skipped findings settled, not re-raised: X" "$TEMPLATE"
   grep -qF 'keep settled `acknowledged` or `skipped` matches out of the active findings' "$TEAM"
+}
+
+@test "cleanup refactor fit flags features bolted onto code that already handles them" {
+  grep -qF "A feature fits when a reader cannot tell it was added last" "$CLEANUP"
+  grep -qF "**Flags that restate a type**" "$CLEANUP"
+  grep -qF "**Scattered kind checks**" "$CLEANUP"
+  grep -qF "a new file or component that mirrors an existing one for one variant" "$CLEANUP"
+  grep -qF "**Second system**" "$CLEANUP"
+  grep -qF "recommend rewriting them to the new design rather than keeping them" "$CLEANUP"
+  grep -qF "On a bug-fix change, which should stay minimal, skip the feature-fit question" "$CLEANUP"
+  grep -qF "but still flag unrelated diff churn and the other smells above" "$CLEANUP"
+  grep -qF "Recommend reshaping the existing types and dispatch, not a new layer above them." "$CLEANUP"
 }

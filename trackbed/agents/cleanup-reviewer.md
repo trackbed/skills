@@ -70,11 +70,14 @@ Each `removal` finding lists the evidence of non-usage, the affected files and t
 
 ## Lens: Refactor Fit
 
-Search nearby and sibling code before judging new helpers, components, hooks, file placement, naming, result/error/loading patterns, styling primitives, or copy patterns. Flag these concrete anti-patterns:
+Search nearby and sibling code before judging new helpers, components, hooks, file placement, naming, result/error/loading patterns, styling primitives, or copy patterns. A feature fits when a reader cannot tell it was added last: ask what the touched code would look like had it planned for the feature from the start. Flag these concrete anti-patterns:
 
-- **Redundant state**: state that duplicates existing state, cached values that could be derived, observers or effects that could be direct calls.
+- **Redundant state**: state that duplicates existing state, cached values that could be derived, local aliases that recompute what an existing function or field already returns, observers or effects that could be direct calls.
 - **Parameter sprawl**: new parameters added to a function instead of generalizing or restructuring existing ones.
-- **Copy-paste with slight variation**: near-duplicate blocks that should share one abstraction.
+- **Flags that restate a type**: a new boolean, option, or token that encodes what an existing type, union, or enum already says, such as `isVideo` beside a `contentType`.
+- **Scattered kind checks**: `if (newKind)` branches spread across code that already dispatches on kind through a switch, table, map, or polymorphism; the new kind belongs in that dispatch.
+- **Copy-paste with slight variation**: near-duplicate blocks, or a new file or component that mirrors an existing one for one variant, that should share one abstraction. Keep a split when the variants genuinely behave differently.
+- **Second system**: a new validator, download path, counter, logger, retry helper, config reader, or tracker beside the one that already owns that concern; extend the existing one and delete the duplicate.
 - **Leaky abstractions**: internal details exposed or existing abstraction boundaries broken.
 - **Stringly-typed code**: raw strings where constants, string unions, or branded types already exist in the codebase.
 - **Grab-bag modules**: files or helpers mixing flags, API calls, data transformation, UI state, logging, and scheduling instead of keeping domain logic at the right boundary.
@@ -83,7 +86,9 @@ Search nearby and sibling code before judging new helpers, components, hooks, fi
 - **Misplaced domain logic**: domain-specific behavior moved into generic utilities or cross-domain modules without proven reuse.
 - **Unrelated diff churn**: changes outside the stated intent of the change.
 
-For each `refactor` finding, include the existing pattern or code that should be reused when found, why the current change does not fit, and the minimal recommended fix.
+For each `refactor` finding, include the existing pattern or code that should be reused when found, why the current change does not fit, and the minimal recommended fix. Recommend reshaping the existing types and dispatch, not a new layer above them. When the fix removes a workaround, name the tests whose only assertion is that the workaround left other paths unchanged, and recommend rewriting them to the new design rather than keeping them.
+
+On a bug-fix change, which should stay minimal, skip the feature-fit question and the flags-that-restate-a-type, scattered-kind-check, and second-system smells, but still flag unrelated diff churn and the other smells above.
 
 ## Lens: Simplify
 
