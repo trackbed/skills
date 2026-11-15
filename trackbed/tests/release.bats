@@ -453,6 +453,7 @@ SH
   cat >"$MOCK_BIN/git" <<'SH'
 #!/bin/sh
 if [ "$1" = "checkout" ] && [ "$2" = "$RELEASE_START_BRANCH" ]; then
+  echo "checkout recovery denied by fixture" >&2
   exit 73
 fi
 exec "$RELEASE_REAL_GIT" "$@"
@@ -466,6 +467,8 @@ SH
   [ "$status" -eq 2 ]
   [[ "$output" == *"Automatic rollback was incomplete."* ]]
   [[ "$output" == *"git -C $TMP_ROOT checkout $INITIAL_BRANCH"* ]]
+  [[ "$output" == *"Git recovery error: checkout recovery denied by fixture"* ]]
+  [[ "$output" == *"Rollback command failed (exit 73)"* ]]
   [[ "$output" == *"Aborting with incomplete rollback."* ]]
   [[ "$output" != *"Restored release files to their pre-release state."* ]]
 }
@@ -475,6 +478,7 @@ SH
   cat >"$MOCK_BIN/git" <<'SH'
 #!/bin/sh
 if [ "$1" = "reset" ] && [ "$2" = "--mixed" ]; then
+  echo "reset recovery denied by fixture" >&2
   exit 75
 fi
 exec "$RELEASE_REAL_GIT" "$@"
@@ -486,6 +490,7 @@ SH
   [ "$status" -eq 2 ]
   [[ "$output" == *"Automatic rollback was incomplete."* ]]
   [[ "$output" == *"git -C $TMP_ROOT reset --mixed"* ]]
+  [[ "$output" == *"Git recovery error: reset recovery denied by fixture"* ]]
   [[ "$output" != *"Restored release files to their pre-release state."* ]]
 }
 
@@ -536,6 +541,8 @@ SH
   [[ "$output" == *"Automatic rollback was incomplete."* ]]
   [[ "$output" == *"$TMP_ROOT/.git/index"* ]]
   [[ "$output" == *"cp -- $PHYSICAL_TMPDIR/release-recovery-"* ]]
+  [[ "$output" == *"Rollback file/index restore failed:"* ]]
+  [[ "$output" == *"Recovery target:"* ]]
   [[ "$output" != *"$SYMLINKED_TMPDIR/release-recovery-"* ]]
   [[ "$output" != *"Restored release files to their pre-release state."* ]]
 
@@ -820,6 +827,8 @@ SH
   [ "$status" -eq 2 ]
   [[ "$output" == *"Still holding this release's content: $PLUGIN_ROOT/CHANGELOG.md"* ]]
   [[ "$output" == *"Restore those files yourself; your index was not touched."* ]]
+  [[ "$output" == *"Release file restore failed:"* ]]
+  [[ "$output" == *"Permission denied"* ]]
   [[ "$output" == *"Aborting with incomplete rollback."* ]]
   # No manual-recovery block: it would tell the operator to overwrite the index.
   [[ "$output" != *"Automatic rollback was incomplete."* ]]
@@ -909,4 +918,61 @@ SH
   grep -q '      source_ref:' "$WORKFLOW"
   grep -q '          ref: \${{ inputs.source_ref || github.ref }}' "$WORKFLOW"
   grep -q 'git commit -q -m "Build Codex plugin from \${SOURCE_SHA}"' "$WORKFLOW"
+}
+
+# Execute the actual publication step so extraction failures must stop before gh.
+run_release_pr_step() {
+  python3 - "$BATS_TEST_DIRNAME/../../.github/workflows/release.yml" "$TMP_ROOT/pr-step.sh" <<'PY'
+from pathlib import Path
+import sys
+source = Path(sys.argv[1]).read_text().split('      - name: Create Pull Request\n', 1)[1]
+script = source.split('        run: |\n', 1)[1]
+script = '\n'.join(line[10:] for line in script.splitlines())
+Path(sys.argv[2]).write_text(script.replace('${{ steps.release.outputs.version }}', '0.64.1'))
+PY
+  MOCK_BIN="$TMP_ROOT/bin"
+  mkdir -p "$MOCK_BIN"
+  cat >"$MOCK_BIN/gh" <<'SH'
+#!/bin/sh
+printf '%s\n' "$*" >>"$RUNNER_TEMP/gh.log"
+SH
+  chmod +x "$MOCK_BIN/gh"
+  run env PATH="$MOCK_BIN:$RELEASE_TEST_PATH" RUNNER_TEMP="$TMP_ROOT" \
+    bash -e "$TMP_ROOT/pr-step.sh"
+}
+
+@test "release PR publication stops when the changelog section is missing" {
+  cd "$TMP_ROOT"
+  run_release_pr_step
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"Missing changelog section for 0.64.1"* ]]
+  [ ! -e "$TMP_ROOT/gh.log" ]
+}
+
+@test "release PR publication stops when changelog reading fails" {
+  rm "$PLUGIN_ROOT/CHANGELOG.md"
+  cd "$TMP_ROOT"
+  run_release_pr_step
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"FileNotFoundError"* ]]
+  [ ! -e "$TMP_ROOT/gh.log" ]
+}
+
+@test "release PR publication refuses a section with no notes" {
+  printf '# Changelog\n\n## [0.64.1] - 2026-11-16\n\n### Fixed\n\n## [0.64.0]\n- Older notes\n' >"$PLUGIN_ROOT/CHANGELOG.md"
+  cd "$TMP_ROOT"
+  run_release_pr_step
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"Empty changelog section for 0.64.1"* ]]
+  [ ! -e "$TMP_ROOT/gh.log" ]
+}
+
+@test "release PR publication includes only the requested release notes" {
+  printf '# Changelog\n\n## [0.64.1] - 2026-11-16\n\n### Fixed\n- Recovery diagnostics\n\n## [0.64.0]\n- Older notes\n' >"$PLUGIN_ROOT/CHANGELOG.md"
+  cd "$TMP_ROOT"
+  run_release_pr_step
+  [ "$status" -eq 0 ]
+  [ -s "$TMP_ROOT/gh.log" ]
+  grep -q 'Recovery diagnostics' "$TMP_ROOT/release-pr-body.md"
+  ! grep -q 'Older notes' "$TMP_ROOT/release-pr-body.md"
 }

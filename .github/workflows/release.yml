@@ -141,8 +141,13 @@ jobs:
           content = open('trackbed/CHANGELOG.md').read()
           pattern = rf'## \[{re.escape(version)}\].*?(?=## \[|\Z)'
           match = re.search(pattern, content, re.DOTALL)
-          print(match.group(0).strip() if match else '')
-          " "$VERSION" 2>/dev/null || echo "")
+          if not match:
+              sys.exit(f'Missing changelog section for {version}')
+          section = match.group(0).strip()
+          if not any(line.strip() and not line.startswith('#') for line in section.splitlines()[1:]):
+              sys.exit(f'Empty changelog section for {version}')
+          print(section)
+          " "$VERSION")
 
           if [ -f "$RUNNER_TEMP/skillspector-summary.md" ]; then
             SKILLSPECTOR_SUMMARY=$(cat "$RUNNER_TEMP/skillspector-summary.md")

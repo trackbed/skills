@@ -237,6 +237,10 @@ def run_git_recovery_command(git_root: Path, args: list[str]) -> bool:
         capture_output=True,
         text=True,
     )
+    if result.returncode != 0:
+        print(f"  Rollback command failed (exit {result.returncode}): {_shell_command(['git', *args])}")
+        if result.stderr.strip():
+            print(f"  Git recovery error: {result.stderr.strip()}")
     return result.returncode == 0
 
 
@@ -397,7 +401,8 @@ def restore_release_state(
 
         restore_files(snapshot.files)
         restore_git_index(snapshot.index_path, snapshot.index_contents, snapshot.index_mode)
-    except OSError:
+    except OSError as exc:
+        print(f"  Rollback file/index restore failed: {exc}")
         file_operations_ok = False
 
     try:
@@ -407,14 +412,23 @@ def restore_release_state(
             and (snapshot.index_path.read_bytes() if snapshot.index_path.exists() else None) == snapshot.index_contents
             and _files_match_snapshot(snapshot.files)
         )
-    except OSError:
+    except OSError as exc:
+        print(f"  Rollback state verification failed: {exc}")
         state_matches = False
     result = RollbackResult(tuple(command_outcomes), state_matches)
     if result.succeeded:
         print("  Restored release files to their pre-release state.")
         return result
 
-    print_manual_recovery(git_root, snapshot)
+    print(f"  Recovery target: branch={snapshot.branch or 'detached'}, HEAD={snapshot.head}")
+    stale = unrestored_release_files(snapshot.files)
+    if stale:
+        print(f"  Unrestored release files: {', '.join(stale)}")
+    try:
+        print_manual_recovery(git_root, snapshot)
+    except OSError as exc:
+        print(f"  Could not prepare manual recovery backups: {exc}")
+        print("  Automatic rollback was incomplete; restore the captured files, checkout, HEAD, and index manually.")
     return result
 
 
@@ -688,7 +702,8 @@ def main() -> int:
         if release_snapshot is not None:
             try:
                 restore_files(release_snapshot.files)
-            except OSError:
+            except OSError as restore_error:
+                print(f"  Release file restore failed: {restore_error}")
                 # A partial restore leaves later files untouched too; the end-state
                 # check below decides the outcome and names every one of them.
                 pass
