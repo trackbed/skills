@@ -895,3 +895,154 @@ test("requeue rejects pending, finished, sealed and stale runs", (t) => {
     /Sealed run cannot change/,
   );
 });
+
+// Run failure injection in a child so filesystem patches cannot affect other tests.
+/** @param {ReturnType<typeof fixture>} f @param {string} patch @param {string[]} args */
+function injected(f, patch, args) {
+  return spawnSync(
+    process.execPath,
+    [
+      "-e",
+      `
+    const fs = require("node:fs");
+    ${patch}
+    require(${JSON.stringify(helper)}).main(${JSON.stringify(args)});
+  `,
+    ],
+    { cwd: f.root, encoding: "utf8", timeout: 30000 },
+  );
+}
+
+test("record rolls back outputs and temporary ledger after save failure, then retries", (t) => {
+  const f = fixture(t, ["code", "errors"]);
+  const output = path.join(f.temp, "output.txt");
+  fs.writeFileSync(output, "Valid review output\n");
+  const manifest = path.join(f.temp, "manifest.json");
+  fs.writeFileSync(
+    manifest,
+    JSON.stringify([
+      {
+        job: "code-reviewer",
+        status: "succeeded",
+        agentId: "host-code",
+        output,
+      },
+      {
+        job: "silent-failure-hunter",
+        status: "succeeded",
+        agentId: "host-errors",
+        output,
+      },
+    ]),
+  );
+  const before = fs.readFileSync(path.join(f.run, "ledger.json"), "utf8");
+  const result = injected(
+    f,
+    `
+    const rename = fs.renameSync;
+    fs.renameSync = (from, to) => {
+      if (to.endsWith("ledger.json")) throw new Error("injected save failure");
+      return rename(from, to);
+    };
+  `,
+    ["record", f.run, "--manifest", manifest],
+  );
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /injected save failure/);
+  assert.equal(
+    fs.readFileSync(path.join(f.run, "ledger.json"), "utf8"),
+    before,
+  );
+  assert.deepEqual(fs.readdirSync(f.run).sort(), ["ledger.json", "plan.json"]);
+  f.ok("record", "--manifest", manifest);
+  for (const id of ["code-reviewer", "silent-failure-hunter"]) {
+    assert.equal(f.ledger().jobs[id].status, "succeeded");
+    assert.equal(
+      fs.readFileSync(path.join(f.run, `${id}.txt`), "utf8"),
+      "Valid review output\n",
+    );
+  }
+});
+
+test("finish can retry a failed ledger save without losing existing evidence", (t) => {
+  const f = fixture(t, ["code", "errors"]);
+  f.finish("code-reviewer");
+  const previous = fs.readFileSync(path.join(f.run, "code-reviewer.txt"));
+  f.ok("start", "--job", "silent-failure-hunter", "--agent-id", "host-errors");
+  const output = path.join(f.temp, "output.txt");
+  fs.writeFileSync(output, "Errors review complete\n");
+  const args = [
+    "finish",
+    f.run,
+    "--job",
+    "silent-failure-hunter",
+    "--status",
+    "succeeded",
+    "--output",
+    output,
+  ];
+  const result = injected(
+    f,
+    `fs.renameSync = () => { throw new Error("save denied"); };`,
+    args,
+  );
+  assert.notEqual(result.status, 0);
+  assert.equal(f.ledger().jobs["silent-failure-hunter"].status, "running");
+  assert.equal(
+    fs.existsSync(path.join(f.run, "silent-failure-hunter.txt")),
+    false,
+  );
+  assert.deepEqual(
+    fs.readFileSync(path.join(f.run, "code-reviewer.txt")),
+    previous,
+  );
+  f.ok("finish", ...args.slice(2));
+  assert.equal(f.ledger().jobs["silent-failure-hunter"].status, "succeeded");
+});
+
+test("partial output write failure rolls back the batch and allows retry", (t) => {
+  const f = fixture(t, ["code"]);
+  const output = path.join(f.temp, "output.txt");
+  fs.writeFileSync(output, "Review complete\n");
+  const manifest = path.join(f.temp, "manifest.json");
+  fs.writeFileSync(
+    manifest,
+    JSON.stringify([
+      {
+        job: "code-reviewer",
+        status: "succeeded",
+        agentId: "host-code",
+        output,
+      },
+    ]),
+  );
+  const result = injected(
+    f,
+    `
+    const write = fs.writeFileSync;
+    fs.writeFileSync = (file, ...args) => {
+      if (typeof file === "number") { write(file, "partial"); throw new Error("disk full"); }
+      return write(file, ...args);
+    };
+  `,
+    ["record", f.run, "--manifest", manifest],
+  );
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /disk full/);
+  assert.equal(f.ledger().jobs["code-reviewer"].status, "pending");
+  assert.equal(fs.existsSync(path.join(f.run, "code-reviewer.txt")), false);
+  f.ok("record", "--manifest", manifest);
+  assert.equal(f.ledger().jobs["code-reviewer"].status, "succeeded");
+});
+
+test("status distinguishes stale content from Git operational errors", (t) => {
+  const f = fixture(t, ["code"]);
+  assert.equal(JSON.parse(f.ok("status").stdout).scopeFresh, true);
+  fs.writeFileSync(path.join(f.root, "source.txt"), "new scope\n");
+  assert.equal(JSON.parse(f.ok("status").stdout).scopeFresh, false);
+  f.git("branch", "-D", "base");
+  const result = f.command("status");
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /git.*rev-parse.*base/);
+  assert.doesNotMatch(result.stdout, /"scopeFresh":false/);
+});

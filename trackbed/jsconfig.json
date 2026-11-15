@@ -13,6 +13,7 @@
     "types": ["node"]
   },
   "include": [
+    "skills/pr:code-review/scripts/review-execution.js",
     "scripts/convert-plugin.js",
     "scripts/convert-plugin/**/*.js",
     "scripts/lib/*.js",
