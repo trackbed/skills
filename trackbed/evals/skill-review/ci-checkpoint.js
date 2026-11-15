@@ -271,8 +271,9 @@ function stateDirectory(provider) {
 
 if (require.main === module) {
   try {
-    const [command, first, second] = process.argv.slice(2);
-    if (command === "restore" && first) {
+    const [command, first, second, ...extra] = process.argv.slice(2);
+    if (extra.length) throw new Error("Unexpected checkpoint arguments.");
+    if (command === "restore" && first && !second) {
       const provider = providerById(first);
       restoreCheckpoint(
         stateDirectory(provider),
@@ -284,7 +285,12 @@ if (require.main === module) {
         stateDirectory(providerById(first)),
         path.resolve(second),
       );
-    else if (command === "summary" && first && process.env.GITHUB_STEP_SUMMARY)
+    else if (
+      command === "summary" &&
+      first &&
+      !second &&
+      process.env.GITHUB_STEP_SUMMARY
+    )
       fs.appendFileSync(
         process.env.GITHUB_STEP_SUMMARY,
         summary(readJson(first)),
@@ -293,7 +299,8 @@ if (require.main === module) {
       throw new Error(
         "Usage: ci-checkpoint.js restore <provider> | stage <provider> <destination> | summary <report.json>",
       );
-  } catch {
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
     console.error(
       "Checkpoint operation failed. Check artifact validity, GitHub read permissions, and local state before retrying.",
     );
