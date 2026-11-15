@@ -165,7 +165,17 @@ setup() {
   grep -qF '/kramme:code:cleanup-ai' ../README.md
   grep -qF 'does not preserve the old arguments or side effects' ../README.md
   grep -qF '**Breaking:** Replace `/kramme:code:cleanup-ai` with `/kramme:code:refactor-pass`.' CHANGELOG.md
-  grep -qF 'Ship this command removal only in the next major release.' CHANGELOG.md
+  python3 - <<'PYTEST'
+from pathlib import Path
+
+changelog = Path("CHANGELOG.md").read_text()
+unreleased = changelog.split("## Unreleased\n", 1)[1].split("\n## [", 1)[0]
+release = changelog.split("## [0.70.0]", 1)[1].split("\n## [", 1)[0]
+assert "/kramme:code:cleanup-ai" not in unreleased
+assert "**Breaking:** Replace `/kramme:code:cleanup-ai`" in release
+assert "(#744)" in release
+assert "Ship this command removal only in the next major release." not in changelog
+PYTEST
 }
 
 @test "protected workflow artifacts stay synchronized with the commit guard" {

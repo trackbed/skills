@@ -8,32 +8,6 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 
 ## Unreleased
 
-### Changed
-
-- **Breaking:** Remove `/kramme:visual:demo-reel` and the Pull Request visual-evidence path it powered. `/kramme:pr:generate-description` no longer accepts `--visual`, `--for-pr-create`, or `--start-if-easy`, and `/kramme:pr:create` no longer probes `gh pr create --attach`, starts a local environment, captures screenshots or video, or attaches them; both emit only a Screenshots/Videos placeholder, and only for changes with visible UI. Screenshot and recording requests remain ordinary agent requests, and `/kramme:browse` and `/kramme:qa` still capture browser evidence, but no dedicated replacement preserves tiered capture, the secret preflight, or bounded environment startup. Earlier captures under `.context/demo-reels/` stay registered for `/kramme:workflow:cleanup-artifacts`. Ship this removal only in the next major release.
-- **Breaking:** Rename `/kramme:workflow-artifacts:cleanup` to `/kramme:workflow:cleanup-artifacts`. Existing prompts and automation must migrate to the new command; `--auto`, `--siw`, and the cleanup safety gates are unchanged. Ship this rename only in the next major release.
-- **Breaking:** Remove `/kramme:session:context-setup`; `work-from-plan`, `plan-to-pr`, and Linear issue implementation retain a shared preparation checklist and focused context loading, while `forward-progress` covers context recovery that preserves valid work. The dedicated setup ritual, markers, and mandatory rules-file repair gate are retired. Ship this removal only in the next major release.
-- **Breaking:** Remove the `noninteractive-git` and `context-links` hooks and the `/kramme:hooks:configure-links` skill. Git commands that open an interactive editor, such as `git commit` without a message or `git rebase -i`, are no longer blocked before they run, and PR and Linear issue links are no longer shown at the end of messages. A leftover `context-links.config` file under `${XDG_CONFIG_HOME:-$HOME/.config}/kramme-cc-workflow/` is no longer read and can be deleted, and `noninteractive-git` or `context-links` entries in the hook toggle state have no effect. Ship this removal only in the next major release.
-- **Breaking:** Merge the `kramme:injection-reviewer`, `kramme:auth-reviewer`, `kramme:data-reviewer`, and `kramme:logic-reviewer` agents into `kramme:security-reviewer`, and the `kramme:lean-reviewer`, `kramme:code-simplifier`, and `kramme:removal-planner` agents into `kramme:cleanup-reviewer`. `/kramme:pr:code-review` aspect tokens are unchanged; `security` now launches one agent with four lenses, and `lean`, `removal`, `refactor`, and `simplify` share one cleanup invocation that labels every finding with its dimension. Prompts and automation that name the seven removed agents must migrate to the two replacements.
-- **Breaking:** Remove `/kramme:code:incremental` after no recorded use during instrumented history. Use ordinary implementation requests for small verified slices and `/kramme:code:refactor-pass` for narrow behavior-preserving cleanup. No dedicated replacement preserves the former structural-refactor interview, Decision Document, and tiny-commit planning workflow.
-- **Breaking:** Remove `/kramme:test:tdd`; `/kramme:debug:triage-to-issue` now owns RED-GREEN and Prove-It planning for bug tickets, while direct test-first implementation follows repository conventions without a dedicated command. Ship this removal only in the next major release.
-- **Breaking:** Remove `/kramme:code:source-driven`; use `/kramme:code:migrate` for version migrations, `/kramme:research` for bounded cited research artifacts, and host source tools for ordinary source-backed implementation.
-- **Breaking:** Remove hidden `kramme:pr:complete-work` after moving archived-plan completion, review convergence, verification, and optional shipping into `/kramme:code:plan-to-pr`; the user-facing plan-to-PR route is unchanged.
-- **Breaking:** Remove `/kramme:launch:announce` and `/kramme:launch:rollout`; launch-copy drafting and rollout planning remain available as ordinary agent requests, but no dedicated replacement preserves staged execution, monitoring and rollback gates, temporary-control cleanup, or rollout-owned Product Pulse handoff production.
-- **Breaking:** Remove `/kramme:changelog:generate`; daily and weekly merge summaries and plugin release-note queries no longer have a dedicated skill.
-- **Breaking:** Expand `/kramme:setup --json` required-runtime reporting: Bash, `jq`, Python, and Node now appear in `required`; Python and Node can report `outdated` or `error`; and `jq` and Node no longer appear in `recommended`. Consumers must locate tools by `name` instead of assuming group membership and treat every non-`ok` required status as blocking. Ship this contract change only in the next major release.
-- Breaking: Replaced `/kramme:visual:diff-review [branch|commit|PR#|range]` with `/kramme:pr:walkthrough --report [branch|commit|PR#|range]`.
-- **Breaking:** Replace `/kramme:pr:update-split-plans` with `/kramme:code:breakdown-findings --reconcile`. Existing prompts and automation must migrate to the replacement command; plan paths, `--all`, `--worktree`, `--source`, `--base`, and `--auto` remain available in reconcile mode. Former no-scope calls must add `--all` to preserve the removed command's active-plan-only default; zero-scope reconcile retains `kramme:code:breakdown-findings`'s all-indexed behavior.
-- **Breaking:** Rename `/kramme:siw:spec-audit:auto-fix` to `/kramme:siw:apply-spec-audit-fixes` and `/kramme:docs:out-of-scope` to `/kramme:docs:track-rejected-enhancements`. Existing prompts and automation must migrate to the replacement commands; arguments and behavior are unchanged. Ship these command removals only in the next major release.
-- **Breaking:** Replace `/kramme:code:cleanup-ai` with `/kramme:code:refactor-pass`. Existing prompts and automation must remove `--auto`; no-argument calls use the canonical branch review scope, while former base-branch arguments must become explicit file or directory scopes. The replacement verifies and checkpoints scoped uncommitted input, then commits each simplification separately. Ship this command removal only in the next major release.
-- `/kramme:pr:generate-description` now includes a section only when it carries information for the PR. Summary and Test plan are always present; Changes, Breaking changes, How it works, Rollout, Review notes, and Screenshots / Videos appear when they apply. This replaces the fixed template, the Changes made / Things I didn't touch / Potential concerns block, and "None" sections. Large or batched PRs group changes by theme and sample the test plan instead of listing everything. A new readability pass edits each draft with the plain-language rubric now shared with `/kramme:text:clarify`, then has a fresh agent read only the title and body and flag unclear terms, hard sentences, and missing context. `/kramme:pr:verify-description` recognizes both the new and the old section names.
-- Review agents can no longer write files through the file-editing tools on Claude Code. Every agent except `kramme:design-iterator` now declares `disallowedTools: Write, Edit, NotebookEdit`, so the host enforces the read-only rule that reviewers previously followed only from their instructions. Bash, Codex agent skills, and Team Mode teammates still rely on the written rule and the before/after working-tree check. `kramme:cleanup-reviewer` no longer applies simplifications when it is the only agent on a change; it reports them as recommendations, and `/kramme:code:refactor-pass` applies behavior-preserving simplifications. `kramme:convention-drift-reviewer`, `kramme:codebase-pattern-reviewer`, `kramme:copy-reviewer`, and `kramme:overengineering-reviewer` gain the written read-only rule. Five agent descriptions now focus on when to use the agent: `kramme:deslop-reviewer` and `kramme:product-reviewer` gain when-to-use and not-for clauses, `kramme:overengineering-reviewer` and `kramme:convention-drift-reviewer` drop internal mode detail, and `kramme:copy-reviewer` no longer claims to remove text it only flags.
-
-### Fixed
-
-- `/kramme:text:clarify --humanize` now ships the MIT notice for the text its AI-writing pattern catalog retains from `blader/humanizer`, and credits humanizer as a copied source instead of an inspiration.
-- `/kramme:pr:generate-description` now finds repository PR templates when the agent's shell is zsh. The lookup looped over a variable named `path`, which zsh ties to `PATH`, so every later command in the lookup failed and it reported no template.
-
 ## [1.0.1] - 2026-11-12
 
 ### Added
@@ -140,7 +114,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 - Correct outdated gh-stack recipe details (#1109)
 - Add posting guards to github-review-reply (#1103)
 - Stop secret-check leaks and align hardening rules (#1104)
-- Ship humanizer's MIT notice with the humanize catalog (#1099)
+- `/kramme:text:clarify --humanize` now ships the MIT notice for the text its AI-writing pattern catalog retains from `blader/humanizer`, and credits humanizer as a copied source instead of an inspiration. (#1099)
 - Disambiguate gh-stack command targets (#1102)
 - Match PR templates in any case and close description gaps (#1101)
 - Fetch every unresolved GitHub review thread (#1100)
@@ -175,7 +149,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 - Qualify skill name and retry rate-limited launches (#1063)
 - Make inline feedback clear before the ask (#1060)
 - Run the cold read in non-interactive runs (#1062)
-- Make review agents read-only on Claude Code (#1058)
+- Review agents can no longer write files through the file-editing tools on Claude Code. Every agent except `kramme:design-iterator` now declares `disallowedTools: Write, Edit, NotebookEdit`, so the host enforces the read-only rule that reviewers previously followed only from their instructions. Bash, Codex agent skills, and Team Mode teammates still rely on the written rule and the before/after working-tree check. `kramme:cleanup-reviewer` no longer applies simplifications when it is the only agent on a change; it reports them as recommendations, and `/kramme:code:refactor-pass` applies behavior-preserving simplifications. `kramme:convention-drift-reviewer`, `kramme:codebase-pattern-reviewer`, `kramme:copy-reviewer`, and `kramme:overengineering-reviewer` gain the written read-only rule. Five agent descriptions now focus on when to use the agent: `kramme:deslop-reviewer` and `kramme:product-reviewer` gain when-to-use and not-for clauses, `kramme:overengineering-reviewer` and `kramme:convention-drift-reviewer` drop internal mode detail, and `kramme:copy-reviewer` no longer claims to remove text it only flags. (#1058)
 - Default next selection to unstarted issues (#1053)
 - Clarify updates for local plugin installs (#1054)
 - Resolve delta-round commit bases locally (#1052)
@@ -211,7 +185,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 ### Changed
 
 - Shorten orchestration descriptions (#1046)
-- **BREAKING:** Rehome workflow artifact cleanup (#1042)
+- **Breaking:** Rename `/kramme:workflow-artifacts:cleanup` to `/kramme:workflow:cleanup-artifacts`. Existing prompts and automation must migrate to the new command; `--auto`, `--siw`, and the cleanup safety gates are unchanged. (#1042)
 - Propose a monthly skill improvement review (#1044)
 - **BREAKING:** Merge plan-split into breakdown-findings as --split (#1040)
 - Share intake rules across both breakdown skills (#1037)
@@ -268,7 +242,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 
 ### Added
 
-- Fit sections to the change and check clarity (#979)
+- `/kramme:pr:generate-description` now includes a section only when it carries information for the PR. Summary and Test plan are always present; Changes, Breaking changes, How it works, Rollout, Review notes, and Screenshots / Videos appear when they apply. This replaces the fixed template, the Changes made / Things I didn't touch / Potential concerns block, and "None" sections. Large or batched PRs group changes by theme and sample the test plan instead of listing everything. A new readability pass edits each draft with the plain-language rubric now shared with `/kramme:text:clarify`, then has a fresh agent read only the title and body and flag unclear terms, hard sentences, and missing context. `/kramme:pr:verify-description` recognizes both the new and the old section names. (#979)
 - Make draft comments clear without context (#977)
 - Resolve repository workbench branches (#968)
 - **BREAKING:** Default issue-to-pr to two review cycles (#967)
@@ -280,13 +254,14 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 - **BREAKING:** Remove CI pipeline design skill (#974)
 - **BREAKING:** Remove six low-use skills (#973)
 - **BREAKING:** Retire standalone session search (#972)
-- **BREAKING:** Remove demo-reel and PR visual evidence (#970)
-- **BREAKING:** Retire standalone context setup (#969)
+- **Breaking:** Remove `/kramme:visual:demo-reel` and the Pull Request visual-evidence path it powered. `/kramme:pr:generate-description` no longer accepts `--visual`, `--for-pr-create`, or `--start-if-easy`, and `/kramme:pr:create` no longer probes `gh pr create --attach`, starts a local environment, captures screenshots or video, or attaches them; both emit only a Screenshots/Videos placeholder, and only for changes with visible UI. Screenshot and recording requests remain ordinary agent requests, and `/kramme:browse` and `/kramme:qa` still capture browser evidence, but no dedicated replacement preserves tiered capture, the secret preflight, or bounded environment startup. Earlier captures under `.context/demo-reels/` stay registered for `/kramme:workflow:cleanup-artifacts`. (#970)
+- **Breaking:** Remove `/kramme:session:context-setup`; `work-from-plan`, `plan-to-pr`, and Linear issue implementation retain a shared preparation checklist and focused context loading, while `forward-progress` covers context recovery that preserves valid work. The dedicated setup ritual, markers, and mandatory rules-file repair gate are retired. (#969)
 - Move issue-to-pr preflight into a tested script (#965)
 - Share cross-skill files at plugin level (#966)
 
 ### Fixed
 
+- `/kramme:pr:generate-description` now finds repository PR templates when the agent's shell is zsh. The lookup looped over a variable named `path`, which zsh ties to `PATH`, so every later command in the lookup failed and it reported no template. (#979)
 - Accept disclaimed sources in readiness evidence (#978)
 - Honor no-cleanup in execution plans (#976)
 - Parse heredocs and redirections like the shell (#964)
@@ -315,7 +290,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 
 ### Changed
 
-- **BREAKING:** Remove noninteractive-git and context-links hooks (#952)
+- **Breaking:** Remove the `noninteractive-git` and `context-links` hooks and the `/kramme:hooks:configure-links` skill. Git commands that open an interactive editor, such as `git commit` without a message or `git rebase -i`, are no longer blocked before they run, and PR and Linear issue links are no longer shown at the end of messages. A leftover `context-links.config` file under `${XDG_CONFIG_HOME:-$HOME/.config}/kramme-cc-workflow/` is no longer read and can be deleted, and `noninteractive-git` or `context-links` entries in the hook toggle state have no effect. (#952)
 - Fold retired epilogue sections out of references (#950)
 - Move report thresholds into the orchestrator (#940)
 
@@ -346,7 +321,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 
 ### Changed
 
-- **BREAKING:** Merge code-review security and cleanup reviewers into two agents (#934)
+- **Breaking:** Merge the `kramme:injection-reviewer`, `kramme:auth-reviewer`, `kramme:data-reviewer`, and `kramme:logic-reviewer` agents into `kramme:security-reviewer`, and the `kramme:lean-reviewer`, `kramme:code-simplifier`, and `kramme:removal-planner` agents into `kramme:cleanup-reviewer`. `/kramme:pr:code-review` aspect tokens are unchanged; `security` now launches one agent with four lenses, and `lean`, `removal`, `refactor`, and `simplify` share one cleanup invocation that labels every finding with its dimension. Prompts and automation that name the seven removed agents must migrate to the two replacements. (#934)
 
 ## [0.83.0] - 2026-09-19
 
@@ -383,6 +358,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 
 ### Changed
 
+- **Breaking:** Remove `/kramme:code:incremental` after no recorded use during instrumented history. Use ordinary implementation requests for small verified slices and `/kramme:code:refactor-pass` for narrow behavior-preserving cleanup. No dedicated replacement preserves the former structural-refactor interview, Decision Document, and tiny-commit planning workflow. (#886)
 - Clarify onboarding and verification guidance (#914)
 - Type validated text contracts (#910)
 - Make publication state explicit (#908)
@@ -390,7 +366,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 - Map transaction responsibilities (#903)
 - Remove redundant epilogue sections (#900)
 - Add UX, DX, and AX guidance (#899)
-- **BREAKING:** Retire standalone TDD skill (#887)
+- **Breaking:** Remove `/kramme:test:tdd`; `/kramme:debug:triage-to-issue` now owns RED-GREEN and Prove-It planning for bug tickets, while direct test-first implementation follows repository conventions without a dedicated command. (#887)
 
 ### Fixed
 
@@ -416,10 +392,10 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 ### Added
 
 - Offer rebase choice before fixing CI (#883)
-- **BREAKING:** Remove source-driven component (#884)
+- **Breaking:** Remove `/kramme:code:source-driven`; use `/kramme:code:migrate` for version migrations, `/kramme:research` for bounded cited research artifacts, and host source tools for ordinary source-backed implementation. (#884)
 - Preserve proven implementation progress (#881)
 - Add optional CI stabilization (#878)
-- **BREAKING:** Remove unused launch workflow skills (#877)
+- **Breaking:** Remove `/kramme:launch:announce` and `/kramme:launch:rollout`; launch-copy drafting and rollout planning remain available as ordinary agent requests, but no dedicated replacement preserves staged execution, monitoring and rollback gates, temporary-control cleanup, or rollout-owned Product Pulse handoff production. (#877)
 - Resume interrupted PR implementations (#874)
 - Switch Conductor branches automatically (#872)
 - Enable automatic issue-definition routing (#871)
@@ -440,7 +416,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 ### Changed
 
 - Internalize source grounding (#882)
-- **BREAKING:** Remove redundant complete-work component (#880)
+- **Breaking:** Remove hidden `kramme:pr:complete-work` after moving archived-plan completion, review convergence, verification, and optional shipping into `/kramme:code:plan-to-pr`; the user-facing plan-to-PR route is unchanged. (#880)
 - Move completion runtime into plan-to-pr (#876)
 - Document runtime safety boundaries (#867)
 - **BREAKING:** Move implementation workflows to Linear (#858)
@@ -510,7 +486,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 - Strengthen observation and add product pulse handoff (#813)
 - Add durable baseline artifact persistence gate (#810)
 - Add database expand/migrate/contract pattern (#812)
-- **BREAKING:** Remove changelog generator skill (#808)
+- **Breaking:** Remove `/kramme:changelog:generate`; daily and weekly merge summaries and plugin release-note queries no longer have a dedicated skill. (#808)
 - Add issue-intent gut check gate (#805)
 
 ### Changed
@@ -596,7 +572,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 ### Added
 
 - Add overengineering review workflow (#752)
-- **BREAKING:** Validate required plugin runtimes (#751)
+- **Breaking:** Expand `/kramme:setup --json` required-runtime reporting: Bash, `jq`, Python, and Node now appear in `required`; Python and Node can report `outdated` or `error`; and `jq` and Node no longer appear in `recommended`. Consumers must locate tools by `name` instead of assuming group membership and treat every non-`ok` required status as blocking. (#751)
 - Add guarded pending reviews (#747)
 
 ### Changed
@@ -613,7 +589,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 
 ### Added
 
-- Consolidate AI cleanup (#744)
+- **Breaking:** Replace `/kramme:code:cleanup-ai` with `/kramme:code:refactor-pass`. Existing prompts and automation must remove `--auto`; no-argument calls use the canonical branch review scope, while former base-branch arguments must become explicit file or directory scopes. The replacement verifies and checkpoints scoped uncommitted input, then commits each simplification separately. (#744)
 - Guard automatic history rewrites (#743)
 - Accept standalone plan attachments (#742)
 - Allow five issue-to-PR review cycles (#740)
@@ -637,7 +613,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 - Add GitHub stacked PR workflows (#727)
 - Add outside-view codebase ratings (#724)
 - Add issue and plan PR orchestration (#719)
-- Consolidate visual reports into walkthrough (#721)
+- Breaking: Replaced `/kramme:visual:diff-review [branch|commit|PR#|range]` with `/kramme:pr:walkthrough --report [branch|commit|PR#|range]`. (#721)
 - Bound input and surface diagnostics (#710)
 - Add canonical file synchronization (#704)
 
@@ -648,7 +624,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 - Share shell helpers (#726)
 - Define catalog shape policy (#725)
 - Consolidate interview workflows (#723)
-- Consolidate split-plan reconciliation (#722)
+- **Breaking:** Replace `/kramme:pr:update-split-plans` with `/kramme:code:breakdown-findings --reconcile`. Existing prompts and automation must migrate to the replacement command; plan paths, `--all`, `--worktree`, `--source`, `--base`, and `--auto` remain available in reconcile mode. Former no-scope calls must add `--all` to preserve the removed command's active-plan-only default; zero-scope reconcile retains `kramme:code:breakdown-findings`'s all-indexed behavior. (#722)
 - Fold rewrite mode into refactor pass (#720)
 - Fold greenfield policy into AGENTS.md skill (#718)
 - Consolidate review entry points (#716)
@@ -662,7 +638,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 ### Fixed
 
 - Isolate SkillSpector dependencies (#733)
-- Normalize catalog command names (#731)
+- **Breaking:** Rename `/kramme:siw:spec-audit:auto-fix` to `/kramme:siw:apply-spec-audit-fixes` and `/kramme:docs:out-of-scope` to `/kramme:docs:track-rejected-enhancements`. Existing prompts and automation must migrate to the replacement commands; arguments and behavior are unchanged. (#731)
 - Canonicalize recovery backup paths (#729)
 - Harden automatic PR creation (#715)
 - Inspect git commit selections (#702)
