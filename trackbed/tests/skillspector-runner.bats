@@ -521,3 +521,114 @@ NODE
 	grep -q "format=json" "$MOCK_SKILLSPECTOR_LOG"
 	grep -q "format=markdown" "$MOCK_SKILLSPECTOR_LOG"
 }
+
+mock_discovery_failure() {
+	export REAL_GIT
+	REAL_GIT=$(command -v git)
+	export FAILED_GIT_COMMAND="$1"
+	cat >"$BIN_DIR/git" <<'SH'
+#!/usr/bin/env bash
+if [ "${3:-}" = "$FAILED_GIT_COMMAND" ]; then
+  echo "fixture discovery error: $FAILED_GIT_COMMAND" >&2
+  exit 42
+fi
+exec "$REAL_GIT" "$@"
+SH
+	chmod +x "$BIN_DIR/git"
+}
+
+@test "changed scan fails closed when diff discovery fails" {
+	mock_discovery_failure diff
+	run "$SCRIPT" --changed --base main --output-dir "$REPORT_DIR"
+	[ "$status" -ne 0 ]
+	[[ "$output" == *"fixture discovery error: diff"* ]]
+	[[ "$output" == *"Changed-skill discovery failed"* ]]
+	[[ "$output" != *"No changed skill directories found"* ]]
+	[ "$(count_invocations)" = 0 ]
+}
+
+@test "changed scan fails closed when untracked discovery fails" {
+	printf 'edit\n' >>trackbed/skills/kramme:one/SKILL.md
+	mock_discovery_failure ls-files
+	run "$SCRIPT" --changed --base main --output-dir "$REPORT_DIR"
+	[ "$status" -ne 0 ]
+	[[ "$output" == *"fixture discovery error: ls-files"* ]]
+	[[ "$output" == *"Changed-skill discovery failed"* ]]
+	[[ "$output" != *"No changed skill directories found"* ]]
+	[ "$(count_invocations)" = 0 ]
+}
+
+write_expired_policy() {
+	write_policy "$TMP_DIR/expired.json" '{"accepted_findings":[{
+    "path":"trackbed/skills/kramme:one/SKILL.md","rule_id":"E4",
+    "reason":"Fixture exception","owner":"Security",
+    "accepted_at":"1999-01-01","review_after":"2000-01-01"
+  }]}'
+}
+
+@test "unrelated expired acceptance does not block a changed skill" {
+	write_expired_policy
+	printf 'edit\n' >>trackbed/skills/kramme:two/SKILL.md
+	run "$SCRIPT" --changed --base main --fail-on high --accepted-findings "$TMP_DIR/expired.json" --output-dir "$REPORT_DIR"
+	[ "$status" -eq 0 ]
+	[ "$(count_invocations)" = 1 ]
+	[[ "$output" != *"expired accepted finding"* ]]
+}
+
+@test "expired acceptance does not block an empty changed set" {
+	write_expired_policy
+	run "$SCRIPT" --changed --base main --fail-on high --accepted-findings "$TMP_DIR/expired.json" --output-dir "$REPORT_DIR"
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"No changed skill directories found"* ]]
+	[ "$(count_invocations)" = 0 ]
+}
+
+@test "relevant expired acceptance reports its due date and blocks changed scan" {
+	write_expired_policy
+	printf 'edit\n' >>trackbed/skills/kramme:one/SKILL.md
+	run "$SCRIPT" --changed --base main --fail-on high --accepted-findings "$TMP_DIR/expired.json" --output-dir "$REPORT_DIR"
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"expired accepted finding: trackbed/skills/kramme:one/SKILL.md E4 expired on 2000-01-01"* ]]
+	[ "$(count_invocations)" = 0 ]
+}
+
+assert_filtered_copy_cleanup() {
+	mkdir -p "$TMP_DIR/runner"
+	commit_file "trackbed/skills/kramme:one/references/sources-snapshot/upstream.md" "fixture" "add local snapshot"
+	run env RUNNER_TEMP="$TMP_DIR/runner" "$SCRIPT" --changed --base main --output-dir "$REPORT_DIR"
+	[ "$status" -eq "$1" ]
+	[ -z "$(find "$TMP_DIR/runner" -name 'skillspector-scan.*' -print)" ]
+	[ -f trackbed/skills/kramme:one/references/sources-snapshot/upstream.md ]
+}
+
+@test "filtered scan copy is reclaimed after success" {
+	assert_filtered_copy_cleanup 0
+	grep -q 'snapshot_exists=no' "$MOCK_SKILLSPECTOR_LOG"
+}
+
+@test "filtered scan copy is reclaimed after scanner failure" {
+	export MOCK_SKILLSPECTOR_EXIT=2
+	export MOCK_SKILLSPECTOR_WRITE_OUTPUT=0
+	assert_filtered_copy_cleanup 1
+}
+
+@test "filtered scan copy is reclaimed after report evaluation failure" {
+	export MOCK_SKILLSPECTOR_JSON='not json'
+	assert_filtered_copy_cleanup 5
+}
+
+@test "filtered scan copy is reclaimed after copy preparation failure" {
+	export REAL_CP
+	REAL_CP=$(command -v cp)
+	cat >"$BIN_DIR/cp" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-}" = -R ]; then
+  echo "fixture copy failure" >&2
+  exit 42
+fi
+exec "$REAL_CP" "$@"
+SH
+	chmod +x "$BIN_DIR/cp"
+	assert_filtered_copy_cleanup 42
+	[ "$(count_invocations)" = 0 ]
+}
