@@ -984,7 +984,14 @@ def validate_attachment(context: GitContext, state: InputState, metadata: PlanMe
     )
 
 
-def validate_archive(context: GitContext, state: InputState, metadata: PlanMetadata, text: str) -> ValidatedInput:
+def validate_archive(
+    context: GitContext,
+    state: InputState,
+    metadata: PlanMetadata,
+    text: str,
+    *,
+    check_prerequisites: bool = True,
+) -> ValidatedInput:
     assert state.plan_set_id is not None
     archive = state.absolute_path.parent
     index_path = archive / "PR_PLAN_INDEX.md"
@@ -1030,7 +1037,7 @@ def validate_archive(context: GitContext, state: InputState, metadata: PlanMetad
             )
         prerequisite_records = (
             []
-            if row.status in RECOVERY_STATUSES
+            if not check_prerequisites or row.status in RECOVERY_STATUSES
             else validate_complete_set_prerequisites(archive, metadata, rows, "archived")
         )
         validate_complete_set_rows(archive, rows, "archived")
@@ -1104,7 +1111,9 @@ def validate_archive(context: GitContext, state: InputState, metadata: PlanMetad
         raise ValidationError(
             "INDEPENDENT_ATTACHMENT_DEPENDENCY", "Independent archive cannot declare plan-set dependencies."
         )
-    prerequisite_evidence = parse_prerequisite_evidence(context, text, metadata.blocked_by) if detached else []
+    prerequisite_evidence = (
+        parse_prerequisite_evidence(context, text, metadata.blocked_by) if detached and check_prerequisites else []
+    )
     if status_repair_required:
         raise ValidationError(
             "STATUS_REPAIR_REQUIRED",
@@ -1326,9 +1335,12 @@ def validate_drift(context: GitContext, planned_commit: str, git_paths: list[str
         )
 
 
-def validate(args: argparse.Namespace) -> dict[str, object]:
-    context = build_git_context(str(args.repo_root))
-    state = classify_input(context, str(args.plan))
+def read_validated_plan(
+    context: GitContext, plan: str, *, archive_only: bool = False
+) -> tuple[InputState, str, PlanMetadata, ValidatedInput]:
+    state = classify_input(context, plan)
+    if archive_only and state.mode != "archived":
+        raise ValidationError("INPUT_LOCATION_UNSUPPORTED", "Archive scope requires an archived plan.")
     text = read_utf8(state.absolute_path)
     metadata = parse_metadata(text, state.mode, state.absolute_path.name)
     validate_body(text)
@@ -1338,7 +1350,48 @@ def validate(args: argparse.Namespace) -> dict[str, object]:
     elif state.mode == "attachment":
         validated = validate_attachment(context, state, metadata, text)
     else:
-        validated = validate_archive(context, state, metadata, text)
+        validated = validate_archive(context, state, metadata, text, check_prerequisites=not archive_only)
+    return state, text, metadata, validated
+
+
+def validate_archive_scope(repo_root: str, plan: str) -> dict[str, object]:
+    """Prove archive identity and scope without intake readiness, checkpoint or drift gates.
+
+    Consumers retain their initial, post-create and recovery lifecycle/authorization
+    checks. These facts never authorize an edit, history adoption or publication.
+    """
+    context = build_git_context(repo_root)
+    state, text, metadata, validated = read_validated_plan(context, plan, archive_only=True)
+    scope_paths, git_paths = validate_scope(context, text, validated.scope_mode)
+    facts: dict[str, object] = {
+        "archive_source_verified": validated.source_oid is not None,
+        "attachment_contract": (
+            "detached generated plan" if validated.detached else "independent plan" if validated.standalone else None
+        ),
+        "detached_generated_plan": validated.detached,
+        "execution_label": metadata.execution_label,
+        "git_paths": git_paths,
+        "index_status": validated.index_row.status if validated.index_row else None,
+        "plan_branch": derive_branch(validated.plan_set_id, metadata),
+        "plan_input_mode": state.mode,
+        "plan_path": state.relative_path,
+        "plan_set_id": validated.plan_set_id,
+        "plan_set_root": f".context/code-plan-to-pr/{validated.plan_set_id}/plans",
+        "plan_set_short": validated.plan_set_id[3:19],
+        "plan_status": metadata.status,
+        "prerequisites": list(metadata.blocked_by),
+        "scope_mode": validated.scope_mode,
+        "scope_paths": scope_paths,
+        "selected_basename": metadata.selected_basename,
+        "source_object_id": validated.source_oid,
+        "standalone_attachment": validated.standalone,
+    }
+    return {"ok": True, "schema_version": SCHEMA_VERSION, "facts": facts}
+
+
+def validate(args: argparse.Namespace) -> dict[str, object]:
+    context = build_git_context(str(args.repo_root))
+    state, text, metadata, validated = read_validated_plan(context, str(args.plan))
     plan_set_id = validated.plan_set_id
     scope_mode = validated.scope_mode
     standalone = validated.standalone
@@ -1465,10 +1518,23 @@ def emit(payload: dict[str, object]) -> None:
     print(json.dumps(payload, sort_keys=True, separators=(",", ":")))
 
 
-def main(argv: Sequence[str] | None = None) -> int:
+def archive_scope_main(argv: Sequence[str] | None = None) -> int:
+    return main(argv, archive_scope=True)
+
+
+def main(argv: Sequence[str] | None = None, *, archive_scope: bool = False) -> int:
     try:
-        args = parse_args(sys.argv[1:] if argv is None else argv)
-        emit(validate(args))
+        arguments = sys.argv[1:] if argv is None else argv
+        if archive_scope:
+            parser = JsonArgumentParser(description="Read-only archive classification, provenance and scope facts.")
+            parser.add_argument("--repo-root", required=True)
+            parser.add_argument("plan")
+            args = parser.parse_args(arguments)
+            result = validate_archive_scope(args.repo_root, args.plan)
+        else:
+            args = parse_args(arguments)
+            result = validate(args)
+        emit(result)
         return 0
     except ValidationError as exc:
         emit(

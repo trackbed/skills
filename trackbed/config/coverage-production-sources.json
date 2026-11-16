@@ -131,6 +131,9 @@
         "trackbed/tests/lint-skill-contracts.bats"
       ],
       "trackbed/scripts/release.py": ["trackbed/tests/release.bats"],
+      "trackbed/skills/code:plan-to-pr/scripts/validate-archive-scope.py": [
+        "trackbed/tests/plan-to-pr-validation.bats"
+      ],
       "trackbed/skills/code:plan-to-pr/scripts/validate-plan-state.py": [
         "trackbed/tests/plan-to-pr-validation.bats"
       ],

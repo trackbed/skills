@@ -13,6 +13,8 @@ permissions:
 
 Execute exactly one PR-sized plan that satisfies the generated-plan contract. Accept either one plan from an indexed `trackbed:code:breakdown-findings` set or one self-contained plan supplied as an attachment. A generated `W##L` plan may be detached from its set: its own embedded prerequisite-readiness evidence replaces the missing index for intake, while the fetched base branch remains the authority for whether implementation may start.
 
+The read-only archive/scope boundary at `${CLAUDE_PLUGIN_ROOT}/skills/code:plan-to-pr/scripts/validate-archive-scope.py` reuses this skill's validator for downstream review and scoped CI. Its consumer contract is `${CLAUDE_PLUGIN_ROOT}/shared/implementation/references/archive-validation.md`; read it when consuming archive facts outside intake. Intake continues to use `validate-plan-state.py` with its existing drift, prerequisite and checkpoint gates.
+
 ## Workflow Contract
 
 - Invoke every delegated skill through the platform's skill mechanism. If direct invocation is unavailable, locate and read that skill's installed `SKILL.md` and follow it with the same arguments.

@@ -60,8 +60,6 @@
       },
       "paths": [
         "trackbed/skills/code:plan-to-pr/references/attachment-input.md",
-        "trackbed/skills/pr:review-convergence/references/standalone-scope-handoff.md",
-        "trackbed/skills/pr:fix-ci/references/scoped-plan.md",
         "trackbed/skills/code:breakdown-findings/references/reconcile-workflow.md"
       ]
     },
