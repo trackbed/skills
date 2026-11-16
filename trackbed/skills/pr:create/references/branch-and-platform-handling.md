@@ -67,7 +67,7 @@ Track `{linear-issue-id}` as nullable workflow state. If `LINEAR_ISSUE_OVERRIDE`
 
 Before classifying `{entry-branch}` as a feature, check whether it is `main`, `master`, the repository's configured `trackbed.baseBranch`, the branch named by a valid `origin/HEAD`, Conductor's configured default, or another protected/workbench/production branch named in repository instructions. If it matches any of these and differs from `{base-branch}`, stop and explain the conflicting branch roles. Do not publish a Pull Request from a production branch to the configured development workbench or silently move its changes to another branch.
 
-If `{entry-branch}` is neither `<detached>` nor `{base-branch}`, select it as `{feature-branch}`. When `{linear-issue-id}` is empty, scan the validated branch name for `(?<![A-Z0-9])(?=[A-Z0-9]*[A-Z])[A-Z0-9]+-[0-9]+(?![A-Z0-9.])` case-insensitively; normalize a match to uppercase. This matches a complete alphanumeric team key containing a letter and excludes dotted version suffixes.
+If `{entry-branch}` is neither `<detached>` nor `{base-branch}`, select it as `{feature-branch}`. When `{linear-issue-id}` is empty, scan the validated branch name for `(?<![A-Z0-9])(?=[A-Z0-9]*[A-Z])[A-Z0-9]+-[0-9]+(?![A-Z0-9]|\.[0-9])` case-insensitively; normalize a match to uppercase. This matches a complete alphanumeric team key containing a letter and excludes dotted version suffixes.
 
 Do not push or change upstream configuration. A corresponding `origin` ref is classified below; a clean current branch may use a non-rewriting path when the remote is at the exact local tip or is a strict ancestor of it. Step 4 may also admit dirty work in auto mode by preserving the observed remote prefix and recreating only the unpublished tail.
 

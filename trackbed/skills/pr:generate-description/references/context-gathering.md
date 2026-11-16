@@ -120,7 +120,7 @@
 
 ### 2.3 Linear Issue Context
 
-1. **ALWAYS** establish one authoritative Linear issue ID. If `LINEAR_ISSUE_OVERRIDE` is set, use that exact normalized identifier and skip branch-name extraction. Otherwise, check whether the branch name or commit messages contain a Linear-style issue ID using the complete-token pattern `(?<![A-Z0-9])(?=[A-Z0-9]*[A-Z])[A-Z0-9]+-[0-9]+(?![A-Z0-9.])` (case-insensitive at extraction time; normalize to uppercase). Do not hard-code a team prefix list. Match the entire alphanumeric team key, require at least one letter, and exclude dotted version suffixes.
+1. **ALWAYS** establish one authoritative Linear issue ID. If `LINEAR_ISSUE_OVERRIDE` is set, use that exact normalized identifier and skip branch-name extraction. Otherwise, check whether the branch name or commit messages contain a Linear-style issue ID using the complete-token pattern `(?<![A-Z0-9])(?=[A-Z0-9]*[A-Z])[A-Z0-9]+-[0-9]+(?![A-Z0-9]|\.[0-9])` (case-insensitive at extraction time; normalize to uppercase). Do not hard-code a team prefix list. Match the entire alphanumeric team key, require at least one letter, and exclude dotted numeric version suffixes.
    - Branch-name pattern: `{initials}/{team-issue-id}-{description}` or `{team-issue-id}-{description}` at the root.
    - **EXAMPLE**: `mab/wan-521-ensure-platform-picker-only-shown-once` → `WAN-521`.
    - **EXAMPLE**: `jd/hea-123-fix-header-bug` → `HEA-123`.

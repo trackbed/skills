@@ -335,6 +335,21 @@ class BranchTests(PreflightCase):
         self.assertEqual(self.invoke("--linear-issue", "abc-42")["facts"]["linear_issue_id"], "ABC-42")
         self.assert_status(self.invoke("--linear-issue", "ABC_42"), "error", "usage")
 
+    def test_issue_extraction_preserves_prose_punctuation_without_version_matches(self) -> None:
+        cases = {
+            "Fixes ABC-123.": "ABC-123",
+            "Fixes SKILLS-105.": "SKILLS-105",
+            "Related to WAN-123, with follow-up": "WAN-123",
+            "Fixes (LONGTEAM123-42).": "LONGTEAM123-42",
+            "Release release-2026.11": None,
+            "Bump v1-2.3": None,
+            "Release release-2026.11; fixes SKILLS-105.": "SKILLS-105",
+        }
+        for text, expected in cases.items():
+            with self.subTest(text=text):
+                match = preflight.LINEAR_BRANCH_RE.search(text)
+                self.assertEqual(match.group(0).upper() if match else None, expected)
+
     def test_explicit_base_is_resolved_and_pinned_to_a_full_object_id(self) -> None:
         git(self.repo, "checkout", "-q", "-b", "develop")
         develop = self.commit("Start develop", "develop.txt")
