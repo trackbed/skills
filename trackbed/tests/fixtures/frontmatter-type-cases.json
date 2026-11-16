@@ -107,6 +107,21 @@
       "name": "bare string for platforms rejected",
       "text": "---\nname: s\ndescription: d\ndisable-model-invocation: false\nuser-invocable: true\ntrackbed-platforms: codex\n---\n# Body\n",
       "invalidFields": ["trackbed-platforms"]
+    },
+    {
+      "name": "literal boolean quotes are content",
+      "text": "---\ndisable-model-invocation: |\n  \"true\"\n---\n",
+      "invalidFields": ["disable-model-invocation"]
+    },
+    {
+      "name": "literal collection is a string",
+      "text": "---\ntrackbed-platforms: |\n  [codex]\n---\n",
+      "invalidFields": ["trackbed-platforms"]
+    },
+    {
+      "name": "literal collection text inside array is string element",
+      "text": "---\ntrackbed-platforms:\n  - |\n    [codex]\n---\n",
+      "invalidFields": []
     }
   ]
 }

@@ -7,7 +7,8 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
-from lint_skill_contracts.checks.mechanical import check_mechanical
+from lint_skill_contracts.checks.invocation_graph import check_invocation_graph, skill_inventory
+from lint_skill_contracts.checks.mechanical import check_agent_frontmatter, check_mechanical
 from lint_skill_contracts.checks.routing_distinctness import check_routing_distinctness
 from lint_skill_contracts.checks.types import LintContext
 from lint_skill_contracts.frontmatter import frontmatter_string_value, frontmatter_type_errors
@@ -78,6 +79,43 @@ class ComponentMetadataTest(unittest.TestCase):
             with self.subTest(case=case["name"]):
                 text = "---\n" + case["frontmatter"] + "\n---\n"
                 self.assertEqual(frontmatter_type_errors(text, component="agent"), [])
+
+    def test_decoded_identity_invocation_and_argument_consumers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for style in ("|-", ">-"):
+                agent = root / "agents/example.md"
+                agent.parent.mkdir(exist_ok=True)
+                agent.write_text(
+                    f"---\nname: {style}\n  example\ndescription: Reviews\nmodel: inherit\ncolor: blue\n---\n"
+                )
+                result = check_agent_frontmatter(LintContext(root, {"mechanical": {"agent_glob": "agents/*.md"}}, {}))
+                self.assertEqual(result.failures, [])
+            child = root / "skills/target/SKILL.md"
+            child.parent.mkdir(parents=True)
+            child.write_text(
+                "---\nname: |-\n  target\ndescription: Target\n"
+                "disable-model-invocation: |-\n  true\nuser-invocable: |-\n  false\n---\n"
+            )
+            parent = root / "skills/parent/SKILL.md"
+            parent.parent.mkdir(parents=True)
+            parent.write_text(
+                "---\nname: parent\ndescription: Parent\nuser-invocable: true\n"
+                'argument-hint: |-\n  "literal"\n---\nInvoke `trackbed:target`.\n'
+            )
+            inventory, _ = skill_inventory(root, "skills/*/SKILL.md")
+            self.assertTrue(inventory["trackbed:target"].model_disabled)
+            self.assertFalse(inventory["trackbed:target"].user_invocable)
+            context = LintContext(
+                root, {"invocation_graph": {"skill_glob": "skills/*/SKILL.md", "scan_globs": ["skills/**/*.md"]}}, {}
+            )
+            self.assertTrue(
+                any(
+                    "sets disable-model-invocation: true" in failure
+                    for failure in check_invocation_graph(context).failures
+                )
+            )
+            self.assertEqual(load_skill_references(root, "skills", [])["trackbed:parent"].arguments, '"literal"')
 
     def test_block_scalar_consumers(self):
         for case in json.loads(FIXTURES.read_text()):

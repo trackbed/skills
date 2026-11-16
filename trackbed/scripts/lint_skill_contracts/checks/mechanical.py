@@ -364,7 +364,7 @@ def check_agent_frontmatter(context: LintContext) -> CheckResult:
             if contract.get("required") and field not in frontmatter and field not in {"name", "description"}:
                 result.failures.append(f"mechanical: {relative} is missing frontmatter field {field!r}")
         expected_name = path.stem
-        actual_name = frontmatter.get("name")
+        actual_name = frontmatter_string_value(text, "name")
         if actual_name is None:
             result.failures.append(f"mechanical: {relative} is missing frontmatter field 'name'")
             continue

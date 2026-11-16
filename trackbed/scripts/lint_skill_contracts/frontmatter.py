@@ -324,7 +324,7 @@ def _is_yaml_boolean(value: str | list[str]) -> bool:
 def _decode_yaml_boolean(value: str | list[str]) -> bool | None:
     if isinstance(value, list):
         return None
-    decoded = _decode_yaml_quoted_string(value.strip())
+    decoded = str(value) if isinstance(value, _BlockScalar) else _decode_yaml_quoted_string(value.strip())
     normalized = (decoded if decoded is not None else strip_quotes(value)).strip().lower()
     return normalized == "true" if normalized in _YAML_BOOLEAN_VALUES else None
 
@@ -373,6 +373,8 @@ def _is_text_array(value: str | list[str]) -> bool:
 
 
 def _is_non_empty_string_array(value: str | list[str]) -> bool:
+    if isinstance(value, _BlockScalar):
+        return False
     items = value if isinstance(value, list) else _parse_inline_array(value)
     if isinstance(value, list):
         return bool(items) and all(_is_non_empty_yaml_block_string(item) for item in items)
@@ -380,6 +382,8 @@ def _is_non_empty_string_array(value: str | list[str]) -> bool:
 
 
 def _is_non_empty_yaml_block_string(value: str) -> bool:
+    if isinstance(value, _BlockScalar):
+        return bool(value.strip())
     if value.strip().startswith(("[", "{")):
         return False
     return _is_non_empty_yaml_scalar_string(value, case_insensitive=False)

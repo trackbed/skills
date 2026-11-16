@@ -33,7 +33,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ..frontmatter import parse_frontmatter, parse_frontmatter_bool
+from ..frontmatter import frontmatter_boolean_value, frontmatter_string_value
 from ..io import read_text, rel, skill_paths
 from ..naming import PLUGIN_NAMESPACE, qualified_name
 from .types import CheckResult, LintContext
@@ -93,12 +93,12 @@ def skill_inventory(root: Path, pattern: str) -> tuple[dict[str, SkillInfo], dic
     skills: dict[str, SkillInfo] = {}
     owners: dict[str, str] = {}
     for path in skill_paths(root, pattern):
-        frontmatter = parse_frontmatter(read_text(path)) or {}
-        name = qualified_name(frontmatter.get("name") or path.parent.name)
+        text = read_text(path)
+        name = qualified_name(frontmatter_string_value(text, "name") or path.parent.name)
         directory = rel(path.parent, root)
         skills[name] = SkillInfo(
-            model_disabled=parse_frontmatter_bool(frontmatter, "disable-model-invocation"),
-            user_invocable=frontmatter.get("user-invocable", "").strip().lower() != "false",
+            model_disabled=frontmatter_boolean_value(text, "disable-model-invocation") is True,
+            user_invocable=frontmatter_boolean_value(text, "user-invocable") is not False,
             directory=directory,
         )
         owners[directory] = name

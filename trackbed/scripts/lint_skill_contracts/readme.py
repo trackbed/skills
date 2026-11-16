@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -239,6 +239,12 @@ def load_skill_references(
             if scalar_value is not None:
                 frontmatter[field] = scalar_value
         reference = skill_reference_from_frontmatter(name, frontmatter, schema)
+        hint = frontmatter_string_value(
+            text, skill_frontmatter_field_by_loader_property("argumentHint", "argument-hint", schema)
+        )
+        user_field = skill_frontmatter_field_by_loader_property("userInvocable", "user-invocable", schema)
+        if frontmatter_boolean_value(text, user_field) and hint is not None and hint.strip():
+            reference = replace(reference, arguments=hint)
         references[reference.name] = reference
     return references
 
