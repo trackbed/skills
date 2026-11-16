@@ -120,7 +120,7 @@
 
 ### 2.3 Linear Issue Context
 
-1. **ALWAYS** establish one authoritative Linear issue ID. If `LINEAR_ISSUE_OVERRIDE` is set, use that exact normalized identifier and skip branch-name extraction. Otherwise, check whether the branch name or commit messages contain a Linear-style issue ID using the legacy generic pattern `[A-Z]{2,5}-\d+` (case-insensitive at extraction time; normalize to uppercase). Do not hard-code a team prefix list. A caller override may contain digits or a team-key length that the legacy branch parser cannot recover safely.
+1. **ALWAYS** establish one authoritative Linear issue ID. If `LINEAR_ISSUE_OVERRIDE` is set, use that exact normalized identifier and skip branch-name extraction. Otherwise, check whether the branch name or commit messages contain a Linear-style issue ID using the complete-token pattern `(?<![A-Z0-9])(?=[A-Z0-9]*[A-Z])[A-Z0-9]+-[0-9]+(?![A-Z0-9]|\.[0-9])` (case-insensitive at extraction time; normalize to uppercase). Do not hard-code a team prefix list. Match the entire alphanumeric team key, require at least one letter, and exclude dotted numeric version suffixes.
    - Branch-name pattern: `{initials}/{team-issue-id}-{description}` or `{team-issue-id}-{description}` at the root.
    - **EXAMPLE**: `mab/wan-521-ensure-platform-picker-only-shown-once` → `WAN-521`.
    - **EXAMPLE**: `jd/hea-123-fix-header-bug` → `HEA-123`.
@@ -148,7 +148,7 @@
    - **ALWAYS** note if the approach differs from what the issue requested.
    - **EXAMPLE**: Issue asked for A, but implementation delivers A + B, or implements A differently.
 
-5. **CAN** scan commit messages for additional issue references using the same generic `[A-Z]{2,5}-\d+` pattern, but never replace or truncate `LINEAR_ISSUE_OVERRIDE` with a substring match.
+5. **CAN** scan commit messages for additional issue references using the same complete-token pattern, but never replace or truncate `LINEAR_ISSUE_OVERRIDE` with a substring match.
    - **EXAMPLE**: `WAN-123`, `Fixes HEA-456`, `Related to BLOG-789`.
 
 ### 2.4 Code Structure Analysis
