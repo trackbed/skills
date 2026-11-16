@@ -403,6 +403,7 @@ Each row gives a one-line summary. The full description lives in the skill's `SK
 | Stop agents from repeating a mistake by turning it into a type, lint rule, or check | `/trackbed:code:encode-constraint` |
 | Upgrade a framework or library | `/trackbed:code:migrate` |
 | Explain a system or change visually | `/trackbed:visual:explain` |
+| Decide on findings, tradeoffs, or whatever is still waiting on me, in a document that records my choices | `/trackbed:visual:decisions` |
 | Make a document easier to read | `/trackbed:text:clarify` |
 
 <!-- BEGIN SOURCE-SYNCED SKILL ROWS -->
@@ -550,10 +551,11 @@ Live product inspection and structured testing.
 
 #### Visual
 
-Generate visual output, including self-contained HTML pages and diagrams.
+Generate visual output: self-contained HTML pages, diagrams, and decision documents that record your choices.
 
 | Skill | Invocation | Arguments | Description |
 | --- | --- | --- | --- |
+| `/trackbed:visual:decisions` | User, Auto | `[report, plan, or topic] [--output <path>] [--choices <file>]` | Gather what needs your decision, from a report, a plan, or what it finds open itself, into an offline HTML walkthrough where you record your choices. |
 | `/trackbed:visual:explain` | User, Auto | `[topic or description \| --onboarding [focus-area or audience]]` | Generate a self-contained HTML page that explains a system, change, plan, or data visually; `--onboarding` builds a codebase guide. |
 
 #### Documentation & Writing

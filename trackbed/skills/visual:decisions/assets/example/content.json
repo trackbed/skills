@@ -1,0 +1,364 @@
+{
+  "schemaVersion": 1,
+  "document": {
+    "id": "lanternworks-booking-review",
+    "title": "Lanternworks booking review",
+    "kicker": "Synthetic example · four findings",
+    "summary": [
+      "Booking a studio mostly works, but two people can still end up with the same room. Fix that before the spring courses open; the other three findings are smaller and can be decided on their own.",
+      "This is an invented review of an invented product. It shows what a decision document holds and how each part reads."
+    ],
+    "generated": "2026-01-15",
+    "producer": "trackbed:product:review (example)",
+    "itemNoun": ["finding", "findings"],
+    "metrics": [
+      {
+        "value": "4",
+        "label": "open findings"
+      },
+      {
+        "value": "1",
+        "label": "blocks the spring launch"
+      },
+      {
+        "value": "3",
+        "label": "can wait a release"
+      }
+    ],
+    "startWith": [
+      {
+        "item": "BOOK-001",
+        "reason": "Two members were both told the same studio was theirs. It is the one finding that costs trust on the day."
+      }
+    ],
+    "order": [
+      {
+        "label": "First",
+        "title": "Make a confirmed booking mean one room for one person",
+        "summary": "Close the double-booking gap before anything else is built on top of the calendar.",
+        "why": "Every other finding assumes that a confirmation can be trusted.",
+        "items": ["BOOK-001"]
+      },
+      {
+        "label": "Then",
+        "title": "Decide how members hear about full classes and failed payments",
+        "summary": "Both change what a member is told when something does not go through.",
+        "why": "They touch the same notification settings, so deciding them together avoids doing that work twice.",
+        "items": ["BOOK-002", "BOOK-003"]
+      },
+      {
+        "label": "Any time",
+        "title": "Settle the cancellation window",
+        "summary": "A policy question more than a product one.",
+        "items": ["BOOK-004"]
+      }
+    ],
+    "sources": [
+      {
+        "label": "BOOKING_REVIEW.md",
+        "detail": "the invented review this example is built from"
+      },
+      {
+        "label": "Three synthetic captures and one diagram",
+        "detail": "drawn for this example; no real product is shown"
+      }
+    ],
+    "sections": [
+      {
+        "title": "What the review covered",
+        "bullets": [
+          "Booking a studio and a class as a member, on a phone and on a desktop browser.",
+          "The staff calendar for one studio across one week."
+        ]
+      },
+      {
+        "title": "What it does not establish",
+        "bullets": [
+          "How often double bookings happen in production; the review reproduced one and did not measure a rate.",
+          "Anything about payments beyond the one failed renewal described in BOOK-003."
+        ]
+      }
+    ]
+  },
+  "items": [
+    {
+      "id": "BOOK-001",
+      "title": "Two members can be confirmed for the same studio and time",
+      "labels": [
+        {
+          "text": "Important",
+          "tone": "high"
+        },
+        "Booking"
+      ],
+      "status": "Open in the review · reproduced twice on 14 January",
+      "summary": "Two members who pressed Book within two seconds of each other were both confirmed for Studio B from 10:00 to 12:00. Each saw the normal confirmation screen, and the staff calendar showed both bookings side by side.",
+      "impact": "One of them arrives to a room that is taken, and staff find out at the door. A confirmation that cannot be relied on undermines every other part of booking.",
+      "steps": [
+        "Two members open the same free slot on their own phones.",
+        "Both press Book within about two seconds.",
+        "Both get a confirmation; the calendar holds two bookings for one room."
+      ],
+      "evidence": [
+        {
+          "type": "image",
+          "file": "double-booking-calendar.svg",
+          "label": "Staff calendar",
+          "caption": "The staff calendar after the test: two confirmed glazing sessions in Studio B from 10:00 to 12:00, made two seconds apart.",
+          "source": "BOOKING_REVIEW.md, capture 3 (synthetic)"
+        },
+        {
+          "type": "image",
+          "file": "double-booking-confirmation.svg",
+          "label": "Second member's phone",
+          "caption": "The second member's confirmation. Nothing on it says the slot had just been taken.",
+          "source": "BOOKING_REVIEW.md, capture 4 (synthetic)"
+        },
+        {
+          "type": "table",
+          "label": "What the two attempts recorded",
+          "caption": "Read from the booking log after the second reproduction.",
+          "columns": ["Measure", "Value"],
+          "rows": [
+            ["Attempts made", "2, from separate accounts"],
+            ["Gap between them", "about 2 seconds"],
+            ["Bookings created", "2 for the same studio and time"],
+            ["Warnings shown", "none, to either member or to staff"]
+          ],
+          "source": "BOOKING_REVIEW.md, section 2.1"
+        },
+        {
+          "type": "image",
+          "file": "double-booking-flow.svg",
+          "label": "How it happens",
+          "caption": "Both requests read the slot as free before either booking is saved, so both are saved.",
+          "source": "Drawn from the sequence and times in BOOKING_REVIEW.md, section 2.1 (synthetic)",
+          "origin": "added"
+        }
+      ],
+      "options": [
+        {
+          "id": "reserve-on-book",
+          "name": "Hold the slot the moment Book is pressed",
+          "summary": "The first request takes the slot; the second is told it has just gone and is shown the nearest free times.",
+          "benefits": [
+            "A confirmation always means the room is yours.",
+            "The member who loses the race finds out at once, while they can still pick another time."
+          ],
+          "tradeoffs": [
+            "Needs a change where bookings are saved, and a new message for the member who was second."
+          ]
+        },
+        {
+          "id": "staff-conflict-alert",
+          "name": "Keep booking as it is and alert staff to conflicts",
+          "summary": "Both bookings still go through. Staff get a notice and sort it out by phone.",
+          "benefits": ["Small change, with nothing new for members to learn."],
+          "tradeoffs": [
+            "A member is still told a room is theirs when it is not.",
+            "Relies on staff seeing the notice in time, including at weekends."
+          ]
+        }
+      ],
+      "noChange": {
+        "label": "Leave booking as it is",
+        "description": "Accept that double bookings happen and are handled at the door."
+      },
+      "recommendation": {
+        "option": "reserve-on-book",
+        "summary": "Hold the slot when Book is pressed, and tell the second member straight away.",
+        "reasoning": [
+          "The problem is that the app says something untrue to a member. Only the first option stops that; the staff alert leaves the untrue confirmation in place and adds work for staff.",
+          "It is also the option that keeps working as bookings grow, because it does not depend on anyone noticing."
+        ]
+      },
+      "uncertainty": "The review reproduced the double booking twice but did not measure how often it happens. If it is rare, the staff alert may be enough for a first release.",
+      "evidenceLimits": "Tested with two phones on the staging site. The class-booking flow, which has places instead of rooms, was not tested for the same gap.",
+      "successCriteria": [
+        "Repeating the two-phone test leaves one booking, and the second member sees that the slot was taken.",
+        "The staff calendar never shows two bookings for one room and time."
+      ],
+      "details": [
+        {
+          "label": "Confidence in the finding",
+          "value": "High: reproduced twice"
+        },
+        {
+          "label": "First seen",
+          "value": "Review round 2"
+        }
+      ],
+      "source": {
+        "title": "Concurrent bookings are both confirmed",
+        "location": "BOOKING_REVIEW.md, section 2.1"
+      }
+    },
+    {
+      "id": "BOOK-002",
+      "title": "A full class offers no way to wait for a place",
+      "labels": [
+        {
+          "text": "Suggestion",
+          "tone": "low"
+        },
+        "Classes"
+      ],
+      "status": "Open in the review",
+      "summary": "When a course is full, the page says so and stops. A member cannot join a waiting list, ask to be told when a place opens, or see the next start date.",
+      "impact": "Interested members leave with nothing to do, and places that open after a cancellation stay empty unless someone happens to look again.",
+      "evidence": [
+        {
+          "type": "image",
+          "file": "full-class-page.svg",
+          "caption": "The page for a full six-week course: a disabled button and a line asking the member to check back later.",
+          "source": "BOOKING_REVIEW.md, capture 7 (synthetic)"
+        },
+        {
+          "type": "chart",
+          "label": "Places that opened and stayed empty, by course",
+          "caption": "Ten places opened on full courses in the last four courses. None was taken, because nobody was told.",
+          "rows": [
+            ["January wheel course", 3],
+            ["February glazing course", 2],
+            ["February wheel course", 4],
+            ["March hand-building course", 1]
+          ],
+          "source": "BOOKING_REVIEW.md, section 3.2 (synthetic)"
+        }
+      ],
+      "options": [
+        {
+          "id": "notify-me",
+          "name": "Add \"Tell me when a place opens\"",
+          "summary": "One button. Everyone who pressed it gets a message when a place frees up, and the first to book gets it.",
+          "benefits": [
+            "Simple to explain and to build.",
+            "Fills places that open late."
+          ],
+          "tradeoffs": [
+            "First come, first served can feel unfair to whoever asked first."
+          ]
+        },
+        {
+          "id": "ordered-waiting-list",
+          "name": "Add an ordered waiting list",
+          "summary": "Members join a queue. When a place opens it is offered to the next person for a set time.",
+          "benefits": [
+            "Fair by order of asking.",
+            "Staff can see real demand for a course."
+          ],
+          "tradeoffs": [
+            "More to build: the queue, the offer, the time limit, and what happens when an offer lapses.",
+            "Members have to act on an offer in time or lose it."
+          ]
+        },
+        {
+          "id": "link-next-date",
+          "name": "Link to the next start date",
+          "summary": "Keep the page as it is and add the next date for the same course.",
+          "benefits": ["Almost no work."],
+          "tradeoffs": ["Does nothing for places that open on the full course."]
+        }
+      ],
+      "recommendation": {
+        "option": "notify-me",
+        "summary": "Start with \"Tell me when a place opens\", and add the next start date beside it.",
+        "reasoning": "It answers the member's question with the least to build, and how many people press the button shows whether a full waiting list would be worth its cost."
+      },
+      "uncertainty": "Nobody has asked members which they would prefer. The fairness concern is a guess.",
+      "successCriteria": "A member on a full course can leave with something to expect, and a place that opens is taken within a day.",
+      "source": {
+        "title": "Full classes are a dead end",
+        "location": "BOOKING_REVIEW.md, section 3.2"
+      }
+    },
+    {
+      "id": "BOOK-003",
+      "title": "A failed renewal cancels the membership without telling the member",
+      "labels": [
+        {
+          "text": "Important",
+          "tone": "high"
+        },
+        "Payments"
+      ],
+      "status": "Open in the review · seen once",
+      "summary": "When a monthly renewal failed, the membership was set to `cancelled` the same night. The member got no message and first learned of it when a booking was refused.",
+      "impact": "A member with an expired card loses access and their standing bookings in one step, with no chance to fix the card first.",
+      "evidence": [
+        {
+          "type": "excerpt",
+          "label": "Renewal log for the test account",
+          "caption": "The only three lines the renewal job wrote. There is no retry and no message between the failure and the cancellation.",
+          "text": "02:00:04  renewal  member=test-417  charge failed: card_expired\n02:00:04  renewal  member=test-417  status active -> cancelled\n02:00:05  renewal  member=test-417  released 3 future bookings",
+          "source": "BOOKING_REVIEW.md, section 4.1 (synthetic log)"
+        }
+      ],
+      "options": [
+        {
+          "id": "grace-period",
+          "name": "Give a seven-day grace period with reminders",
+          "summary": "Keep the membership active for seven days, message the member on days 1, 4, and 7, and cancel only after that.",
+          "benefits": [
+            "Most failed cards are fixed without anyone losing a booking."
+          ],
+          "tradeoffs": [
+            "A member who never pays keeps access, and their held slots, for a week."
+          ]
+        },
+        {
+          "id": "notify-then-cancel",
+          "name": "Cancel as now, but tell the member first",
+          "summary": "Send one message when the charge fails and cancel the next night.",
+          "benefits": ["Smallest change that ends the silence."],
+          "tradeoffs": [
+            "One day is short notice, and standing bookings are still released."
+          ]
+        }
+      ],
+      "noChange": false,
+      "recommendation": {
+        "option": null,
+        "summary": "No option is recommended until the studio says how long it is willing to hold slots for an unpaid membership.",
+        "reasoning": "Both options end the silent cancellation. Which is better depends on how scarce studio time is, and that is a business call the review has no evidence for."
+      },
+      "evidenceLimits": "Seen on one test account with an expired card. Other failure reasons, such as insufficient funds, were not tried.",
+      "source": {
+        "title": "Renewal failure cancels silently",
+        "location": "BOOKING_REVIEW.md, section 4.1"
+      }
+    },
+    {
+      "id": "BOOK-004",
+      "title": "The 24-hour cancellation window is stricter than members expect",
+      "labels": ["Policy"],
+      "summary": "Members can cancel a studio booking for free up to 24 hours before it starts. Two of five people in the review tried to cancel later than that and were surprised to be charged.",
+      "impact": "The rule works as designed. The question is whether it is the rule the studio wants.",
+      "options": [
+        {
+          "id": "shorten-to-12-hours",
+          "name": "Shorten the window to 12 hours",
+          "summary": "Free cancellation up to 12 hours before the booking.",
+          "benefits": ["Matches what the people in the review expected."],
+          "tradeoffs": [
+            "Less time to rebook a freed studio, so more of them may stand empty."
+          ]
+        }
+      ],
+      "noChange": {
+        "label": "Keep the 24-hour window",
+        "description": "Leave the rule as it is and make it easier to see when booking."
+      },
+      "recommendation": {
+        "option": "no-change",
+        "summary": "Keep the 24-hour window, and show it on the booking screen.",
+        "reasoning": "Five people is too few to change a policy on. The surprise came from not seeing the rule, and showing it costs far less than empty studios would."
+      },
+      "uncertainty": "Based on five people. A larger group could point the other way.",
+      "source": {
+        "title": "Cancellation window surprises members",
+        "location": "BOOKING_REVIEW.md, section 5"
+      }
+    }
+  ]
+}

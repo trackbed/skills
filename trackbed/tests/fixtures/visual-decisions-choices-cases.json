@@ -1,0 +1,855 @@
+{
+  "about": "Shared by tests/python/test_visual_decisions_build.py and tests/node/visual-decisions-runtime.test.js, so the builder's --choices option and the page's import accept and refuse the same payloads. The catalog is what the builder embeds for this content; its fingerprints are pinned, because changing how an item version is computed would detach every choice readers have already recorded.",
+  "content": {
+    "schemaVersion": 1,
+    "document": {
+      "id": "fixture-doc",
+      "title": "Fixture document",
+      "summary": "Three small items.",
+      "generated": "2026-01-15"
+    },
+    "items": [
+      {
+        "id": "A-1",
+        "title": "First item",
+        "summary": "Two options and the default no-change choice.",
+        "options": [
+          {
+            "id": "keep-a",
+            "name": "Keep A",
+            "summary": "Stay with A."
+          },
+          {
+            "id": "swap-b",
+            "name": "Swap to B",
+            "summary": "Move to B.",
+            "tradeoffs": "Costs a migration."
+          }
+        ],
+        "recommendation": {
+          "option": "keep-a",
+          "summary": "Keep A.",
+          "reasoning": "It works."
+        }
+      },
+      {
+        "id": "A-2",
+        "title": "Second item",
+        "summary": "One option, and no-change is not offered.",
+        "options": [
+          {
+            "id": "only-way",
+            "name": "The only way",
+            "benefits": ["Fixes it."]
+          }
+        ],
+        "noChange": false,
+        "recommendation": {
+          "option": null,
+          "summary": "No recommendation.",
+          "reasoning": "Depends on you."
+        }
+      },
+      {
+        "id": "A-3",
+        "title": "Third item",
+        "summary": "Three options and a reworded no-change choice.",
+        "options": [
+          {
+            "id": "x",
+            "name": "X",
+            "summary": "Do X."
+          },
+          {
+            "id": "y",
+            "name": "Y",
+            "summary": "Do Y."
+          },
+          {
+            "id": "z",
+            "name": "Z",
+            "summary": "Do Z."
+          }
+        ],
+        "noChange": {
+          "label": "Keep the rule",
+          "description": "Leave the rule alone."
+        },
+        "recommendation": {
+          "option": "no-change",
+          "summary": "Keep the rule.",
+          "reasoning": "Too little evidence."
+        }
+      }
+    ]
+  },
+  "catalog": {
+    "documentId": "fixture-doc",
+    "title": "Fixture document",
+    "fingerprint": "151b4f54b1a7deaf055e7c53",
+    "generated": "2026-01-15",
+    "nounOne": "decision",
+    "nounMany": "decisions",
+    "items": [
+      {
+        "id": "A-1",
+        "title": "First item",
+        "fingerprint": "502f953cfe748c65ba49e512",
+        "options": [
+          {
+            "id": "keep-a",
+            "name": "Keep A",
+            "letter": "A"
+          },
+          {
+            "id": "swap-b",
+            "name": "Swap to B",
+            "letter": "B"
+          }
+        ],
+        "noChange": "No change",
+        "recommended": "keep-a"
+      },
+      {
+        "id": "A-2",
+        "title": "Second item",
+        "fingerprint": "021f7da22de60f3ffd9611f3",
+        "options": [
+          {
+            "id": "only-way",
+            "name": "The only way",
+            "letter": "A"
+          }
+        ],
+        "noChange": "",
+        "recommended": ""
+      },
+      {
+        "id": "A-3",
+        "title": "Third item",
+        "fingerprint": "8608b089d15cd58a2735942e",
+        "options": [
+          {
+            "id": "x",
+            "name": "X",
+            "letter": "A"
+          },
+          {
+            "id": "y",
+            "name": "Y",
+            "letter": "B"
+          },
+          {
+            "id": "z",
+            "name": "Z",
+            "letter": "C"
+          }
+        ],
+        "noChange": "Keep the rule",
+        "recommended": "no-change"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "an empty list carries nothing",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": []
+      },
+      "expect": {
+        "carried": [],
+        "needsReview": [],
+        "dropped": []
+      }
+    },
+    {
+      "name": "records made on the current items are carried",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-1",
+            "option": "keep-a",
+            "status": "decided",
+            "notes": "Fine.",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "502f953cfe748c65ba49e512"
+          },
+          {
+            "itemId": "A-2",
+            "option": "custom",
+            "status": "discuss",
+            "notes": "Talk first.",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "021f7da22de60f3ffd9611f3"
+          }
+        ]
+      },
+      "expect": {
+        "carried": ["A-1", "A-2"],
+        "needsReview": [],
+        "dropped": []
+      }
+    },
+    {
+      "name": "the no-change choice is carried where it is offered",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-3",
+            "option": "no-change",
+            "status": "decided",
+            "notes": "",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "8608b089d15cd58a2735942e"
+          }
+        ]
+      },
+      "expect": {
+        "carried": ["A-3"],
+        "needsReview": [],
+        "dropped": []
+      }
+    },
+    {
+      "name": "a note alone is carried as a draft",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-1",
+            "option": null,
+            "status": "open",
+            "notes": "Thinking.",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "502f953cfe748c65ba49e512"
+          }
+        ]
+      },
+      "expect": {
+        "carried": ["A-1"],
+        "needsReview": [],
+        "dropped": []
+      }
+    },
+    {
+      "name": "untouched items are ignored",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-1",
+            "option": null,
+            "status": "open",
+            "notes": "",
+            "updatedAt": null,
+            "itemFingerprint": "502f953cfe748c65ba49e512"
+          }
+        ]
+      },
+      "expect": {
+        "carried": [],
+        "needsReview": [],
+        "dropped": []
+      }
+    },
+    {
+      "name": "a choice made on an earlier version comes back for review",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-1",
+            "option": "keep-a",
+            "status": "decided",
+            "notes": "Fine.",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "earlier-version",
+            "choiceLabel": "Option A · Keep A"
+          }
+        ]
+      },
+      "expect": {
+        "carried": [],
+        "needsReview": ["A-1"],
+        "dropped": []
+      },
+      "runtime": {
+        "A-1": {
+          "option": "keep-a",
+          "status": "open",
+          "notes": "Fine.",
+          "earlier": {
+            "status": "decided",
+            "choiceLabel": "Option A · Keep A"
+          }
+        }
+      }
+    },
+    {
+      "name": "an earlier choice whose option is gone keeps its notes and its old label",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-3",
+            "option": "retired-option",
+            "status": "decided",
+            "notes": "Was sure.",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "earlier-version",
+            "choiceLabel": "Option D · Retired"
+          }
+        ]
+      },
+      "expect": {
+        "carried": [],
+        "needsReview": ["A-3"],
+        "dropped": []
+      },
+      "runtime": {
+        "A-3": {
+          "option": "",
+          "status": "open",
+          "notes": "Was sure.",
+          "earlier": {
+            "status": "decided",
+            "choiceLabel": "Option D · Retired"
+          }
+        }
+      }
+    },
+    {
+      "name": "an earlier choice whose option is gone still comes back for review without notes",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-3",
+            "option": "retired-option",
+            "status": "decided",
+            "notes": "",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "earlier-version",
+            "choiceLabel": "Option D · Retired"
+          }
+        ]
+      },
+      "expect": {
+        "carried": [],
+        "needsReview": ["A-3"],
+        "dropped": []
+      },
+      "runtime": {
+        "A-3": {
+          "option": "",
+          "status": "open",
+          "notes": "",
+          "earlier": {
+            "status": "decided",
+            "choiceLabel": "Option D · Retired"
+          }
+        }
+      }
+    },
+    {
+      "name": "an exported choice still waiting for review is carried again with only its earlier record",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-3",
+            "option": null,
+            "status": "open",
+            "notes": "",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "earlier-version",
+            "needsReview": true,
+            "earlier": {
+              "status": "decided",
+              "choiceLabel": "Option D · Retired"
+            }
+          }
+        ]
+      },
+      "expect": {
+        "carried": [],
+        "needsReview": ["A-3"],
+        "dropped": []
+      },
+      "runtime": {
+        "A-3": {
+          "option": "",
+          "status": "open",
+          "notes": "",
+          "earlier": {
+            "status": "decided",
+            "choiceLabel": "Option D · Retired"
+          }
+        }
+      }
+    },
+    {
+      "name": "an earlier deferral stays deferred but is still marked for review",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-2",
+            "option": null,
+            "status": "deferred",
+            "notes": "Later.",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "earlier-version"
+          }
+        ]
+      },
+      "expect": {
+        "carried": [],
+        "needsReview": ["A-2"],
+        "dropped": []
+      },
+      "runtime": {
+        "A-2": {
+          "option": "",
+          "status": "deferred",
+          "notes": "Later.",
+          "earlier": {
+            "status": "deferred",
+            "choiceLabel": "No approach selected"
+          }
+        }
+      }
+    },
+    {
+      "name": "a record for an item the document does not have is set aside",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-1",
+            "option": "swap-b",
+            "status": "decided",
+            "notes": "",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "502f953cfe748c65ba49e512"
+          },
+          {
+            "itemId": "Z-9",
+            "option": "anything",
+            "status": "decided",
+            "notes": "",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "000000000000000000000000",
+            "itemTitle": "Gone"
+          }
+        ]
+      },
+      "expect": {
+        "carried": ["A-1"],
+        "needsReview": [],
+        "dropped": ["Z-9"]
+      }
+    },
+    {
+      "name": "a payload for another document is refused",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "another-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-1",
+            "option": "keep-a",
+            "status": "decided",
+            "notes": "",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "502f953cfe748c65ba49e512"
+          }
+        ]
+      },
+      "expect": {
+        "error": true
+      }
+    },
+    {
+      "name": "a newer format version is refused",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 2,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-1",
+            "option": "keep-a",
+            "status": "decided",
+            "notes": "",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "502f953cfe748c65ba49e512"
+          }
+        ]
+      },
+      "expect": {
+        "error": true
+      }
+    },
+    {
+      "name": "something that is not an export is refused",
+      "payload": {
+        "decisions": []
+      },
+      "expect": {
+        "error": true
+      }
+    },
+    {
+      "name": "a decisions value that is not a list is refused",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": {
+          "A-1": {}
+        }
+      },
+      "expect": {
+        "error": true
+      }
+    },
+    {
+      "name": "an unknown status is refused",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-1",
+            "option": "keep-a",
+            "status": "approved",
+            "notes": "",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "502f953cfe748c65ba49e512"
+          }
+        ]
+      },
+      "expect": {
+        "error": true
+      }
+    },
+    {
+      "name": "decided without an option is refused",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-1",
+            "option": null,
+            "status": "decided",
+            "notes": "",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "502f953cfe748c65ba49e512"
+          }
+        ]
+      },
+      "expect": {
+        "error": true
+      }
+    },
+    {
+      "name": "an option the current item does not offer is refused",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-1",
+            "option": "delete-everything",
+            "status": "decided",
+            "notes": "",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "502f953cfe748c65ba49e512"
+          }
+        ]
+      },
+      "expect": {
+        "error": true
+      }
+    },
+    {
+      "name": "no-change where it is not offered is refused",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-2",
+            "option": "no-change",
+            "status": "decided",
+            "notes": "",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "021f7da22de60f3ffd9611f3"
+          }
+        ]
+      },
+      "expect": {
+        "error": true
+      }
+    },
+    {
+      "name": "notes that are too long are refused",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-1",
+            "option": "keep-a",
+            "status": "decided",
+            "notes": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "502f953cfe748c65ba49e512"
+          }
+        ]
+      },
+      "expect": {
+        "error": true
+      }
+    },
+    {
+      "name": "notes that are not text are refused",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-1",
+            "option": "keep-a",
+            "status": "decided",
+            "notes": ["a", "list"],
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "502f953cfe748c65ba49e512"
+          }
+        ]
+      },
+      "expect": {
+        "error": true
+      }
+    },
+    {
+      "name": "a time that is not a UTC timestamp is refused",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-1",
+            "option": "keep-a",
+            "status": "decided",
+            "notes": "",
+            "updatedAt": "yesterday",
+            "itemFingerprint": "502f953cfe748c65ba49e512"
+          }
+        ]
+      },
+      "expect": {
+        "error": true
+      }
+    },
+    {
+      "name": "a date that does not exist is refused",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-1",
+            "option": "keep-a",
+            "status": "decided",
+            "notes": "",
+            "updatedAt": "2026-02-30T09:00:00.000Z",
+            "itemFingerprint": "502f953cfe748c65ba49e512"
+          }
+        ]
+      },
+      "expect": {
+        "error": true
+      }
+    },
+    {
+      "name": "a recorded choice without its item version is refused",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-1",
+            "option": "keep-a",
+            "status": "decided",
+            "notes": "",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": ""
+          }
+        ]
+      },
+      "expect": {
+        "error": true
+      }
+    },
+    {
+      "name": "the same item twice is refused",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-1",
+            "option": "keep-a",
+            "status": "decided",
+            "notes": "",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "502f953cfe748c65ba49e512"
+          },
+          {
+            "itemId": "A-1",
+            "option": "swap-b",
+            "status": "decided",
+            "notes": "",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "502f953cfe748c65ba49e512"
+          }
+        ]
+      },
+      "expect": {
+        "error": true
+      }
+    },
+    {
+      "name": "one damaged record refuses the whole file",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": [
+          {
+            "itemId": "A-1",
+            "option": "keep-a",
+            "status": "decided",
+            "notes": "",
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "502f953cfe748c65ba49e512"
+          },
+          {
+            "itemId": "A-3",
+            "option": "x",
+            "status": "decided",
+            "notes": null,
+            "updatedAt": "2026-01-16T09:00:00.000Z",
+            "itemFingerprint": "8608b089d15cd58a2735942e"
+          }
+        ]
+      },
+      "expect": {
+        "error": true
+      }
+    },
+    {
+      "name": "a record that is not an object is refused",
+      "payload": {
+        "format": "trackbed-decisions",
+        "schemaVersion": 1,
+        "document": {
+          "id": "fixture-doc"
+        },
+        "decisions": ["A-1"]
+      },
+      "expect": {
+        "error": true
+      }
+    }
+  ]
+}

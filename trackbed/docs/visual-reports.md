@@ -59,4 +59,8 @@ The page is a single file with no network access: it loads no remote scripts, fo
 
 `--visual` needs a Markdown file to mirror, so it cannot be combined with `--inline` or with a mode that only replies in the conversation. Skills that run other skills, such as `/trackbed:linear:issue-to-pr` and `/trackbed:pr:review-convergence`, never pass it on: only the command you type gets a page.
 
+## When you need to decide, not only read
+
+A visual report is a snapshot with accept and dismiss. When each item needs a real decision, with options weighed, a recommendation, and a record of what you chose and why, ask for a decision document instead: [`/trackbed:visual:decisions`](usage/visual-decisions.md), or say "turn these findings into a decision document" after any review or planning skill. It builds from the report you already have, saves your choices in the browser and in a copy you can download, and exports them as a file to hand back to the agent.
+
 The [decision record](decisions/2026-11-10-visual-report-style.md) explains why Markdown stays the record.

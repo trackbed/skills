@@ -40,6 +40,25 @@
       ]
     },
     {
+      "name": "decision-document-handoff",
+      "extract_regex": "Synced decision document handoff \\(keep aligned across report producers\\):\\s*(when the user asks for a decision document.*?never act on a recorded choice without a new request\\.)",
+      "inventory": {
+        "glob": "trackbed/skills/**/SKILL.md",
+        "marker": "Synced decision document handoff (keep aligned across report producers):"
+      },
+      "paths": [
+        "trackbed/skills/pr:code-review/SKILL.md",
+        "trackbed/skills/pr:product-review/SKILL.md",
+        "trackbed/skills/product:review/SKILL.md",
+        "trackbed/skills/qa/SKILL.md",
+        "trackbed/skills/code:refactor-opportunities/SKILL.md",
+        "trackbed/skills/code:audit-security/SKILL.md",
+        "trackbed/skills/discovery:strategic-inquiry/SKILL.md",
+        "trackbed/skills/code:breakdown-findings/SKILL.md",
+        "trackbed/skills/discovery:interview/SKILL.md"
+      ]
+    },
+    {
       "name": "linear-agent-readiness-rubric",
       "extract_regex": "(?s)Synced Linear agent-readiness contract \\(keep aligned across Linear readiness workflows\\):\\s*(An issue is `?agent-ready`? only when every item passes\\..*?Never promote an issue while required evidence is unknown\\.)",
       "inventory": {
@@ -1848,6 +1867,7 @@
       "trackbed:test:audit": "Find low-value, brittle, obsolete, or duplicated tests and get a read-only report of what to remove, repair, or consolidate.",
       "trackbed:text:clarify": "Rewrite prose so readers can understand and act on it quickly; `--humanize` removes AI-writing patterns instead.",
       "trackbed:verify:run": "Run the project's tests, linting, formatting, builds, and type checks for affected code; `--fast` runs the quick tier.",
+      "trackbed:visual:decisions": "Gather what needs your decision, from a report, a plan, or what it finds open itself, into an offline HTML walkthrough where you record your choices.",
       "trackbed:visual:explain": "Generate a self-contained HTML page that explains a system, change, plan, or data visually; `--onboarding` builds a codebase guide.",
       "trackbed:workflow:cleanup-artifacts": "Delete disposable workflow artifacts such as review, audit, and QA reports, plans, and diagrams; `--siw` retires the `siw/` workspace.",
       "trackbed:workflow:suggest-next": "Suggest at most three trackbed commands for a task or for the artifacts in your workspace, read from the installed skills. Read-only.",
@@ -2032,7 +2052,8 @@
           "trackbed/scripts/run-skillspector.sh": 644,
           "trackbed/scripts/siw-issue-reservation.sh": 1772,
           "trackbed/scripts/skill-usage.js": 1165,
-          "trackbed/skills/session:automate-repeats/scripts/extract-metadata.py": 540
+          "trackbed/skills/session:automate-repeats/scripts/extract-metadata.py": 540,
+          "trackbed/skills/visual:decisions/assets/decisions.js": 1291
         },
         "excluded": ["trackbed/skills/pr:walkthrough/assets/d3.v7.9.0.min.js"]
       },

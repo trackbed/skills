@@ -347,6 +347,7 @@ class FinalizeTests(unittest.TestCase):
         self.assertNotIn("</script", self.script.lower())
         with tempfile.TemporaryDirectory() as tmp:
             assets = Path(tmp)
+            (assets / "report-tokens.css").write_text(":root{}", encoding="utf-8")
             (assets / "report-runtime.css").write_text("a{}", encoding="utf-8")
             (assets / "report-runtime.js").write_text("const x = '</script>';", encoding="utf-8")
             with self.assertRaises(ValueError):

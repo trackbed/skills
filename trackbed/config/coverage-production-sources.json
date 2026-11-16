@@ -53,6 +53,9 @@
       ],
       "trackbed/shared/visual/assets/report-runtime.js": [
         "trackbed/tests/visual-report-guidance.bats"
+      ],
+      "trackbed/skills/visual:decisions/assets/decisions.js": [
+        "trackbed/tests/visual-decisions-guidance.bats"
       ]
     },
     "excluded": {
@@ -118,7 +121,15 @@
       "trackbed/scripts/risk_patterns.py",
       "trackbed/scripts/resolve-stack-context.py",
       "trackbed/scripts/summarize-semantic-scan.py",
-      "trackbed/scripts/visual-report.py"
+      "trackbed/scripts/visual-report.py",
+      "trackbed/skills/visual:decisions/scripts/build-decisions.py",
+      "trackbed/skills/visual:decisions/scripts/decisions_choices.py",
+      "trackbed/skills/visual:decisions/scripts/decisions_content.py",
+      "trackbed/skills/visual:decisions/scripts/decisions_evidence.py",
+      "trackbed/skills/visual:decisions/scripts/decisions_images.py",
+      "trackbed/skills/visual:decisions/scripts/decisions_item.py",
+      "trackbed/skills/visual:decisions/scripts/decisions_model.py",
+      "trackbed/skills/visual:decisions/scripts/decisions_page.py"
     ],
     "contract_only": {
       "trackbed/scripts/generate-component-reference.py": [
@@ -702,6 +713,16 @@
       "kind": "guidance",
       "suite": "trackbed/tests/visual-explain-guidance.bats",
       "skills": ["trackbed/skills/visual:explain/SKILL.md"]
+    },
+    {
+      "kind": "guidance",
+      "suite": "trackbed/tests/visual-decisions-guidance.bats",
+      "skills": ["trackbed/skills/visual:decisions/SKILL.md"]
+    },
+    {
+      "kind": "executable",
+      "suite": "trackbed/tests/python/test_visual_decisions_build.py",
+      "skills": ["trackbed/skills/visual:decisions/SKILL.md"]
     },
     {
       "kind": "guidance",

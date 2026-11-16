@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" width="1200" height="560" font-family="Helvetica, Arial, sans-serif">
+  <title>Synthetic capture: a full class with no way to join a waiting list</title>
+  <rect width="1200" height="560" fill="#f7f6f2"/>
+  <rect width="1200" height="64" fill="#ffffff"/>
+  <rect y="64" width="1200" height="1" fill="#d9d6cc"/>
+  <text x="32" y="40" font-size="20" font-weight="700" fill="#1f2a2e">Lanternworks</text>
+  <text x="188" y="40" font-size="14" fill="#5b6468">Classes · Beginner wheel, six weeks</text>
+  <rect x="96" y="112" width="1008" height="360" rx="12" fill="#ffffff" stroke="#d9d6cc"/>
+  <text x="136" y="170" font-size="26" font-weight="700" fill="#1f2a2e">Beginner wheel, six weeks</text>
+  <text x="136" y="204" font-size="15" fill="#5b6468">Thursdays 18:30 – 20:30 · starts 2 April · 8 places</text>
+  <rect x="136" y="236" width="118" height="30" rx="15" fill="#fbe3df"/>
+  <text x="195" y="256" font-size="13" font-weight="700" fill="#a8261d" text-anchor="middle">Class is full</text>
+  <text x="136" y="318" font-size="15" fill="#3d4a4e">All 8 places are taken. Check back later to see if a place opens up.</text>
+  <rect x="136" y="356" width="200" height="48" rx="8" fill="#ecebe5"/>
+  <text x="236" y="386" font-size="15" font-weight="700" fill="#8a9296" text-anchor="middle">Book a place</text>
+  <text x="136" y="440" font-size="13" fill="#8a9296">No waiting list, no notification, and no link to the next course date.</text>
+</svg>

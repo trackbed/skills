@@ -457,7 +457,11 @@ def scan_page(source: str) -> Scan:
 
 def load_runtime(assets: Path = ASSETS) -> tuple[str, str]:
     """Return the runtime stylesheet and script as they are written into a page."""
-    css = "\n" + (assets / "report-runtime.css").read_text(encoding="utf-8").strip("\n") + "\n"
+    # The palette and fonts are a separate file because the decision document shares them.
+    css = "".join(
+        "\n" + (assets / name).read_text(encoding="utf-8").strip("\n") + "\n"
+        for name in ("report-tokens.css", "report-runtime.css")
+    )
     script = "\n" + (assets / "report-runtime.js").read_text(encoding="utf-8").strip("\n") + "\n"
     if "</style" in css.lower() or "</script" in script.lower():
         raise ValueError("runtime assets must not contain a closing style or script tag")

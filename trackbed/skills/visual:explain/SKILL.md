@@ -17,6 +17,8 @@ Generate self-contained HTML files for technical diagrams, visualizations, and d
 
 **Proactive table rendering.** When you're about to present tabular data as an ASCII box-drawing table in the terminal (comparisons, audits, feature matrices, status reports, any structured rows/columns), generate an HTML page instead. The threshold: a table with **4+ rows and 3+ columns** belongs in the browser — smaller tables are fine to leave inline. Don't wait for the user to ask — render it as HTML and tell them the file path. Because the user didn't request a visual here, write the file and report the path but don't auto-open a browser tab; reserve auto-open for explicit diagram requests. You can still include a brief text summary in the chat, but the table itself should be the HTML page.
 
+**Not a decision document.** When the user wants options weighed, a recommendation for each, and a place to record their own choices, use `trackbed:visual:decisions`; this skill explains and never records.
+
 **Resource paths:** The shared templates and pattern references live under `${CLAUDE_PLUGIN_ROOT}/shared/visual/`; Step 2 names each one. Resolve this skill's own `references/...` files relative to this `SKILL.md` file.
 
 ## Workflow
