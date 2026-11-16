@@ -243,6 +243,10 @@ test("build writes a marketplace with skills, shared runtime, and rewritten plug
       "#!/bin/sh\necho diff\n",
     );
     await writeFile(
+      path.join(pluginRoot, "scripts", "risk_classification.py"),
+      '"""Shared classification."""\n',
+    );
+    await writeFile(
       path.join(pluginRoot, "scripts", "dev-server", "detect-url.sh"),
       "#!/bin/sh\necho url\n",
     );
@@ -351,6 +355,12 @@ test("build writes a marketplace with skills, shared runtime, and rewritten plug
         0o111) !==
       0;
     assert.equal(await executable("scripts/collect-review-diff.sh"), true);
+    assert.equal(
+      await readText(
+        path.join(built.pluginRoot, "scripts", "risk_classification.py"),
+      ),
+      '"""Shared classification."""\n',
+    );
     assert.equal(await executable("scripts/dev-server/detect-url.sh"), true);
     assert.equal(await executable("scripts/lib/shared.sh"), false);
     assert.equal(

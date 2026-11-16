@@ -107,7 +107,7 @@ for index in range(0, len(args), 2):
     if kind == "json":
         fields[key] = json.loads(value)
     else:
-        fields[key] = value.splitlines() if kind == "lines" else value
+        fields[key] = (value.split("\n") if value else []) if kind == "lines" else value
 
 json.dump(fields, sys.stdout, separators=(",", ":"))
 sys.stdout.write("\n")

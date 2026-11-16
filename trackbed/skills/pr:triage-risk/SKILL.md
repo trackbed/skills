@@ -30,28 +30,8 @@ Use the shared plugin script to resolve the base branch and merge base. `--stack
 COLLECT_ARGS=(--strict --format nul --stack-context)
 [ -n "${BASE_BRANCH_OVERRIDE:-}" ] && COLLECT_ARGS+=(--base "$BASE_BRANCH_OVERRIDE")
 
-REVIEW_DIFF_FIELDS=$(mktemp "${TMPDIR:-/tmp}/review-diff.XXXXXX") || {
-  echo "Could not create temporary review-diff file; stop." >&2
-  exit 1
-}
-"${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh" "${COLLECT_ARGS[@]}" \
-  > "$REVIEW_DIFF_FIELDS" || {
-  rm -f "$REVIEW_DIFF_FIELDS"
-  echo "Base/diff collection failed; see the message above and stop." >&2
-  exit 1
-}
-if ! {
-  IFS= read -r -d '' BASE_REF \
-    && IFS= read -r -d '' BASE_BRANCH \
-    && IFS= read -r -d '' MERGE_BASE \
-    && IFS= read -r -d '' CHANGED_FILES \
-    && IFS= read -r -d '' STACK_CONTEXT
-} < "$REVIEW_DIFF_FIELDS"; then
-  rm -f "$REVIEW_DIFF_FIELDS"
-  echo "Decoded review-diff fields were incomplete; stop." >&2
-  exit 1
-fi
-rm -f "$REVIEW_DIFF_FIELDS"
+source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/review-scope.sh" || exit 1
+collect_review_scope "${COLLECT_ARGS[@]}" || exit 1
 ```
 
 Triage covers committed work only, because committed work is what a Pull Request carries. `CHANGED_FILES` mixes committed and local paths, so this skill does not use it.
@@ -183,3 +163,5 @@ Reply in chat and create no files. Use this shape:
 ```
 
 Include the **Stack** line only when `STACK_CONTEXT` reports `stacked` or `unknown`; for `unknown`, add that triage used the default base, so its scope may include other layers, and that `--base <parent-branch>` scopes it to one. Every signal in the script output appears under Signals, confirmed or discounted. Write "None." under an empty Signals or "Needs a human" section, and omit an empty "Raised by reading the diff" section. For a `content:secret` signal, name the file, line, and pattern only; never reproduce the value, not even partially, and list credential rotation under "Needs a human". For `policy:invalid`, quote `policy.error` as the evidence and say the fix belongs on the default branch. For `shape:deleted-source`, say for each deleted file it names whether a surviving use was found, citing it as `path:line`.
+
+Runtime classification dependencies: `${CLAUDE_PLUGIN_ROOT}/scripts/risk_classification.py` and `${CLAUDE_PLUGIN_ROOT}/scripts/risk_patterns.py` ship with the risk and stack helpers.

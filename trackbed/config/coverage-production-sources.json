@@ -110,6 +110,7 @@
       "trackbed/skills/code:audit-practice/scripts/session-signals.py",
       "trackbed/skills/code:audit-practice/scripts/signal_patterns.py",
       "trackbed/scripts/risk-signals.py",
+      "trackbed/scripts/risk_classification.py",
       "trackbed/scripts/risk_patterns.py",
       "trackbed/scripts/resolve-stack-context.py",
       "trackbed/scripts/summarize-semantic-scan.py",
@@ -908,6 +909,9 @@
       ],
       "trackbed/scripts/dev-server/resolve-port.sh": [
         "trackbed/tests/dev-server-scripts.bats"
+      ],
+      "trackbed/scripts/lib/review-scope.sh": [
+        "trackbed/tests/review-scope.bats"
       ],
       "trackbed/scripts/lib/shell-helpers.sh": [
         "trackbed/tests/dev-server-scripts.bats",

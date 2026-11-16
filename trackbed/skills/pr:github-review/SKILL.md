@@ -220,7 +220,10 @@ From inside the worktree, build the unified change scope with the shared plugin 
 Synced base/diff scope contract (keep aligned across base-aware and diff-aware skills): use the shared resolve-base.sh script for base refs; use the shared collect-review-diff.sh script for unified changed-file scope; canonical base priority is explicit --base, PR target branch, repository trackbed.baseBranch, CONDUCTOR_DEFAULT_BRANCH, then origin/HEAD, origin/main, or origin/master, and canonical diff scope is committed PR diff from MERGE_BASE...HEAD plus staged, unstaged, and untracked paths.
 
 ```bash
-if ! RESOLVED=$("${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh" --base "$BASE_REF_ARG" --strict); then
+if ! {
+  source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/review-scope.sh" \
+    && collect_review_scope --base "$BASE_REF_ARG" --strict
+}; then
   echo "Base/diff collection failed; see the message above." >&2
   cd "$ORIG_ROOT"
   if git worktree remove "$WORKTREE_DIR" 2> /dev/null; then
@@ -233,7 +236,6 @@ if ! RESOLVED=$("${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh" --base "$
   fi
   exit 1
 fi
-eval "$RESOLVED"
 ```
 
 The script exports `BASE_REF`, `BASE_BRANCH`, `MERGE_BASE`, and newline-delimited `CHANGED_FILES`. If `CHANGED_FILES` is empty, the PR has no diff against its base: note there are no code changes to review (no fresh findings), skip Steps 5–6, but still run Step 7 to surface the existing conversation unless `--fresh` is set, then clean up. Mark any linked Linear issues as not covered because there is no implementation diff; never count them as verified.
@@ -399,3 +401,5 @@ For any other request after the handoff, such as replying to or resolving thread
 - **Stack mode:** `GITHUB_STACK_REVIEW_OVERVIEW.md` at the project root, or an inline reply with `--inline`, and nothing else. A fixed name, overwritten on each `--stack` run; the header records the stack and each reviewed head. Retired by `/trackbed:workflow:cleanup-artifacts`, or manual deletion.
 - **Visual page:** with `--visual`, `GITHUB_PR_REVIEW_OVERVIEW.html` or, in stack mode, `GITHUB_STACK_REVIEW_OVERVIEW.html`, beside its report. A snapshot written once per run; later report refreshes do not update it. Retired by `/trackbed:workflow:cleanup-artifacts`, or manual deletion.
 - **Resume state:** `.context/pr-github-review/<run-id>/` under `ORIG_ROOT`, only when that directory is Git-ignored. It holds each finished step's result so an interrupted review can continue. It is moved to the Trash after Step 13 and retired by `/trackbed:workflow:cleanup-artifacts`.
+
+Runtime classification dependencies: `${CLAUDE_PLUGIN_ROOT}/scripts/risk_classification.py` and `${CLAUDE_PLUGIN_ROOT}/scripts/risk_patterns.py` ship with the risk and stack helpers.

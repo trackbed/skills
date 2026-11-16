@@ -12,14 +12,11 @@ If `--base <branch>` was provided, set `BASE_BRANCH_OVERRIDE` before running the
 COLLECT_ARGS=(--strict)
 [ -n "${BASE_BRANCH_OVERRIDE:-}" ] && COLLECT_ARGS+=(--base "$BASE_BRANCH_OVERRIDE")
 
-RESOLVED=$("${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh" "${COLLECT_ARGS[@]}") || {
-  echo "Base/diff collection failed; see the message above. Re-run with --base <branch> if the target branch is ambiguous." >&2
-  exit 1
-}
-eval "$RESOLVED"
+source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/review-scope.sh" || exit 1
+collect_review_scope "${COLLECT_ARGS[@]}" || exit 1
 ```
 
-The script exports:
+The helper moves the calling shell to the repository root and sets:
 
 - `BASE_REF`: remote tracking ref for the resolved base.
 - `BASE_BRANCH`: normalized base branch name.

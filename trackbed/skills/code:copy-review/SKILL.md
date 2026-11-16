@@ -69,31 +69,11 @@ Use the shared plugin script to resolve the base branch and build the unified ch
 COLLECT_ARGS=(--strict --format nul)
 [ -n "${BASE_BRANCH_OVERRIDE:-}" ] && COLLECT_ARGS+=(--base "$BASE_BRANCH_OVERRIDE")
 
-REVIEW_DIFF_FIELDS=$(mktemp "${TMPDIR:-/tmp}/review-diff.XXXXXX") || {
-  echo "Could not create temporary review-diff file; stop." >&2
-  exit 1
-}
-"${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh" "${COLLECT_ARGS[@]}" \
-  > "$REVIEW_DIFF_FIELDS" || {
-  rm -f "$REVIEW_DIFF_FIELDS"
-  echo "Base/diff collection failed; see the message above and stop." >&2
-  exit 1
-}
-if ! {
-  IFS= read -r -d '' BASE_REF \
-    && IFS= read -r -d '' BASE_BRANCH \
-    && IFS= read -r -d '' MERGE_BASE \
-    && IFS= read -r -d '' CHANGED_FILES \
-    && IFS= read -r -d '' STACK_CONTEXT
-} < "$REVIEW_DIFF_FIELDS"; then
-  rm -f "$REVIEW_DIFF_FIELDS"
-  echo "Decoded review-diff fields were incomplete; stop." >&2
-  exit 1
-fi
-rm -f "$REVIEW_DIFF_FIELDS"
+source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/review-scope.sh" || exit 1
+collect_review_scope "${COLLECT_ARGS[@]}" || exit 1
 ```
 
-The shared NUL output sets `BASE_REF`, `BASE_BRANCH`, `MERGE_BASE`, and newline-delimited `CHANGED_FILES` without evaluating collected values; `STACK_CONTEXT` stays empty because this skill does not pass `--stack-context`. Use `CHANGED_FILES` for the file filtering below.
+The shared scope helper moves the calling shell to the repository root and sets `BASE_REF`, `BASE_BRANCH`, `MERGE_BASE`, and newline-delimited `CHANGED_FILES` without evaluating collected values; `STACK_CONTEXT` stays empty because this skill does not pass `--stack-context`. Use `CHANGED_FILES` for the file filtering below.
 
 Filter changed paths using the UI-relevant file rules in `references/copy-review-rubric.md`.
 
@@ -129,7 +109,7 @@ When `SCAN_MODE=false`, launch **trackbed:copy-reviewer** using the platform's a
 - Committed PR diff: `git diff "$MERGE_BASE"...HEAD`
 - Staged local diff: `git diff --cached`
 - Unstaged local diff: `git diff`
-- Untracked local files list: `git ls-files --others --exclude-standard`, leaving out any file that `CHANGED_FILES` does not also list, such as a visual report page (agent should treat these as new files and review full file content)
+- Untracked files: decoded repository-relative paths and full file contents. Before launching reviewers, the orchestrator runs `review_untracked_paths "$CHANGED_FILES"` in its shell with the sourced scope helper, captures the output and requires success, then decodes NUL records as raw repository-relative names (never shell command substitution or line splitting) and reads each listed file. Pass the resulting paths and contents to agents, not the helper command. The helper omits files outside the collected scope, such as a visual report page
 - No report threshold: the agent reports every finding with its confidence, and Step 7 applies `custom_threshold`
 - Focus instruction: **"Focus on text redundancy introduced by this diff. Apply the shared copy-review rubric to each text element in changed code."**
 

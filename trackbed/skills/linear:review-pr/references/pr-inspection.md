@@ -103,23 +103,20 @@ After `git worktree add` succeeds, every failure path must run the cleanup block
 Verify `git rev-parse HEAD` equals `PR_HEAD_OID`. Then resolve the PR base and collect its committed diff:
 
 ```bash
-if ! RESOLVED=$("${CLAUDE_PLUGIN_ROOT}/scripts/resolve-base.sh" \
-  --base "$PR_BASE_BRANCH" --base-commit "$PR_BASE_OID" --strict); then
+if ! source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/review-scope.sh" \
+  || ! collect_review_scope --base "$PR_BASE_BRANCH" --base-commit "$PR_BASE_OID" --strict --committed-only; then
   echo "Could not resolve the PR base or collect its diff." >&2
   cleanup_review_worktree || true
   exit 1
 fi
-eval "$RESOLVED"
 if [ "$BASE_REF" != "$PR_BASE_OID" ]; then
   echo "Base collection did not retain the snapshotted Pull Request base." >&2
   cleanup_review_worktree || true
   exit 1
 fi
-CHANGED_FILES=$(git diff --name-only --no-ext-diff --no-textconv \
-  "$MERGE_BASE"...HEAD)
 ```
 
-The shared helper exports `BASE_REF`, `BASE_BRANCH`, and `MERGE_BASE`; the inert tree-to-tree diff above supplies newline-delimited `CHANGED_FILES`. Require `BASE_REF` to equal `PR_BASE_OID`. The worktree is detached at the PR's exact remote head but contains no checked-out repository files, so the review scope is only the committed PR diff against the snapshotted base.
+The shared helper sets `BASE_REF`, `BASE_BRANCH`, `MERGE_BASE`, and raw repository-relative newline-delimited `CHANGED_FILES`. Its `--committed-only` variant reads only the tree-to-tree diff with `--no-ext-diff --no-textconv`; it never inspects the empty worktree, index differences, or untracked paths. Require `BASE_REF` to equal `PR_BASE_OID`. The worktree is detached at the PR's exact remote head but contains no checked-out repository files, so the review scope is only the committed PR diff against the snapshotted base.
 
 Require `CHANGED_FILES` to be non-empty. Capture:
 

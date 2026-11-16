@@ -27,16 +27,13 @@ file generated, so a layer cannot hide code by giving it a generated-looking nam
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
 import os
 import re
 import subprocess
 import sys
 from collections.abc import Sequence
-from functools import cache
 from pathlib import Path, PurePosixPath
-from types import ModuleType
 from typing import Any
 
 SCHEMA_VERSION = 1
@@ -53,26 +50,14 @@ REPO_RE = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
 LEADING_NUMBER_RE = re.compile(r"\d+")
 PASSING_CONCLUSIONS = frozenset({"SUCCESS", "NEUTRAL", "SKIPPED"})
 PLUGIN_SCRIPTS = Path(__file__).resolve().parents[3] / "scripts"
+sys.path.insert(0, str(PLUGIN_SCRIPTS))
+import risk_classification as classification  # noqa: E402
 
 Json = dict[str, Any]
 
 
 class StackError(Exception):
     """The stack cannot be measured; the message says why."""
-
-
-@cache
-def risk_signals() -> ModuleType:
-    """The `trackbed:pr:triage-risk` signal module, which imports its pattern tables as a sibling module."""
-    sys.path.insert(0, str(PLUGIN_SCRIPTS))
-    spec = importlib.util.spec_from_file_location("risk_signals", PLUGIN_SCRIPTS / "risk-signals.py")
-    if spec is None or spec.loader is None:
-        raise StackError(f"could not load {PLUGIN_SCRIPTS / 'risk-signals.py'}")
-    module = importlib.util.module_from_spec(spec)
-    # Dataclasses look their module up in sys.modules while the class is built.
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
 
 
 def environment() -> dict[str, str]:
@@ -242,18 +227,17 @@ def checks(rollup: Any) -> str:
     return next((state for state in ("failing", "pending", "passing") if state in states), "none")
 
 
-def group_of(path: str, policy: Any) -> str:
-    risk = risk_signals()
-    kind = risk.classify_kind(path, policy)
+def group_of(path: str, policy: classification.Policy) -> str:
+    kind = classification.classify_kind(path, policy)
     if kind in ("lockfile", "generated"):
         return "generated"
     if kind == "test":
         return "tests"
     if kind == "docs":
         return "other"
-    if "path:database" in risk.code_path_signals(path):
+    if "path:database" in classification.code_path_signals(path):
         return "database"
-    if PurePosixPath(path).suffix.lower() in risk.patterns.SOURCE_SUFFIXES:
+    if classification.is_source_path(path):
         return "production"
     return "other"
 
@@ -289,7 +273,9 @@ def numbered(path: str) -> tuple[str, int] | None:
     return (str(pure.parent), int(match.group())) if match else None
 
 
-def measure_layer(position: int, pull: Json, parent: str, policy: Any) -> tuple[Json, dict[str, tuple[int, int]]]:
+def measure_layer(
+    position: int, pull: Json, parent: str, policy: classification.Policy
+) -> tuple[Json, dict[str, tuple[int, int]]]:
     head = pull["headRefOid"]
     base = git("merge-base", parent, head).strip()
     counts, changed = numstat(base, head), statuses(base, head)
@@ -322,7 +308,9 @@ def measure_layer(position: int, pull: Json, parent: str, policy: Any) -> tuple[
     return layer, counts
 
 
-def hot_files(layers: list[Json], counts: list[dict[str, tuple[int, int]]], stack_base: str, policy: Any) -> list[Json]:
+def hot_files(
+    layers: list[Json], counts: list[dict[str, tuple[int, int]]], stack_base: str, policy: classification.Policy
+) -> list[Json]:
     """Files that two or more layers change, the most shared first, with their size at the top of the stack."""
     touched: dict[str, list[Json]] = {}
     for layer, layer_counts in zip(layers, counts):
@@ -351,7 +339,7 @@ def hot_files(layers: list[Json], counts: list[dict[str, tuple[int, int]]], stac
     return hot
 
 
-def link_layers(layers: list[Json], counts: list[dict[str, tuple[int, int]]], policy: Any) -> None:
+def link_layers(layers: list[Json], counts: list[dict[str, tuple[int, int]]], policy: classification.Policy) -> None:
     """Record which later layers change the production or database files each layer changed."""
     structural = [
         {path for path in layer_counts if group_of(path, policy) in STRUCTURAL_GROUPS} for layer_counts in counts
@@ -364,7 +352,7 @@ def link_layers(layers: list[Json], counts: list[dict[str, tuple[int, int]]], po
         ]
 
 
-def database_changes(layers: list[Json], stack_base: str, trunk_tip: str, policy: Any) -> Json:
+def database_changes(layers: list[Json], stack_base: str, trunk_tip: str, policy: classification.Policy) -> Json:
     """Database files the trunk gained since the stack branched, and numbering clashes in the stack."""
     trunk_added = [
         path
@@ -414,7 +402,7 @@ def overview(repo: str, context: Json) -> Json:
     check_chain(trunk, pulls)
     trunk_tip = fetch(trunk, pulls)
     root = git("rev-parse", "--show-toplevel").strip()
-    policy = risk_signals().load_policy(root, trunk_tip)
+    policy = classification.load_policy(root, trunk_tip)
     notes = (
         [f"the trunk's risk policy is invalid and was ignored: {policy.error}"] if policy.status == "invalid" else []
     )
@@ -458,7 +446,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         result = overview(args.repo, read_context(args.context))
-    except StackError as error:
+    except (StackError, classification.TriageError) as error:
         print(f"stack overview: {error}", file=sys.stderr)
         return 1
     print(json.dumps(result, separators=(",", ":")))

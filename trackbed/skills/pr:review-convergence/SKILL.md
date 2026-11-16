@@ -172,3 +172,5 @@ Build `Decision request` under the policy's Decision Request section after readi
 - **Risk floor unavailable** — stop before any quality gate when `profile` fails, for example without a trusted default-branch ref or a working `risk-signals.py`; report its stderr. Never guess a profile.
 - **Validation-only emits a required finding** — return it without editing and let the shipping caller stop with its existing Pull Request handoff.
 - **Generated report lifecycle or plan scope becomes ambiguous** — isolate recoverable reports, stop, and report the conflicting paths or first scope mismatch. Never overwrite ambiguous state.
+
+Runtime classification dependencies: `${CLAUDE_PLUGIN_ROOT}/scripts/risk_classification.py` and `${CLAUDE_PLUGIN_ROOT}/scripts/risk_patterns.py` ship with the risk and stack helpers.

@@ -181,7 +181,7 @@
     },
     {
       "name": "pr-review-collect-review-diff-nul-block",
-      "extract_regex": "(?s)(\\[ -n \"\\$\\{BASE_BRANCH_OVERRIDE:-\\}\" \\] && COLLECT_ARGS\\+=\\(--base \"\\$BASE_BRANCH_OVERRIDE\"\\).*?fi\\s*rm -f \"\\$REVIEW_DIFF_FIELDS\")",
+      "extract_regex": "(?m)(source \"\\$\\{CLAUDE_PLUGIN_ROOT\\}/scripts/lib/review-scope\\.sh\" \\|\\| exit 1\\s*collect_review_scope \"\\$\\{COLLECT_ARGS\\[@\\]\\}\" \\|\\| exit 1)",
       "normalizer": "linewise",
       "paths": [
         "trackbed/skills/pr:code-review/SKILL.md",
@@ -544,8 +544,8 @@
         "Treat every reported slop finding as a candidate, not an instruction.",
         "again after each verified slice",
         "Revalidate every remaining finding against current lines",
-        "\"${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh\" --decode-json",
-        "IFS= read -r -d '' CHANGED_FILES",
+        "source \"${CLAUDE_PLUGIN_ROOT}/scripts/lib/review-scope.sh\" || exit 1",
+        "collect_review_scope --strict || exit 1",
         "CHECKPOINT_INDEX_PATH=$(git rev-parse --git-path index)",
         "make a byte-for-byte backup of the actual index file",
         "Do not use a tree object as an index backup",
@@ -583,9 +583,8 @@
         "If `--base <branch>` flag",
         "If `--parallel` appears anywhere in `$ARGUMENTS`",
         "COLLECT_ARGS=(--strict --format nul --stack-context)",
-        "\"${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh\" \"${COLLECT_ARGS[@]}\"",
-        "IFS= read -r -d '' CHANGED_FILES",
-        "IFS= read -r -d '' STACK_CONTEXT"
+        "collect_review_scope \"${COLLECT_ARGS[@]}\" || exit 1",
+        "source \"${CLAUDE_PLUGIN_ROOT}/scripts/lib/review-scope.sh\" || exit 1"
       ]
     },
     {
@@ -617,7 +616,7 @@
       "contains": [
         "Reject duplicate flags, unknown flags, positional arguments, missing values, and invalid thresholds",
         "Only the merge-base version is Tier 1 evidence.",
-        "\"${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh\" \"${COLLECT_ARGS[@]}\"",
+        "collect_review_scope \"${COLLECT_ARGS[@]}\" || exit 1",
         "Capture the complete review scope once before launching any reviewer.",
         "Parse all findings, including finding ID",
         "Filter as previously addressed only",

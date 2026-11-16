@@ -65,7 +65,8 @@ TREE_MANIFEST_BEFORE=$(mktemp "${TMPDIR:-/tmp}/review-tree.XXXXXX") || exit 1
 
 Spawn teammates based on applicable review aspects. Each teammate receives:
 
-- The resolved `BASE_BRANCH`, `BASE_REF`, `MERGE_BASE`, `CHANGED_FILES`, and diff commands to run (`git diff "$MERGE_BASE"...HEAD`, `git diff --cached`, `git diff`, `git ls-files --others --exclude-standard`, leaving out any file that `CHANGED_FILES` does not also list, such as a visual report page)
+- The resolved `BASE_BRANCH`, `BASE_REF`, `MERGE_BASE`, `CHANGED_FILES`, and diff commands to run (`git diff "$MERGE_BASE"...HEAD`, `git diff --cached`, `git diff`)
+- Untracked files: decoded repository-relative paths and full file contents. Before launching reviewers, the orchestrator runs `review_untracked_paths "$CHANGED_FILES"` in its shell with the sourced scope helper, captures the output and requires success, then decodes NUL records as raw repository-relative names (never shell command substitution or line splitting) and reads each listed file. Pass the resulting paths and contents to agents, not the helper command. The helper omits files outside the collected scope, such as a visual report page
 - The PR context from Step 1 (`PR_CONTEXT_JSON`) when available
 - The coding-standards guides found under standard workflow Step 7 (`CONTRIBUTING.md`, `CODING_STANDARDS.md`), with the same merge-base rule for guides the review scope changes
 - The checks and evidence requirements of the `REVIEW.md` policy files found under standard workflow Step 7, read at `MERGE_BASE`

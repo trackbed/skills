@@ -54,31 +54,11 @@ If `$ARGUMENTS` contains `--team`, remove that flag, read `references/review-dis
    COLLECT_ARGS=(--strict --format nul --stack-context)
    [ -n "${BASE_BRANCH_OVERRIDE:-}" ] && COLLECT_ARGS+=(--base "$BASE_BRANCH_OVERRIDE")
    
-   REVIEW_DIFF_FIELDS=$(mktemp "${TMPDIR:-/tmp}/review-diff.XXXXXX") || {
-     echo "Could not create temporary review-diff file; stop." >&2
-     exit 1
-   }
-   "${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh" "${COLLECT_ARGS[@]}" \
-     > "$REVIEW_DIFF_FIELDS" || {
-     rm -f "$REVIEW_DIFF_FIELDS"
-     echo "Base/diff collection failed; see the message above and stop." >&2
-     exit 1
-   }
-   if ! {
-     IFS= read -r -d '' BASE_REF \
-       && IFS= read -r -d '' BASE_BRANCH \
-       && IFS= read -r -d '' MERGE_BASE \
-       && IFS= read -r -d '' CHANGED_FILES \
-       && IFS= read -r -d '' STACK_CONTEXT
-   } < "$REVIEW_DIFF_FIELDS"; then
-     rm -f "$REVIEW_DIFF_FIELDS"
-     echo "Decoded review-diff fields were incomplete; stop." >&2
-     exit 1
-   fi
-   rm -f "$REVIEW_DIFF_FIELDS"
+   source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/review-scope.sh" || exit 1
+   collect_review_scope "${COLLECT_ARGS[@]}" || exit 1
    ```
 
-   The shared NUL output sets `BASE_REF`, `BASE_BRANCH`, `MERGE_BASE`, newline-delimited `CHANGED_FILES`, and the `STACK_CONTEXT` JSON document without evaluating collected values. Use `BASE_REF`/`MERGE_BASE` for committed diff commands and `BASE_BRANCH` for display or when invoking sibling review skills.
+   The shared scope helper moves the calling shell to the repository root and sets `BASE_REF`, `BASE_BRANCH`, `MERGE_BASE`, newline-delimited `CHANGED_FILES`, and the `STACK_CONTEXT` JSON document without evaluating collected values. Use `BASE_REF`/`MERGE_BASE` for committed diff commands and `BASE_BRANCH` for display or when invoking sibling review skills.
 
    `STACK_CONTEXT` says whether this branch is one layer of a Pull Request stack. When its `state` is `stacked` or `unknown`, read `${CLAUDE_PLUGIN_ROOT}/shared/pr-review/references/stacked-pr-review.md` and apply its orchestrator rules in Steps 7, 8, and 12. Skip the reference when the state is `unstacked`.
 
@@ -175,7 +155,7 @@ If `$ARGUMENTS` contains `--team`, remove that flag, read `references/review-dis
    - Committed diff: `git diff "$MERGE_BASE"...HEAD`
    - Staged diff: `git diff --cached`
    - Unstaged diff: `git diff`
-   - Untracked files: `git ls-files --others --exclude-standard`, leaving out any file that `CHANGED_FILES` does not also list, such as a visual report page
+   - Untracked files: decoded repository-relative paths and full file contents. Before launching reviewers, the orchestrator runs `review_untracked_paths "$CHANGED_FILES"` in its shell with the sourced scope helper, captures the output and requires success, then decodes NUL records as raw repository-relative names (never shell command substitution or line splitting) and reads each listed file. Pass the resulting paths and contents to agents, not the helper command. The helper omits files outside the collected scope, such as a visual report page
    - PR description context: parsed title/body/url from `PR_CONTEXT_JSON`, if present
 
    Immediately before launching any standard reviewer, read `references/review-discipline.md` and pass its `Shared working tree`, `Reviewer calibration`, `Output markers`, and `Finding schema` sections to every reviewer. Treat that reference as authoritative; do not reconstruct or abbreviate those contracts in individual prompts.

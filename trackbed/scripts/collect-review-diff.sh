@@ -18,13 +18,14 @@ EXCLUDE_REVIEW_ARTIFACTS=false
 LOCAL_ARTIFACT=""
 BASE_SELECTED=false
 STACK_CONTEXT_MODE=false
+COMMITTED_ONLY=false
 STACK_CONTEXT=""
 REVIEW_ARTIFACT_LIST_FILE="$SCRIPT_DIR/../hooks/confirm-review-artifacts.txt"
 REVIEW_ARTIFACT_PATTERNS=()
 
 usage() {
   cat >&2 << 'USAGE'
-Usage: collect-review-diff.sh [--base <branch-or-ref-or-40-hex-oid>] [--base-commit <40-hex-oid>] [--strict|--tolerate-fetch-failure] [--format shell|json|nul] [--exclude-review-artifacts] [--require-local-artifact <path>] [--stack-context]
+Usage: collect-review-diff.sh [--base <branch-or-ref-or-40-hex-oid>] [--base-commit <40-hex-oid>] [--strict|--tolerate-fetch-failure] [--format shell|json|nul] [--exclude-review-artifacts] [--require-local-artifact <path>] [--stack-context] [--committed-only]
        collect-review-diff.sh --decode-json
 
 Default output is shell-quoted assignments:
@@ -36,6 +37,8 @@ JSON output fields:
 NUL output emits the collected fields directly in this order:
   BASE_REF BASE_BRANCH MERGE_BASE CHANGED_FILES STACK_CONTEXT
 Each field has a trailing NUL byte; changed_files remains newline-delimited.
+Paths are repository-relative and unquoted. Paths containing newline bytes
+are refused because this scope contract cannot represent them.
 STACK_CONTEXT is empty unless --stack-context was given.
 This supports one-invocation, non-evaluating reads with shell read -d ''.
 
@@ -48,6 +51,8 @@ repository root or directly under siw/) never enters the scope.
                                  collected scope.
   --require-local-artifact PATH  Fail unless PATH is absent or an untracked,
                                  regular, non-symlink local file.
+  --committed-only               Collect only the committed tree-to-tree diff;
+                                 ignore index, worktree, and untracked paths.
   --stack-context                Describe the branch's Pull Request stack
                                  with resolve-stack-context.py and return it
                                  as the STACK_CONTEXT JSON document. Without
@@ -288,7 +293,7 @@ untracked_without_visual_pages() {
     done < "$REVIEW_ARTIFACT_LIST_FILE"
   fi
 
-  git ls-files --others --exclude-standard | while IFS= read -r untracked_file; do
+  git ls-files --others --exclude-standard -z | while IFS= read -r -d '' untracked_file; do
     candidate="${untracked_file#siw/}"
     case "$candidate" in
       */*) ;;
@@ -304,7 +309,22 @@ untracked_without_visual_pages() {
         done
         ;;
     esac
-    printf '%s\n' "$untracked_file"
+    printf '%s\0' "$untracked_file"
+  done
+}
+
+# Git's NUL output preserves path bytes that its text output would quote.
+# The public scope field is newline-delimited, so refuse an ambiguous name.
+paths_as_lines() {
+  local path
+  while IFS= read -r -d '' path; do
+    case "$path" in
+      *$'\n'*)
+        echo "Review scope cannot represent a path containing a newline byte; stop." >&2
+        return 1
+        ;;
+    esac
+    printf '%s\n' "$path"
   done
 }
 
@@ -349,6 +369,11 @@ while [ $# -gt 0 ]; do
       LOCAL_ARTIFACT="$2"
       shift 2
       ;;
+    --committed-only)
+      COLLECT_OPTION_SEEN=true
+      COMMITTED_ONLY=true
+      shift
+      ;;
     --stack-context)
       COLLECT_OPTION_SEEN=true
       STACK_CONTEXT_MODE=true
@@ -389,6 +414,11 @@ if [ "$DECODE_JSON" = true ]; then
   exit 0
 fi
 
+# All scope paths and local-artifact arguments are relative to the repository
+# root, independent of the directory from which the caller starts a review.
+REPO_ROOT=$(git rev-parse --show-toplevel) || exit 1
+cd -- "$REPO_ROOT" || exit 1
+
 if [ "$EXCLUDE_REVIEW_ARTIFACTS" = true ]; then
   load_review_artifact_patterns
 fi
@@ -409,11 +439,16 @@ if [ -n "$LOCAL_ARTIFACT" ]; then
 fi
 
 CHANGED_FILES=$({
-  git diff --name-only "$MERGE_BASE"...HEAD
-  git diff --name-only --cached
-  git diff --name-only
-  untracked_without_visual_pages
-} | sed '/^$/d' | sort -u)
+  git diff --no-ext-diff --no-textconv --no-relative --name-only -z "$MERGE_BASE"...HEAD \
+    && if [ "$COMMITTED_ONLY" = false ]; then
+      git diff --no-ext-diff --no-textconv --no-relative --name-only -z --cached \
+        && git diff --no-ext-diff --no-textconv --no-relative --name-only -z \
+        && untracked_without_visual_pages
+    fi
+} | paths_as_lines | sort -u) || {
+  echo "Review scope collection failed; stop." >&2
+  exit 1
+}
 
 if [ "$EXCLUDE_REVIEW_ARTIFACTS" = true ]; then
   filter_review_artifacts

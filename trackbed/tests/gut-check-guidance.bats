@@ -30,12 +30,9 @@ setup() {
   local skill="skills/pr:gut-check/SKILL.md"
 
   grep -qF 'COLLECT_ARGS=(--strict --format nul --exclude-review-artifacts --stack-context)' "$skill"
-  grep -qF '"${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh" "${COLLECT_ARGS[@]}" \' "$skill"
+  grep -qF 'collect_review_scope "${COLLECT_ARGS[@]}" || exit 1' "$skill"
   ! grep -qF '"${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh" --decode-json' "$skill"
-  grep -qF "IFS= read -r -d '' BASE_REF" "$skill"
-  grep -qF "IFS= read -r -d '' CHANGED_FILES" "$skill"
   grep -qF 'No changes detected against $BASE_REF. If this is wrong, re-run with --base <branch>.' "$skill"
-  grep -qF 'REVIEW_DIFF_FIELDS=$(mktemp "${TMPDIR:-/tmp}/review-diff.XXXXXX")' "$skill"
 }
 
 @test "gut check never reports a partial read as a complete pass" {
