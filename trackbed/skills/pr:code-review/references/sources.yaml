@@ -86,3 +86,10 @@ sources:
     last_reviewed_at: 2026-10-19
     baseline_commit: "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
     baseline_hash: "sha256:f3dd099ce99289bd213914d8ee3e2429b78309c3957ca4583f7659551b1d53c1"
+  - id: caldo-untangle-codebase-comments
+    url: https://raw.githubusercontent.com/caldoai/skills/main/skills/untangle-codebase/SKILL.md
+    title: "Caldo skills - untangle-codebase"
+    rationale: "The comment-analyzer's three long-term-value outcomes use what would make a comment change to distinguish local restatements, external facts, and comments tied to a codebase workaround. The local guidance and examples are original; the source's code-changing workflow is not adopted."
+    usage: inspiration
+    last_reviewed_at: 2026-11-16
+    baseline_hash: "sha256:b4eb6b5130c38ca04532601e99d2d174cf4faa4df520b5b7ba609e8707e55761"
