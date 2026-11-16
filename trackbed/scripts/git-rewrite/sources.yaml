@@ -1,0 +1,8 @@
+sources:
+  - id: git-push-leases
+    url: https://raw.githubusercontent.com/git/git/master/Documentation/git-push.adoc
+    title: Git push documentation
+    rationale: Exact expected object IDs preserve the original safety boundary across fetches; atomic pushes keep the stack together.
+    usage: inspiration
+    last_reviewed_at: 2026-11-16
+    baseline_hash: sha256:9c269702dc066eb3453bcaeb34a6999290075c4153630bc150dccf84244b2691

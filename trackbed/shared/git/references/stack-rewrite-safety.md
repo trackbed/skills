@@ -1,8 +1,17 @@
-# Stack rewrite preflight
+# Frozen stack publication
 
-Run this before `gh stack rebase` in `trackbed:pr:rebase` and before routine `gh stack sync` and every Restructure in `trackbed:pr:stack`, including a fresh rebase after sync conflicts. Resolve `STACK_REMOTE` to the remote the following gh-stack command will use: its explicit `--remote`, otherwise `remote.pushDefault`, otherwise the sole configured remote. Stop on an ambiguous remote; never check origin and then rewrite a different remote's stack.
+Before any stack rewrite, fetch, stash, or reset, resolve `STACK_REMOTE` to the explicit remote, otherwise `remote.pushDefault`, otherwise the sole configured remote. Stop on ambiguity. Read this contract in `trackbed:pr:stack`, `trackbed:pr:rebase`, `trackbed:git:recreate-commits`, `trackbed:git:fixup`, and every stack push path in `trackbed:pr:fix-ci`.
 
-Run the block in Bash. Fetch every open PR branch before any rewrite or stash. A fetch, inventory, ref, or ancestry failure stops the operation. Keep branch names as quoted data. A branch that is only behind is allowed; gh-stack can reconcile a fast-forward. A branch with commits on both sides must be integrated first. A Restructure rebases from local tips and then force-pushes, which would drop a behind branch's remote commits, so it sets `STACK_STOP_ON_BEHIND=1` to stop on behind-only branches too.
+Use `${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py` for capture, preparation, and publication. It stores one push endpoint, the active branch inventory, local tips, and exact remote OIDs (including absence) in an exclusive snapshot. It never changes confirmation or authorization policy. Keep the snapshot path in run state across fresh shell invocations; never source or evaluate its JSON.
+
+```bash
+mkdir -p .context/git-rewrite
+STACK_PUBLICATION_STATE=".context/git-rewrite/stack-$(python3 -c 'import uuid; print(uuid.uuid4().hex)').json"
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py" capture \
+  --remote "$STACK_REMOTE" --state "$STACK_PUBLICATION_STATE" || exit 1
+```
+
+After capture, run this ancestry guard before preparing or rewriting. It checks open PR branches; set `STACK_STOP_ON_BEHIND=1` for Restructure so remote-only work must be synced in a separate operation first. This fetch never changes the captured publication leases.
 
 ```bash
 : "${STACK_REMOTE:?Resolve the gh-stack remote first}"
@@ -31,6 +40,24 @@ while IFS= read -r STACK_BRANCH; do
 done <<< "$OPEN_STACK_BRANCHES"
 ```
 
-Only after every branch passes may the caller rewrite or sync, using the same `STACK_REMOTE`. This is an ancestry guard before rewriting, not a pinned lease across gh-stack's later fetches. If another actor updates a branch during the operation, stop and coordinate; do not claim protection against concurrent writes from this check alone.
+Before local preparation or rebase, follow the other-workspace and base-change gates in `stack-operations.md`, including confirmation of every affected checkout. Then integrate behind-only remote branches and reject divergence with the original snapshot:
 
-For stack pushes, run `env -u GH_STACK_NO_ATOMIC gh stack push`; use the same prefix for `sync`, which also pushes. Never add `--no-atomic` or retry non-atomically. Atomicity covers Git ref updates only, not PR creation, base changes, or other API updates. Preserve the caller's separate publication authorization.
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py" prepare \
+  --state "$STACK_PUBLICATION_STATE" || exit 1
+```
+
+Preparation fetches the captured objects, fast-forwards behind-only branches in their clean worktrees (or uses expected-old-OID ref updates for branches without a checkout), and rejects local movement since capture. A failure can leave earlier safe fast-forwards applied; report them and retain the snapshot, never claim rollback. Do not run preparation again after rewriting.
+
+After the owning skill's local rewrite, validation, inventory recheck, and separate publication authorization, publish the already-restacked chain once:
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py" publish \
+  --state "$STACK_PUBLICATION_STATE" || exit 1
+```
+
+The publisher rechecks the active inventory and uses explicit local commit IDs, exact original per-ref leases, `--atomic`, and `--no-follow-tags` at the frozen endpoint. It does not fetch or derive leases from tracking refs. An intervening remote update rejects the entire push even if a fetch ran after capture. Unsupported atomic push, stale lease, inventory change, and Git/API errors stop publication; retain the snapshot and local result. Never retry with refreshed leases, `--no-atomic`, or a single-branch push.
+
+Do not use `gh stack push`, `gh stack sync`, or `gh stack submit` to publish rewritten branches: their internal fetch can widen the lease. Initial submission of entirely new, unrewritten branches remains the owning skill's existing path. A branch rename changes the frozen inventory: stop and start a new authorized operation after preserving and reconciling all original tips; never silently extend an existing snapshot.
+
+After `STACK_PUBLISHED=true`, verify local tips still match the pushed heads before updating PR bases or linking existing PR URLs under **Sync outcomes**. API work is separate from the atomic Git ref update. Delete the snapshot only after publication and metadata verification succeed; retain it on any conflict, rejected push, or uncertain API outcome. `--no-push` retains it with the local rewrite for a later authorized publication.

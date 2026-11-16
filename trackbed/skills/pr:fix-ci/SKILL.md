@@ -19,6 +19,8 @@ Continuously iterate on the current branch until all CI checks pass and review f
 
 **Requires**: GitHub CLI (`gh`) authenticated and available.
 
+Before any stack rewrite or restack, read `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-rewrite-safety.md` and use `${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py` to capture original leases before fetching or editing history. Resolve `STACK_REMOTE` under that contract. After the existing other-workspace confirmation, run its preparation step before rewriting. Keep the snapshot through validation and any separate publication confirmation; publish only through its frozen atomic command. Never refresh leases during this operation.
+
 ## Why this loop exists
 
 > "A bug caught in linting costs minutes; the same bug caught in production costs hours."
@@ -200,7 +202,7 @@ Push only after the branch chain is ready. When `PLAN_SCOPE_ACTIVE=true`, requir
 ```bash
 if [ "$IN_STACK" = true ]; then
   gh stack rebase --upstack --no-trunk
-  env -u GH_STACK_NO_ATOMIC gh stack push
+  python3 "${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py" publish --state "$STACK_PUBLICATION_STATE"
 elif [ "$PLAN_SCOPE_ACTIVE" = true ]; then
   git push origin "{validated-push-head}:refs/heads/{validated-plan-branch}"
 else
@@ -208,7 +210,7 @@ else
 fi
 ```
 
-For a stack, restacking must succeed before `env -u GH_STACK_NO_ATOMIC gh stack push`; never push the changed parent branch first.
+For a stack, restacking must succeed before `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py" publish --state "$STACK_PUBLICATION_STATE"`; never push the changed parent branch first.
 
 When `PLAN_SCOPE_ACTIVE=true`, immediately require the local branch tip to remain `{validated-push-head}` and require the remote and Pull Request heads to equal that captured OID, then run the scoped-plan post-push checkpoint rule using the captured head and its tree. A moved local branch, failed push, or identity mismatch is a blocker, not permission to checkpoint an unvalidated tip or continue waiting.
 

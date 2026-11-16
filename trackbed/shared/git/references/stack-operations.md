@@ -66,56 +66,16 @@ When GitHub retargets a stack because its base branch was deleted, `gh stack reb
 
 ## Sync outcomes
 
-`gh stack sync` can exit 0 without syncing. It aborts without pushing when the local and GitHub branch lists have diverged (neither extends the other), and a failed push prints only a warning. Run the sync and its outcome check together in one Bash call, because shell variables do not carry over to the next call:
+Replace the combined `gh stack sync` command with these separate steps. Never run it as a fallback: its internal fetch/push cannot consume the original frozen leases.
 
-```bash
-: "${STACK_REMOTE:?Resolve the gh-stack remote first}"
-SYNC_OUTPUT=$(env -u GH_STACK_NO_ATOMIC gh stack sync --remote "$STACK_REMOTE" 2>&1)
-SYNC_STATUS=$?
-printf '%s\n' "$SYNC_OUTPUT"
-if [ "$SYNC_STATUS" -ne 0 ]; then
-  echo "Not synced: gh stack sync exited $SYNC_STATUS." >&2
-  printf 'SYNC_STATUS=%s\n' "$SYNC_STATUS"
-  exit 1
-fi
-NOT_SYNCED=0
-if printf '%s\n' "$SYNC_OUTPUT" | grep -qF 'Sync aborted'; then
-  echo "Not synced: gh-stack aborted because the local and GitHub branch lists diverged." >&2
-  NOT_SYNCED=1
-fi
-if printf '%s\n' "$SYNC_OUTPUT" | grep -qF 'Push failed'; then
-  echo "Not synced: gh-stack could not push the stack branches." >&2
-  NOT_SYNCED=1
-fi
-if printf '%s\n' "$SYNC_OUTPUT" | grep -qF 'No active branches to push (all merged)'; then
-  ACTIVE_STACK_BRANCHES=""
-else
-  STACK_VIEW=$(gh stack view --json) || exit 2
-  ACTIVE_STACK_BRANCHES=$(printf '%s' "$STACK_VIEW" | jq -er '
-    if (.branches | type) != "array" then error("Invalid stack inventory")
-    else [.branches[] | select((.isMerged == true or .isQueued == true) | not) | .name]
-      | if all(.[]; type == "string" and length > 0 and (test("[\\r\\n]") | not))
-        then join("\n") else error("Invalid stack branch") end
-    end') || exit 2
-fi
-while IFS= read -r STACK_BRANCH; do
-  [ -n "$STACK_BRANCH" ] || continue
-  git check-ref-format --branch "$STACK_BRANCH" > /dev/null || exit 2
-  LOCAL_HEAD=$(git rev-parse --verify "refs/heads/$STACK_BRANCH^{commit}") || exit 2
-  REMOTE_REFS=$(git ls-remote --heads "$STACK_REMOTE" "refs/heads/$STACK_BRANCH") || exit 2
-  REMOTE_HEAD=$(printf '%s\n' "$REMOTE_REFS" | cut -f1)
-  if [ "$REMOTE_HEAD" != "$LOCAL_HEAD" ]; then
-    echo "Not synced: $STACK_REMOTE/$STACK_BRANCH is at ${REMOTE_HEAD:-no branch}, but the local branch is at $LOCAL_HEAD." >&2
-    NOT_SYNCED=1
-  fi
-done <<< "$ACTIVE_STACK_BRANCHES"
-[ "$NOT_SYNCED" -eq 0 ] || exit 1
-echo "STACK_SYNCED=true"
-```
+1. Before fetching or rewriting, capture the snapshot under `stack-rewrite-safety.md`. Read the local stack and its linked GitHub stack inventory read-only; if GitHub has added, removed, reordered, or retargeted layers, stop before rewriting and use the owning skill's guarded checkout/link reconciliation first. Begin a fresh authorized snapshot after reconciliation; do not adopt new layers into an existing authorization.
+2. Run the other-workspace preflight and base-change gates above, then run the snapshot's `prepare` command. It integrates behind-only branches without discarding local commits and stops on divergence.
+3. Record the trunk, run `gh stack rebase --remote "$STACK_REMOTE"`, handle conflicts and paused sessions under the rules above, and verify the resulting patches. Pass `--accept-base-change` only with the existing explicit approval. A failed rebase never proceeds to publication.
+4. Run the snapshot's atomic `publish` command only after the owning skill's publication authorization. Require `STACK_PUBLISHED=true` (an empty active inventory has nothing to publish). Verify every local active tip still equals its remote head at the frozen endpoint.
+5. Update existing PR bases bottom-to-top with `gh pr edit <PR-URL> --base <parent-branch>`, starting from the resolved trunk, and link the existing PR URLs with `gh stack link <PR-URLs bottom-to-top>` when at least two remain. Use explicit URLs, never branch operands: this phase updates GitHub metadata and must not push or open replacement PRs. Re-read PR base/head identities and the linked stack order before reporting success. An API failure retains the snapshot and reports `branches published; metadata incomplete`; never rerun publication to repair metadata.
+6. For an explicitly requested pruning sync after merged PRs, delete only local branches verified merged and not checked out in any worktree, using `git branch -d -- <branch>`. Leave checked-out branches and gh-stack's merged-layer metadata in place and report them; do not force-delete or change another workspace's checkout. Skip queued branches until GitHub shows them merged.
 
-Add `--prune` or `--accept-base-change` to the `gh stack sync` command only where the owning skill allows it. When every branch has merged or is queued, gh-stack reports no active branches and a `--prune` sync may move the checkout to the trunk, so the check has no branch left to compare and skips the stack inventory.
-
-Report the stack as synced only when the block prints `STACK_SYNCED=true`. Exit 1 means not synced: report each `Not synced` line and gh-stack's own messages, and do not run a follow-up step that needs a synced stack. When it also printed `SYNC_STATUS`, gh stack sync itself failed: handle that code under the exit-code table above. When gh-stack aborted because the branch lists diverged, ask the user how to reconcile them, because gh-stack resolves that only in an interactive terminal. Exit 2 means the outcome is unknown: report that, never treat it as synced, and never treat it as proof that the sync failed.
+Report `STACK_SYNCED=true` only when the frozen publication and PR metadata checks both pass. Otherwise say which phase failed, what local fast-forwards or rewrites remain, whether branches were published, and the retained snapshot path. A rejected push is not a successful sync. This split path keeps Git ref atomicity distinct from API updates and preserves all existing collaborator, cross-worktree, conflict, and base-change approvals.
 
 ## Merge outcomes
 
