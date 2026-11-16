@@ -664,7 +664,10 @@ const CODEX_TOOL_NAME_SUBSTITUTIONS = [
     /If the host does not expose `AskUserQuestion`, ask directly in chat and preserve the same question-coverage ledger\./g,
     "If `request_user_input` is unavailable, ask directly in chat and preserve the same question-coverage ledger.",
   ],
-  [/### Using AskUserQuestion Correctly\b/g, "### Asking Questions in Codex"],
+  [
+    /^(#{1,6}) Using AskUserQuestion Correctly\b/gm,
+    "$1 Asking Questions in Codex",
+  ],
   [
     /The AskUserQuestion tool requires \*\*2-4 predefined options\*\* per question\.\s*Users can always select "Other" to provide free-text input\./g,
     "When asking directly in chat, offer a small set of concrete options when that helps the user answer quickly. Users can always ignore the suggested options and reply freely in chat.",
@@ -684,7 +687,7 @@ const CODEX_TOOL_NAME_SUBSTITUTIONS = [
     "- `Question`: The full question text",
   ],
   [
-    /- `options`: 2-4 choices, each with `label` \(short\) and `description` \(explains tradeoff\)\b/g,
+    /- `options`: 2-4 choices, each with `label` \(short\) and `description` \(explains tradeoff\)/g,
     "- `Suggested options`: 2-4 concise choices, each with a short label and a tradeoff explanation",
   ],
   [
@@ -829,6 +832,10 @@ const CODEX_TOOL_NAME_SUBSTITUTIONS = [
  * @type {Array<[RegExp, string]>}
  */
 const CODEX_PHRASE_REPAIRS = [
+  [
+    /\b(Ask|ask) the user directly in chat to ask (users|the user)\b/g,
+    "$1 $2 directly in chat",
+  ],
   [/\bUse direct chat question\b/g, "Ask the user directly in chat"],
   [/\buse direct chat question\b/g, "ask the user directly in chat"],
   [/\busing direct chat question\b/g, "by asking the user directly in chat"],

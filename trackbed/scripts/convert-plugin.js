@@ -227,28 +227,23 @@ async function assertReplaceableMarketplaceRoot(marketplaceRoot, bundle) {
     LEGACY_OWNERSHIP_MARKER,
     OWNERSHIP_GENERATORS,
   } = require("./convert-plugin/codex-plugin-builder");
+  const refusal = `Refusing to replace ${marketplaceRoot}: ownership could not be verified for ${bundle.codexPlugin.marketplaceName}.`;
+  let metadataPath = path.join(marketplaceRoot, MARKETPLACE_MANIFEST);
   let manifest;
   let ownership;
   try {
-    manifest = JSON.parse(
-      await fs.readFile(
-        path.join(marketplaceRoot, MARKETPLACE_MANIFEST),
-        "utf8",
-      ),
-    );
-    ownership = JSON.parse(
-      await fs
-        .readFile(path.join(marketplaceRoot, OWNERSHIP_MARKER), "utf8")
-        .catch(() =>
-          fs.readFile(
-            path.join(marketplaceRoot, LEGACY_OWNERSHIP_MARKER),
-            "utf8",
-          ),
-        ),
-    );
-  } catch {
-    manifest = null;
-    ownership = null;
+    manifest = JSON.parse(await fs.readFile(metadataPath, "utf8"));
+    metadataPath = path.join(marketplaceRoot, OWNERSHIP_MARKER);
+    const marker = await fs.readFile(metadataPath, "utf8").catch((error) => {
+      if (error.code !== "ENOENT") throw error;
+      metadataPath = path.join(marketplaceRoot, LEGACY_OWNERSHIP_MARKER);
+      return fs.readFile(metadataPath, "utf8");
+    });
+    ownership = JSON.parse(marker);
+  } catch (error) {
+    throw new Error(`${refusal} Could not read ${metadataPath}.`, {
+      cause: error,
+    });
   }
   const owned =
     OWNERSHIP_GENERATORS.includes(ownership?.generatedBy) &&
@@ -257,9 +252,7 @@ async function assertReplaceableMarketplaceRoot(marketplaceRoot, bundle) {
     ownership?.pluginName === bundle.codexPlugin.name &&
     typeof ownership?.pluginVersion === "string";
   if (!owned || manifest?.name !== bundle.codexPlugin.marketplaceName) {
-    throw new Error(
-      `Refusing to replace ${marketplaceRoot}: ownership could not be verified for ${bundle.codexPlugin.marketplaceName}.`,
-    );
+    throw new Error(refusal);
   }
 }
 
