@@ -12,6 +12,7 @@
     "bootstrap:install": "bash trackbed/scripts/bootstrap-dev.sh --install",
     "check:deps": "make -C trackbed check-deps",
     "check:pre-commit": "make -C trackbed pre-commit",
+    "format": "make -C trackbed format",
     "format:check": "make -C trackbed format-check",
     "hooks:install": "pre-commit install",
     "hooks:uninstall": "pre-commit uninstall",

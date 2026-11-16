@@ -128,6 +128,8 @@ The `Run hook tests` aggregate requires successful hook-matrix, browser-smoke, s
 
 ### Pre-PR Verification
 
+Run `npm run format` (or `make -C trackbed format` from the repository root) to format changed files. It uses the same file selection and configuration as `npm run format:check`, which checks without writing. Both include committed changes against `origin/main` (override with `FORMAT_BASE`), working-tree changes, and untracked files; deleted files are skipped.
+
 Run the closest focused target first when iterating on a change. `make -C trackbed test-smoke` provides representative cross-language feedback; `make -C trackbed test` is the complete default suite. It runs the Node unit tests, Python unit tests, and Bats integration tests. For ordinary Pull Request verification, run:
 
 ```bash
