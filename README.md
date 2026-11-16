@@ -806,6 +806,9 @@ make -C trackbed test-bats-file BATS_TEST_FILE=tests/repository-instructions.bat
 # Representative cross-language feedback
 make -C trackbed test-smoke
 
+# Check Bats assertions for portable failure propagation
+make -C trackbed check-bats-assertions
+
 # Complete default suite (Node + Python + Bats)
 make -C trackbed test
 
