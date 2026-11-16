@@ -164,5 +164,6 @@ At the end, include:
 - Each validation command and its outcome: passed, failed with the new failure that blocked the commit, or pre-existing failure with the failing files.
 - Contested and escalated findings: count each, and list every one with a pointer to its evidence. For a contested finding, give its entry heading and the file and line, test, or recorded decision its **Rationale** cites. For an escalated finding, give its entry heading, the user's decision or `awaiting decision`, and where the fact was written or `not written`. Count an escalated finding only as escalated, and write `0` for an empty count.
 - Count of findings: N addressed, M deferred as out-of-scope, R open selected-resolution retries or blocked implementations, A manual findings awaiting a user decision, P accepted process handoffs awaiting completion, and X manual findings waiting on an external owner, approval, or access.
+- Checkpoint restoration outcome: `restored`, `not-needed`, or `conflicted`. Report any retained checkpoint path and exact recovery stash object, including after successful application; never claim all work was restored after a conflict.
 - Any breaking changes to API contracts or config behavior.
 - Areas that need manual verification due to potential edge cases or risk.

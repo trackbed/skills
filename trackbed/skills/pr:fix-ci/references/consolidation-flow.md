@@ -11,6 +11,25 @@ If `AUTO_MODE=true`, do not offer "Keep separate". Before any automated rebase, 
 
 If neither can be confirmed safely, stop with `MISSING REQUIREMENT: automated consolidation rewrites history; confirm collaborator coordination or rerun with --no-consolidate`. Do not rebase, force-push, or silently preserve separate fix commits.
 
+For stacks, capture and prepare a fresh frozen snapshot under `stack-rewrite-safety.md` before this phase's fetches or history edits, after the existing cross-worktree confirmation. Never reuse a snapshot from an earlier published iteration.
+
+Before any fetch or rewrite in this phase, capture the single-branch publication precondition below when `IN_STACK=false`. Keep these values unchanged through the push, including after later fetches; never refresh the lease to make a rejected push succeed. A lookup failure, absent remote branch, or ambiguous response stops before rewriting.
+
+```bash
+if [ "$IN_STACK" = false ]; then
+  REWRITE_BRANCH=$(git branch --show-current) || exit 1
+  [ -n "$REWRITE_BRANCH" ] || exit 1
+  REWRITE_REMOTE_REF="refs/heads/$REWRITE_BRANCH"
+  REWRITE_REMOTE=$(git remote get-url --push origin) || exit 1
+  REWRITE_OBSERVATION=$(git ls-remote --exit-code --refs "$REWRITE_REMOTE" "$REWRITE_REMOTE_REF") || exit 1
+  read -r REWRITE_REMOTE_OID REWRITE_OBSERVED_REF <<< "$REWRITE_OBSERVATION"
+  [[ "$REWRITE_REMOTE_OID" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]] || exit 1
+  [ "$REWRITE_OBSERVED_REF" = "$REWRITE_REMOTE_REF" ] || exit 1
+  git fetch --no-tags -- "$REWRITE_REMOTE" "$REWRITE_REMOTE_OID" || exit 1
+  git merge-base --is-ancestor "$REWRITE_REMOTE_OID" HEAD || exit 1
+fi
+```
+
 ## Step 11.1: Detect [FIX PIPELINE] Commits
 
 Determine the base branch (reuse logic from fixup-flow.md Step 8b.1) and find pipeline fix commits:
@@ -163,9 +182,12 @@ If one of those conditions is true, choose exactly one push path:
 ```bash
 if [ "$IN_STACK" = true ]; then
   gh stack rebase --upstack --no-trunk
-  env -u GH_STACK_NO_ATOMIC gh stack push
+  python3 "${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py" publish --state "$STACK_PUBLICATION_STATE" || exit 1
 else
-  git push --force-with-lease origin "$(git branch --show-current)"
+  [ "$(git branch --show-current)" = "$REWRITE_BRANCH" ] || exit 1
+  git -c push.followTags=false push --no-follow-tags \
+    --force-with-lease="$REWRITE_REMOTE_REF:$REWRITE_REMOTE_OID" \
+    -- "$REWRITE_REMOTE" "HEAD:$REWRITE_REMOTE_REF" || exit 1
 fi
 ```
 

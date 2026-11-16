@@ -230,29 +230,32 @@ If neither implementation candidates nor pending dependency work remain after sc
 
 Otherwise create a retry-safe checkpoint before editing. If `.context/resolve-review/checkpoint-*.env` already exists from an unfinished run, inspect the newest checkpoint first. If it references an existing stash object, restore it or ask the user how to proceed before creating another checkpoint; do not create nested checkpoints.
 
-Record the current HEAD and stash any uncommitted work so fix commits land on a clean tree. Store the exact checkpoint metadata under `.context/resolve-review/`:
+Record the current HEAD and stash unrelated uncommitted work. Resolve `CHECKPOINT_INPUT` to the selected local input report's repository-relative path (empty for chat, payload, or online input). Validate that it names a file inside this repository; never exclude a directory. Keep that report available for reading and in-place summary updates, and keep it out of fix commits. Run these blocks in Bash:
 
 ```bash
 mkdir -p .context/resolve-review
 CHECKPOINT_FILE=".context/resolve-review/checkpoint-$(date +%Y%m%d%H%M%S).env"
-CHECKPOINT_SHA=$(git rev-parse HEAD)
-CHECKPOINT_STASH_REF=
+CHECKPOINT_SHA=$(git rev-parse HEAD) || exit 1
 CHECKPOINT_STASH_SHA=
-if ! git diff --quiet HEAD || [ -n "$(git ls-files --others --exclude-standard)" ]; then
-  git stash push -u -m "pre-resolve-review checkpoint $CHECKPOINT_SHA"
-  CHECKPOINT_STASH_REF=$(git stash list --format='%gd %s' | awk -v sha="$CHECKPOINT_SHA" '$0 ~ sha { print $1; exit }')
-  CHECKPOINT_STASH_SHA=$(git rev-parse "$CHECKPOINT_STASH_REF")
+CHECKPOINT_PATHS=(.)
+if [ -n "${CHECKPOINT_INPUT:-}" ]; then
+  CHECKPOINT_PATHS+=(":(exclude,literal)$CHECKPOINT_INPUT")
 fi
+CHECKPOINT_STASH_MARKER="pre-resolve-review $(python3 -c 'import uuid; print(uuid.uuid4().hex)') $CHECKPOINT_SHA"
+git stash push -u -m "$CHECKPOINT_STASH_MARKER" -- "${CHECKPOINT_PATHS[@]}" || exit 1
+CHECKPOINT_STASHES=$(git stash list --format='%H %gs') || exit 1
+CHECKPOINT_STASH_SHA=$(printf '%s\n' "$CHECKPOINT_STASHES" | awk -v marker="$CHECKPOINT_STASH_MARKER" 'index($0, marker) { print $1; exit }') || exit 1
 {
   printf 'CHECKPOINT_SHA=%s\n' "$CHECKPOINT_SHA"
-  printf 'CHECKPOINT_STASH_REF=%s\n' "$CHECKPOINT_STASH_REF"
   printf 'CHECKPOINT_STASH_SHA=%s\n' "$CHECKPOINT_STASH_SHA"
 } > "$CHECKPOINT_FILE"
 ```
 
+If stashing fails, stop before edits and report the actual Git failure; do not infer a successful checkpoint from an older stash. A report-only worktree creates no stash and must not adopt a pre-existing stash.
+
 If Step 4 validation ends `failed`, offer to roll back. Do not perform a destructive HEAD restore automatically. First report the recorded `CHECKPOINT_SHA`, whether a `CHECKPOINT_STASH_SHA` exists, and the validation failure. If the user explicitly confirms rollback, restore the branch to the recorded checkpoint using the repository's normal destructive restore command, then restore the exact recorded stash object using the Step 4 stash-restore flow below, and set every finding whose changes the rollback discarded to `open`.
 
-Either way, Step 4 restores the exact stash object recorded in `CHECKPOINT_FILE` so the user's pre-existing uncommitted work is restored. Do not use a generic `git stash pop`; it may apply the wrong stash after an interrupted or retried run.
+Either way, Step 4 applies the exact owned stash object recorded in `CHECKPOINT_FILE`. Retain the recovery stash and report its OID after success; never pop or automatically drop a mutable `stash@{N}` entry, because another workspace can move the shared stash stack between lookup and deletion.
 
 ### Step 3: Implement fixes
 
@@ -337,15 +340,13 @@ Record the files each fix changes; Step 4 stages from these lists. The run's cha
   - Use `Resolution status: addressed` only when the finding was implemented, already satisfied by the current code, or otherwise fully resolved.
   - Use `Resolution status: open` when implementation failed, a new validation failure remains, the finding is blocked, or it needs another run before it can be considered resolved. A pre-existing failure leaves the finding's status unchanged.
   - Use `deferred`, `acknowledged`, or `skipped` for the non-implementation outcomes defined in Step 2, but do not use `skipped` for severity-filtered findings that were never processed.
-- **Restore the checkpoint** — If a stash was created in Step 2.5, apply and drop the exact recorded stash now so the user's pre-existing uncommitted work is restored:
+- **Restore the checkpoint** — If a stash was created in Step 2.5, apply the exact recorded stash now so the user's pre-existing uncommitted work is restored:
 
   ```bash
   . "$CHECKPOINT_FILE"
   CHECKPOINT_RESTORE_STATUS=not-needed
   if [ -n "$CHECKPOINT_STASH_SHA" ]; then
-    CHECKPOINT_STASH_REF=$(git stash list --format='%gd %H' | awk -v sha="$CHECKPOINT_STASH_SHA" '$2 == sha { print $1; exit }')
     if git stash apply --index "$CHECKPOINT_STASH_SHA"; then
-      [ -n "$CHECKPOINT_STASH_REF" ] && git stash drop "$CHECKPOINT_STASH_REF"
       CHECKPOINT_RESTORE_STATUS=restored
     else
       CHECKPOINT_RESTORE_STATUS=conflicted
@@ -353,12 +354,13 @@ Record the files each fix changes; Step 4 stages from these lists. The run's cha
   fi
   ```
 
-  If `git stash apply` reports conflicts, leave the stash in place, keep `CHECKPOINT_FILE`, and tell the user to resolve manually with `git stash apply --index "$CHECKPOINT_STASH_SHA"`. After conflicts are resolved, re-resolve the matching stash ref with `git stash list --format='%gd %H'` and drop that ref.
+  If `git stash apply` reports conflicts, leave the stash and `CHECKPOINT_FILE` in place and report restoration as conflicted, never restored or complete. Git may already have applied some paths: inspect the worktree and exact recorded object before resolving manually; do not blindly apply it again. After success, report the retained recovery stash OID as optional manual cleanup. This workflow never deletes entries from the shared stash stack.
 
-- **Clean up the consumed checkpoint** — After validation, summary writing, and stash restoration have completed successfully, delete the checkpoint created for this run:
+- **Clean up the consumed checkpoint** — Set `VALIDATION_STATUS` to the actual validation outcome above. After validation, summary writing, and stash restoration have completed successfully, delete the checkpoint created for this run:
 
   ```bash
-  if [ "${CHECKPOINT_RESTORE_STATUS:-not-needed}" != "conflicted" ]; then
+  if [[ "${VALIDATION_STATUS:-not-run}" =~ ^(passed|pre-existing-failure)$ ]] \
+    && [[ "${CHECKPOINT_RESTORE_STATUS:-not-needed}" =~ ^(restored|not-needed)$ ]]; then
     if [ -n "${CHECKPOINT_FILE:-}" ]; then
       rm -f "$CHECKPOINT_FILE"
     fi
