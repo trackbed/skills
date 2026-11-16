@@ -9,14 +9,10 @@ Load this only when `SPLIT_MODE=true`, after Phase 0 has passed the prior-artifa
 Use the shared plugin script. It resolves in this order: explicit `--base`, PR target branch (via `gh`), repository `trackbed.baseBranch`, `CONDUCTOR_DEFAULT_BRANCH`, then `origin/HEAD`/`origin/main`/`origin/master`. Invoke it with `--tolerate-fetch-failure` so a failed fetch falls back to the cached local `origin/<base>` ref with a warning instead of stopping (the script still errors when no cached ref exists):
 
 ```bash
-RESOLVE_ARGS=(--tolerate-fetch-failure)
-[ -n "${BASE_BRANCH_OVERRIDE:-}" ] && RESOLVE_ARGS+=(--base "$BASE_BRANCH_OVERRIDE")
-
-RESOLVED=$("${CLAUDE_PLUGIN_ROOT}/scripts/resolve-base.sh" "${RESOLVE_ARGS[@]}") || {
-  echo "Error: Could not resolve base branch; see the message above. Re-run with --base <branch>." >&2
-  exit 1
-}
-eval "$RESOLVED"
+COLLECT_ARGS=(--tolerate-fetch-failure)
+[ -n "${BASE_BRANCH_OVERRIDE:-}" ] && COLLECT_ARGS+=(--base "$BASE_BRANCH_OVERRIDE")
+source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/review-scope.sh" || exit 1
+collect_review_scope "${COLLECT_ARGS[@]}" || exit 1
 ```
 
 The script exports `BASE_REF`, `BASE_BRANCH`, and `MERGE_BASE`. If the script printed its stale-ref warning (`Warning: failed to fetch ...; using existing ...`), set `BASE_STALE=1` so later steps can flag that the diff was computed against a possibly stale base.
@@ -35,16 +31,7 @@ fi
 
 ### 2. Build the Change Set
 
-Combine committed, staged, unstaged, and untracked changes, using the `MERGE_BASE` exported by the resolve script in step 1:
-
-```bash
-{
-  git diff --name-only "$MERGE_BASE"...HEAD
-  git diff --name-only --cached
-  git diff --name-only
-  git ls-files --others --exclude-standard
-} | sed '/^$/d' | sort -u
-```
+Use the repository-relative `CHANGED_FILES` collected in step 1 as the deduplicated committed, staged, unstaged, and untracked change set. The shared helper has moved the calling shell to the repository root, so the paths also resolve for later content reads.
 
 If the deduplicated change set is empty, stop and reply with a single line — `No changes between HEAD and origin/$BASE_BRANCH. Nothing to split.` — and skip the rest of the workflow. If the base ref was used in stale mode (see step 1), say so in the same line.
 

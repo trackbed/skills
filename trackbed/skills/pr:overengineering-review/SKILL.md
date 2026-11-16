@@ -58,31 +58,11 @@ COLLECT_ARGS=(
 )
 [ -n "${BASE_BRANCH_OVERRIDE:-}" ] && COLLECT_ARGS+=(--base "$BASE_BRANCH_OVERRIDE")
 
-REVIEW_DIFF_FIELDS=$(mktemp "${TMPDIR:-/tmp}/review-diff.XXXXXX") || {
-  echo "Could not create temporary review-diff file; stop." >&2
-  exit 1
-}
-"${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh" "${COLLECT_ARGS[@]}" \
-  > "$REVIEW_DIFF_FIELDS" || {
-  rm -f "$REVIEW_DIFF_FIELDS"
-  echo "Base/diff collection failed; see the message above and stop." >&2
-  exit 1
-}
-if ! {
-  IFS= read -r -d '' BASE_REF \
-    && IFS= read -r -d '' BASE_BRANCH \
-    && IFS= read -r -d '' MERGE_BASE \
-    && IFS= read -r -d '' CHANGED_FILES \
-    && IFS= read -r -d '' STACK_CONTEXT
-} < "$REVIEW_DIFF_FIELDS"; then
-  rm -f "$REVIEW_DIFF_FIELDS"
-  echo "Decoded review-diff fields were incomplete; stop." >&2
-  exit 1
-fi
-rm -f "$REVIEW_DIFF_FIELDS"
+source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/review-scope.sh" || exit 1
+collect_review_scope "${COLLECT_ARGS[@]}" || exit 1
 ```
 
-The shared NUL output sets `BASE_REF`, `BASE_BRANCH`, `MERGE_BASE`, newline-delimited `CHANGED_FILES`, and the `STACK_CONTEXT` JSON document without evaluating collected values and with review artifacts already removed. Any non-zero exit from the helper call has already explained itself on stderr — stop rather than reviewing a partially prepared scope. When the `STACK_CONTEXT` state is `stacked` or `unknown`, read `${CLAUDE_PLUGIN_ROOT}/shared/pr-review/references/stacked-pr-review.md` and apply its orchestrator rules in Steps 3 through 5.
+The shared scope helper moves the calling shell to the repository root and sets `BASE_REF`, `BASE_BRANCH`, `MERGE_BASE`, newline-delimited `CHANGED_FILES`, and the `STACK_CONTEXT` JSON document without evaluating collected values and with review artifacts already removed. Any non-zero exit from the helper call has already explained itself on stderr — stop rather than reviewing a partially prepared scope. When the `STACK_CONTEXT` state is `stacked` or `unknown`, read `${CLAUDE_PLUGIN_ROOT}/shared/pr-review/references/stacked-pr-review.md` and apply its orchestrator rules in Steps 3 through 5.
 
 If `CHANGED_FILES` is empty, stop with: `No changes detected against $BASE_REF. If this is wrong, re-run with --base <branch>.`
 

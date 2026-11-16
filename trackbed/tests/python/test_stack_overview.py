@@ -182,6 +182,23 @@ class OverviewCase(unittest.TestCase):
         return stderr.getvalue()
 
 
+class Classification(unittest.TestCase):
+    def test_stack_groups_use_shared_policy_and_path_categories(self) -> None:
+        policy = stack_overview.classification.Policy(rev="trusted", generated=("generated/",))
+        cases = {
+            "src/café.ts": "production",
+            "tests/café.test.ts": "tests",
+            "db/migrations/0002_café.sql": "database",
+            "package-lock.json": "generated",
+            "generated/café.ts": "generated",
+            "docs/café.md": "other",
+            ".github/workflows/test.yml": "other",
+        }
+        for path, expected in cases.items():
+            with self.subTest(path=path):
+                self.assertEqual(stack_overview.group_of(path, policy), expected)
+
+
 class Overview(OverviewCase):
     def test_layers_are_measured_against_their_parents_in_groups(self) -> None:
         self.publish(self.stack())

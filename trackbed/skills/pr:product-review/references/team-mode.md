@@ -62,7 +62,7 @@ Spawn teammates based on applicable review categories. Each teammate receives:
 
 - The resolved `BASE_BRANCH`, `BASE_REF`, and `MERGE_BASE` from Step 1 and the git diff commands to run (`git diff "$MERGE_BASE"...HEAD`, `git diff --cached`, `git diff`)
 - When `STACK_CONTEXT` reports `stacked`, the stack context JSON and the `Reviewer rules` section of the stacked Pull Request reference that `/trackbed:pr:product-review` Step 3 loads
-- Untracked files list: `git ls-files --others --exclude-standard`, leaving out any file that `CHANGED_FILES` does not also list, such as a visual report page
+- Untracked files: decoded repository-relative paths and full file contents. Before launching reviewers, the orchestrator runs `review_untracked_paths "$CHANGED_FILES"` in its shell with the sourced scope helper, captures the output and requires success, then decodes NUL records as raw repository-relative names (never shell command substitution or line splitting) and reads each listed file. Pass the resulting paths and contents to agents, not the helper command. The helper omits files outside the collected scope, such as a visual report page
 - The teammate's file scope: the UI-relevant changed files, or every changed file for the product reviewer
 - For the product reviewer, the reviewer brief from `references/product-lens.md`, verbatim
 - Project conventions extracted from the project instruction files (explicitly mention stack requirements like Tailwind or Material Design 3 when present)

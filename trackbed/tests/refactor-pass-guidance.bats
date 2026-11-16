@@ -21,10 +21,8 @@ setup() {
   local skill="skills/code:refactor-pass/SKILL.md"
 
   grep -qF "Synced base/diff scope contract (keep aligned across base-aware and diff-aware skills)" "$skill"
-  grep -qF '"${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh" --strict --format json' "$skill"
-  grep -qF '"${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh" --decode-json' "$skill"
-  grep -qF "IFS= read -r -d '' BASE_REF" "$skill"
-  grep -qF "IFS= read -r -d '' CHANGED_FILES" "$skill"
+  grep -qF 'source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/review-scope.sh" || exit 1' "$skill"
+  grep -qF 'collect_review_scope --strict || exit 1' "$skill"
   grep -qF 'newline-delimited `CHANGED_FILES` as the default resolved scope' "$skill"
   grep -qF "Do not independently guess or re-resolve the base." "$skill"
   grep -qF 'pass `BASE_REF`, `MERGE_BASE`, and filtered `REFACTOR_SCOPE_PATHS`' "$skill"

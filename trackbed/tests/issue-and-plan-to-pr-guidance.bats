@@ -886,7 +886,8 @@
 		grep -qF "records a branch-split source" "$skill"
 		grep -qF "The oversized-theme confirmation below still applies." "$skill"
 
-		grep -qF "\${CLAUDE_PLUGIN_ROOT}/scripts/resolve-base.sh" "$split"
+		grep -qF "\${CLAUDE_PLUGIN_ROOT}/scripts/lib/review-scope.sh" "$split"
+		grep -qF '\''collect_review_scope "${COLLECT_ARGS[@]}" || exit 1'\'' "$split"
 		grep -qF -- "--tolerate-fetch-failure" "$split"
 		grep -qF "Nothing to split." "$split"
 		grep -qF "references/split-strategies.md" "$split"

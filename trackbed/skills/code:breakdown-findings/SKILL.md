@@ -38,7 +38,7 @@ These rules cover sources, recon, generated plans, indexes, rejection records, a
 
 Load `references/source-intake.md` now, after mode selection and safety rules, and follow it through Phases 0 and 1. Sources that follow `${CLAUDE_PLUGIN_ROOT}/shared/findings/references/breakdown-ready-findings.md` are read through that schema. Source resolution, compatibility, normalization, theme sizing, and execution labels come from `${CLAUDE_PLUGIN_ROOT}/shared/findings/references/findings-intake.md`, shared with `trackbed:linear:breakdown-findings`.
 
-With `SPLIT_MODE=true`, follow `references/source-intake.md` through Phase 0 only, then read `references/split-mode.md` in place of Phase 1 source resolution. It either stops at KEEP AS ONE without writing anything or yields a marked pre-clustered handoff; with that handoff as the source, continue at the generation-workflow load below.
+With `SPLIT_MODE=true`, follow `references/source-intake.md` through Phase 0 only, then read `references/split-mode.md` in place of Phase 1 source resolution. Its scope helper is `${CLAUDE_PLUGIN_ROOT}/scripts/lib/review-scope.sh`, backed by `${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh`. It either stops at KEEP AS ONE without writing anything or yields a marked pre-clustered handoff; with that handoff as the source, continue at the generation-workflow load below.
 
 ### Phase 0: Check for Prior Artifacts
 

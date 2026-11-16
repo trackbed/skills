@@ -724,3 +724,172 @@ PY
 	run bash -n "$SCRIPT_DIR/collect-review-diff.sh"
 	[ "$status" -eq 0 ]
 }
+
+
+@test "collect-review-diff preserves repository scope and raw path names from subdirectories" {
+	COLLECTOR="$SCRIPT_DIR/collect-review-diff.sh" WORK="$WORK" python3 - <<'PYTEST'
+import json
+import os
+from pathlib import Path
+import subprocess
+
+root = Path(os.environ["WORK"])
+collector = os.environ["COLLECTOR"]
+(root / "child").mkdir()
+(root / "sibling").mkdir()
+
+def git(*args):
+    subprocess.run(["git", *args], cwd=root, check=True, capture_output=True)
+
+committed = 'sibling/committed-é".txt'
+staged = "child/staged-\t.txt"
+unstaged = "tracked.txt"
+untracked = ["root-é.txt", "sibling/back\\slash.txt", "child/white space.txt",
+             "sibling/line\rseparator.txt", "sibling/line\u2028separator.txt"]
+(root / committed).write_text("committed\n")
+git("add", "--", committed)
+git("commit", "-qm", "Add unusual tracked path")
+(root / staged).write_text("staged\n")
+git("add", "--", staged)
+(root / unstaged).write_text("unstaged\n")
+for name in untracked:
+    (root / name).write_text("untracked\n")
+for name in ["REVIEW_OVERVIEW.md", "REVIEW_OVERVIEW.html", "sibling/REVIEW_OVERVIEW.md"]:
+    (root / name).write_text("report\n")
+
+expected = {committed, staged, unstaged, *untracked, "sibling/REVIEW_OVERVIEW.md"}
+for flags in [[], ["--exclude-review-artifacts"],
+              ["--exclude-review-artifacts", "--require-local-artifact", "REVIEW_OVERVIEW.md"]]:
+    results = []
+    for cwd in [root, root / "child", root / "sibling"]:
+        result = subprocess.run([collector, "--format", "json", *flags], cwd=cwd,
+                                capture_output=True, check=True)
+        data = json.loads(result.stdout)
+        want = expected if flags else expected | {"REVIEW_OVERVIEW.md"}
+        assert set(data["changed_files"]) == want, data
+        assert len(data["changed_files"]) == len(want), data
+        results.append(data)
+    assert results[0] == results[1] == results[2], results
+PYTEST
+}
+
+@test "collect-review-diff refuses newline paths instead of returning an ambiguous scope" {
+	local path=$'sibling/new\nline.txt'
+	mkdir sibling
+	printf 'untracked\n' >"$path"
+	mkdir child
+	cd child
+
+	run "$SCRIPT_DIR/collect-review-diff.sh" --format json
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"cannot represent a path containing a newline byte"* ]]
+
+	git -C "$WORK" add -- "$path"
+	run "$SCRIPT_DIR/collect-review-diff.sh" --format nul
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"cannot represent a path containing a newline byte"* ]]
+}
+
+@test "collect-review-diff validates root review artifacts when invoked below root" {
+	local artifact=OVERENGINEERING_REVIEW_OVERVIEW.md
+	printf 'branch controlled\n' >"$artifact"
+	git add "$artifact"
+	mkdir child
+	cd child
+
+	run "$SCRIPT_DIR/collect-review-diff.sh" --require-local-artifact "$artifact"
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"must be an untracked local workflow artifact"* ]]
+}
+
+@test "committed-only scope preserves raw paths and ignores local changes" {
+	local base
+	base=$(git rev-parse HEAD)
+	printf 'committed\n' >'café"file.txt'
+	git add -- 'café"file.txt'
+	git commit -qm 'Add committed unusual path'
+	printf 'staged\n' >staged.txt
+	git add staged.txt
+	printf 'local\n' >>tracked.txt
+	printf 'untracked\n' >untracked.txt
+
+	run "$SCRIPT_DIR/collect-review-diff.sh" --base main --base-commit "$base" --committed-only --format json
+	[ "$status" -eq 0 ]
+	COLLECTED_JSON="$output" python3 - <<'PY'
+import json
+import os
+assert json.loads(os.environ["COLLECTED_JSON"])["changed_files"] == ['café"file.txt']
+PY
+}
+
+@test "committed-only scope works in a pinned worktree without checkout" {
+	local base empty_worktree="$TMP_DIR/empty"
+	base=$(git rev-parse HEAD)
+	printf 'committed\n' >'café"file.txt'
+	git add -- 'café"file.txt'
+	git commit -qm 'Add committed unusual path'
+	git -c core.hooksPath=/dev/null worktree add --quiet --no-checkout --detach "$empty_worktree" HEAD
+	cd "$empty_worktree"
+	[ "$(find . -mindepth 1 -maxdepth 1 | sort)" = ./.git ]
+
+	run "$SCRIPT_DIR/collect-review-diff.sh" --base main --base-commit "$base" --strict --committed-only --format json
+	[ "$status" -eq 0 ]
+	COLLECTED_JSON="$output" python3 - <<'PY'
+import json
+import os
+assert json.loads(os.environ["COLLECTED_JSON"])["changed_files"] == ['café"file.txt']
+PY
+	[ "$(find . -mindepth 1 -maxdepth 1 | sort)" = ./.git ]
+	cd "$WORK"
+	git worktree remove --force "$empty_worktree"
+}
+
+@test "split mode shares complete root scope while retaining cached-base fallback" {
+	local reference="$SCRIPT_DIR/../skills/code:breakdown-findings/references/split-mode.md"
+	printf 'new\n' >'root café.txt'
+	mkdir child sibling
+	printf 'new\n' >'sibling/quote"file.txt'
+	git remote set-url origin "$TMP_DIR/missing-origin.git"
+	cd child
+
+	REFERENCE="$reference" PLUGIN_ROOT="$SCRIPT_DIR/.." python3 - <<'PY'
+import os
+from pathlib import Path
+import subprocess
+
+block = Path(os.environ["REFERENCE"]).read_text().split("```bash\n", 1)[1].split("```", 1)[0]
+result = subprocess.run(["bash", "-c", block + '\nprintf "%s\\0" "$CHANGED_FILES"'],
+                        env=dict(os.environ, CLAUDE_PLUGIN_ROOT=os.environ["PLUGIN_ROOT"]),
+                        capture_output=True, check=True)
+assert set(result.stdout[:-1].decode().split("\n")) == {'root café.txt', 'sibling/quote"file.txt'}, result.stdout
+assert b"using existing" in result.stderr, result.stderr
+PY
+}
+
+@test "audit and refactor consumers resolve content paths from a subdirectory" {
+	local base
+	base=$(git rev-parse HEAD)
+	printf 'new\n' >'root café.txt'
+	mkdir child sibling
+	printf 'new\n' >'sibling/quote"file.txt'
+	cd child
+
+	BASE_COMMIT="$base" PLUGIN_ROOT="$SCRIPT_DIR/.." python3 - <<'PY'
+import os
+from pathlib import Path
+import subprocess
+
+plugin = Path(os.environ["PLUGIN_ROOT"])
+for name in ("test:audit", "code:refactor-pass"):
+    text = (plugin / "skills" / name / "SKILL.md").read_text()
+    blocks = text.split("```bash\n")[1:]
+    block = next(block.split("```", 1)[0] for block in blocks
+                 if "collect_review_scope" in block)
+    tail = '\nwhile IFS= read -r file; do [ -f "$file" ] || exit 1; done <<< "$CHANGED_FILES"\nprintf "%s\\0" "$CHANGED_FILES"'
+    result = subprocess.run(["bash", "-c", block + tail],
+                            env=dict(os.environ, CLAUDE_PLUGIN_ROOT=str(plugin),
+                                     BASE_REF_ARG=os.environ["BASE_COMMIT"]),
+                            capture_output=True, check=True)
+    assert set(result.stdout[:-1].decode().split("\n")) == {'root café.txt', 'sibling/quote"file.txt'}, (name, result.stdout)
+PY
+}

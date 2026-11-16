@@ -337,49 +337,11 @@ if contract["paths"] != expected_paths:
 if len({extract(contract_name, relative) for relative in expected_paths}) != 1:
     raise SystemExit(f"{contract_name} contains divergent consumer blocks")
 
-nul_block = extract(contract_name, expected_paths[0])
-if "--decode-json" in nul_block:
-    raise SystemExit("synchronized block does not use the direct NUL interface")
-if 'collect-review-diff.sh" "${COLLECT_ARGS[@]}"' not in nul_block:
-    raise SystemExit("synchronized block does not pass collector arguments directly")
-if nul_block.count("collect-review-diff.sh") != 1:
-    raise SystemExit("synchronized block must invoke collect-review-diff.sh exactly once")
-expected_fields = ["BASE_REF", "BASE_BRANCH", "MERGE_BASE", "CHANGED_FILES", "STACK_CONTEXT"]
-read_fields = re.findall(r"IFS= read -r -d '' (\w+)", nul_block)
-if read_fields != expected_fields:
-    raise SystemExit("NUL cohort does not read fields in collector output order")
-cleanup_sites = [
-    (
-        "collector failure",
-        r'> "\$REVIEW_DIFF_FIELDS" \|\| \{\nrm -f "\$REVIEW_DIFF_FIELDS"',
-    ),
-    (
-        "incomplete fields",
-        r'\} < "\$REVIEW_DIFF_FIELDS"; then\nrm -f "\$REVIEW_DIFF_FIELDS"',
-    ),
-    ("success", r'fi\nrm -f "\$REVIEW_DIFF_FIELDS"$'),
-]
-for cleanup_label, cleanup_site in cleanup_sites:
-    if re.search(cleanup_site, nul_block) is None:
-        raise SystemExit(f"NUL cohort does not clean up after {cleanup_label}")
-failure_sites = [
-    (
-        "temporary-file creation failure",
-        r'Could not create temporary review-diff file; stop\." >&2\nexit 1\n\}',
-    ),
-    (
-        "collector failure",
-        r'Base/diff collection failed; see the message above and stop\." >&2\n'
-        r'exit 1\n\}',
-    ),
-    (
-        "incomplete fields",
-        r'Decoded review-diff fields were incomplete; stop\." >&2\nexit 1\nfi',
-    ),
-]
-for failure_label, failure_site in failure_sites:
-    if re.search(failure_site, nul_block) is None:
-        raise SystemExit(f"NUL cohort does not stop after {failure_label}")
+scope_call = extract(contract_name, expected_paths[0])
+if 'source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/review-scope.sh" || exit 1' not in scope_call:
+    raise SystemExit("consumer must source the installed scope helper")
+if 'collect_review_scope "${COLLECT_ARGS[@]}" || exit 1' not in scope_call:
+    raise SystemExit("consumer must pass its safety options and stop on failure")
 
 code_review_contract = next(
     item

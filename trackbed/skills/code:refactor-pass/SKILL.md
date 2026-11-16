@@ -79,31 +79,8 @@ Before picking simplifications, decide what "recent changes" means for this invo
      echo "collect-review-diff.sh not found under CLAUDE_PLUGIN_ROOT; stop." >&2
      exit 1
    }
-   RESOLVED=$("${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh" --strict --format json) || {
-     echo "Base/diff collection failed; see the message above and stop." >&2
-     exit 1
-   }
-   REVIEW_DIFF_FIELDS=$(mktemp "${TMPDIR:-/tmp}/refactor-pass-diff.XXXXXX") || {
-     echo "Could not create temporary review-diff file; stop." >&2
-     exit 1
-   }
-   "${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh" --decode-json \
-     <<< "$RESOLVED" > "$REVIEW_DIFF_FIELDS" || {
-     rm -f "$REVIEW_DIFF_FIELDS"
-     echo "Base/diff decoding failed; see the message above and stop." >&2
-     exit 1
-   }
-   if ! {
-     IFS= read -r -d '' BASE_REF \
-       && IFS= read -r -d '' BASE_BRANCH \
-       && IFS= read -r -d '' MERGE_BASE \
-       && IFS= read -r -d '' CHANGED_FILES
-   } < "$REVIEW_DIFF_FIELDS"; then
-     rm -f "$REVIEW_DIFF_FIELDS"
-     echo "Decoded review-diff fields were incomplete; stop." >&2
-     exit 1
-   fi
-   rm -f "$REVIEW_DIFF_FIELDS"
+   source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/review-scope.sh" || exit 1
+   collect_review_scope --strict || exit 1
    ```
 
    Use `BASE_REF`, `MERGE_BASE`, and newline-delimited `CHANGED_FILES` as the default resolved scope. Do not independently guess or re-resolve the base.

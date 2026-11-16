@@ -40,38 +40,11 @@ Before running `changed`, disclose that strict base resolution contacts the Git 
   echo "collect-review-diff.sh not found under CLAUDE_PLUGIN_ROOT; stop." >&2
   exit 1
 }
-COLLECT_ARGS=(--strict --format json)
+COLLECT_ARGS=(--strict)
 [ -n "${BASE_REF_ARG:-}" ] && COLLECT_ARGS+=(--base "$BASE_REF_ARG")
 
-RESOLVED=$("${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh" "${COLLECT_ARGS[@]}") || {
-  echo "Base/diff collection failed; see the message above and stop." >&2
-  exit 1
-}
-
-REVIEW_DIFF_FIELDS=$(mktemp "${TMPDIR:-/tmp}/test-audit-diff.XXXXXX") || {
-  echo "Could not create temporary review-diff file; stop." >&2
-  exit 1
-}
-trap 'rm -f "$REVIEW_DIFF_FIELDS"' EXIT
-trap 'exit 129' HUP
-trap 'exit 130' INT
-trap 'exit 143' TERM
-"${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh" --decode-json \
-  <<< "$RESOLVED" > "$REVIEW_DIFF_FIELDS" || {
-  echo "Base/diff decoding failed; see the message above and stop." >&2
-  exit 1
-}
-if ! {
-  IFS= read -r -d '' BASE_REF \
-    && IFS= read -r -d '' BASE_BRANCH \
-    && IFS= read -r -d '' MERGE_BASE \
-    && IFS= read -r -d '' CHANGED_FILES
-} < "$REVIEW_DIFF_FIELDS"; then
-  echo "Decoded review-diff fields were incomplete; stop." >&2
-  exit 1
-fi
-rm -f "$REVIEW_DIFF_FIELDS"
-trap - EXIT HUP INT TERM
+source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/review-scope.sh" || exit 1
+collect_review_scope "${COLLECT_ARGS[@]}" || exit 1
 ```
 
 Use the newline-delimited `CHANGED_FILES` as the complete changed candidate set, then intersect it with the discovered test inventory. Do not independently recompute the diff. If no changed tests remain, report the resolved base and that the audit scope is empty.

@@ -22,6 +22,8 @@ This guide covers reviewing your own branch, reviewing someone else's Pull Reque
 /trackbed:pr:code-review --no-cleanup   # check the fixes without the cleanup advice
 ```
 
+Reviews collect repository-relative paths from the repository root, even when started in a subdirectory. Non-ASCII names, spaces, tabs, quotes, and backslashes retain their spelling. Filenames containing newline bytes stop collection because the shared scope field uses newlines between paths. Each review keeps its own artifact exclusions.
+
 A run does this:
 
 1. It finds the base branch and collects what changed: committed, staged, unstaged, and untracked files.
