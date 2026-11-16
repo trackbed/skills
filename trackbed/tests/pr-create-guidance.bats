@@ -173,7 +173,7 @@ file_mode() {
     latest_stack_line=$(grep -nF "LATEST_STACK_RESOLVED=" "$recreate" | tail -1 | cut -d: -f1)
     reset_line=$(grep -nF "git reset --hard \"\$RESET_POINT\"" "$recreate" | head -1 | cut -d: -f1)
     [ "$latest_stack_line" -lt "$reset_line" ]
-    grep -qF "STACK_BRANCH_NAMES=\$(resolve_stack_branch_names)" "$recreate"
+    grep -qF '/skills/git:recreate-commits/scripts/stack-branch-names.sh' "$recreate"
     grep -qF "require its output to equal \`STACK_BRANCH_NAMES\` byte-for-byte" "$recreate"
     grep -qF "enumerate every branch in \`STACK_BRANCHES\`" "$recreate"
     grep -qF "explicit confirmation authorizing both the reset and that restack" "$recreate"

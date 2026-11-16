@@ -186,7 +186,7 @@ if [ "$IN_STACK" = true ]; then
 else
   [ "$(git branch --show-current)" = "$REWRITE_BRANCH" ] || exit 1
   git -c push.followTags=false push --no-follow-tags \
-    --force-with-lease="$REWRITE_REMOTE_REF:$REWRITE_REMOTE_OID" \
+    --force-with-lease="${REWRITE_REMOTE_REF}:$REWRITE_REMOTE_OID" \
     -- "$REWRITE_REMOTE" "HEAD:$REWRITE_REMOTE_REF" || exit 1
 fi
 ```

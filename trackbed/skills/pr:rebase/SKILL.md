@@ -167,7 +167,7 @@ REMOTE_REFS=$(git ls-remote --heads origin "refs/heads/$LEASE_BRANCH") || {
   echo "Could not read origin/$LEASE_BRANCH; stop before rebasing." >&2
   exit 1
 }
-PRE_REBASE_REMOTE_OID=$(printf '%s\n' "$REMOTE_REFS" | awk -v ref="refs/heads/$LEASE_BRANCH" '$2 == ref { print $1 }')
+PRE_REBASE_REMOTE_OID=$(printf '%s\n' "$REMOTE_REFS" | awk -v ref="refs/heads/$LEASE_BRANCH" '$(2) == ref { print $(1) }')
 if [ -n "$PRE_REBASE_REMOTE_OID" ] && ! git merge-base --is-ancestor "$PRE_REBASE_REMOTE_OID" HEAD 2> /dev/null; then
   echo "origin/$LEASE_BRANCH has commits the local branch lacks; integrate them before rebasing." >&2
   exit 1
@@ -270,7 +270,7 @@ git check-ref-format --branch "$CURRENT_BRANCH" > /dev/null
   echo "The pinned lease is not an object ID; stop before pushing." >&2
   exit 1
 }
-git push --no-follow-tags --force-with-lease="refs/heads/$CURRENT_BRANCH:$PRE_REBASE_REMOTE_OID" origin "refs/heads/$CURRENT_BRANCH:refs/heads/$CURRENT_BRANCH"
+git push --no-follow-tags --force-with-lease="refs/heads/${CURRENT_BRANCH}:$PRE_REBASE_REMOTE_OID" origin "refs/heads/${CURRENT_BRANCH}:refs/heads/$CURRENT_BRANCH"
 ```
 
 If `AUTO_MODE=true`, use the validated push procedure immediately after the rebase completes. Do this even if conflicts were auto-resolved, red flags were bypassed, or verification is unavailable/failing. Report the conflicts, bypassed red flags, and verification status after the push attempt. After this push attempt, skip the remaining confirmation gates and proceed to Step 6.

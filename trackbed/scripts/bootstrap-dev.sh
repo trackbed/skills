@@ -245,7 +245,7 @@ print_install_guidance() {
         "$MIN_PYTHON_MINOR"
       printf '  On Ubuntu 22.04, install Python 3.11+ separately and select it as python3 before --install.\n'
       printf '  sudo apt-get update\n'
-      printf '  sudo apt-get install -y make bats jq python3 python3-venv\n'
+      printf '  sudo apt-get install -y make bats jq zsh python3 python3-venv\n'
       ;;
     *)
       printf '  Unsupported platform. Install make, Bats, jq, Node.js, npm, and Python %d.%d+ manually.\n' \
@@ -297,6 +297,7 @@ check_dependencies() {
 
   check_tool "Make" make
   check_tool "Bats" bats
+  check_tool "zsh" zsh
   check_tool "jq" jq
   check_tool "ShellCheck" shellcheck
   check_tool "Ruff" ruff
@@ -344,7 +345,7 @@ install_host_dependencies() {
         apt_command=(sudo apt-get)
       fi
       "${apt_command[@]}" update
-      "${apt_command[@]}" install -y make bats jq python3 python3-venv
+      "${apt_command[@]}" install -y make bats jq zsh python3 python3-venv
       ;;
     *)
       printf 'Automatic installation supports macOS, Debian 12+, and Ubuntu 22.04+ only.\n' >&2

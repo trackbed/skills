@@ -244,7 +244,7 @@ fi
 CHECKPOINT_STASH_MARKER="pre-resolve-review $(python3 -c 'import uuid; print(uuid.uuid4().hex)') $CHECKPOINT_SHA"
 git stash push -u -m "$CHECKPOINT_STASH_MARKER" -- "${CHECKPOINT_PATHS[@]}" || exit 1
 CHECKPOINT_STASHES=$(git stash list --format='%H %gs') || exit 1
-CHECKPOINT_STASH_SHA=$(printf '%s\n' "$CHECKPOINT_STASHES" | awk -v marker="$CHECKPOINT_STASH_MARKER" 'index($0, marker) { print $1; exit }') || exit 1
+CHECKPOINT_STASH_SHA=$(printf '%s\n' "$CHECKPOINT_STASHES" | awk -v marker="$CHECKPOINT_STASH_MARKER" 'index($(0), marker) { print $(1); exit }') || exit 1
 {
   printf 'CHECKPOINT_SHA=%s\n' "$CHECKPOINT_SHA"
   printf 'CHECKPOINT_STASH_SHA=%s\n' "$CHECKPOINT_STASH_SHA"

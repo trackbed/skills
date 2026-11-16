@@ -120,20 +120,7 @@ Before any stack rewrite or restack, read `${CLAUDE_PLUGIN_ROOT}/shared/git/refe
      echo "jq is required to enumerate the stacked branches before a history rewrite." >&2
      exit 1
    }
-   resolve_stack_branch_names() {
-     local stack_view_json
-     stack_view_json=$(gh stack view --json) || return 1
-     printf '%s\n' "$stack_view_json" | jq -er '
-       .branches
-       | if type != "array"
-           or length == 0
-           or any(.[]; ((.name | type) != "string") or ((.name | length) == 0))
-         then error("invalid stack branch inventory")
-         else .[].name
-         end
-     '
-   }
-   STACK_BRANCH_NAMES=$(resolve_stack_branch_names) || {
+   STACK_BRANCH_NAMES=$("${CLAUDE_PLUGIN_ROOT}/skills/git:recreate-commits/scripts/stack-branch-names.sh") || {
      echo "gh stack view returned an invalid branch inventory; stop before rewriting history." >&2
      exit 1
    }
@@ -153,7 +140,7 @@ Before any stack rewrite or restack, read `${CLAUDE_PLUGIN_ROOT}/shared/git/refe
    fi
    ```
 
-   Preserve `STACK_BRANCH_NAMES` and `STACK_BRANCHES` exactly as resolved; never replace or shorten the authorization boundary. Immediately before either stack-wide confirmation, before resetting, before restacking, and before pushing, call `resolve_stack_branch_names` and require its output to equal `STACK_BRANCH_NAMES` byte-for-byte. If the inventory cannot be re-read or differs, stop and require a fresh run so newly added, removed, or renamed branches cannot inherit stale authorization. `gh stack rebase --upstack --no-trunk` may rewrite branches above the current branch, and `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py" publish --state "$STACK_PUBLICATION_STATE"` targets the locally tracked stack.
+   Preserve `STACK_BRANCH_NAMES` and `STACK_BRANCHES` exactly as resolved; never replace or shorten the authorization boundary. Immediately before either stack-wide confirmation, before resetting, before restacking, and before pushing, invoke `"${CLAUDE_PLUGIN_ROOT}/skills/git:recreate-commits/scripts/stack-branch-names.sh"` in a fresh shell with the original frozen values restored from run state and require its output to equal `STACK_BRANCH_NAMES` byte-for-byte. If the inventory cannot be re-read or differs, stop and require a fresh run so newly added, removed, or renamed branches cannot inherit stale authorization. `gh stack rebase --upstack --no-trunk` may rewrite branches above the current branch, and `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py" publish --state "$STACK_PUBLICATION_STATE"` targets the locally tracked stack.
 
    For an unstacked invocation that may sync a remote (no `--no-push`), resolve and freeze the single-branch push boundary before resetting:
 

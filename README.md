@@ -793,6 +793,8 @@ Regular branch commits should use plain-English commit messages (no Conventional
 
 ## Development
 
+The shell execution fixtures require Bash and zsh. macOS includes both; the Linux bootstrap installs zsh.
+
 [CONTRIBUTING.md](CONTRIBUTING.md) covers local setup, and the [development guide](trackbed/docs/development.md) has the complete test-target catalog, coverage baselines, pre-PR verification, skill security scans, skill-change evals, and the SkillOpt eval pilot. The short version:
 
 ```bash

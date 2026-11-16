@@ -32,66 +32,16 @@ TMP_PARENT=$(mktemp -d "${TMPDIR:-/tmp}/trackbed-linear-review-pr-${PR_NUMBER}.X
   exit 1
 }
 WORKTREE_DIR="$TMP_PARENT/wt"
-cleanup_review_worktree() {
-  local registered=false
-  local unexpected_path=""
-  local worktree_lookup_path="$WORKTREE_DIR"
-  cd "$ORIG_ROOT" || return 1
-
-  if [ -d "$WORKTREE_DIR" ]; then
-    worktree_lookup_path=$(cd "$WORKTREE_DIR" && pwd -P) || return 1
-  fi
-  if git worktree list --porcelain | grep -Fqx "worktree $worktree_lookup_path"; then
-    registered=true
-  fi
-
-  if [ -d "$WORKTREE_DIR" ]; then
-    unexpected_path=$(find "$WORKTREE_DIR" -mindepth 1 \
-      ! -path "$WORKTREE_DIR/.git" -print -quit)
-  fi
-  if [ -n "$unexpected_path" ]; then
-    echo "Temporary review worktree retained for inspection: $WORKTREE_DIR" >&2
-    echo "Unexpected materialized content: $unexpected_path" >&2
-    echo "Inspect it before removing the worktree manually." >&2
-    return 1
-  fi
-
-  if [ "$registered" = true ]; then
-    if ! git worktree remove --force "$WORKTREE_DIR" 2> /dev/null; then
-      echo "Temporary review worktree retained for inspection: $WORKTREE_DIR" >&2
-      echo "Inspect it, then remove it with: git worktree remove --force '$WORKTREE_DIR'" >&2
-      return 1
-    fi
-  else
-    if [ ! -e "$WORKTREE_DIR" ] && [ ! -L "$WORKTREE_DIR" ]; then
-      rmdir "$TMP_PARENT" 2> /dev/null || true
-      return 0
-    fi
-    if [ -d "$WORKTREE_DIR/.git" ]; then
-      echo "Partial review worktree retained for inspection: $WORKTREE_DIR" >&2
-      echo "Its .git administrative path is unexpectedly a directory." >&2
-      return 1
-    fi
-    if [ -e "$WORKTREE_DIR/.git" ] || [ -L "$WORKTREE_DIR/.git" ]; then
-      rm -- "$WORKTREE_DIR/.git" || return 1
-    fi
-    if ! rmdir "$WORKTREE_DIR" 2> /dev/null; then
-      echo "Partial review worktree retained for inspection: $WORKTREE_DIR" >&2
-      return 1
-    fi
-  fi
-  rmdir "$TMP_PARENT" 2> /dev/null || true
-}
 if ! git -c core.hooksPath=/dev/null worktree add \
   --quiet --no-checkout --detach "$WORKTREE_DIR" "$FETCHED_HEAD"; then
   echo "Could not create the temporary PR worktree: $WORKTREE_DIR" >&2
-  cleanup_review_worktree || true
+  "${CLAUDE_PLUGIN_ROOT}/skills/linear:review-pr/scripts/cleanup-review-worktree.sh" "$ORIG_ROOT" "$TMP_PARENT" "$WORKTREE_DIR" || true
   exit 1
 fi
 cd "$WORKTREE_DIR"
 if [ "$(git rev-parse HEAD)" != "$PR_HEAD_OID" ]; then
   echo "The detached review worktree does not match the snapshotted Pull Request head." >&2
-  cleanup_review_worktree || true
+  cd "$ORIG_ROOT" && "${CLAUDE_PLUGIN_ROOT}/skills/linear:review-pr/scripts/cleanup-review-worktree.sh" "$ORIG_ROOT" "$TMP_PARENT" "$WORKTREE_DIR" || true
   exit 1
 fi
 ```
@@ -106,12 +56,12 @@ Verify `git rev-parse HEAD` equals `PR_HEAD_OID`. Then resolve the PR base and c
 if ! source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/review-scope.sh" \
   || ! collect_review_scope --base "$PR_BASE_BRANCH" --base-commit "$PR_BASE_OID" --strict --committed-only; then
   echo "Could not resolve the PR base or collect its diff." >&2
-  cleanup_review_worktree || true
+  cd "$ORIG_ROOT" && "${CLAUDE_PLUGIN_ROOT}/skills/linear:review-pr/scripts/cleanup-review-worktree.sh" "$ORIG_ROOT" "$TMP_PARENT" "$WORKTREE_DIR" || true
   exit 1
 fi
 if [ "$BASE_REF" != "$PR_BASE_OID" ]; then
   echo "Base collection did not retain the snapshotted Pull Request base." >&2
-  cleanup_review_worktree || true
+  cd "$ORIG_ROOT" && "${CLAUDE_PLUGIN_ROOT}/skills/linear:review-pr/scripts/cleanup-review-worktree.sh" "$ORIG_ROOT" "$TMP_PARENT" "$WORKTREE_DIR" || true
   exit 1
 fi
 ```
@@ -147,13 +97,13 @@ Immediately before cleanup, query both OIDs again:
 ```bash
 if ! FINAL_PR_JSON=$(gh pr view "$PR_NUMBER" --json headRefOid,baseRefOid); then
   echo "Could not re-check the Pull Request snapshot before reporting." >&2
-  cleanup_review_worktree || true
+  cd "$ORIG_ROOT" && "${CLAUDE_PLUGIN_ROOT}/skills/linear:review-pr/scripts/cleanup-review-worktree.sh" "$ORIG_ROOT" "$TMP_PARENT" "$WORKTREE_DIR" || true
   exit 1
 fi
 FINAL_HEAD_OID=$(printf '%s' "$FINAL_PR_JSON" | jq -r '.headRefOid')
 FINAL_BASE_OID=$(printf '%s' "$FINAL_PR_JSON" | jq -r '.baseRefOid')
 if [ "$FINAL_HEAD_OID" != "$PR_HEAD_OID" ] || [ "$FINAL_BASE_OID" != "$PR_BASE_OID" ]; then
-  cleanup_review_worktree || true
+  cd "$ORIG_ROOT" && "${CLAUDE_PLUGIN_ROOT}/skills/linear:review-pr/scripts/cleanup-review-worktree.sh" "$ORIG_ROOT" "$TMP_PARENT" "$WORKTREE_DIR" || true
   exit 2
 fi
 ```
@@ -162,10 +112,10 @@ Exit status `2` from this final comparison also signals the one allowed full ref
 
 ## Cleanup
 
-Run from any success or failure path after worktree creation:
+Run from any success or failure path after worktree creation. In a fresh shell, restore the exact `ORIG_ROOT`, `TMP_PARENT`, and `WORKTREE_DIR` values from run state first. Return to `ORIG_ROOT` before the helper runs, because removal deletes the directory a shell inside the worktree would be left in:
 
 ```bash
-cleanup_review_worktree
+cd "$ORIG_ROOT" && "${CLAUDE_PLUGIN_ROOT}/skills/linear:review-pr/scripts/cleanup-review-worktree.sh" "$ORIG_ROOT" "$TMP_PARENT" "$WORKTREE_DIR"
 ```
 
 After successful removal, require `git worktree list --porcelain` not to contain `WORKTREE_DIR`. Never use a recursive deletion command. If any content other than the worktree's `.git` administrative file appears, preserve the directory and report it instead of forcing deletion.

@@ -955,7 +955,7 @@
         "The branch joined a local or server-side stack after initial validation; stop before rewriting history.",
         "If `--no-push` was passed, do not run any push command",
         "If `IN_STACK=true` and neither `--manual` nor `--authorize-history-rewrite` was passed, stop before the reset",
-        "STACK_BRANCH_NAMES=$(resolve_stack_branch_names)",
+        "STACK_BRANCH_NAMES=$(\"${CLAUDE_PLUGIN_ROOT}/skills/git:recreate-commits/scripts/stack-branch-names.sh\")",
         "require its output to equal `STACK_BRANCH_NAMES` byte-for-byte",
         "enumerate every branch in `STACK_BRANCHES`",
         "explicit confirmation authorizing both the reset and that restack",

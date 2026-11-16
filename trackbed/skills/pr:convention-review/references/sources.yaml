@@ -23,3 +23,10 @@ sources:
     baseline_commit: "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
     fetch_mode: curl-markdown
     baseline_hash: "sha256:9c921a8d88138a41401d8897ca1bb852088ab1b7b605cdd04edc13e3e8aab6dd"
+  - id: claude-skill-argument-substitution
+    url: https://code.claude.com/docs/en/skills.md
+    title: "Claude Code skills — argument substitutions"
+    rationale: "The zero-based positional substitution contract informs protecting literal shell parameters and awk fields in packaged excerpts; execution guidance and fixtures use original local wording."
+    usage: inspiration
+    last_reviewed_at: 2026-11-16
+    baseline_hash: "sha256:294f6cf69458514a354bc751323ba2069aee22092942793fbc7b644c98551f8a"

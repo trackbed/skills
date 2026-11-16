@@ -34,6 +34,8 @@ Use this document when reviewing converter, hook, MCP, or host-adapter changes. 
 
 For confirmed `trackbed:linear:next` cloud launches, a separate explicit yes to cross-provider review enables the launch helper's `--adversarial-review` option. The helper writes it into each workspace's first issue-to-pr invocation; settings and environment variables never enable it. The helper also writes `--launch-confirmed` for each confirmed issue the skill passes as `--unstarted`, which answers issue-to-pr's start confirmation only while the issue's state type is `unstarted`; settings and environment variables never set it either. Other launches keep their original messages.
 
+Packaged shell excerpts use `${1}` for literal positional parameters and awk `$(1)` field syntax so host argument substitution leaves them intact. Brace shell variables before refspec colons and quote glob patterns passed as arguments. Reusable cleanup and stack inventory checks live in skill-local `scripts/` and run through their Bash entrypoints; fresh invocations restore explicit arguments and frozen values from run state. These execution rules grant no delegation or publication authority.
+
 ## Converter Contract
 
 `convertClaudeToCodex` produces one `CodexBundle` with these generated surfaces:

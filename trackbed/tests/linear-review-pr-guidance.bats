@@ -71,11 +71,12 @@
     grep -qF "git diff --no-ext-diff --no-textconv" "$inspection"
     grep -qF "git cat-file -p \"\$PR_HEAD_OID:\$path\"" "$inspection"
     grep -qF "every failure path must run the cleanup block" "$inspection"
-    sed -n "/if ! source /,/^fi$/p" "$inspection" | grep -qF "cleanup_review_worktree || true"
-    grep -qF "unexpected_path=\$(find \"\$WORKTREE_DIR\"" "$inspection"
-    grep -qF "git worktree remove --force \"\$WORKTREE_DIR\"" "$inspection"
-    grep -qF "rm -- \"\$WORKTREE_DIR/.git\"" "$inspection"
-    grep -qF "Partial review worktree retained for inspection" "$inspection"
+    sed -n "/if ! source /,/^fi$/p" "$inspection" | grep -qF "cleanup-review-worktree.sh"
+    cleanup="skills/linear:review-pr/scripts/cleanup-review-worktree.sh"
+    grep -qF "unexpected_path=\$(find \"\$WORKTREE_DIR\"" "$cleanup"
+    grep -qF "git worktree remove --force \"\$WORKTREE_DIR\"" "$cleanup"
+    grep -qF "rm -- \"\$WORKTREE_DIR/.git\"" "$cleanup"
+    grep -qF "Partial review worktree retained for inspection" "$cleanup"
     grep -qF "Never use a recursive deletion command" "$inspection"
     grep -qF -- "--json headRefOid,baseRefOid" "$inspection"
     grep -qF "restart from Step 4" "$inspection"
@@ -176,18 +177,15 @@
 
 @test "cleanup removes its parent when worktree creation made no directory" {
 	repo="$BATS_TEST_TMPDIR/cleanup-absent-repo"
-	cleanup_script="$BATS_TEST_TMPDIR/cleanup-absent-function.sh"
-	inspection="$BATS_TEST_DIRNAME/../skills/linear:review-pr/references/pr-inspection.md"
 	TMP_PARENT="$BATS_TEST_TMPDIR/cleanup-absent-parent"
 	WORKTREE_DIR="$TMP_PARENT/wt"
 	ORIG_ROOT="$repo"
 
 	mkdir -p "$repo" "$TMP_PARENT"
 	git -C "$repo" init -q
-	sed -n '/^cleanup_review_worktree() {$/,/^}$/p' "$inspection" > "$cleanup_script"
-	source "$cleanup_script"
+	cleanup_script="$BATS_TEST_DIRNAME/../skills/linear:review-pr/scripts/cleanup-review-worktree.sh"
 
-	run cleanup_review_worktree
+	run "$cleanup_script" "$ORIG_ROOT" "$TMP_PARENT" "$WORKTREE_DIR"
 
 	[ "$status" -eq 0 ]
 	[ ! -e "$WORKTREE_DIR" ]
@@ -196,8 +194,6 @@
 
 @test "cleanup preserves unexpected worktree content" {
 	repo="$BATS_TEST_TMPDIR/cleanup-content-repo"
-	cleanup_script="$BATS_TEST_TMPDIR/cleanup-content-function.sh"
-	inspection="$BATS_TEST_DIRNAME/../skills/linear:review-pr/references/pr-inspection.md"
 	TMP_PARENT="$BATS_TEST_TMPDIR/cleanup-content-parent"
 	WORKTREE_DIR="$TMP_PARENT/wt"
 	ORIG_ROOT="$repo"
@@ -213,17 +209,16 @@
 		--quiet --no-checkout --detach "$WORKTREE_DIR" "$head_oid"
 	canonical_worktree=$(cd "$WORKTREE_DIR" && pwd -P)
 	touch "$sentinel"
-	sed -n '/^cleanup_review_worktree() {$/,/^}$/p' "$inspection" > "$cleanup_script"
-	source "$cleanup_script"
+	cleanup_script="$BATS_TEST_DIRNAME/../skills/linear:review-pr/scripts/cleanup-review-worktree.sh"
 
-	run cleanup_review_worktree
+	run "$cleanup_script" "$ORIG_ROOT" "$TMP_PARENT" "$WORKTREE_DIR"
 
 	[ "$status" -eq 1 ]
 	[ -e "$sentinel" ]
 	git -C "$repo" worktree list --porcelain | grep -Fqx "worktree $canonical_worktree"
 
 	rm "$sentinel"
-	run cleanup_review_worktree
+	run "$cleanup_script" "$ORIG_ROOT" "$TMP_PARENT" "$WORKTREE_DIR"
 	[ "$status" -eq 0 ]
 	[ ! -e "$WORKTREE_DIR" ]
 	[ ! -e "$TMP_PARENT" ]
