@@ -222,6 +222,8 @@ discover_changed_skills() {
   local shared_prefix
   local rest
   local skill_name
+  local changed_paths
+  local untracked_paths
 
   SKILL_DIRS=()
   if ! merge_base=$(git -C "$REPO_ROOT" merge-base "$BASE_REF" HEAD 2> /dev/null); then
@@ -238,6 +240,15 @@ discover_changed_skills() {
     shared_prefix="shared/"
   fi
 
+  if ! changed_paths=$(git -C "$REPO_ROOT" diff --name-only "$merge_base"); then
+    echo "Changed-skill discovery failed: git diff failed." >&2
+    exit 1
+  fi
+  if ! untracked_paths=$(git -C "$REPO_ROOT" ls-files --others --exclude-standard); then
+    echo "Changed-skill discovery failed: git ls-files failed." >&2
+    exit 1
+  fi
+
   while IFS= read -r changed_path; do
     case "$changed_path" in
       "$skills_prefix"*/*)
@@ -250,12 +261,7 @@ discover_changed_skills() {
         append_unique_scan_dir "$SHARED_DIR/${rest%%/*}"
         ;;
     esac
-  done < <(
-    {
-      git -C "$REPO_ROOT" diff --name-only "$merge_base"
-      git -C "$REPO_ROOT" ls-files --others --exclude-standard
-    } | sort -u
-  )
+  done < <(printf '%s\n' "$changed_paths" "$untracked_paths" | sort -u)
 }
 
 report_stem_for_skill() {
@@ -348,7 +354,7 @@ prepare_scan_input() {
 
   excludes=$(semantic_excludes_for "$skill_dir")
   if [ ! -d "$skill_dir/references/sources-snapshot" ] && [ -z "$excludes" ]; then
-    printf '%s\n' "$skill_dir"
+    PREPARED_SCAN_DIR="$skill_dir"
     return
   fi
 
@@ -364,7 +370,7 @@ prepare_scan_input() {
       rm -f -- "$scan_dir/$excluded"
     fi
   done <<< "$excludes"
-  printf '%s\n' "$scan_dir"
+  PREPARED_SCAN_DIR="$scan_dir"
 }
 
 severity_count() {
@@ -512,6 +518,7 @@ threshold_failed_for_report() {
 validate_accepted_findings_policy() {
   local validation_errors
   local expired_entries
+  local scan_dirs_json
 
   if [ -z "$ACCEPTED_FINDINGS_FILE" ]; then
     return 0
@@ -586,13 +593,18 @@ validate_accepted_findings_policy() {
     exit 1
   fi
 
-  expired_entries=$(jq -r --arg today "$TODAY" '
+  scan_dirs_json=$(printf '%s\n' "${SKILL_DIRS[@]:-}" | jq -Rsc --arg root "$REPO_ROOT/" '
+    split("\n") | map(select(length > 0) | ltrimstr($root))
+  ')
+  expired_entries=$(jq -r --arg today "$TODAY" --arg root "$REPO_ROOT/" --argjson scan_dirs "$scan_dirs_json" '
 		def accepted_entry_cutoff:
 			[.expires_at?, .review_after?]
 			| map(select(type == "string" and length > 0))
 			| if length == 0 then "9999-12-31" else min end;
 
 		.accepted_findings[]
+		| (.path | ltrimstr($root) | ltrimstr("./")) as $path
+		| select(any($scan_dirs[]; . as $dir | ($path == $dir or ($path | startswith($dir + "/")))))
 		| select((. | accepted_entry_cutoff) < $today)
 		| "expired accepted finding: " + .path + " " + .rule_id + " expired on " + (. | accepted_entry_cutoff)
 	' "$ACCEPTED_FINDINGS_FILE")
@@ -666,7 +678,8 @@ for skill_dir in "${SKILL_DIRS[@]}"; do
   log_file="$OUTPUT_DIR/$stem.log"
   primary_ext=$(extension_for_format "$FORMAT")
   primary_report="$OUTPUT_DIR/$stem.$primary_ext"
-  scan_dir=$(prepare_scan_input "$skill_dir")
+  prepare_scan_input "$skill_dir"
+  scan_dir="$PREPARED_SCAN_DIR"
 
   echo "Scanning $skill_dir"
   if [ "$scan_dir" != "$skill_dir" ]; then
