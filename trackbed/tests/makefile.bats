@@ -1266,3 +1266,10 @@ JS
   [ "$status" -ne 0 ]
   [[ "$output" == *"Python static inventory is malformed"* ]]
 }
+
+@test "pre-commit runs the authoritative installed resource checker" {
+  run make -C "$BATS_TEST_DIRNAME/.." --no-print-directory --dry-run pre-commit
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"node scripts/check-installed-resources.js"* ]]
+}

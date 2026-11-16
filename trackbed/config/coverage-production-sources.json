@@ -30,6 +30,9 @@
       "trackbed/scripts/skill-eval-compare.js"
     ],
     "contract_only": {
+      "trackbed/scripts/check-installed-resources.js": [
+        "trackbed/tests/skill-resource-references.bats"
+      ],
       "trackbed/skills/pr:code-review/scripts/review-execution.js": [
         "trackbed/tests/review-execution-guidance.bats"
       ],
