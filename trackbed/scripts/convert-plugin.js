@@ -236,12 +236,18 @@ async function assertReplaceableMarketplaceRoot(marketplaceRoot, bundle) {
     metadataPath = path.join(marketplaceRoot, OWNERSHIP_MARKER);
     const marker = await fs.readFile(metadataPath, "utf8").catch((error) => {
       if (error.code !== "ENOENT") throw error;
+      const markerPath = metadataPath;
       metadataPath = path.join(marketplaceRoot, LEGACY_OWNERSHIP_MARKER);
-      return fs.readFile(metadataPath, "utf8");
+      return fs.readFile(metadataPath, "utf8").catch((legacyError) => {
+        if (legacyError.code !== "ENOENT") throw legacyError;
+        // Neither marker exists: report the one this converter writes.
+        metadataPath = markerPath;
+        throw error;
+      });
     });
     ownership = JSON.parse(marker);
   } catch (error) {
-    throw new Error(`${refusal} Could not read ${metadataPath}.`, {
+    throw new Error(`${refusal} Could not read ${metadataPath}`, {
       cause: error,
     });
   }

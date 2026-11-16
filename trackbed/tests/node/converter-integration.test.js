@@ -448,7 +448,10 @@ for (const failure of ["invalid-json", "missing", "access"]) {
             ? /ENOENT/
             : /EACCES/,
       );
-      assert.match(result.stderr, /plugin-marketplace\.json/);
+      assert.ok(
+        result.stderr.includes(`Could not read ${marker}: `),
+        result.stderr,
+      );
       assert.equal(
         await readText(path.join(marketplace, "keep.txt")),
         "preserve me",
