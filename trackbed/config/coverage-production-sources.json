@@ -78,6 +78,7 @@
       "trackbed/scripts/changelog.py",
       "trackbed/scripts/check-doc-citations.py",
       "trackbed/scripts/json_object.py",
+      "trackbed/scripts/git-rewrite/stack-publication.py",
       "trackbed/scripts/lint-skill-contracts.py",
       "trackbed/scripts/lint_skill_contracts/catalog.py",
       "trackbed/scripts/lint_skill_contracts/checks/base_diff_scope.py",

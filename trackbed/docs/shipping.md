@@ -72,6 +72,8 @@ The checked independent-review line also goes into the generated PR description.
 
 It writes to Linear only with `--set-in-progress`. That flag moves the issue to its team's resolved started status, preferring a status named In Progress, before branch setup. It asks for confirmation first when the issue is not in Backlog, and stops without creating a branch if that transition is declined or unverified.
 
+Stack history rewrites capture every remote branch's original commit before fetching or rebasing. The shared publisher sends explicit commits in one atomic push with those frozen leases; a later fetch cannot accept a collaborator's intervening push. Routine stack sync separates local rebase, publication, and PR metadata updates, retaining the snapshot when any phase fails.
+
 ## Plan to Pull Request
 
 `/trackbed:code:plan-to-pr` implements one self-contained `PR_PLAN_*.md` and uses the same review-convergence phase as `issue-to-pr`, preserving its own requirements and scope contract.

@@ -716,7 +716,7 @@ run_documented_stack_checkout() {
 		local rebase_line
 		local push_line
 		rebase_line=$(grep -n 'gh stack rebase --upstack --no-trunk' "$flow" | tail -1 | cut -d: -f1)
-		push_line=$(grep -n '^[[:space:]]*env -u GH_STACK_NO_ATOMIC gh stack push' "$flow" | tail -1 | cut -d: -f1)
+		push_line=$(grep -n '^[[:space:]]*python3 .*stack-publication.py.* publish' "$flow" | tail -1 | cut -d: -f1)
 		[ -n "$rebase_line" ]
 		[ -n "$push_line" ]
 		[ "$rebase_line" -lt "$push_line" ]
@@ -729,8 +729,8 @@ run_documented_stack_checkout() {
 	report_step=$(sed -n '/### Step 7: Report Results/,/## Error Handling/p' "$fixup")
 
 	grep -F 'gh stack rebase --upstack --no-trunk' <<<"$report_step"
-	! grep -E '^[[:space:]]*env -u GH_STACK_NO_ATOMIC gh stack push' <<<"$report_step"
-	grep -F 'Do not run `env -u GH_STACK_NO_ATOMIC gh stack push` automatically' <<<"$report_step"
+	! grep -E '^[[:space:]]*python3 .*stack-publication.py.* publish' <<<"$report_step"
+	grep -F 'Do not run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py" publish --state "$STACK_PUBLICATION_STATE"` automatically' <<<"$report_step"
 }
 
 @test "recreate-commits restacks before no-push and local-only exits" {
@@ -757,7 +757,7 @@ run_documented_stack_checkout() {
 	grep -F 'On a partial-target collision, stop and ask the user how to proceed' "$stack_skill"
 	! grep -E 'gh stack (checkout|merge) <(branch-or-pr-number|pr-number|stack-number \\)' "$stack_skill" "$rules"
 	! grep -F 'Merging from the CLI is not supported' "$stack_skill" "$rules"
-	grep -F 'After `env -u GH_STACK_NO_ATOMIC gh stack sync`, all branches were restored' "$stack_skill"
+	grep -F 'Never use the combined `gh stack sync` command' "$stack_skill"
 	grep -F 'After `gh stack rebase`, a rebase session remains active' "$stack_skill"
 	grep -F '`gh stack sync` restores every branch before it returns exit 3' "$REPO_ROOT/shared/git/references/stack-operations.md"
 }
@@ -847,7 +847,7 @@ run_documented_stack_checkout() {
 	grep -F 'keep `PUSH_COMPLETED=false`, and skip to Step 7.' "$rebase_skill"
 	grep -F 'nothing was rebased or pushed, so CI stabilization was not started' "$rebase_skill"
 	grep -F 'Branch already contains `origin/<base-branch>`; nothing was rebased or pushed.' "$rebase_skill"
-	grep -F 'A stack (`IN_STACK=true`) uses the shared stack preflight above instead of this single-branch block, then keeps `env -u GH_STACK_NO_ATOMIC gh stack push`.' "$rebase_skill"
+	grep -F 'A stack (`IN_STACK=true`) uses the shared stack preflight above instead of this single-branch block, then keeps `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py" publish --state "$STACK_PUBLICATION_STATE"`.' "$rebase_skill"
 
 	early_exit_line=$(grep -nF '  echo "ALREADY_CONTAINS_BASE=true"' "$rebase_skill" | cut -d: -f1)
 	rebase_line=$(grep -nFx 'git rebase --autostash origin/<base-branch>' "$rebase_skill" | cut -d: -f1)
@@ -966,7 +966,7 @@ prepare_stack_preflight() {
 from pathlib import Path
 import sys
 text = Path(sys.argv[1]).read_text()
-Path(sys.argv[2]).write_text(text.split('```bash\n', 1)[1].split('```', 1)[0])
+Path(sys.argv[2]).write_text(text.split('```bash\n')[2].split('```', 1)[0])
 PY
 }
 

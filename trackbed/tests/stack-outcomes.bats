@@ -36,14 +36,6 @@ PY
 write_mock_gh() {
 	cat >"$BIN_DIR/gh" <<'GH'
 #!/bin/bash
-if [ "$1 $2" = "stack sync" ]; then
-  printf '%s\n' "${MOCK_SYNC_OUTPUT:-}" >&2
-  exit "${MOCK_SYNC_STATUS:-0}"
-fi
-if [ "$1 $2 $3" = "stack view --json" ]; then
-  printf '%s\n' "${MOCK_STACK_VIEW_STDOUT:-}"
-  exit "${MOCK_STACK_VIEW_STATUS:-0}"
-fi
 if [ "$1 $2" = "api graphql" ]; then
   number="" jq_expr=""
   shift 2
@@ -66,105 +58,25 @@ GH
 	chmod +x "$BIN_DIR/gh"
 }
 
-prepare_synced_stack() {
-	init_test_git_repo "$TMP_DIR/work" --origin "$TMP_DIR/remote.git"
-	cd "$TMP_DIR/work"
-	git switch -c feature >/dev/null 2>&1
-	git commit --allow-empty -m "Feature work" >/dev/null
-	git switch -c layer >/dev/null 2>&1
-	git commit --allow-empty -m "Layer work" >/dev/null
-	git push origin feature layer >/dev/null 2>&1
-	export STACK_REMOTE=origin
-	export MOCK_SYNC_OUTPUT=$'Pushed 2 branches\nStack synced'
-	export MOCK_STACK_VIEW_STDOUT='{"trunk":"main","branches":[{"name":"gone","isMerged":true,"isQueued":false},{"name":"waiting","isMerged":false,"isQueued":true},{"name":"feature","isMerged":false,"isQueued":false},{"name":"layer","isMerged":false,"isQueued":false}]}'
-	SYNC_CHECK="$TMP_DIR/sync-check.sh"
-	extract_block "$SHARED" "## Sync outcomes" 1 "$SYNC_CHECK"
+@test "split sync publishes frozen refs before checking metadata and reporting success" {
+    run python3 - "$SHARED" <<'PYTEST'
+from pathlib import Path
+import sys
+text = Path(sys.argv[1]).read_text().split("## Sync outcomes", 1)[1].split("## Merge outcomes", 1)[0]
+assert text.index('capture the snapshot') < text.index('`prepare`') < text.index('gh stack rebase --remote')
+assert text.index('atomic `publish`') < text.index('gh pr edit') < text.index('Report `STACK_SYNCED=true`')
+for phrase in ['metadata incomplete', 'never rerun publication', 'queued branches', 'git branch -d', 'explicit URLs']:
+    assert phrase in text, phrase
+assert 'SYNC_OUTPUT=' not in text
+PYTEST
+    [ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
-@test "sync check reports synced only when every active remote head matches" {
-	prepare_synced_stack
-
-	run bash "$SYNC_CHECK"
-
-	[ "$status" -eq 0 ]
-	[[ "$output" == *"STACK_SYNCED=true"* ]]
-}
-
-@test "sync check reports a divergence abort as not synced" {
-	prepare_synced_stack
-	export MOCK_SYNC_OUTPUT=$'⚠ Your local stack has diverged from the stack on GitHub\nℹ Sync aborted — no changes were made'
-
-	run bash "$SYNC_CHECK"
-
-	[ "$status" -eq 1 ]
-	[[ "$output" == *"Not synced: gh-stack aborted because the local and GitHub branch lists diverged."* ]]
-	[[ "$output" != *"STACK_SYNCED=true"* ]]
-}
-
-@test "sync check reports a failed gh stack sync as not synced even when the heads match" {
-	prepare_synced_stack
-	export MOCK_SYNC_OUTPUT='Another gh-stack command is running' MOCK_SYNC_STATUS=8
-
-	run bash "$SYNC_CHECK"
-
-	[ "$status" -eq 1 ]
-	[[ "$output" == *"Not synced: gh stack sync exited 8."* ]]
-	[[ "$output" == *"SYNC_STATUS=8"* ]]
-	[[ "$output" != *"STACK_SYNCED=true"* ]]
-}
-
-@test "sync check needs no stack inventory once every branch merged" {
-	prepare_synced_stack
-	export MOCK_SYNC_OUTPUT='No active branches to push (all merged)' MOCK_STACK_VIEW_STATUS=6
-
-	run bash "$SYNC_CHECK"
-
-	[ "$status" -eq 0 ]
-	[[ "$output" == *"STACK_SYNCED=true"* ]]
-}
-
-@test "sync check reports a failed push as not synced even when the heads match" {
-	prepare_synced_stack
-	export MOCK_SYNC_OUTPUT=$'⚠ Push failed: exit status 1\n  Run `gh stack push` to retry.\n✓ Branches synced'
-
-	run bash "$SYNC_CHECK"
-
-	[ "$status" -eq 1 ]
-	[[ "$output" == *"Not synced: gh-stack could not push the stack branches."* ]]
-}
-
-@test "sync check compares each active branch with the remote" {
-	prepare_synced_stack
-	git commit --allow-empty -m "Unpushed layer work" >/dev/null
-
-	run bash "$SYNC_CHECK"
-
-	[ "$status" -eq 1 ]
-	[[ "$output" == *"Not synced: origin/layer is at "*", but the local branch is at $(git rev-parse layer)."* ]]
-	[[ "$output" != *"origin/feature"* ]]
-
-	git push origin --delete feature >/dev/null 2>&1
-	git push origin layer >/dev/null 2>&1
-	run bash "$SYNC_CHECK"
-	[ "$status" -eq 1 ]
-	[[ "$output" == *"Not synced: origin/feature is at no branch"* ]]
-}
-
-@test "sync check reports an unknown outcome when the inventory cannot be read" {
-	prepare_synced_stack
-	export MOCK_STACK_VIEW_STATUS=1
-	run bash "$SYNC_CHECK"
-	[ "$status" -eq 2 ]
-	[[ "$output" != *"STACK_SYNCED=true"* ]]
-
-	export MOCK_STACK_VIEW_STATUS=0
-	export MOCK_STACK_VIEW_STDOUT='{"branches":[{"name":"missing","isMerged":false,"isQueued":false}]}'
-	run bash "$SYNC_CHECK"
-	[ "$status" -eq 2 ]
-
-	export MOCK_STACK_VIEW_STDOUT='{}'
-	run bash "$SYNC_CHECK"
-	[ "$status" -eq 2 ]
+@test "split sync stops on remote inventory changes and preserves worktree approvals" {
+    grep -qF 'added, removed, reordered, or retargeted layers, stop before rewriting' "$SHARED"
+    grep -qF 'do not adopt new layers into an existing authorization' "$SHARED"
+    grep -qF 'This confirmation applies in every mode' "$SHARED"
+    grep -qF 'Never use the combined `gh stack sync` command' "$STACK_SKILL"
 }
 
 prepare_merge_check() {
@@ -232,7 +144,7 @@ prepare_merge_check() {
 	grep -qF "follow the shared reference's **Merge outcomes** section next" "$STACK_SKILL"
 	grep -qF 'MERGE_OUTPUT=$(gh stack merge "$MERGE_TARGET" "${MERGE_ARGS[@]}" 2>&1)' "$STACK_SKILL"
 	grep -qF "printf '%s\\nMERGE_STATUS=%s\\n' \"\$MERGE_OUTPUT\" \"\$MERGE_STATUS\"" "$STACK_SKILL"
-	grep -qF "Report the stack as synced only when the block prints \`STACK_SYNCED=true\`." "$STACK_SKILL"
+	grep -qF "Report the stack as synced only after both branch and metadata verification pass." "$STACK_SKILL"
 	grep -qF 'Do not run the pruning sync; tell the user to run it once the queue has merged them.' "$SHARED"
 	grep -qF "Never re-run the merge yourself: report the states and gh-stack's message" "$SHARED"
 	grep -qF 'stack merges are atomic, so nothing landed. Restack before merging again' "$SHARED"

@@ -235,6 +235,10 @@ function sharedRuntimeFor(plugin) {
   return {
     sharedScriptDirs: [
       {
+        sourceDir: path.join(plugin.root, "scripts", "git-rewrite"),
+        targetDir: path.join("scripts", "git-rewrite"),
+      },
+      {
         executableFiles: [
           "detect-project-type.sh",
           "detect-url.sh",

@@ -23,6 +23,8 @@ Read `references/cli-agent-rules.md` before running any `gh stack` command — e
 
 Also read `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-operations.md` before any `gh stack` command. It holds the gh-stack exit codes, the rules for other worktrees, and the **Sync outcomes** and **Merge outcomes** checks. Before every `gh stack rebase` and `gh stack sync` in this skill, run its other-workspace preflight with `${CLAUDE_PLUGIN_ROOT}/scripts/list-stack-worktrees.sh`. It also governs conflicts, paused rebases, and `--accept-base-change`.
 
+Before any stack rewrite or restack, read `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-rewrite-safety.md` and use `${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py` to capture original leases before fetching or editing history. Resolve `STACK_REMOTE` under that contract. After the existing other-workspace confirmation, run its preparation step before rewriting. Keep the snapshot through validation and any separate publication confirmation; publish only through its frozen atomic command. Never refresh leases during this operation.
+
 ## When to use
 
 - New work that naturally lands as an ordered sequence of small, dependently-reviewable PRs (foundation → API → UI).
@@ -138,27 +140,24 @@ Re-running `submit --auto` is safe: it pushes changed branches, creates PRs only
 gh stack checkout <validated-nonnumeric-branch> # or: gh stack down / bottom
 # edit, git add <files>, git commit
 gh stack rebase --upstack                 # rebase everything above onto the new commits
-env -u GH_STACK_NO_ATOMIC gh stack push                             # all branches, --force-with-lease --atomic
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py" publish --state "$STACK_PUBLICATION_STATE"                             # all branches, --force-with-lease --atomic
 ```
 
 **Routine sync (trunk moved, PRs merged, stack changed on GitHub):**
 
-First read `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-rewrite-safety.md` and run its complete preflight. Stop before syncing if any open branch diverged; allow behind-only branches. Use its resolved `STACK_REMOTE` for sync and any recovery rebase. Run the sync through the shared reference's **Sync outcomes** block, which runs `env -u GH_STACK_NO_ATOMIC gh stack sync --remote "$STACK_REMOTE"` (fetch, cascade-rebase, push, and sync PR state) and checks its outcome in the same Bash call; add `--prune` to delete local branches for merged PRs. Report the stack as synced only when the block prints `STACK_SYNCED=true`.
-
-Sync handles squash-merged parents automatically. The shared preflight stops divergent active branches with the integrate-first message; gh-stack alone does not reconcile that divergence. Clearing `GH_STACK_NO_ATOMIC` makes Git ref updates all-or-nothing; PR/API updates remain separate.
+Read `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-rewrite-safety.md` and follow **Sync outcomes** in `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-operations.md`: capture the original leases, confirm other workspaces, prepare behind-only branches, rebase locally, atomically publish the frozen set, then verify PR metadata. Never use the combined `gh stack sync` command. Request pruning only after merged status is verified; queued branches stay intact. Report the stack as synced only after both branch and metadata verification pass.
 
 **Conflicts (exit code 3) are command-specific.** Resolve them in the worktree gh-stack names, under the shared reference's **Conflicts** rules:
 
-- After `env -u GH_STACK_NO_ATOMIC gh stack sync`, all branches were restored before the command returned. Repeat the shared preflight and the other-workspace preflight, then start a fresh `gh stack rebase --remote "$STACK_REMOTE"`, resolve markers file by file, `git add` each, then run `gh stack rebase --continue`.
 - After `gh stack rebase`, a rebase session remains active. Resolve markers file by file, `git add` each, then run `gh stack rebase --continue` directly — do not start a second rebase.
 
 Repeat per conflict round. `gh stack rebase --abort` restores all branches if the resolution stops being mechanical; then escalate to the user. Continue or abort only a rebase this session started.
 
-**After any history rewrite on a stack branch** (`trackbed:git:fixup`, `trackbed:git:recreate-commits`, fix-ci consolidation): the branches above are orphaned until you restack. Never push a single stack branch with plain `git push --force-with-lease`; `env -u GH_STACK_NO_ATOMIC gh stack push` updates every branch atomically:
+**After any history rewrite on a stack branch** (`trackbed:git:fixup`, `trackbed:git:recreate-commits`, fix-ci consolidation): the branches above are orphaned until you restack. Never push a single stack branch with plain `git push --force-with-lease`; `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py" publish --state "$STACK_PUBLICATION_STATE"` updates every branch atomically:
 
 ```bash
 gh stack rebase --upstack --no-trunk
-env -u GH_STACK_NO_ATOMIC gh stack push
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py" publish --state "$STACK_PUBLICATION_STATE"
 ```
 
 **Restructure (reorder / drop / rename branches):** never `gh stack modify` (TUI-only). Rebuilding the stack records a new order but does not move commits, so fix Git history first, then tear down and rebuild. PRs and branches survive, except that a renamed branch gets a new PR; tell the user to close the old one.
@@ -176,14 +175,15 @@ env -u GH_STACK_NO_ATOMIC gh stack push
 
    On any stop in steps 2–3, nothing has been unstacked or pushed yet. Run `git rebase --abort` if a rebase is active, restore each layer you already moved to its recorded tip (`git reset --keep <recorded-tip>` on the checked-out branch, `git branch -f <branch> <recorded-tip>` for the others), and report the recorded trunk and tips to the user.
 
-4. Rebuild from the recorded trunk, bottom to top. Rename branches only after `gh stack unstack`, then pass the new names to `init`:
+4. Publish the frozen original branch set before rebuilding the catalog. Keep a dropped branch at its recorded original tip through publication; do not delete or rewrite that ref. This preserves the original membership guard and the dropped layer's recoverable history. Then rebuild the remaining chain from the recorded trunk, bottom to top:
 
    ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py" publish --state "$STACK_PUBLICATION_STATE" || exit 1
    gh stack unstack
-   # rename branches with plain git as needed
    gh stack init --base <recorded-trunk> <branches bottom-to-top>
-   gh stack submit --auto
    ```
+
+   Repair existing PR bases and links through **Sync outcomes** after publication; never use submit to publish rewritten branches. Handle requested renames in a separate authorized operation. A failed catalog or metadata update reports the already-published branches and retains the snapshot; do not republish with refreshed leases.
 
 ## Adopt an existing chain
 
