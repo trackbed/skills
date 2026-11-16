@@ -107,7 +107,11 @@ def frontmatter_type_errors(
             and expected_type in {"string", "text"}
             and (
                 not isinstance(value, str)
-                or (field not in {"name", "description", "model"} and value.strip().startswith(("[", "{")))
+                or (
+                    not isinstance(value, _BlockScalar)
+                    and field not in {"name", "description", "model"}
+                    and value.strip().startswith(("[", "{"))
+                )
             )
         ):
             errors.append((field, "a string" if expected_type == "text" else "a non-empty string"))
@@ -117,23 +121,18 @@ def frontmatter_type_errors(
             errors.append((field, "a boolean ('true' or 'false')"))
         elif expected_type == "text" and (
             not isinstance(value, str)
-            or not (_is_non_empty_yaml_string(value) or _decode_yaml_quoted_string(value.strip()) is not None)
+            or not (
+                isinstance(value, _BlockScalar)
+                or _is_non_empty_yaml_string(value)
+                or _decode_yaml_quoted_string(value.strip()) is not None
+            )
         ):
             errors.append((field, "a string"))
-        elif expected_type == "text_array" and not (
-            isinstance(value, list)
-            and all(
-                _is_non_empty_yaml_block_string(item) or _decode_yaml_quoted_string(item.strip()) is not None
-                for item in value
-            )
-            or isinstance(value, str)
-            and value.strip() == "[]"
-            or _is_non_empty_string_array(value)
-        ):
+        elif expected_type == "text_array" and not _is_text_array(value):
             errors.append((field, "an array of strings"))
         elif expected_type == "tool_list" and not (
             _is_non_empty_yaml_string(value)
-            and not str(value).strip().startswith(("[", "{"))
+            and (isinstance(value, _BlockScalar) or not str(value).strip().startswith(("[", "{")))
             or _is_non_empty_string_array(value)
         ):
             errors.append((field, "a non-empty string or array of non-empty strings"))
@@ -161,7 +160,9 @@ def _block_scalar(lines: list[str], header: str, parent_indent: int) -> str:
         if line and following and not line[0].isspace() and not following[0].isspace():
             decoded.append(" ")
         elif line and not line[0].isspace() and not following:
-            continue
+            next_text = next((candidate for candidate in content[index + 2 :] if candidate), "")
+            if next_text and next_text[0].isspace():
+                decoded.append("\n")
         else:
             decoded.append("\n")
     return _BlockScalar("".join(decoded).rstrip())
@@ -351,6 +352,24 @@ def _is_non_empty_yaml_scalar_string(
     if _YAML_NUMBER_PATTERN.fullmatch(normalized):
         return False
     return bool(normalized)
+
+
+def _is_text_array(value: str | list[str]) -> bool:
+    if isinstance(value, _BlockScalar):
+        return False
+    if isinstance(value, list):
+        return all(
+            isinstance(item, _BlockScalar)
+            or _is_non_empty_yaml_block_string(item)
+            or _decode_yaml_quoted_string(item.strip()) is not None
+            for item in value
+        )
+    if value.strip() == "[]":
+        return True
+    items = _parse_inline_array(value)
+    return bool(items) and all(
+        _is_non_empty_yaml_flow_string(item) or _decode_yaml_quoted_string(item.strip()) is not None for item in items
+    )
 
 
 def _is_non_empty_string_array(value: str | list[str]) -> bool:

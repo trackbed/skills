@@ -33,5 +33,10 @@
     "name": "folded-boolean-text",
     "source": ">\n  true",
     "expected": "true"
+  },
+  {
+    "name": "paragraph-before-indent",
+    "source": ">\n  first\n\n    indented\n  last",
+    "expected": "first\n\n  indented\nlast"
   }
 ]

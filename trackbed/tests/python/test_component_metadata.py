@@ -66,6 +66,19 @@ class ComponentMetadataTest(unittest.TestCase):
             errors = frontmatter_type_errors(f"---\n{field}:\n  bad: value\n---\n", component="agent")
             self.assertIn(field, [key for key, _ in errors])
 
+    def test_array_fields_reject_a_literal_scalar_that_looks_like_a_list(self):
+        self.assertIn(
+            ("capabilities", "an array of strings"),
+            frontmatter_type_errors("---\ncapabilities: |\n  []\n---\n", component="agent"),
+        )
+
+    def test_shared_valid_agent_forms(self):
+        fixtures = json.loads(FIXTURES.with_name("agent-metadata.json").read_text())
+        for case in fixtures:
+            with self.subTest(case=case["name"]):
+                text = "---\n" + case["frontmatter"] + "\n---\n"
+                self.assertEqual(frontmatter_type_errors(text, component="agent"), [])
+
     def test_block_scalar_consumers(self):
         for case in json.loads(FIXTURES.read_text()):
             with self.subTest(case=case["name"]), tempfile.TemporaryDirectory() as tmp:
