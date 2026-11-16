@@ -4,7 +4,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { execFileSync } = require("node:child_process");
+const { execFileSync, spawnSync } = require("node:child_process");
 const test = require("node:test");
 const {
   stageCheckpoint,
@@ -170,4 +170,31 @@ test("CI summary shows scores, organization switches, cost, pending work, and er
     }),
     /Error: `prediction command failed: org-a:runtime_error`/,
   );
+});
+
+test("checkpoint CLI preserves specific diagnostics for invalid arguments", () => {
+  const script = path.resolve(
+    __dirname,
+    "../../evals/skill-review/ci-checkpoint.js",
+  );
+  /** @type {Array<[string[], RegExp]>} */
+  const cases = [
+    [[], /Usage: ci-checkpoint\.js/],
+    [["unknown"], /Usage: ci-checkpoint\.js/],
+    [["restore"], /Usage: ci-checkpoint\.js/],
+    [["stage", "openai"], /Usage: ci-checkpoint\.js/],
+    [["restore", "invalid"], /Unknown live eval provider/],
+    [["restore", "openai", "extra"], /Usage: ci-checkpoint\.js/],
+    [
+      ["stage", "openai", "destination", "extra"],
+      /Unexpected checkpoint arguments/,
+    ],
+  ];
+  for (const [args, diagnostic] of cases) {
+    const result = spawnSync(process.execPath, [script, ...args], {
+      encoding: "utf8",
+    });
+    assert.equal(result.status, 1, String(args));
+    assert.match(result.stderr, diagnostic);
+  }
 });

@@ -1135,6 +1135,30 @@ async function* readBoundedLines(file) {
   }
 }
 
+/**
+ * @param {string} file
+ * @param {(error: unknown) => void} onReadFailure
+ * @returns {AsyncGenerator<BoundedLine, void, void>}
+ */
+async function* readDiagnosedLines(file, onReadFailure) {
+  const lines = readBoundedLines(file);
+  try {
+    while (true) {
+      let next;
+      try {
+        next = await lines.next();
+      } catch (error) {
+        onReadFailure(error);
+        return;
+      }
+      if (next.done) return;
+      yield next.value;
+    }
+  } finally {
+    await lines.return();
+  }
+}
+
 const SCAN_MODE_BUFFERING = "buffering";
 const SCAN_MODE_STREAMING = "streaming";
 
@@ -1160,14 +1184,16 @@ async function scanFile(file, diagnostics, onRecord) {
 
   /** @param {string} line */
   const processJsonLine = (line) => {
+    let parsed;
     try {
-      const parsed = JSON.parse(line);
-      parsedJsonLines += 1;
-      for (const record of recordsFromScannedObject(parsed, file)) {
-        onRecord(record);
-      }
+      parsed = JSON.parse(line);
     } catch {
       malformedLines += 1;
+      return;
+    }
+    parsedJsonLines += 1;
+    for (const record of recordsFromScannedObject(parsed, file)) {
+      onRecord(record);
     }
   };
 
@@ -1182,51 +1208,53 @@ async function scanFile(file, diagnostics, onRecord) {
     for (const line of linesToFlush) processJsonLine(line);
   };
 
-  try {
-    for await (const boundedLine of readBoundedLines(file)) {
-      if (codexScan) {
-        codexScan.readLine(boundedLine);
-        continue;
-      }
-      observedBytes += boundedLine.byteLength;
-      const line = boundedLine.line || "";
-      const isNonEmpty = boundedLine.overlong || line !== "";
-      if (isNonEmpty) {
-        nonEmptyLines += 1;
-        if (nonEmptyLines === 1) {
-          startsWithWholeDocumentArray =
-            (boundedLine.overlong &&
-              boundedLine.firstNonWhitespaceByte === 0x5b) ||
-            line.trim() === "[";
-          codexScan = boundedLine.overlong
-            ? null
-            : openCodexRolloutScan(line, file, onRecord);
-          // Leaving the loop closes the stream, so skipped threads are never parsed.
-          if (codexScan?.skipFile) break;
-          if (codexScan) continue;
-        }
-      }
-
-      if (
-        scanMode === SCAN_MODE_BUFFERING &&
-        observedBytes > MAX_NON_JSONL_COMPAT_BYTES
-      ) {
-        startStreamingJsonLines();
-      }
-      if (!isNonEmpty || rejectOversizedWholeDocument) continue;
-
-      if (boundedLine.overlong) {
-        overlongLines += 1;
-      } else if (scanMode === SCAN_MODE_BUFFERING) {
-        bufferedLines.push(line);
-      } else {
-        processJsonLine(line);
+  let readFailed = false;
+  for await (const boundedLine of readDiagnosedLines(file, (error) => {
+    readFailed = true;
+    recordReadFailure(diagnostics, file, error);
+  })) {
+    if (codexScan) {
+      codexScan.readLine(boundedLine);
+      continue;
+    }
+    observedBytes += boundedLine.byteLength;
+    const line = boundedLine.line || "";
+    const isNonEmpty = boundedLine.overlong || line !== "";
+    if (isNonEmpty) {
+      nonEmptyLines += 1;
+      if (nonEmptyLines === 1) {
+        startsWithWholeDocumentArray =
+          (boundedLine.overlong &&
+            boundedLine.firstNonWhitespaceByte === 0x5b) ||
+          line.trim() === "[";
+        codexScan = boundedLine.overlong
+          ? null
+          : openCodexRolloutScan(line, file, onRecord);
+        // Leaving the loop closes the stream, so skipped threads are never parsed.
+        if (codexScan?.skipFile) break;
+        if (codexScan) continue;
       }
     }
-  } catch (error) {
+
+    if (
+      scanMode === SCAN_MODE_BUFFERING &&
+      observedBytes > MAX_NON_JSONL_COMPAT_BYTES
+    ) {
+      startStreamingJsonLines();
+    }
+    if (!isNonEmpty || rejectOversizedWholeDocument) continue;
+
+    if (boundedLine.overlong) {
+      overlongLines += 1;
+    } else if (scanMode === SCAN_MODE_BUFFERING) {
+      bufferedLines.push(line);
+    } else {
+      processJsonLine(line);
+    }
+  }
+  if (readFailed) {
     if (codexScan) {
       codexScan.finish(diagnostics);
-      recordReadFailure(diagnostics, file, error);
       return;
     }
     if (scanMode === SCAN_MODE_BUFFERING) startStreamingJsonLines();
@@ -1234,7 +1262,6 @@ async function scanFile(file, diagnostics, onRecord) {
       recordSkippedLines(diagnostics, file, overlongLines, "overlong JSONL");
       recordSkippedLines(diagnostics, file, malformedLines, "malformed JSONL");
     }
-    recordReadFailure(diagnostics, file, error);
     return;
   }
 
@@ -1259,13 +1286,19 @@ async function scanFile(file, diagnostics, onRecord) {
   }
 
   const content = bufferedLines.join("\n");
+  let parsed;
+  let decoded = false;
   try {
-    for (const record of recordsFromScannedObject(JSON.parse(content), file)) {
+    parsed = JSON.parse(content);
+    decoded = true;
+  } catch {
+    // Fall through to JSONL or plaintext classification.
+  }
+  if (decoded) {
+    for (const record of recordsFromScannedObject(parsed, file)) {
       onRecord(record);
     }
     return;
-  } catch {
-    // Fall through to JSONL or plaintext classification.
   }
 
   for (const line of bufferedLines) processJsonLine(line);
@@ -1289,11 +1322,13 @@ async function scanFile(file, diagnostics, onRecord) {
  */
 function openCodexRolloutScan(firstLine, file, onRecord) {
   let rollout;
+  let parsed;
   try {
-    rollout = openCodexRollout(JSON.parse(firstLine));
+    parsed = JSON.parse(firstLine);
   } catch {
     return null;
   }
+  rollout = openCodexRollout(parsed);
   if (!rollout) return null;
   const { skipFile, sessionId, prompts } = rollout;
   let malformedLines = 0;
@@ -1438,28 +1473,28 @@ async function readUsageRecords(
   let invalidLines = 0;
   let overlongLines = 0;
 
-  try {
-    for await (const boundedLine of readBoundedLines(file)) {
-      if (boundedLine.overlong) {
-        overlongLines += 1;
-        continue;
-      }
-      const line = boundedLine.line || "";
-      if (!line) continue;
-      try {
-        const record = normalizeUsageRecord(JSON.parse(line));
-        if (!record) invalidLines += 1;
-        else if ("unrecognizedSkill" in record) onUnrecognized?.(record);
-        else onRecord(record);
-      } catch {
-        malformedLines += 1;
-      }
-    }
-  } catch (error) {
-    const errorCode = asRecord(error).code;
-    if (!(ignoreMissing && errorCode === "ENOENT")) {
+  for await (const boundedLine of readDiagnosedLines(file, (error) => {
+    if (!(ignoreMissing && asRecord(error).code === "ENOENT")) {
       recordReadFailure(diagnostics, file, error);
     }
+  })) {
+    if (boundedLine.overlong) {
+      overlongLines += 1;
+      continue;
+    }
+    const line = boundedLine.line || "";
+    if (!line) continue;
+    let parsed;
+    try {
+      parsed = JSON.parse(line);
+    } catch {
+      malformedLines += 1;
+      continue;
+    }
+    const record = normalizeUsageRecord(parsed);
+    if (!record) invalidLines += 1;
+    else if ("unrecognizedSkill" in record) onUnrecognized?.(record);
+    else onRecord(record);
   }
 
   recordSkippedLines(diagnostics, file, overlongLines, "overlong JSONL");
@@ -1806,5 +1841,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  scanFile,
+  readUsageRecords,
   runCli,
 };

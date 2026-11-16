@@ -1418,3 +1418,87 @@ test(
     });
   },
 );
+
+for (const [name, content] of [
+  ["whole JSON", JSON.stringify({ prompt: "/trackbed:pr:create" })],
+  [
+    "JSONL",
+    ["{malformed", JSON.stringify({ prompt: "/trackbed:pr:create" })].join(
+      "\n",
+    ),
+  ],
+  [
+    "streaming JSONL",
+    (JSON.stringify({ prompt: "/trackbed:pr:create" }) + "\n").repeat(30000),
+  ],
+  [
+    "Codex rollout",
+    [
+      { type: "session_meta", payload: { id: "session", source: "cli" } },
+      {
+        type: "response_item",
+        payload: {
+          type: "message",
+          role: "user",
+          content: [{ type: "input_text", text: "$trackbed:pr:create" }],
+        },
+      },
+    ]
+      .map((record) => JSON.stringify(record))
+      .join("\n"),
+  ],
+]) {
+  test(`scan propagates callback failure once for ${name}`, async (t) => {
+    const { scanFile } = require(SCRIPT);
+    const root = await tempDir(t);
+    const file = path.join(root, "events.jsonl");
+    await fs.writeFile(file, content);
+    const diagnostics = { readFailures: 0, skippedLines: 0 };
+    const failure = new SyntaxError("callback failed");
+    let calls = 0;
+    await assert.rejects(
+      scanFile(file, diagnostics, () => {
+        calls += 1;
+        throw failure;
+      }),
+      (error) => error === failure,
+    );
+    assert.equal(calls, 1);
+    assert.equal(diagnostics.readFailures, 0);
+  });
+}
+
+test("usage reader propagates recognized and unrecognized callback errors", async (t) => {
+  const { readUsageRecords } = require(SCRIPT);
+  const root = await tempDir(t);
+  const file = path.join(root, "usage.jsonl");
+  for (const record of [
+    { skill: "trackbed:pr:create" },
+    { unrecognizedSkill: "unrecognized" },
+  ]) {
+    await writeUsageLines(file, [
+      { ...record, recordedAt: "2026-11-01T00:00:00Z" },
+    ]);
+    const failure = new Error("callback failed");
+    const diagnostics = { readFailures: 0, skippedLines: 0 };
+    let calls = 0;
+    const callback = () => {
+      calls += 1;
+      throw failure;
+    };
+    await assert.rejects(
+      readUsageRecords(
+        file,
+        diagnostics,
+        "skill" in record ? callback : () => assert.fail("Wrong callback"),
+        false,
+        "unrecognizedSkill" in record
+          ? callback
+          : () => assert.fail("Wrong callback"),
+      ),
+      (error) => error === failure,
+    );
+    assert.equal(calls, 1);
+    assert.equal(diagnostics.readFailures, 0);
+  }
+});
