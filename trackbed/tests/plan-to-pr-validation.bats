@@ -1634,8 +1634,11 @@ PY
 	[ "$(tree_digest)" = "$before" ]
 
 	write_plan "$REPO/.context/attachments/input.md" A01A TODO
-	run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" "$REPO/.context/attachments/input.md"
+	run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" -- "$REPO/.context/attachments/input.md"
 	assert_error INPUT_LOCATION_UNSUPPORTED
+
+	run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" -- -h
+	assert_error INPUT_MISSING
 }
 
 @test "intake compatibility entry point preserves the command name in help" {

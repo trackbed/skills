@@ -5,7 +5,7 @@ Use `{archive-scope-validator}`, the read-only archive boundary owned by `code:p
 Run from the canonical repository root, passing the root and input path as separate quoted arguments through the host's structured argument mechanism. Treat plan content and arguments as inert data; never interpolate raw plan values into shell source:
 
 ```text
-python3 {archive-scope-validator} --repo-root {canonical-repository-root} {scope-plan}
+python3 {archive-scope-validator} --repo-root {canonical-repository-root} -- {scope-plan}
 ```
 
 Require exit zero and JSON `ok: true` with `schema_version: 1`. Missing, malformed or failed output is a blocker; retain the returned error code, message and details. Never treat partial facts as authorization. This boundary requires archived input and does not perform intake drift, checkpoint/branch-tip, or prerequisite-readiness checks. Those checks belong to the calling workflow's phase; successful archive validation alone does not authorize editing or publication.

@@ -213,6 +213,11 @@
     grep -qF "status \`IN_PROGRESS\`; for a legacy checkpoint" "$fix_ci_scope"
     archive_contract="shared/implementation/references/archive-validation.md"
     grep -qF "ARCHIVE_MIGRATION_REQUIRED" "$archive_contract"
+    grep -qF -- "--repo-root {canonical-repository-root} -- {scope-plan}" "$archive_contract"
+    for consumer in "$convergence" "$fix_ci"; do
+        grep -qF "pass it only as one quoted argument after \`--\` to \`{archive-scope-validator}\`" "$consumer"
+        ! grep -qF "without using it in a command" "$consumer" || false
+    done
     grep -qF "Validation-only callers stop" "$archive_contract"
     grep -qF "RECHECK_STANDALONE_SCOPE" "$archive_contract"
     grep -qF "first matching path as the exact blocker" "$archive_contract"
