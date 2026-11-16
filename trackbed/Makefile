@@ -224,7 +224,7 @@ test-walkthrough-browser:
 
 # Isolated legacy extractor compatibility, separate from the contributor floor.
 test-python38-compatibility:
-	@"$(PYTHON38)" -c 'import sys; assert sys.version_info[:2] == (3, 8), "Use Python 3.8 for this compatibility check"'
+	@"$(PYTHON38)" -c 'import sys; sys.exit(0 if sys.version_info[:2] == (3, 8) else "Use Python 3.8 for this compatibility check")'
 	@"$(PYTHON38)" tests/python/test_session_search_python38.py
 
 # Verbose output (shows each test name)

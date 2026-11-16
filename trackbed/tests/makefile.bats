@@ -1293,8 +1293,8 @@ SH
   [[ "$output" == *"file=tests/pr-walkthrough.bats"* ]] || false
 }
 
-@test "Python 3.8 compatibility target refuses a different runtime" {
-  run make -C "$BATS_TEST_DIRNAME/.." --no-print-directory test-python38-compatibility PYTHON38=python3
+@test "Python 3.8 compatibility target refuses a different runtime under optimization" {
+  run env PYTHONOPTIMIZE=1 make -C "$BATS_TEST_DIRNAME/.." --no-print-directory test-python38-compatibility PYTHON38=python3
 
   [ "$status" -ne 0 ]
   [[ "$output" == *"Use Python 3.8 for this compatibility check"* ]] || false
