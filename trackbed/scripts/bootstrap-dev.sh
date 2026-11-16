@@ -240,9 +240,10 @@ print_install_guidance() {
       ;;
     linux)
       printf '  Install Node.js %d+ with npm: https://nodejs.org/en/download/package-manager\n' "$MIN_NODE_MAJOR"
-      printf '  Use Python %d.%d+ (Debian 12+ or Ubuntu 22.04+ provide compatible defaults)\n' \
+      printf '  Use Python %d.%d+ (Debian 12+ or Ubuntu 24.04+ provide compatible defaults)\n' \
         "$MIN_PYTHON_MAJOR" \
         "$MIN_PYTHON_MINOR"
+      printf '  On Ubuntu 22.04, install Python 3.11+ separately and select it as python3 before --install.\n'
       printf '  sudo apt-get update\n'
       printf '  sudo apt-get install -y make bats jq python3 python3-venv\n'
       ;;

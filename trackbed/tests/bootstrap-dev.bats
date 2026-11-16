@@ -165,7 +165,8 @@ SH
 	[ "$status" -eq 1 ]
 	[[ "$output" == *"missing: Node.js 20+"* ]] || false
 	[[ "$output" == *"Install Node.js 20+ with npm"* ]] || false
-	[[ "$output" == *"Use Python 3.11+"* ]] || false
+	[[ "$output" == *"Use Python 3.11+ (Debian 12+ or Ubuntu 24.04+ provide compatible defaults)"* ]] || false
+	[[ "$output" == *"On Ubuntu 22.04, install Python 3.11+ separately and select it as python3 before --install."* ]] || false
 	[[ "$output" == *"apt-get install -y make bats jq python3 python3-venv"* ]] || false
 	[[ "$output" != *"apt-get install -y make bats jq nodejs npm"* ]] || false
 	[ ! -s "$BOOTSTRAP_COMMAND_LOG" ]
