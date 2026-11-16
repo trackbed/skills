@@ -4,6 +4,7 @@ load 'test_helper/common'
 
 setup() {
 	VALIDATOR="$BATS_TEST_DIRNAME/../skills/code:plan-to-pr/scripts/validate-plan-state.py"
+	ARCHIVE_VALIDATOR="$BATS_TEST_DIRNAME/../scripts/validate-archive-scope.py"
 	TMP_DIR="$(mktemp -d)"
 	REPO="$TMP_DIR/repo"
 	init_test_git_repo "$REPO"
@@ -1516,4 +1517,134 @@ PY
 
 	run env EVIDENCE_ROOT="$REPO" MERGE_OID=invalid SOURCE_REF= bash -c "$check" -- "$recipe"
 	[ "$status" -gt 1 ]
+}
+
+@test "archive facts preserve independent identity across initial post-create and recovery lifecycle" {
+	write_plan "$REPO/source.md" A01A TODO
+	for stage in IMPLEMENTED COMPLETE PUBLISHED_BLOCKED; do
+		plan_status=DONE
+		[ "$stage" != IMPLEMENTED ] || plan_status=IN_PROGRESS
+		archive="$(write_archive "$REPO/source.md" "$plan_status")"
+		plan="$archive/PR_PLAN_A01A_VALIDATE_PLAN_STATE.md"
+		printf '\n## Workflow State\n\n- **Stage:** %s\n' "$stage" >>"$plan"
+		if [ "$plan_status" = DONE ]; then
+			printf '\n## Execution Result\n\n- **Completion commit:** `%s`\n' "$BASE_COMMIT" >>"$plan"
+		fi
+		printf 'implementation drift\n' >"$REPO/tracked.txt"
+		before="$(tree_digest)"
+
+		run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" "$plan"
+
+		assert_success
+		[ "$(json_get facts.plan_status)" = "$plan_status" ]
+		[ "$(json_get facts.standalone_attachment)" = true ]
+		[ "$(json_get facts.archive_source_verified)" = true ]
+		[ "$(json_get facts.attachment_contract)" = "independent plan" ]
+		[ "$(json_get facts.source_object_id)" = "$(source_object_id "$REPO/source.md")" ]
+		[ "$(json_get facts.scope_mode)" = exact-files ]
+		[ "$(json_get facts.scope_paths.0)" = tracked.txt ]
+		[ "$(tree_digest)" = "$before" ]
+	done
+}
+
+@test "archive facts distinguish marked generated and legacy containment archives" {
+	for scope_mode in exact-files containment; do
+		write_plan "$REPO/PR_PLAN_W01A_VALIDATE_PLAN_STATE.md" W01A TODO
+		write_root_index
+		if [ "$scope_mode" = containment ]; then
+			sed -i.bak 's/ \*\*Scope contract:\*\* exact files//' "$REPO/PR_PLAN_W01A_VALIDATE_PLAN_STATE.md" "$REPO/PR_PLAN_INDEX.md"
+		fi
+		run python3 "$VALIDATOR" --repo-root "$REPO" "$REPO/PR_PLAN_W01A_VALIDATE_PLAN_STATE.md"
+		assert_success
+		set_id="$(json_get facts.plan_set_id)"
+		archive="$REPO/.context/code-plan-to-pr/$set_id/plans"
+		mkdir -p "$archive"
+		mv "$REPO/PR_PLAN_W01A_VALIDATE_PLAN_STATE.md" "$REPO/PR_PLAN_INDEX.md" "$REPO/PR_PLAN_REJECTIONS.md" "$archive/"
+
+		run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" "$archive/PR_PLAN_W01A_VALIDATE_PLAN_STATE.md"
+
+		assert_success
+		[ "$(json_get facts.scope_mode)" = "$scope_mode" ]
+		[ "$(json_get facts.standalone_attachment)" = false ]
+		[ "$(json_get facts.archive_source_verified)" = false ]
+		[ "$(json_get facts.plan_set_id)" = "$set_id" ]
+	done
+}
+
+@test "archive facts skip detached intake readiness without weakening dependency consistency" {
+	write_plan "$REPO/source.md" W02A TODO tracked.txt W01A
+	archive="$(write_archive "$REPO/source.md" IN_PROGRESS W02A)"
+	plan="$archive/PR_PLAN_W02A_VALIDATE_PLAN_STATE.md"
+	sed -i.bak 's/| none | Fixture./| after W01A | Fixture./' "$archive/PR_PLAN_INDEX.md"
+
+	run python3 "$VALIDATOR" --repo-root "$REPO" "$plan"
+	assert_error PREREQUISITE_EVIDENCE_MISSING
+
+	run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" "$plan"
+	assert_success
+	[ "$(json_get facts.detached_generated_plan)" = true ]
+	[ "$(json_get facts.attachment_contract)" = "detached generated plan" ]
+
+	sed -i.bak 's/| after W01A | Fixture./| none | Fixture./' "$archive/PR_PLAN_INDEX.md"
+	run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" "$plan"
+	assert_error INDEX_DEPENDENCY_MISMATCH
+}
+
+@test "archive facts reject source hash mismatch and mutable source divergence" {
+	write_plan "$REPO/source.md" A01A TODO
+	archive="$(write_archive "$REPO/source.md")"
+	plan="$archive/PR_PLAN_A01A_VALIDATE_PLAN_STATE.md"
+	printf '\nTampered source.\n' >>"$archive/ATTACHMENT_SOURCE.md"
+
+	run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" "$plan"
+	assert_error ARCHIVE_SOURCE_HASH_MISMATCH
+
+	cp "$REPO/source.md" "$archive/ATTACHMENT_SOURCE.md"
+	printf '\nTampered plan.\n' >>"$plan"
+	run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" "$plan"
+	assert_error ARCHIVE_SOURCE_DIVERGED
+}
+
+@test "archive facts reject directory ignored and escaping exact-file scope" {
+	printf 'ignored.txt\n' >>"$REPO/.gitignore"
+	mkdir "$REPO/source-dir"
+	for scope_path in source-dir ignored.txt ../outside.txt; do
+		write_plan "$REPO/source.md" A01A TODO "$scope_path"
+		archive="$(write_archive "$REPO/source.md")"
+
+		run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" "$archive/PR_PLAN_A01A_VALIDATE_PLAN_STATE.md"
+
+		case "$scope_path" in
+		source-dir) assert_error SCOPE_DIRECTORY_INVALID ;;
+		ignored.txt) assert_error SCOPE_PATH_IGNORED ;;
+		../outside.txt) assert_error SCOPE_PATH_INVALID ;;
+		esac
+	done
+}
+
+@test "archive facts retain verified legacy migration and reject nonarchive input" {
+	write_plan "$REPO/source.md" A01A TODO
+	archive="$(write_archive "$REPO/source.md")"
+	sed -i.bak 's/ \*\*Attachment contract:\*\* independent plan//' "$archive/PR_PLAN_INDEX.md"
+	before="$(tree_digest)"
+
+	run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" "$archive/PR_PLAN_A01A_VALIDATE_PLAN_STATE.md"
+	assert_error ARCHIVE_MIGRATION_REQUIRED
+	[ "$(json_get error.details.verified)" = true ]
+	[ "$(tree_digest)" = "$before" ]
+
+	write_plan "$REPO/.context/attachments/input.md" A01A TODO
+	run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" -- "$REPO/.context/attachments/input.md"
+	assert_error INPUT_LOCATION_UNSUPPORTED
+
+	run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" -- -h
+	assert_error INPUT_MISSING
+}
+
+@test "intake compatibility entry point preserves the command name in help" {
+	run python3 "$VALIDATOR" --help
+
+	assert_success
+	[[ "$output" == "usage: validate-plan-state.py "* ]] || false
+	[[ "$output" != *"usage: plan_archive.py"* ]] || false
 }

@@ -1412,7 +1412,7 @@ EOF
 
   [[ "$scoped_plan_text" == *'SCOPED_PLAN_LIFECYCLE=initial'* ]] || false
   [[ "$scoped_plan_text" == *'SCOPED_PLAN_LIFECYCLE=recovery'* ]] || false
-  [[ "$scoped_plan_text" == *'derive `{validated-plan-branch}` as `plan/{plan-set-short}-{execution-label-lowercase}-{plan-slug}`'* ]] || false
+  [[ "$scoped_plan_text" == *'Use the runtime-derived `{validated-plan-branch}` before trusting mutable lifecycle fields.'* ]] || false
   [[ "$scoped_plan_text" == *'Before any Git or GitHub CLI use'* ]] || false
   [[ "$scoped_plan_text" == *'require the current and recorded branches to equal `{validated-plan-branch}`'* ]] || false
   [[ "$scoped_plan_text" == *'Before each edit, validate every intended path.'* ]] || false
@@ -1525,19 +1525,18 @@ EOF
 @test "scoped fix-ci lifecycle preserves valid state transitions" {
   local skill_text
   local scoped_plan_text
-  local classification_line
-  local initial_removal_line
-  local terminal_removal_line
+  local archive_validation_line
+  local lifecycle_validation_line
   skill_text="$(cat "$BATS_TEST_DIRNAME/../skills/pr:fix-ci/SKILL.md")"
   scoped_plan_text="$(cat "$BATS_TEST_DIRNAME/../skills/pr:fix-ci/references/scoped-plan.md")"
 
-  classification_line="$(grep -nF 'After this classification, reject unknown, duplicate, or misplaced lifecycle sections.' <<<"$scoped_plan_text" | cut -d: -f1)"
-  initial_removal_line="$(grep -nF 'In initial lifecycle, remove exactly the one workflow-state section' <<<"$scoped_plan_text" | cut -d: -f1)"
-  terminal_removal_line="$(grep -nF 'In post-create or recovery lifecycle, remove exactly one workflow-state and one execution-result section.' <<<"$scoped_plan_text" | cut -d: -f1)"
+  archive_validation_line="$(grep -nF 'invoke `{archive-scope-validator}` under its contract' <<<"$scoped_plan_text" | cut -d: -f1)"
+  lifecycle_validation_line="$(grep -nF 'Reject unknown, duplicate, or misplaced lifecycle sections before trusting checkpoint or publication text.' <<<"$scoped_plan_text" | cut -d: -f1)"
 
-  [ -n "$classification_line" ]
-  [ "$classification_line" -eq "$initial_removal_line" ]
-  [ "$classification_line" -eq "$terminal_removal_line" ]
+  [ -n "$archive_validation_line" ]
+  [ -n "$lifecycle_validation_line" ]
+  [ "$archive_validation_line" -lt "$lifecycle_validation_line" ]
+  [[ "$scoped_plan_text" == *"Use the runtime boundary's lifecycle/source-byte integrity proof"* ]] || false
   [[ "$scoped_plan_text" == *'In initial lifecycle, require its repository, base ref, and head branch to match'* ]] || false
   [[ "$scoped_plan_text" == *'retain its head OID only for the live-head agreement and adoption proof in item 7'* ]] || false
   [[ "$scoped_plan_text" == *'SCOPED_PLAN_LIFECYCLE=post-create'* ]] || false

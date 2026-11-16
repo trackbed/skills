@@ -255,6 +255,28 @@ test("build writes a marketplace with skills, shared runtime, and rewritten plug
       "shared() { :; }\n",
     );
 
+    for (const filename of ["plan_archive.py", "validate-archive-scope.py"]) {
+      await writeFile(
+        path.join(pluginRoot, "scripts", filename),
+        await readText(path.join(__dirname, "../../scripts", filename)),
+      );
+    }
+    await writeFile(
+      path.join(
+        pluginRoot,
+        "skills",
+        "demo:run",
+        "scripts",
+        "validate-plan-state.py",
+      ),
+      await readText(
+        path.join(
+          __dirname,
+          "../../skills/code:plan-to-pr/scripts/validate-plan-state.py",
+        ),
+      ),
+    );
+
     const plugin = await loadClaudePlugin(pluginRoot);
     const bundle = convertClaudeToCodex(plugin);
     const built = await buildCodexMarketplace(outputRoot, bundle);
@@ -361,6 +383,34 @@ test("build writes a marketplace with skills, shared runtime, and rewritten plug
       ),
       '"""Shared classification."""\n',
     );
+    for (const { entrypoint, description, usage } of [
+      {
+        entrypoint: path.join(
+          "skills",
+          "build-plugin:demo:run",
+          "scripts",
+          "validate-plan-state.py",
+        ),
+        description: /Read-only validation for trackbed:code:plan-to-pr intake/,
+        usage: /^usage: validate-plan-state\.py /,
+      },
+      {
+        entrypoint: path.join("scripts", "validate-archive-scope.py"),
+        description:
+          /Read-only archive classification, provenance and scope facts/,
+        usage: /^usage: validate-archive-scope\.py /,
+      },
+    ]) {
+      const help = execFileSync(
+        "python3",
+        [path.join(built.pluginRoot, entrypoint), "--help"],
+        {
+          encoding: "utf8",
+        },
+      );
+      assert.match(help, description);
+      assert.match(help, usage);
+    }
     assert.equal(await executable("scripts/dev-server/detect-url.sh"), true);
     assert.equal(await executable("scripts/lib/shared.sh"), false);
     assert.equal(
