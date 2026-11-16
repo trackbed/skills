@@ -33,6 +33,8 @@ Use `/trackbed:hooks:toggle` to enable or disable hooks:
 
 State is stored in `${XDG_STATE_HOME:-$HOME/.local/state}/trackbed/hook-state.json` by default, with `TRACKBED_HOOK_STATE_FILE` override support and legacy fallback to `hooks/hook-state.json`. Releases before 1.0.0 kept state under `kramme-cc-workflow/` and read `KRAMME_*` overrides; every hook state and config path still uses an existing file there until a `trackbed/` file exists, and still reads a `KRAMME_*` override while the `TRACKBED_*` one is unset. When a hook is disabled, the hook script drains stdin before exiting to avoid broken-pipe errors if the runner is piping JSON input.
 
+The shared path resolver (`scripts/lib/trackbed-paths.sh`) uses the current override, then its `KRAMME_` alias. Otherwise it uses `XDG_STATE_HOME` (or `XDG_CONFIG_HOME` for configuration), then the home default: an existing `trackbed/` file wins over the previous `kramme-cc-workflow/` file, followed by an explicitly supplied plugin-local legacy file. With no existing file, it returns the current default path. If both the XDG base and `HOME` are absent, only an override or existing explicit legacy file can resolve; it never invents a path under `/`.
+
 ## block-rm-rf
 
 `block-rm-rf` requires both `jq` and `python3` at runtime. If either binary is missing, the hook fails closed and blocks the Bash tool call until the dependency is installed or the hook is explicitly disabled.

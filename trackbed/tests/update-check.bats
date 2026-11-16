@@ -12,6 +12,8 @@ setup() {
 	mkdir -p "$TEST_PLUGIN_ROOT/.claude-plugin" "$TEST_PLUGIN_ROOT/hooks/lib"
 	cp "$BATS_TEST_DIRNAME/../hooks/update-check.sh" "$HOOK"
 	cp "$BATS_TEST_DIRNAME/../hooks/lib/check-enabled.sh" "$TEST_PLUGIN_ROOT/hooks/lib/check-enabled.sh"
+	mkdir -p "$TEST_PLUGIN_ROOT/scripts/lib"
+	cp "$BATS_TEST_DIRNAME/../scripts/lib/trackbed-paths.sh" "$TEST_PLUGIN_ROOT/scripts/lib/trackbed-paths.sh"
 	write_installed_version "0.89.0"
 
 	FAKE_BIN="$BATS_TEST_TMPDIR/bin"
@@ -469,4 +471,13 @@ wait_for_fetch() {
 	[ "$status" -eq 0 ]
 	[ "$(jq -r '.seenVersion' "$override")" = "0.89.0" ]
 	[ ! -e "$STATE_FILE" ]
+}
+
+@test "missing home and state directory skips update checks without writing a relative lock" {
+	cd "$BATS_TEST_TMPDIR"
+	run env -u HOME -u XDG_STATE_HOME -u TRACKBED_UPDATE_CHECK_FILE -u KRAMME_UPDATE_CHECK_FILE bash "$HOOK"
+	[ "$status" -eq 0 ]
+	[ "$output" = '{}' ]
+	[ ! -e .lock ]
+	[ "$(curl_calls)" -eq 0 ]
 }

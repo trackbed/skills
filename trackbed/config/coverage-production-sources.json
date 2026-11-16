@@ -917,6 +917,11 @@
       "trackbed/scripts/lib/review-scope.sh": [
         "trackbed/tests/review-scope.bats"
       ],
+      "trackbed/scripts/lib/trackbed-paths.sh": [
+        "trackbed/tests/check-enabled.bats",
+        "trackbed/tests/check-environment.bats",
+        "trackbed/tests/update-check.bats"
+      ],
       "trackbed/scripts/lib/shell-helpers.sh": [
         "trackbed/tests/dev-server-scripts.bats",
         "trackbed/tests/resolve-base.bats",

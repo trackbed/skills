@@ -294,3 +294,29 @@ run_resolve_trackbed_path() {
 	[ "$status" -eq 0 ]
 	[ "$output" = "$xdg_home/trackbed/thing.config" ]
 }
+
+@test "resolver refuses a fabricated root path without HOME or XDG but honors explicit paths" {
+	run env -u HOME -u XDG_TEST_HOME -u TRACKBED_TEST_OVERRIDE -u KRAMME_TEST_OVERRIDE bash -c \
+		'source "$1"; resolve_trackbed_path TRACKBED_TEST_OVERRIDE XDG_TEST_HOME .config thing.config' _ "$LIB"
+	[ "$status" -eq 1 ]
+	[ -z "$output" ]
+
+	local legacy="$BATS_TEST_TMPDIR/legacy.config"
+	touch "$legacy"
+	run env -u HOME -u XDG_TEST_HOME bash -c \
+		'source "$1"; resolve_trackbed_path TRACKBED_TEST_OVERRIDE XDG_TEST_HOME .config thing.config "$2"' _ "$LIB" "$legacy"
+	[ "$status" -eq 0 ]
+	[ "$output" = "$legacy" ]
+
+	for override in TRACKBED_TEST_OVERRIDE KRAMME_TEST_OVERRIDE; do
+		run env -u HOME -u XDG_TEST_HOME "$override=$legacy" bash -c \
+			'source "$1"; resolve_trackbed_path TRACKBED_TEST_OVERRIDE XDG_TEST_HOME .config thing.config' _ "$LIB"
+		[ "$status" -eq 0 ]
+		[ "$output" = "$legacy" ]
+	done
+
+	run env -u HOME XDG_TEST_HOME="$BATS_TEST_TMPDIR/xdg" bash -c \
+		'source "$1"; resolve_trackbed_path TRACKBED_TEST_OVERRIDE XDG_TEST_HOME .config thing.config' _ "$LIB"
+	[ "$status" -eq 0 ]
+	[ "$output" = "$BATS_TEST_TMPDIR/xdg/trackbed/thing.config" ]
+}

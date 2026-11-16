@@ -10,6 +10,7 @@ script; keep behavior shared by multiple scripts here.
 | --- | --- |
 | `review-scope.sh` | Provides `collect_review_scope` to load repository scope and normalize the caller directory, and `review_untracked_paths` to emit the raw NUL-delimited untracked subset for content handoffs. |
 | `shell-helpers.sh` | Provides required-argument validation, shell assignment quoting, JSON object emit/decode with a single Python guard, and timeout-wrapped command execution. |
+| `trackbed-paths.sh` | Resolves trackbed state and configuration paths: override, former `KRAMME_` override, XDG or home `trackbed/` file, then pre-1.0.0 and plugin-local legacy files. Shared by every hook through `hooks/lib/check-enabled.sh` and by the setup checker. |
 | `skill-usage-cost.js` | Transcript indexing for `scripts/skill-usage.js cost` and `decisions`, and per-session cost and token summaries and rendering for `cost`. |
 | `skill-usage-decision-requests.js` | Run selection, per-run counts of where a workflow stopped for the user, and rendering for `scripts/skill-usage.js decisions`. |
 | `skill-usage-hosts.js` | Host detection, plugin manifest version lookup, and Codex rollout parsing for `scripts/skill-usage.js`. |
