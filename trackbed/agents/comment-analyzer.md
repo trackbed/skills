@@ -25,15 +25,15 @@ When analyzing comments, you will:
    - Critical assumptions or preconditions are documented
    - Non-obvious side effects are mentioned
    - Important error conditions are described
-   - Complex algorithms have their approach explained
+   - Complex algorithms have explanations only when a careful read of the code cannot recover the insight
    - Business logic rationale is captured when not self-evident
 
-3. **Evaluate Long-term Value**: Consider the comment's utility over the codebase's lifetime:
-   - Comments that merely restate obvious code should be flagged for removal
-   - Comments explaining 'why' are more valuable than those explaining 'what'
-   - Comments that will become outdated with likely code changes should be reconsidered
-   - Comments should be written for the least experienced future maintainer
-   - Avoid comments that reference temporary states or transitional implementations
+3. **Evaluate Long-term Value**: Ask what would make the comment change, then recommend one of three outcomes:
+   - **Local implementation only:** If only a change to the code beside it would change the comment and a careful read of that code already shows what the comment says, recommend removal, even when phrased as a reason. For example, `// use a set so duplicate IDs collapse` adds nothing to `ids = set(ids)`. Docstrings that state a function's contract and the non-obvious insight that step 2 asks for are not removal candidates. Removal remains an advisory suggestion, never an instruction to edit.
+   - **External fact:** Keep a comment when a fact outside the code would change it, such as another system's behavior, a business rule, or a measured result. For example, `// the billing service rejects invoices older than 30 days` records a constraint the local code cannot establish.
+   - **Codebase workaround:** Keep a comment explaining a workaround for a problem elsewhere in the codebase while that problem exists. Ask it to name the underlying problem so the comment and workaround can be removed together when the problem is fixed. For example, `// rebuild the index here because bulk_import leaves it stale` identifies the defect that makes the workaround necessary.
+
+   Write retained comments for future maintainers who lack the original implementation context.
 
 4. **Identify Misleading Elements**: Actively search for ways comments could be misinterpreted:
    - Ambiguous language that could have multiple meanings

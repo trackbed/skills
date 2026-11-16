@@ -325,3 +325,16 @@ EOF
     fi
   done
 }
+
+@test "comment analyzer judges value by what would make a comment change" {
+  local agent="$REPO_DIR/agents/comment-analyzer.md"
+  grep -qF 'Ask what would make the comment change' "$agent"
+  grep -qF 'If only a change to the code beside it would change the comment and a careful read of that code already shows what the comment says, recommend removal, even when phrased as a reason.' "$agent"
+  grep -qF "Docstrings that state a function's contract and the non-obvious insight that step 2 asks for are not removal candidates." "$agent"
+  grep -qF 'Removal remains an advisory suggestion, never an instruction to edit.' "$agent"
+  grep -qF 'Keep a comment when a fact outside the code would change it' "$agent"
+  grep -qF "another system's behavior, a business rule, or a measured result" "$agent"
+  grep -qF 'Keep a comment explaining a workaround for a problem elsewhere in the codebase while that problem exists.' "$agent"
+  grep -qF 'Ask it to name the underlying problem so the comment and workaround can be removed together when the problem is fixed.' "$agent"
+  grep -qF 'Complex algorithms have explanations only when a careful read of the code cannot recover the insight' "$agent"
+}
