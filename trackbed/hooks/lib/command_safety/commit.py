@@ -44,6 +44,7 @@ from .vocabulary import (
 class CommitContext(TypedDict, total=False):
     git_args: list[str]
     git_env: list[str]
+    staging_steps: list[list[str]]
     selection_mode: str
     pathspecs: list[str]
     pathspec_from_file: str
@@ -323,6 +324,7 @@ def parse_commit_contexts(
     inherited_git_env: Optional[list[str]] = None,
     inherited_shell_git_vars: Optional[list[str]] = None,
     depth: int = 0,
+    include_adds: bool = False,
 ) -> list[CommitContext]:
     # Cap recursion so pathological nesting can't hit Python's stack limit
     # and convert a ValueError into an uncaught RecursionError (which would
@@ -341,6 +343,28 @@ def parse_commit_contexts(
     except ValueError as exc:
         raise ParseError(str(exc)) from exc
 
+    def collect_contexts(found: list[CommitContext]) -> None:
+        for context in found:
+            if context.get("selection_mode") == "add":
+                pending_adds.append(context)
+                if include_adds:
+                    contexts.append(context)
+                continue
+            if pending_adds and not include_adds:
+                if any(
+                    step.get("git_args") != context.get("git_args") or step.get("git_env") != context.get("git_env")
+                    for step in pending_adds
+                ):
+                    context.update(
+                        commit_selection_error("preceding git add uses a different repository or index context.")
+                    )
+                elif any(step.get("selection_error") for step in pending_adds):
+                    context.update(commit_selection_error("preceding git add has unsupported or dynamic arguments."))
+                else:
+                    context["staging_steps"] = [step["pathspecs"] for step in pending_adds]
+            contexts.append(context)
+
+    pending_adds: list[CommitContext] = []
     current_git_env = list(inherited_git_env or [])
     current_shell_git_vars = list(inherited_shell_git_vars or [])
     used_placeholder_indexes: set[int] = set()
@@ -349,13 +373,14 @@ def parse_commit_contexts(
         segment_input_shell_git_vars = list(current_shell_git_vars)
         for placeholder_index in extract_placeholder_indexes(segment):
             used_placeholder_indexes.add(placeholder_index)
-            contexts.extend(
+            collect_contexts(
                 parse_commit_contexts(
                     substitutions[placeholder_index],
                     inherited_git_args=inherited_git_args,
                     inherited_git_env=segment_input_env,
                     inherited_shell_git_vars=segment_input_shell_git_vars,
                     depth=depth + 1,
+                    include_adds=True,
                 )
             )
         segment_result = parse_commit_segment(
@@ -365,7 +390,7 @@ def parse_commit_contexts(
             list(segment_input_shell_git_vars),
             depth=depth,
         )
-        contexts.extend(segment_result.contexts)
+        collect_contexts(segment_result.contexts)
         if separator in ENV_PERSISTING_CONTROL_TOKENS:
             current_git_env = segment_result.persisted_git_env
             current_shell_git_vars = segment_result.persisted_shell_git_vars
@@ -376,15 +401,21 @@ def parse_commit_contexts(
     for placeholder_index, substitution in enumerate(substitutions):
         if placeholder_index in used_placeholder_indexes:
             continue
-        contexts.extend(
-            parse_commit_contexts(
-                substitution,
-                inherited_git_args=inherited_git_args,
-                inherited_git_env=inherited_git_env,
-                inherited_shell_git_vars=inherited_shell_git_vars,
-                depth=depth + 1,
-            )
+        remaining_contexts = parse_commit_contexts(
+            substitution,
+            inherited_git_args=inherited_git_args,
+            inherited_git_env=inherited_git_env,
+            inherited_shell_git_vars=inherited_shell_git_vars,
+            depth=depth + 1,
+            include_adds=True,
         )
+        if any(context.get("selection_mode") == "add" for context in remaining_contexts) and any(
+            context.get("selection_mode") != "add" for context in contexts
+        ):
+            contexts.append(
+                commit_selection_error("git add ordering in a heredoc expansion cannot be replayed safely.")
+            )
+        collect_contexts(remaining_contexts)
     return contexts
 
 
@@ -550,6 +581,7 @@ def parse_commit_segment(
                     inherited_git_env=git_env,
                     inherited_shell_git_vars=list(git_env),
                     depth=depth + 1,
+                    include_adds=True,
                 ),
                 persisted_git_env=persisted_shell_git_env,
                 persisted_shell_git_vars=persisted_shell_git_vars,
@@ -609,6 +641,40 @@ def parse_commit_segment(
             idx += 1
             continue
         break
+
+    if idx < len(tokens) and tokens[idx] == "add":
+        add_args: list[str] = []
+        after_separator = False
+        error = False
+        add_idx = idx + 1
+        while add_idx < len(tokens):
+            arg = tokens[add_idx]
+            redirection_tokens = _redirection_token_count(tokens, add_idx)
+            if redirection_tokens:
+                add_idx += redirection_tokens
+                continue
+            if "__CMD_SUBST_" in arg or "$" in arg or "`" in arg:
+                error = True
+            if arg == "--":
+                after_separator = True
+            elif not after_separator and arg.startswith("-"):
+                if arg not in {"-A", "--all", "-u", "--update", "-f", "--force"}:
+                    error = True
+            add_args.append(arg)
+            add_idx += 1
+        add_context: CommitContext = {
+            "git_args": git_args,
+            "git_env": git_env,
+            "selection_mode": "add",
+            "pathspecs": add_args,
+        }
+        if error:
+            add_context.update(commit_selection_error("unsupported git add arguments."))
+        return CommitSegmentResult(
+            contexts=[add_context],
+            persisted_git_env=shell_git_env if shell_env_persists else inherited_shell_git_env,
+            persisted_shell_git_vars=shell_git_vars if shell_env_persists else inherited_shell_git_vars,
+        )
 
     if idx < len(tokens) and tokens[idx] == "commit":
         context: CommitContext = {"git_args": git_args, "git_env": git_env}

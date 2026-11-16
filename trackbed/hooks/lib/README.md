@@ -43,7 +43,7 @@ exit 0; missing or unknown modes exit 2.
 | Mode and caller | Accepted command shapes | JSON stdout | Nested parsing | Failure posture |
 | --- | --- | --- | --- | --- |
 | `commit-contexts` — [`confirm-review-responses.sh`](../confirm-review-responses.sh) | Command lists containing `git commit`, including normalized wrappers, repository-selection options and environment, inline shell commands, command substitutions, and index/worktree/pathspec selection forms. | An ordered array of commit-context objects; `[]` means no commit was found. See the field contract below. | Follows inline shell commands and command substitutions through depth 4 while carrying replayable repository state. | Parse ambiguity returns `[{"parse_error": "<reason>"}]`; unsupported commit selection adds `selection_error` to that context. The caller blocks on either error, dynamic repository selection, malformed fields, a string carrying a NUL byte, stdout that is not exactly one JSON document, or replay failure. |
-| `rm-rf` — [`block-rm-rf.sh`](../block-rm-rf.sh) | Command lists containing recursive-and-forced `rm`, `find -delete`, `find -exec`/`-execdir`, `xargs`, `shred`, or `unlink`, including normalized wrappers, inline shell commands, `eval`, shell functions, executable heredocs, and command/process substitutions. | `{"block": null}` to allow, or `{"block": "<reason>"}` to block. | Inspects supported destructive shapes through depth 5. If another nested command would require analysis beyond that bound, the parser blocks instead of classifying its contents. | Tokenization, prefix-normalization, analysis-depth exhaustion, or Python recursion failure returns the generic `rm -rf` block reason. Commands with no recognized destructive shape pass only when analysis completes within the bound. |
+| `rm-rf` — [`block-rm-rf.sh`](../block-rm-rf.sh) | Command lists containing recursive-and-forced `rm`, `find -delete`, `find -exec`/`-execdir`, `xargs`, `shred`, or `unlink`, including normalized wrappers, inline shell commands, `eval`, shell functions, executable heredocs, and command/process substitutions. | `{"block": null}` to allow, or `{"block": "<reason>"}` to block. | Inspects supported destructive shapes through depth 5. If another nested command would require analysis beyond that bound, the parser blocks instead of classifying its contents. | Tokenization, prefix-normalization, or Python recursion failure returns an explicit parse-ambiguity block reason. Analysis-depth exhaustion retains the generic `rm -rf` block reason. Commands with no recognized destructive shape pass only when analysis completes within the bound. |
 
 All modes bound recursive `env -S`/`--split-string` expansion to 64 expansions
 and 100,000 characters of expanded payload. Exceeding either bound is a parse
@@ -66,6 +66,7 @@ replaying the selection:
 | `git_env` | Ordered string array of replayable `GIT_*` assignments that select repository, index, object, namespace, or pathspec behavior. Present on normal commit contexts. |
 | `selection_mode` | Effective commit content selection: `index` when absent, otherwise `all`, `include`, or `only`. |
 | `pathspecs` | Ordered command-line pathspecs, excluding shell redirections such as `2>&1` or `<<EOF`. Present with non-index selection, including an empty array when the mode itself selects content. |
+| `staging_steps` | Optional ordered arrays of validated `git add` arguments preceding this commit in the same command list. Replayed against a private index and object store before applying commit selection; a different repository/index context or unsupported add arguments blocks inspection. |
 | `pathspec_from_file` | Optional path to a line- or NUL-delimited pathspec file. `-` and dynamically substituted paths are rejected. |
 | `pathspec_file_nul` | Boolean delimiter flag emitted with `pathspec_from_file`; defaults to `false`. |
 | `selection_error` | Modeled commit with content-selection arguments that cannot be replayed safely. The consuming hook blocks with this reason. |
@@ -82,7 +83,7 @@ replaying the selection:
 - Parser changes need regression tests for the hook that consumes the parser,
   not just direct helper tests.
 - Do not add repository-specific workflow policy here. For example, deciding
-  which review artifacts require confirmation belongs in
+  which review artifacts must be excluded belongs in
   `confirm-review-responses.sh` and `confirm-review-artifacts.txt`.
 
 ## Verification

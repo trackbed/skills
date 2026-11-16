@@ -28,6 +28,33 @@ make_nested_bash_command() {
 # BASIC ALLOW CASES
 # ============================================================================
 
+@test "allows apostrophes and substitution text inside shell comments" {
+	run run_hook "git status # don't forget \$(rm -rf ignored)"
+	[ "$status" -eq 0 ]
+	[ -z "$output" ]
+}
+
+@test "detects deletion between apostrophe-bearing shell comments" {
+	run run_hook "# don't
+rm -rf directory/
+# it's done"
+	is_blocked
+	[[ "$output" == *"rm -rf is blocked"* ]]
+}
+
+@test "keeps quoted hashes literal before a destructive command" {
+	run run_hook 'printf "%s" "# literal"; rm -rf directory/'
+	is_blocked
+	[[ "$output" == *"rm -rf is blocked"* ]]
+}
+
+@test "blocks genuine quote ambiguity with a parse reason" {
+	run run_hook "git status '"
+	is_blocked
+	[[ "$output" == *"Unable to safely parse command"* ]]
+	[[ "$output" != *"rm -rf is blocked"* ]]
+}
+
 @test "allows empty input" {
 	run bash "$HOOK" <<<'{}'
 	[ "$status" -eq 0 ]
@@ -151,7 +178,7 @@ make_nested_bash_command() {
 			printf 'Expected malformed prefixed command to be blocked: %s\n' "$command" >&2
 			return 1
 		fi
-		[[ "$output" == *"trash"* ]]
+		[[ "$output" == *"Unable to safely parse command"* ]]
 	done < <(safety_malformed_prefix_matrix "rm -rf directory/")
 }
 
@@ -1119,4 +1146,15 @@ make_nested_bash_command() {
 	run run_hook "yarn add package"
 	[ "$status" -eq 0 ]
 	[ -z "$output" ]
+}
+
+
+@test "parameter hashes cannot hide a destructive suffix" {
+	run run_hook 'echo ${x:- # literal}; rm -rf directory/'
+	is_blocked
+}
+
+@test "allows harmless parameter hash data" {
+	run run_hook 'echo ${x:- # literal}'
+	[ "$status" -eq 0 ]
 }

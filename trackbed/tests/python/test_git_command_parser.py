@@ -14,6 +14,7 @@ from pathlib import Path
 PARSER_LIB_DIR = Path(__file__).resolve().parents[2] / "hooks" / "lib"
 PARSER_PATH = PARSER_LIB_DIR / "git_command_parser.py"
 
+RM_RF_PARSE_ERROR_REASON = "Unable to safely parse command. Refusing potentially destructive deletion command."
 RM_RF_REASON = "rm -rf is blocked. Use `trash` instead (install: brew install trash). Files go to Trash for recovery."
 XARGS_RM_RF_REASON = "xargs rm -rf is blocked. Use `trash` instead."
 FIND_DELETE_REASON = "find -delete is blocked. Use `trash` instead for recoverable deletion."
@@ -230,6 +231,22 @@ class GitCommandLexerTest(unittest.TestCase):
             ("(cd x); rm y", ["(", "cd", "x", ")", ";", "rm", "y"]),
             ("(cd x)&& rm y", ["(", "cd", "x", ")", "&&", "rm", "y"]),
             ("a && b || c & d", ["a", "&&", "b", "||", "c", "&", "d"]),
+        ]
+        for command, expected in cases:
+            with self.subTest(command=command):
+                self.assertEqual(parser_lexer.tokenize(command), expected)
+
+    def test_tokenize_shell_comments_respect_word_and_quote_boundaries(self) -> None:
+        cases = [
+            ("git status # don't forget", ["git", "status"]),
+            ("# don't\ngit status\n# it's done", [";", "git", "status", ";"]),
+            ('printf "%s" "# literal"', ["printf", "%s", "# literal"]),
+            ("printf foo#bar", ["printf", "foo#bar"]),
+            (r"printf \#literal", ["printf", "#literal"]),
+            (r"printf word\ #literal", ["printf", "word #literal"]),
+            ('printf ""#literal', ["printf", "#literal"]),
+            (r"printf $'it\'s # literal'", ["printf", "it's # literal"]),
+            ("git status # $(rm -rf ignored) `unterminated", ["git", "status"]),
         ]
         for command, expected in cases:
             with self.subTest(command=command):
@@ -775,6 +792,18 @@ class GitCommandParserCliTest(unittest.TestCase):
     maxDiff = None
 
     CASES = [
+        ("apostrophe in trailing shell comment", "git status # don't forget", json_line([])),
+        (
+            "commit between apostrophe-bearing comments",
+            "# don't\ngit commit -m test\n# it's done",
+            json_line([{"git_args": [], "git_env": []}]),
+        ),
+        ("commit in comment is not executed", "git status # $(git commit -m test)", json_line([])),
+        (
+            "comment in substitution does not hide commit",
+            "echo \"$(# don't )\ngit commit -m test\n# it's done\n)\"",
+            json_line([{"git_args": [], "git_env": []}]),
+        ),
         (
             "plain git command",
             "git status",
@@ -828,7 +857,7 @@ class GitCommandParserCliTest(unittest.TestCase):
         (
             "pipeline into commit",
             "git add . | git commit -F -",
-            json_line([{"git_args": [], "git_env": []}]),
+            json_line([{"git_args": [], "git_env": [], "staging_steps": [["."]]}]),
         ),
         (
             "shell inline command",
@@ -1001,6 +1030,33 @@ class GitCommandParserCliTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 0)
                 self.assertEqual(result.stderr, "")
                 self.assertEqual(result.stdout, expected_stdout)
+
+    def test_preceding_adds_are_recorded_for_commit_replay(self) -> None:
+        for command, steps in [
+            ("git add REVIEW_OVERVIEW.md && git commit -m test", [["REVIEW_OVERVIEW.md"]]),
+            ("git add -A && git commit -m test", [["-A"]]),
+            ("git add --all; git add -- notes.txt; git commit", [["--all"], ["--", "notes.txt"]]),
+        ]:
+            with self.subTest(command=command):
+                result = self.run_parser("commit-contexts", command)
+                self.assertEqual(result.returncode, 0)
+                self.assertEqual(
+                    json.loads(result.stdout),
+                    [{"git_args": [], "git_env": [], "staging_steps": steps}],
+                )
+
+    def test_preceding_add_ambiguity_blocks_commit_selection(self) -> None:
+        for command, reason in [
+            ("git add --patch && git commit", "unsupported or dynamic arguments"),
+            ("git add $REPORT && git commit", "unsupported or dynamic arguments"),
+            ("git -C other add -A && git commit", "different repository or index context"),
+        ]:
+            with self.subTest(command=command):
+                result = self.run_parser("commit-contexts", command)
+                self.assertEqual(result.returncode, 0)
+                contexts = json.loads(result.stdout)
+                self.assertEqual(len(contexts), 1)
+                self.assertIn(reason, contexts[0]["selection_error"])
 
     def test_malformed_payloads_fail_closed(self) -> None:
         excessive_split_string = "--split-string=" * (parser_prefix.MAX_ENV_SPLIT_STRING_EXPANSIONS + 1) + "printf"
@@ -1288,6 +1344,24 @@ class RmRfParserCliTest(unittest.TestCase):
         return command
 
     CASES = [
+        ("unterminated quote blocks with parse reason", "git status '", json_line({"block": RM_RF_PARSE_ERROR_REASON})),
+        ("apostrophe in comment allowed", "git status # don't forget", json_line({"block": None})),
+        (
+            "deletion between comments blocked",
+            "# don't\nrm -rf directory/\n# it's done",
+            json_line({"block": RM_RF_REASON}),
+        ),
+        ("commented deletion allowed", "git status # $(rm -rf directory/)", json_line({"block": None})),
+        (
+            "quoted hash followed by deletion blocked",
+            'printf "# literal"; rm -rf directory/',
+            json_line({"block": RM_RF_REASON}),
+        ),
+        (
+            "comment in substitution before deletion blocked",
+            "echo \"$(# don't )\nrm -rf directory/\n# it's done\n)\"",
+            json_line({"block": RM_RF_REASON}),
+        ),
         (
             "plain rm -rf",
             "rm -rf directory/",
@@ -1609,7 +1683,7 @@ class RmRfParserCliTest(unittest.TestCase):
         (
             "rm -rf after a heredoc that ends with its substitution blocked",
             "x=\"$(cat <<'EOF'\nhello\nEOF)\"\nrm -rf directory/\n: <<'EOF'\nEOF\n)\"",
-            json_line({"block": RM_RF_REASON}),
+            json_line({"block": RM_RF_PARSE_ERROR_REASON}),
         ),
         (
             "heredoc commit message whose delimiter line closes the substitution allowed",
@@ -1653,7 +1727,7 @@ class RmRfParserCliTest(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0)
         self.assertEqual(result.stderr, "")
-        self.assertEqual(result.stdout, json_line({"block": RM_RF_REASON}))
+        self.assertEqual(result.stdout, json_line({"block": RM_RF_PARSE_ERROR_REASON}))
 
     def test_recursion_boundary_fails_closed(self) -> None:
         cases = [
@@ -1797,3 +1871,48 @@ class GitCommandParserEntryPointTest(unittest.TestCase):
         self.assertNotEqual(script_result.returncode, 0)
         self.assertEqual(script_result.stdout, "")
         self.assertIn("No module named 'command_safety'", script_result.stderr)
+
+
+class ReviewRegressionTest(unittest.TestCase):
+    def test_staging_crosses_nested_execution_boundaries(self) -> None:
+        for command in [
+            'git add -A && echo "$(git commit -m test)"',
+            'bash -c "git add -A" && git commit -m test',
+            'echo "$(git add -A)" && git commit -m test',
+            'git add -A && bash -c "git commit -m test"',
+            'bash -c "git add -A && git commit -m test"',
+        ]:
+            with self.subTest(command=command):
+                contexts = parser_commit.parse_commit_contexts(command, inherited_git_env=[])
+                self.assertEqual(len(contexts), 1)
+                self.assertEqual(contexts[0]["staging_steps"], [["-A"]])
+
+    def test_parameter_hashes_cannot_hide_executable_suffixes(self) -> None:
+        for expansion in ["${x:- # literal}", '${x:-"}" # literal}', "${#x}", "${x#prefix}"]:
+            with self.subTest(expansion=expansion):
+                command = f"echo {expansion}; git commit -m test"
+                self.assertEqual(len(parser_commit.parse_commit_contexts(command, inherited_git_env=[])), 1)
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    parser_rm_rf.run_rm_rf(f"echo {expansion}; rm -rf directory/")
+                self.assertIsNotNone(json.loads(output.getvalue())["block"])
+
+    def test_parameter_hashes_in_command_substitutions(self) -> None:
+        contexts = parser_commit.parse_commit_contexts(
+            'echo "$(echo ${x:- # literal}; git commit -m test)"', inherited_git_env=[]
+        )
+        self.assertEqual(len(contexts), 1)
+
+    def test_harmless_parameter_hashes_remain_data(self) -> None:
+        for command in ["echo ${x:- # literal}", "echo ${#x}", "echo ${x#prefix}"]:
+            with self.subTest(command=command):
+                output = io.StringIO()
+                with contextlib.redirect_stdout(output):
+                    parser_rm_rf.run_rm_rf(command)
+                self.assertIsNone(json.loads(output.getvalue())["block"])
+
+    def test_unplaced_heredoc_staging_fails_closed(self) -> None:
+        contexts = parser_commit.parse_commit_contexts(
+            "cat <<EOF\n$(git add -A)\nEOF\ngit commit -m test", inherited_git_env=[]
+        )
+        self.assertTrue(any("heredoc expansion" in context.get("selection_error", "") for context in contexts))

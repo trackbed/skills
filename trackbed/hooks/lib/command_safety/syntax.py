@@ -205,6 +205,92 @@ def _expand_ansi_c_quoted_strings(command: str) -> str:
     return "".join(expanded)
 
 
+def read_parameter_expansion(command: str, start: int) -> int:
+    """Find the closing brace without treating expansion data as shell comments."""
+    idx = start + 2
+    quote: Optional[str] = None
+    while idx < len(command):
+        char = command[idx]
+        if char == "\\" and quote != "'":
+            idx += 2
+            continue
+        if quote not in {"'", "ansi"} and command.startswith("$(", idx):
+            _, idx = read_dollar_substitution(command, idx)
+            continue
+        if quote not in {"'", "ansi"} and command.startswith("${", idx):
+            idx = read_parameter_expansion(command, idx)
+            continue
+        if quote not in {"'", "ansi"} and char == "`":
+            _, idx = read_backtick_substitution(command, idx)
+            continue
+        if quote is not None:
+            if char == ("'" if quote == "ansi" else quote):
+                quote = None
+        elif command.startswith("$'", idx):
+            quote = "ansi"
+            idx += 2
+            continue
+        elif char in {"'", '"'}:
+            quote = char
+        elif char == "}":
+            return idx + 1
+        idx += 1
+    raise ValueError("Unterminated shell parameter expansion.")
+
+
+def strip_shell_comments(command: str) -> str:
+    """Remove shell comments before quote-sensitive tokenization and newline folding."""
+    result: list[str] = []
+    quote: Optional[str] = None
+    word_start = True
+    idx = 0
+    while idx < len(command):
+        char = command[idx]
+        if char == "\\" and quote != "'":
+            result.append(command[idx : idx + 2])
+            if command[idx + 1 : idx + 2] != "\n":
+                word_start = False
+            idx += 2
+            continue
+        if command.startswith("${", idx) and quote not in {"'", "ansi"}:
+            end = read_parameter_expansion(command, idx)
+            result.append(command[idx:end])
+            idx = end
+            word_start = False
+            continue
+        if command.startswith("$(", idx) and quote not in {"'", "ansi"}:
+            inner, idx = read_dollar_substitution(command, idx)
+            result.append("$(" + inner + ")")
+            word_start = False
+            continue
+        if char == "`" and quote not in {"'", "ansi"}:
+            inner, idx = read_backtick_substitution(command, idx)
+            result.append("`" + inner + "`")
+            word_start = False
+            continue
+        if quote is not None:
+            if char == ("'" if quote == "ansi" else quote):
+                quote = None
+        elif char == "#" and word_start:
+            end = command.find("\n", idx)
+            idx = len(command) if end == -1 else end
+            continue
+        elif command.startswith("$'", idx):
+            result.append("$'")
+            quote = "ansi"
+            word_start = False
+            idx += 2
+            continue
+        elif char in {"'", '"'}:
+            quote = char
+            word_start = False
+        else:
+            word_start = char in " \t\r\n;&|()<>"
+        result.append(char)
+        idx += 1
+    return "".join(result)
+
+
 def read_dollar_substitution(command: str, start: int) -> tuple[str, int]:
     inner: list[str] = []
     depth = 1
@@ -212,12 +298,15 @@ def read_dollar_substitution(command: str, start: int) -> tuple[str, int]:
     in_single = False
     in_double = False
     escaped = False
+    word_start = True
 
     while idx < len(command):
         char = command[idx]
 
         if escaped:
             inner.append(char)
+            if char != "\n":
+                word_start = False
             escaped = False
             idx += 1
             continue
@@ -229,12 +318,14 @@ def read_dollar_substitution(command: str, start: int) -> tuple[str, int]:
             continue
 
         if char == "'" and not in_double:
+            word_start = False
             in_single = not in_single
             inner.append(char)
             idx += 1
             continue
 
         if char == '"' and not in_single:
+            word_start = False
             in_double = not in_double
             inner.append(char)
             idx += 1
@@ -243,6 +334,19 @@ def read_dollar_substitution(command: str, start: int) -> tuple[str, int]:
         if not in_single and not in_double and command.startswith("$" + "(", idx):
             nested_inner, idx = read_dollar_substitution(command, idx)
             inner.append("$" + "(" + nested_inner + ")")
+            word_start = False
+            continue
+
+        if not in_single and command.startswith("${", idx):
+            end = read_parameter_expansion(command, idx)
+            inner.append(command[idx:end])
+            idx = end
+            word_start = False
+            continue
+
+        if not in_single and not in_double and char == "#" and word_start:
+            end = command.find("\n", idx)
+            idx = len(command) if end == -1 else end
             continue
 
         if not in_single and not in_double and char == ")":
@@ -251,6 +355,8 @@ def read_dollar_substitution(command: str, start: int) -> tuple[str, int]:
                 return "".join(inner), idx + 1
 
         inner.append(char)
+        if not in_single and not in_double:
+            word_start = char in " \t\r\n;&|()<>"
         idx += 1
 
     raise ValueError("Unterminated command substitution.")

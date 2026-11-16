@@ -807,7 +807,7 @@ REVIEW_SUMMARY.md"
 	run run_hook "git commit -m 'test commit'"
 	is_blocked
 	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
-	[[ "$output" == *"confirm"* ]]
+	[[ "$output" == *"Unstage these files"* ]]
 }
 
 @test "blocks git commit when AUDIT_IMPLEMENTATION_REPORT.md is staged" {
@@ -1710,4 +1710,140 @@ EOF
 	run run_hook "git commit -m 'fallback list'"
 	is_blocked
 	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+}
+
+@test "compound add commands inspect untracked reports without changing the real index" {
+	local add_args before after
+	setup_real_commit_repo
+	printf 'report\n' >"$REAL_COMMIT_REPO/AUDIT_SPEC_REPORT.md"
+	before="$(git -C "$REAL_COMMIT_REPO" status --porcelain)"
+	for add_args in '-A' '--all' '.' 'AUDIT_SPEC_REPORT.md' '-- AUDIT_SPEC_REPORT.md'; do
+		run run_hook_with_system_bash "git add $add_args && git commit -m test" "$REAL_COMMIT_REPO"
+		is_blocked
+		[[ "$output" == *"AUDIT_SPEC_REPORT.md"* ]]
+		[[ "$output" == *"Unstage these files or select commit paths"* ]]
+		[[ "$output" != *"Please confirm"* ]]
+		after="$(git -C "$REAL_COMMIT_REPO" status --porcelain)"
+		[ "$before" = "$after" ]
+	done
+}
+
+@test "compound adds preserve commit selections that exclude the report" {
+	local commit_args
+	setup_real_commit_repo
+	printf 'report\n' >"$REAL_COMMIT_REPO/AUDIT_SPEC_REPORT.md"
+	printf 'change\n' >>"$REAL_COMMIT_REPO/notes.txt"
+	for commit_args in '--only notes.txt' '-- notes.txt'; do
+		run run_hook_with_system_bash "git add -A && git commit -m test $commit_args" "$REAL_COMMIT_REPO"
+		[ "$status" -eq 0 ]
+		[ -z "$output" ]
+	done
+}
+
+@test "compound explicit add of ordinary content permits commit" {
+	setup_real_commit_repo
+	printf 'report\n' >"$REAL_COMMIT_REPO/AUDIT_SPEC_REPORT.md"
+	printf 'change\n' >>"$REAL_COMMIT_REPO/notes.txt"
+	run run_hook_with_system_bash "git add notes.txt && git commit -m test" "$REAL_COMMIT_REPO"
+	[ "$status" -eq 0 ]
+	[ -z "$output" ]
+}
+
+@test "multiple prior adds are inspected before commit" {
+	setup_real_commit_repo
+	printf 'report\n' >"$REAL_COMMIT_REPO/AUDIT_SPEC_REPORT.md"
+	run run_hook_with_system_bash "git add notes.txt; git add AUDIT_SPEC_REPORT.md; git commit -m test" "$REAL_COMMIT_REPO"
+	is_blocked
+	[[ "$output" == *"AUDIT_SPEC_REPORT.md"* ]]
+}
+
+@test "compound add refuses clean filters without executing them" {
+	local marker
+	setup_real_commit_repo
+	marker="$MOCK_DIR/clean-marker"
+	git -C "$REAL_COMMIT_REPO" config filter.trap.clean "touch $marker; cat"
+	printf 'AUDIT_SPEC_REPORT.md filter=trap\n' >"$REAL_COMMIT_REPO/.gitattributes"
+	printf 'report\n' >"$REAL_COMMIT_REPO/AUDIT_SPEC_REPORT.md"
+	run run_hook_with_system_bash "git add -A && git commit -m test" "$REAL_COMMIT_REPO"
+	is_blocked
+	[[ "$output" == *"clean filters"* ]]
+	[ ! -f "$marker" ]
+}
+
+@test "compound add with different repository context blocks with an accurate reason" {
+	setup_real_commit_repo
+	run run_hook "git -C $REAL_COMMIT_REPO add -A && git commit -m test"
+	is_blocked
+	[[ "$output" == *"different repository or index context"* ]]
+}
+
+@test "protected commit between apostrophe comment lines remains blocked" {
+	mock_git_staged "REVIEW_OVERVIEW.md"
+	run run_hook $'# don\'t hide\ngit commit -m test\n# another\'s comment'
+	is_blocked
+	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+}
+
+@test "compound staging survives command substitutions and nested shells" {
+	local command
+	setup_real_commit_repo
+	printf 'report\n' >"$REAL_COMMIT_REPO/AUDIT_SPEC_REPORT.md"
+	for command in \
+		'git add -A && echo "$(git commit -m test)"' \
+		'bash -c "git add -A" && git commit -m test' \
+		'echo "$(git add -A)" && git commit -m test' \
+		'git add -A && bash -c "git commit -m test"'; do
+		run run_hook_with_system_bash "$command" "$REAL_COMMIT_REPO"
+		is_blocked
+		[[ "$output" == *"AUDIT_SPEC_REPORT.md"* ]]
+	done
+}
+
+@test "parameter expansion hashes cannot hide a protected commit" {
+	mock_git_staged "REVIEW_OVERVIEW.md"
+	run run_hook 'echo ${x:- # literal}; git commit -m test'
+	is_blocked
+	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+}
+
+@test "forced add of an ignored report refuses clean filters without executing them" {
+	local marker
+	setup_real_commit_repo
+	marker="$MOCK_DIR/ignored-clean-marker"
+	git -C "$REAL_COMMIT_REPO" config filter.trap.clean "touch $marker; cat"
+	printf 'AUDIT_SPEC_REPORT.md filter=trap\n' >"$REAL_COMMIT_REPO/.gitattributes"
+	printf 'AUDIT_SPEC_REPORT.md\n' >"$REAL_COMMIT_REPO/.gitignore"
+	printf 'report\n' >"$REAL_COMMIT_REPO/AUDIT_SPEC_REPORT.md"
+	run run_hook_with_system_bash "git add -f AUDIT_SPEC_REPORT.md && git commit -m test" "$REAL_COMMIT_REPO"
+	is_blocked
+	[[ "$output" == *"clean filters"* ]]
+	[ ! -f "$marker" ]
+}
+
+@test "staging steps reject malformed arrays and NUL values" {
+	local parser_output
+	for parser_output in \
+		'[{"staging_steps":{}}]' \
+		'[{"staging_steps":["-A"]}]' \
+		'[{"staging_steps":[[1]]}]' \
+		'[{"staging_steps":[["bad\u0000path"]]}]'; do
+		run run_safety_hook_with_parser_output "$HOOK" "git commit -m test" "$parser_output"
+		is_blocked
+		[[ "$output" == *"Unable to safely decode git commit context"* ]]
+	done
+}
+
+@test "staging steps fail closed when their argument stream is truncated" {
+	mock_jq_truncating_decoder 3
+	run run_safety_hook_with_parser_output "$HOOK" "git commit -m test" \
+		'[{"staging_steps":[["--","notes.txt"]]}]'
+	is_blocked
+	[[ "$output" == *"ended before the parser's context count"* ]]
+}
+
+
+@test "staging from an unplaced heredoc expansion blocks with its ordering reason" {
+	run run_hook $'cat <<EOF\n$(git add -A)\nEOF\ngit commit -m test'
+	is_blocked
+	[[ "$output" == *"heredoc expansion cannot be replayed safely"* ]]
 }
