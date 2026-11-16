@@ -13,16 +13,21 @@ This repo packages a personal workflow plugin for Claude Code and includes a Cod
 
 ## Plugin Subsystems
 
+Paths in this subsystem table are relative to the repository root. The [code map](code-map.md) lists the closest tests for each owner.
+
 | Subsystem | Main files | Responsibility |
 | --- | --- | --- |
-| Skills | `skills/*/SKILL.md`, `skills/*/references/`, `skills/*/assets/`, `skills/*/scripts/`, `shared/<topic>/` | User-invocable and background workflows. Skills carry their runtime policy inside their own directory or in plugin-level `shared/` references and assets used by more than one skill. |
-| Agents | `agents/*.md` | Specialized Claude Code subagents used by skills and PR review workflows. |
-| Hooks | `hooks/hooks.json`, `hooks/*.sh`, `hooks/lib/` | Claude Code lifecycle hooks for command safety, formatting, review confirmation, usage stats, and update notices. |
-| Shared scripts | `scripts/*.sh`, `scripts/*.py`, `scripts/*.js`, `scripts/dev-server/` | Helpers shared by skills, hooks, release workflows, and browser-facing workflows, plus maintainer checks such as `check-doc-citations.py` and `probe-cold-reader-isolation.js`. |
-| Codex converter | `scripts/convert-plugin.js`, `scripts/convert-plugin/` | Loads the Claude plugin, transforms components for Codex, and writes managed output under a Codex home. |
-| Evals | `evals/skill-review/`, `evals/skillopt/`, `evals/pr-generate-description/`, `evals/decision-requests/`, `evals/_lib/`, `scripts/skill-eval-compare.js` | Deterministic fixture evals, optional live Claude SDK and OpenAI Responses adapters with per-provider sequential credit failover/checkpoints, and the local SkillOpt adapter for the `trackbed:skill:review` pilot. Skill-change evals are case folders that `scripts/skill-eval-compare.js` runs through `claude plugin eval` on a base commit and on the working tree. |
-| Review completion | `skills/pr:code-review/scripts/review-execution.js`, `evals/review-completion/` | Self-attested execution ledger, scope/report validation, and independently observed completion evaluations; consumed by review convergence. |
-| Tests | `tests/*.bats`, `tests/node/`, `tests/python/`, `tests/test_helper/` | Bats integration suites plus focused Node and Python unit suites, converter contracts, eval harnesses, and skill guidance contracts. |
+| Skills | `trackbed/skills/*/SKILL.md`, `trackbed/skills/*/references/`, `trackbed/skills/*/assets/`, `trackbed/skills/*/scripts/`, `trackbed/shared/<topic>/` | User-invocable and background workflows. Skills carry their runtime policy inside their own directory or in plugin-level `trackbed/shared/` references and assets used by more than one skill. |
+| Agents | `trackbed/agents/*.md` | Specialized Claude Code subagents used by skills and PR review workflows. |
+| Hooks | `trackbed/hooks/hooks.json`, `trackbed/hooks/*.sh`, `trackbed/hooks/lib/` | Claude Code lifecycle hooks for command safety, formatting, review confirmation, usage stats, and update notices. |
+| Shared scripts | `trackbed/scripts/*.sh`, `trackbed/scripts/*.py`, `trackbed/scripts/*.js`, `trackbed/scripts/dev-server/` | Helpers shared by skills, hooks, release workflows, and browser-facing workflows, plus maintainer checks such as `check-doc-citations.py` and `probe-cold-reader-isolation.js`. |
+| Codex converter | `trackbed/scripts/convert-plugin.js`, `trackbed/scripts/convert-plugin/` | Loads the Claude plugin, transforms components for Codex, and writes managed output under a Codex home. |
+| Evals | `trackbed/evals/skill-review/`, `trackbed/evals/skillopt/`, `trackbed/evals/pr-generate-description/`, `trackbed/evals/decision-requests/`, `trackbed/evals/_lib/`, `trackbed/scripts/skill-eval-compare.js` | Deterministic fixture evals, optional live Claude SDK and OpenAI Responses adapters with per-provider sequential credit failover/checkpoints, and the local SkillOpt adapter for the `trackbed:skill:review` pilot. Skill-change evals are case folders that `trackbed/scripts/skill-eval-compare.js` runs through `claude plugin eval` on a base commit and on the working tree. |
+| Review completion | `trackbed/skills/pr:code-review/scripts/review-execution.js`, `trackbed/evals/review-completion/` | Self-attested execution ledger, scope/report validation, and independently observed completion evaluations; consumed by review convergence. |
+| Configuration and contracts | `trackbed/scripts/synced-contracts.yaml`, `trackbed/scripts/schemas/`, `trackbed/config/` | Registry-driven component contracts, shared converter/linter schema, coverage inventory, and scanner policy. The linter owns synchronization; the converter consumes the schema. |
+| Local maintenance | `.agents/skills/`, `.claude/skills/` | Repository-only workflows and discovery symlinks; excluded from the shipped catalog and converted plugin. |
+| Shared resources | `trackbed/shared/<topic>/{references,assets}/` | One installed copy of cross-skill workflow contracts, findings, review, audit, writing, and visual resources. Consuming skills name each resource path in their bodies. |
+| Tests | `trackbed/tests/*.bats`, `trackbed/tests/node/`, `trackbed/tests/python/`, `trackbed/tests/test_helper/` | Bats integration suites plus focused Node and Python unit suites, converter contracts, eval harnesses, and skill guidance contracts. |
 
 ## Runtime Flow
 

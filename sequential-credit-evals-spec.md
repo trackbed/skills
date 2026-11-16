@@ -1,5 +1,7 @@
 # Sequential Claude Credit Evals
 
+**Status: completed (historical specification).** Implemented in `trackbed/evals/skill-review/` and `.github/workflows/skill-review-live-eval.yml`. Current operation and tests are documented in the [eval guide](trackbed/evals/skill-review/README.md), [development guide](trackbed/docs/development.md), and [code map](trackbed/docs/code-map.md). The proposed interfaces below record the original design, rather than pending work.
+
 Approved for implementation on 2026-10-24. Run the existing skill-review evals against Claude, consuming one organization's available credits before automatically trying the next organization.
 
 ## 1. Objective
