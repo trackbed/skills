@@ -793,6 +793,21 @@ Typed body.
 test("loader validates agent descriptions and capabilities before conversion", async () => {
   const invalidAgents = [
     {
+      expected: 'frontmatter field "capabilities" must be an array of strings',
+      frontmatter: "capabilities: |\n  []",
+    },
+    ...[
+      "name",
+      "model",
+      "color",
+      "tools",
+      "disallowedTools",
+      "omitClaudeMd",
+    ].map((field) => ({
+      expected: `frontmatter field "${field}" must be`,
+      frontmatter: `${field}:\n  bad: value`,
+    })),
+    {
       expected: 'frontmatter field "description" must be a string',
       frontmatter: `description:
   nested: value`,
@@ -820,7 +835,7 @@ capabilities:
       await writeFile(
         agentPath,
         `---
-name: reviewer
+${invalidAgent.frontmatter.startsWith("name:") ? "" : "name: reviewer"}
 ${invalidAgent.frontmatter}
 ---
 Review changes.
@@ -1328,3 +1343,29 @@ async function writeSkillFile(pluginRoot, skillDir, content) {
     content,
   );
 }
+
+test("loader preserves shared public agent metadata forms", async () => {
+  const fixtures = JSON.parse(
+    await fs.readFile(
+      path.join(__dirname, "../fixtures/agent-metadata.json"),
+      "utf8",
+    ),
+  );
+  for (const fixture of fixtures) {
+    await withTempDir(async (root) => {
+      await createFixturePlugin(root, "agent-forms");
+      await writeFile(
+        path.join(root, "agents/reviewer.md"),
+        `---\n${fixture.frontmatter}\n---\nReview code.\n`,
+      );
+      const plugin = await loadClaudePlugin(root);
+      assert.equal(plugin.agents[0].model, "inherit", fixture.name);
+      assert.equal(plugin.agents[0].name, "reviewer", fixture.name);
+      assert.deepEqual(
+        plugin.agents[0].capabilities,
+        fixture.capabilities,
+        fixture.name,
+      );
+    });
+  }
+});

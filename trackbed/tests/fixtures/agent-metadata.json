@@ -1,0 +1,37 @@
+[
+  {
+    "name": "empty",
+    "frontmatter": "model: inherit\ncapabilities: []",
+    "capabilities": []
+  },
+  {
+    "name": "empty-string-flow",
+    "frontmatter": "model: inherit\ncapabilities: [\"Read\", \"\"]",
+    "capabilities": ["Read", ""]
+  },
+  {
+    "name": "empty-string-block",
+    "frontmatter": "model: inherit\ncapabilities:\n  - Read\n  - \"\"",
+    "capabilities": ["Read", ""]
+  },
+  {
+    "name": "tools-scalar",
+    "frontmatter": "model: inherit\ntools: Read, Grep"
+  },
+  {
+    "name": "tools-flow",
+    "frontmatter": "model: inherit\ntools: [Read, Grep]"
+  },
+  {
+    "name": "tools-block",
+    "frontmatter": "model: inherit\ntools:\n  - Read\n  - Grep"
+  },
+  {
+    "name": "tools-literal",
+    "frontmatter": "model: inherit\ntools: |\n  {}"
+  },
+  {
+    "name": "color-literal",
+    "frontmatter": "model: inherit\ncolor: |\n  [blue]"
+  }
+]

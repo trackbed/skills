@@ -2,6 +2,12 @@
 
 Contributor reference for testing, verification, skill security scanning, skill-change evals, and the SkillOpt eval pilot. For the contribution workflow see [CONTRIBUTING.md](../../CONTRIBUTING.md); for component conventions see the repo-root [AGENTS.md](../../AGENTS.md).
 
+Component scalar consumers (the converter, README/catalog generator, linter and site) fold `>` text and retain `|` line breaks, blank paragraphs and extra indentation. They trim trailing block-scalar whitespace, including `+` chomping. Shared fixtures in `trackbed/tests/fixtures/component-scalars.json` pin these semantics. The Python raw frontmatter dictionary remains a compatibility surface; decoded consumers use scalar helpers.
+
+Agent field types live in `trackbed/scripts/schemas/skill-contracts.json`. Repository lint requires name, description, model and color; the converter preserves optional public fields and filename fallback. Model names remain open strings, including `inherit`; tool fields accept comma-delimited strings or string arrays. Capabilities retain empty-array support.
+
+Skill `permissions` metadata has no executable consumer in this repository: the converter does not turn it into host permissions, and the linter only checks its presence where a text contract requires it. Its values are descriptive; no allowed vocabulary or enforcement gate is defined here. Host tool controls, such as agent `tools` and `disallowedTools`, have separate contracts.
+
 ## Running the Tests
 
 The hooks are tested using [BATS](https://github.com/bats-core/bats-core) (Bash Automated Testing System). Pure JavaScript and Python helper modules also have focused unit test runners. The Bats suite requires `jq` for JSON parsing in hooks.

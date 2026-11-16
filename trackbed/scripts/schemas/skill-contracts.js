@@ -8,7 +8,7 @@ const path = require("path");
  * @typedef {{ type: string, required: boolean, loader_property?: string }} FrontmatterFieldContract
  * @typedef {{ fields: Record<string, FrontmatterFieldContract> }} FrontmatterContract
  * @typedef {{ required_fields: string[] }} SourceManifestContract
- * @typedef {{ skill_frontmatter: FrontmatterContract, source_manifest: SourceManifestContract }} SkillContracts
+ * @typedef {{ skill_frontmatter: FrontmatterContract, agent_frontmatter: FrontmatterContract, source_manifest: SourceManifestContract }} SkillContracts
  */
 
 /** @type {SkillContracts} */

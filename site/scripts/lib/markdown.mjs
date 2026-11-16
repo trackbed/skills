@@ -46,7 +46,17 @@ export function listHeadings(text, tree = parseMarkdown(text)) {
 export function splitFrontmatter(text) {
   const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
   if (!match) return { data: {}, body: text };
-  return { data: parseYaml(match[1]) ?? {}, body: text.slice(match[0].length) };
+  const data = parseYaml(match[1]) ?? {};
+  // Component consumers ignore trailing block-scalar whitespace.
+  for (const [key, value] of Object.entries(data)) {
+    if (
+      typeof value === "string" &&
+      new RegExp(`^${key}:\\s*[|>]`, "m").test(match[1])
+    ) {
+      data[key] = value.trimEnd();
+    }
+  }
+  return { data, body: text.slice(match[0].length) };
 }
 
 /** Apply non-overlapping `{ start, end, replacement }` edits to `text`. */

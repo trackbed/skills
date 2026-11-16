@@ -279,3 +279,23 @@ test("tags a block of host commands with the site's language for them", () => {
     ].join("\n\n"),
   );
 });
+
+test("component scalar fixtures agree with converter and Python consumers", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { splitFrontmatter } = await import("../lib/markdown.mjs");
+  const fixtures = JSON.parse(
+    readFileSync(
+      new URL(
+        "../../../trackbed/tests/fixtures/component-scalars.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
+  for (const fixture of fixtures) {
+    const { data } = splitFrontmatter(
+      `---\ndescription: ${fixture.source}\n---\n`,
+    );
+    assert.equal(data.description, fixture.expected, fixture.name);
+  }
+});

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +10,7 @@ from .frontmatter import (
     expected_arguments,
     expected_invocation,
     frontmatter_boolean_value,
+    frontmatter_string_value,
     parse_frontmatter,
     parse_frontmatter_bool,
 )
@@ -215,7 +216,7 @@ def load_skill_references(
             failures.append(f"readme skill sync: {relative} is missing YAML frontmatter")
             continue
         name = path.name
-        frontmatter_name = frontmatter.get("name")
+        frontmatter_name = frontmatter_string_value(text, "name")
         if frontmatter_name and frontmatter_name != name:
             failures.append(
                 f"readme skill sync: {relative} frontmatter name {frontmatter_name!r} "
@@ -230,7 +231,20 @@ def load_skill_references(
             value = frontmatter_boolean_value(text, field)
             if value is not None:
                 frontmatter[field] = "true" if value else "false"
+        for field in (
+            "description",
+            skill_frontmatter_field_by_loader_property("argumentHint", "argument-hint", schema),
+        ):
+            scalar_value = frontmatter_string_value(text, field)
+            if scalar_value is not None:
+                frontmatter[field] = scalar_value
         reference = skill_reference_from_frontmatter(name, frontmatter, schema)
+        hint = frontmatter_string_value(
+            text, skill_frontmatter_field_by_loader_property("argumentHint", "argument-hint", schema)
+        )
+        user_field = skill_frontmatter_field_by_loader_property("userInvocable", "user-invocable", schema)
+        if frontmatter_boolean_value(text, user_field) and hint is not None and hint.strip():
+            reference = replace(reference, arguments=hint)
         references[reference.name] = reference
     return references
 
@@ -254,14 +268,14 @@ def load_agent_references(
             failures.append(f"readme agent sync: {relative} is missing YAML frontmatter")
             continue
         name = path.stem
-        frontmatter_name = frontmatter.get("name")
+        frontmatter_name = frontmatter_string_value(text, "name")
         if frontmatter_name and frontmatter_name != name:
             failures.append(
                 f"readme agent sync: {relative} frontmatter name {frontmatter_name!r} "
                 f"does not match agent file {name!r}"
             )
             continue
-        description = frontmatter.get("description", "")
+        description = frontmatter_string_value(text, "description") or ""
         if is_empty_value(description):
             failures.append(f"readme agent sync: {relative} is missing frontmatter description")
             continue

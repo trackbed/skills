@@ -16,7 +16,7 @@ import re
 from itertools import combinations
 from typing import Any
 
-from ..frontmatter import parse_frontmatter, parse_frontmatter_bool
+from ..frontmatter import frontmatter_boolean_value, frontmatter_string_value, parse_frontmatter
 from ..io import read_text, rel, skill_paths
 from ..naming import qualified_name
 from .types import CheckResult, LintContext
@@ -88,7 +88,20 @@ def recorded_boundary_pairs(
 def check_routing_distinctness(context: LintContext) -> CheckResult:
     result = CheckResult()
     config = context.registry.get("routing_distinctness")
-    if not config:
+    if config is None:
+        return result
+    if not isinstance(config, dict):
+        result.failures.append("routing distinctness: registry entry must be an object")
+        return result
+    report_limit = config.get("pair_report_limit", 20)
+    if type(report_limit) is not int or report_limit < 0:
+        result.failures.append("routing distinctness: pair_report_limit must be a non-negative integer")
+    stopwords_raw = config.get("stopwords", [])
+    if not isinstance(stopwords_raw, list) or not all(isinstance(word, str) for word in stopwords_raw):
+        result.failures.append("routing distinctness: stopwords must be an array of strings")
+    if not isinstance(config.get("skill_glob", "*"), str):
+        result.failures.append("routing distinctness: skill_glob must be a string")
+    if result.failures:
         return result
 
     pattern = config.get("skill_glob", "trackbed/skills/*/SKILL.md")
@@ -97,8 +110,7 @@ def check_routing_distinctness(context: LintContext) -> CheckResult:
     if fail_similarity < warn_similarity:
         result.failures.append("routing distinctness: fail_similarity must be at or above warn_similarity")
         fail_similarity = warn_similarity
-    report_limit = int(config.get("pair_report_limit", 20))
-    stopwords = {str(word).lower() for word in config.get("stopwords", [])}
+    stopwords = {word.lower() for word in stopwords_raw}
     fail_population = config.get("fail_population", "auto_invocable")
     if fail_population not in FAIL_POPULATIONS:
         result.failures.append(f"routing distinctness: fail_population must be one of {', '.join(FAIL_POPULATIONS)}")
@@ -107,14 +119,15 @@ def check_routing_distinctness(context: LintContext) -> CheckResult:
     skills: list[tuple[str, set[str], bool]] = []
     for path in skill_paths(context.root, pattern):
         relative = rel(path, context.root)
-        frontmatter = parse_frontmatter(read_text(path))
+        text = read_text(path)
+        frontmatter = parse_frontmatter(text)
         if frontmatter is None:
             continue
-        description = frontmatter.get("description")
+        description = frontmatter_string_value(text, "description")
         if not description:
             continue
-        name = qualified_name(frontmatter.get("name") or path.parent.name)
-        auto_invocable = not parse_frontmatter_bool(frontmatter, "disable-model-invocation")
+        name = qualified_name(frontmatter_string_value(text, "name") or path.parent.name)
+        auto_invocable = not frontmatter_boolean_value(text, "disable-model-invocation")
         skills.append((relative, description_tokens(description, name, stopwords), auto_invocable))
 
     recorded = recorded_boundary_pairs(config, {relative for relative, _tokens, _auto in skills}, result)

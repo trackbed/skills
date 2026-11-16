@@ -37,6 +37,10 @@ _YAML_DOUBLE_QUOTE_ESCAPES = {
 _YAML_HEX_ESCAPE_LENGTHS = {"x": 2, "u": 4, "U": 8}
 
 
+class _BlockScalar(str):
+    pass
+
+
 def parse_frontmatter(text: str) -> dict[str, str] | None:
     lines = text.splitlines()
     if not lines or lines[0] != "---":
@@ -71,6 +75,8 @@ def frontmatter_string_value(text: str, field: str) -> str | None:
     value = _raw_frontmatter_values(text).get(field)
     if not isinstance(value, str):
         return None
+    if isinstance(value, _BlockScalar):
+        return str(value)
     decoded = _decode_yaml_quoted_string(value.strip())
     return decoded if decoded is not None else value
 
@@ -78,22 +84,88 @@ def frontmatter_string_value(text: str, field: str) -> str | None:
 def frontmatter_type_errors(
     text: str,
     schema: dict[str, Any] | None = None,
+    *,
+    component: str = "skill",
 ) -> list[tuple[str, str]]:
     """Return schema type errors without changing the linter's string parser."""
     values = _raw_frontmatter_values(text)
     errors: list[tuple[str, str]] = []
-    for field, contract in schema_skill_frontmatter_fields(schema).items():
+    from .schema import DEFAULT_CONTRACT_SCHEMA
+
+    fields = (
+        schema_skill_frontmatter_fields(schema)
+        if component == "skill"
+        else (schema or DEFAULT_CONTRACT_SCHEMA).get("agent_frontmatter", {}).get("fields", {})
+    )
+    for field, contract in fields.items():
         if field not in values or not isinstance(contract, dict):
             continue
         expected_type = contract.get("type")
         value = values[field]
-        if expected_type == "string" and not _is_non_empty_yaml_string(value):
+        if (
+            component == "agent"
+            and expected_type in {"string", "text"}
+            and (
+                not isinstance(value, str)
+                or (
+                    not isinstance(value, _BlockScalar)
+                    and field not in {"name", "description", "model"}
+                    and value.strip().startswith(("[", "{"))
+                )
+            )
+        ):
+            errors.append((field, "a string" if expected_type == "text" else "a non-empty string"))
+        elif expected_type == "string" and not _is_non_empty_yaml_string(value):
             errors.append((field, "a non-empty string"))
         elif expected_type == "boolean" and not _is_yaml_boolean(value):
             errors.append((field, "a boolean ('true' or 'false')"))
+        elif expected_type == "text" and (
+            not isinstance(value, str)
+            or not (
+                isinstance(value, _BlockScalar)
+                or _is_non_empty_yaml_string(value)
+                or _decode_yaml_quoted_string(value.strip()) is not None
+            )
+        ):
+            errors.append((field, "a string"))
+        elif expected_type == "text_array" and not _is_text_array(value):
+            errors.append((field, "an array of strings"))
+        elif expected_type == "tool_list" and not (
+            _is_non_empty_yaml_string(value)
+            and (isinstance(value, _BlockScalar) or not str(value).strip().startswith(("[", "{")))
+            or _is_non_empty_string_array(value)
+        ):
+            errors.append((field, "a non-empty string or array of non-empty strings"))
         elif expected_type == "string_array" and not _is_non_empty_string_array(value):
             errors.append((field, "a non-empty array of non-empty strings"))
     return errors
+
+
+def _block_scalar(lines: list[str], header: str, parent_indent: int) -> str:
+    indicator = re.search(r"[1-9]", header.split("#", 1)[0])
+    indent = (
+        parent_indent + int(indicator.group())
+        if indicator
+        else next((_leading_whitespace(line) for line in lines if line.strip()), parent_indent + 1)
+    )
+    content = [line[indent:] if line.strip() else "" for line in lines]
+    if header.startswith("|"):
+        return _BlockScalar("\n".join(content).rstrip())
+    decoded: list[str] = []
+    for index, line in enumerate(content):
+        decoded.append(line)
+        if index + 1 == len(content):
+            break
+        following = content[index + 1]
+        if line and following and not line[0].isspace() and not following[0].isspace():
+            decoded.append(" ")
+        elif line and not line[0].isspace() and not following:
+            next_text = next((candidate for candidate in content[index + 2 :] if candidate), "")
+            if next_text and next_text[0].isspace():
+                decoded.append("\n")
+        else:
+            decoded.append("\n")
+    return _BlockScalar("".join(decoded).rstrip())
 
 
 def _raw_frontmatter_values(text: str) -> dict[str, str | list[str]]:
@@ -120,10 +192,9 @@ def _raw_frontmatter_values(text: str) -> dict[str, str | list[str]]:
                 line = lines[scalar_index]
                 if line and not line[0].isspace():
                     break
-                if line.strip():
-                    scalar_lines.append(line.strip())
+                scalar_lines.append(line)
                 scalar_index += 1
-            values[field] = "\n".join(scalar_lines)
+            values[field] = _block_scalar(scalar_lines, raw_value.strip(), 0)
             index = scalar_index
             continue
         if raw_value.startswith(('"', "'")) and not _quoted_scalar_is_closed(raw_value):
@@ -164,10 +235,9 @@ def _raw_frontmatter_values(text: str) -> dict[str, str | list[str]]:
                     scalar_line = lines[scalar_index]
                     if scalar_line.strip() and _leading_whitespace(scalar_line) <= item_indent:
                         break
-                    if scalar_line.strip():
-                        scalar_lines.append(scalar_line.strip())
+                    scalar_lines.append(scalar_line)
                     scalar_index += 1
-                items.append("\n".join(scalar_lines))
+                items.append(_block_scalar(scalar_lines, item, item_indent))
                 item_index = scalar_index
                 continue
             if re.match(r"^[^\[\]{},]+:(?:\s|$)", item) and _has_indented_child(
@@ -254,7 +324,7 @@ def _is_yaml_boolean(value: str | list[str]) -> bool:
 def _decode_yaml_boolean(value: str | list[str]) -> bool | None:
     if isinstance(value, list):
         return None
-    decoded = _decode_yaml_quoted_string(value.strip())
+    decoded = str(value) if isinstance(value, _BlockScalar) else _decode_yaml_quoted_string(value.strip())
     normalized = (decoded if decoded is not None else strip_quotes(value)).strip().lower()
     return normalized == "true" if normalized in _YAML_BOOLEAN_VALUES else None
 
@@ -270,6 +340,8 @@ def _is_non_empty_yaml_scalar_string(
 ) -> bool:
     if isinstance(value, list):
         return False
+    if isinstance(value, _BlockScalar):
+        return bool(value.strip())
     normalized = value.strip()
     decoded = _decode_yaml_quoted_string(normalized)
     if decoded is not None:
@@ -282,7 +354,27 @@ def _is_non_empty_yaml_scalar_string(
     return bool(normalized)
 
 
+def _is_text_array(value: str | list[str]) -> bool:
+    if isinstance(value, _BlockScalar):
+        return False
+    if isinstance(value, list):
+        return all(
+            isinstance(item, _BlockScalar)
+            or _is_non_empty_yaml_block_string(item)
+            or _decode_yaml_quoted_string(item.strip()) is not None
+            for item in value
+        )
+    if value.strip() == "[]":
+        return True
+    items = _parse_inline_array(value)
+    return bool(items) and all(
+        _is_non_empty_yaml_flow_string(item) or _decode_yaml_quoted_string(item.strip()) is not None for item in items
+    )
+
+
 def _is_non_empty_string_array(value: str | list[str]) -> bool:
+    if isinstance(value, _BlockScalar):
+        return False
     items = value if isinstance(value, list) else _parse_inline_array(value)
     if isinstance(value, list):
         return bool(items) and all(_is_non_empty_yaml_block_string(item) for item in items)
@@ -290,6 +382,8 @@ def _is_non_empty_string_array(value: str | list[str]) -> bool:
 
 
 def _is_non_empty_yaml_block_string(value: str) -> bool:
+    if isinstance(value, _BlockScalar):
+        return bool(value.strip())
     if value.strip().startswith(("[", "{")):
         return False
     return _is_non_empty_yaml_scalar_string(value, case_insensitive=False)
