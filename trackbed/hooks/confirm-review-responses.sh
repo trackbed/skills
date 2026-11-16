@@ -1,7 +1,7 @@
 #!/bin/bash
 set -uo pipefail
 # Policy: -u/-pipefail only. No -e: hook exit codes are semantic (exit 2 blocks the tool call); errors must be handled explicitly.
-# Hook: Confirm before committing review artifact files.
+# Hook: Block commits that include configured review artifact files.
 #
 # Check if hook is enabled
 source "${CLAUDE_PLUGIN_ROOT}/hooks/lib/check-enabled.sh"
@@ -42,7 +42,7 @@ REPLAY_GIT_ENV_VARS=(
 # NUL-delimited token stream. NUL is the only byte a git argument cannot carry,
 # so it is the one safe record separator; strings that do carry one are
 # rejected rather than silently truncated by the shell. Every context
-# contributes a fixed token prefix followed by three counted arrays, and the
+# contributes a fixed token prefix followed by three counted arrays and counted staging-step arrays, and the
 # stream is framed by a leading count and a trailing END marker so a truncated
 # read is detectable. The payload must be exactly one JSON document: jq applies
 # a filter once per document, so a second document would otherwise produce a
@@ -75,7 +75,13 @@ def context_tokens:
     ]
   + counted_array("git_args")
   + counted_array("git_env")
-  + counted_array("pathspecs");
+  + counted_array("pathspecs")
+  + ((.staging_steps // [])
+    | if type == "array" then . else error("field") end
+    | map(if type == "array" then . else error("field") end
+      | map(if type == "string" then reject_nul else error("field") end)
+      | [(length | tostring)] + .)
+    | [(length | tostring)] + (add // []));
 try (
   ([inputs] | if length == 1 then .[0] else error("field") end)
   | (if type == "array" then . else error("field") end)
@@ -227,6 +233,8 @@ context_has_active_clean_filter() {
   local filter_config_file="$context_tmp_dir/filter-config"
   local _ filter_driver filter_key filter_value git_status
   local configured_filter_drivers=()
+  local candidate_args=(--cached --others --exclude-standard)
+  local staging_token
 
   git_status=0
   run_context_git config \
@@ -261,36 +269,51 @@ context_has_active_clean_filter() {
     return 1
   fi
 
-  case "$selection_mode" in
-    all)
-      if ! run_context_git ls-files --cached --deduplicate -z > "$candidate_file"; then
-        return 2
-      fi
-      ;;
-    include | only)
-      if [ "$has_pathspec_from_file" = "true" ]; then
-        # ls-files has no pathspec-from-file support. Checking every tracked
-        # path is conservative while still ignoring globally configured
-        # drivers that no repository path activates.
+  if [ ${#staging_tokens[@]} -gt 0 ]; then
+    # Earlier add commands can select untracked paths as well as tracked ones.
+    for staging_token in "${staging_tokens[@]}"; do
+      case "$staging_token" in
+        -f | --force)
+          candidate_args=(--cached --others)
+          break
+          ;;
+      esac
+    done
+    if ! run_context_git ls-files "${candidate_args[@]}" -z > "$candidate_file"; then
+      return 2
+    fi
+  else
+    case "$selection_mode" in
+      all)
         if ! run_context_git ls-files --cached --deduplicate -z > "$candidate_file"; then
           return 2
         fi
-      elif [ ${#commit_pathspecs[@]} -gt 0 ]; then
-        if ! run_context_git ls-files \
-          --cached \
-          --deduplicate \
-          -z \
-          -- \
-          "${commit_pathspecs[@]}" \
-          > "$candidate_file"; then
-          return 2
+        ;;
+      include | only)
+        if [ "$has_pathspec_from_file" = "true" ]; then
+          # ls-files has no pathspec-from-file support. Checking every tracked
+          # path is conservative while still ignoring globally configured
+          # drivers that no repository path activates.
+          if ! run_context_git ls-files --cached --deduplicate -z > "$candidate_file"; then
+            return 2
+          fi
+        elif [ ${#commit_pathspecs[@]} -gt 0 ]; then
+          if ! run_context_git ls-files \
+            --cached \
+            --deduplicate \
+            -z \
+            -- \
+            "${commit_pathspecs[@]}" \
+            > "$candidate_file"; then
+            return 2
+          fi
+        else
+          : > "$candidate_file"
         fi
-      else
-        : > "$candidate_file"
-      fi
-      ;;
-    *) return 2 ;;
-  esac
+        ;;
+      *) return 2 ;;
+    esac
+  fi
 
   if [ ! -s "$candidate_file" ]; then
     return 1
@@ -369,7 +392,7 @@ write_effective_files_for_commit_context() {
     fi
     export GIT_OPTIONAL_LOCKS=0
 
-    if [ "$selection_mode" = "index" ]; then
+    if [ "$selection_mode" = "index" ] && [ ${#staging_tokens[@]} -eq 0 ]; then
       if ! run_context_git diff \
         --cached \
         --name-only \
@@ -429,7 +452,23 @@ write_effective_files_for_commit_context() {
       fi
     fi
 
+    local staging_position=0 staging_count
+    local staging_args=()
+    while [ "$staging_position" -lt "${#staging_tokens[@]}" ]; do
+      staging_count="${staging_tokens[$staging_position]}"
+      staging_position=$((staging_position + 1))
+      staging_args=()
+      if [ "$staging_count" -gt 0 ]; then
+        staging_args=("${staging_tokens[@]:$staging_position:$staging_count}")
+      fi
+      if ! run_context_git add ${staging_args[@]+"${staging_args[@]}"}; then
+        fail_selection_step "Unable to replay preceding git add for inspection."
+      fi
+      staging_position=$((staging_position + staging_count))
+    done
+
     case "$selection_mode" in
+      index) ;;
       all)
         if ! run_context_git add -u; then
           fail_selection_step "Unable to stage tracked worktree changes for inspection."
@@ -579,6 +618,19 @@ read_commit_context() {
   if [ ${#decoded_string_array[@]} -gt 0 ]; then
     commit_pathspecs=("${decoded_string_array[@]}")
   fi
+
+  local step_count step_index step_size
+  IFS= read -r -d '' -u 3 step_count || return 1
+  case "$step_count" in '' | *[!0-9]*) return 1 ;; esac
+  staging_tokens=()
+  for ((step_index = 0; step_index < step_count; step_index++)); do
+    read_decoded_string_array || return 1
+    step_size="${#decoded_string_array[@]}"
+    staging_tokens+=("$step_size")
+    if [ "$step_size" -gt 0 ]; then
+      staging_tokens+=("${decoded_string_array[@]}")
+    fi
+  done
 }
 
 check_commit_context_policy() {
@@ -713,7 +765,7 @@ report_blocked_files() {
     config_path_display="${ARTIFACT_LIST_FILE#${CLAUDE_PLUGIN_ROOT}/}"
   fi
 
-  echo "Review artifact file(s) staged for commit: $blocked_file_list. Please confirm you want to include these files. Configure this list in $config_path_display." >&2
+  echo "Review artifact file(s) staged for commit: $blocked_file_list. Unstage these files or select commit paths that exclude them. To intentionally allow them, edit $config_path_display before retrying." >&2
 }
 
 # Only check git commit commands. Shell/git command parsing is centralized in

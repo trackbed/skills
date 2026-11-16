@@ -32,6 +32,7 @@ from .syntax import (
     normalize_shell_tokens,
     read_backtick_substitution,
     read_dollar_substitution,
+    strip_shell_comments,
 )
 
 
@@ -102,6 +103,7 @@ def _queue_heredocs(scanner: HeredocScanner, line: str, pending_heredocs: list[P
 
 def normalize_newlines(command: str) -> str:
     command, _ = strip_heredoc_bodies(command)
+    command = strip_shell_comments(command)
     normalized: list[str] = []
     in_single = False
     in_double = False
@@ -257,6 +259,7 @@ def split_segments(tokens: list[str]) -> Iterator[tuple[list[str], Optional[str]
 
 def replace_command_substitutions(command: str) -> tuple[str, list[str]]:
     command, heredoc_body_substitutions = strip_heredoc_bodies(command)
+    command = strip_shell_comments(command)
     # Start with any substitutions extracted from unquoted heredoc
     # bodies - they're still executed by the shell and need inspection.
     substitutions = list(heredoc_body_substitutions)

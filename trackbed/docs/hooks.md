@@ -5,7 +5,7 @@ Hooks run on their own around the host's work: before a shell command, after a f
 | Hook | What it does for you |
 | --- | --- |
 | [`block-rm-rf`](#block-rm-rf) | Stops destructive deletion commands before they run. |
-| [`confirm-review-responses`](#confirm-review-responses) | Asks before review artifacts are committed. |
+| [`confirm-review-responses`](#confirm-review-responses) | Blocks commits that include protected review artifacts. |
 | [`auto-format`](#auto-format) | Formats a file after the agent edits it, with your project's formatter. |
 | [`update-check`](#update-check) | Tells you when a newer plugin version is out. |
 | [`skill-usage-stats`](#skill-usage-stats) | Records which skills you use, locally. |
@@ -87,9 +87,11 @@ Install: `brew install trash`
 
 ## confirm-review-responses
 
-`confirm-review-responses` asks before a commit that includes a review artifact, such as `REVIEW_OVERVIEW.md`, so a report left in the working tree is not committed by accident.
+`confirm-review-responses` blocks a commit that includes a protected review artifact, such as `REVIEW_OVERVIEW.md`, so a report left in the working tree is not committed by accident.
 
-Edit `hooks/confirm-review-artifacts.txt` to configure which staged files should trigger confirmation. Entries support shell-style glob patterns, so generated artifacts like `PR_PLAN_*.md` can be guarded without listing every file explicitly.
+Unstage the protected files or select commit paths that exclude them. To intentionally allow a file, edit `hooks/confirm-review-artifacts.txt` before retrying. There is no interactive confirmation bypass. Entries support shell-style glob patterns, so generated artifacts like `PR_PLAN_*.md` can be guarded without listing every file explicitly.
+
+The hook includes files selected by earlier `git add` commands in the same command list. It inspects them in a private index and object store, then applies the commit selection, including `--only` exclusions. Unsupported add arguments, differing repository/index contexts, or uncertain staging order in a heredoc expansion block inspection with a reason.
 
 ## auto-format
 

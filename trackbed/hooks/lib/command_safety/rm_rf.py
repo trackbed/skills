@@ -26,6 +26,7 @@ from .syntax import (
 )
 from .vocabulary import _skip_xargs_options
 
+PARSE_ERROR_REASON = "Unable to safely parse command. Refusing potentially destructive deletion command."
 RM_RF_REASON = "rm -rf is blocked. Use `trash` instead (install: brew install trash). Files go to Trash for recovery."
 XARGS_RM_RF_REASON = "xargs rm -rf is blocked. Use `trash` instead."
 FIND_DELETE_REASON = "find -delete is blocked. Use `trash` instead for recoverable deletion."
@@ -279,7 +280,7 @@ def run_rm_rf(command: str) -> int:
     try:
         reason = _detect_rm_rf_command(command)
     except (RecursionError, ValueError):
-        reason = RM_RF_REASON
+        reason = PARSE_ERROR_REASON
 
     print(json.dumps({"block": reason}))
     return 0

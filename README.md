@@ -647,7 +647,7 @@ Event handlers defined once in the plugin source and packaged for both hosts. Ea
 | Hook | Event | Description |
 | --- | --- | --- |
 | `block-rm-rf` | PreToolUse (Bash) | Blocks destructive file deletion commands and recommends `trash` instead. |
-| `confirm-review-responses` | PreToolUse (Bash) | Confirms before committing review artifact files. |
+| `confirm-review-responses` | PreToolUse (Bash) | Blocks commits that include protected review artifacts. |
 | `skill-usage-stats` | PreToolUse (Skill), UserPromptSubmit | Records local skill usage statistics. |
 | `auto-format` | PostToolUse (Write\|Edit) | Auto-formats code after file modifications using detected project formatter. |
 | `update-check` | SessionStart (startup) | Checks GitHub at most once a day and shows a notice when a newer plugin version is available, then names the new version once after an update. |
