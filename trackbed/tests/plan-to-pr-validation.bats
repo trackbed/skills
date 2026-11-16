@@ -1637,3 +1637,11 @@ PY
 	run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" "$REPO/.context/attachments/input.md"
 	assert_error INPUT_LOCATION_UNSUPPORTED
 }
+
+@test "intake compatibility entry point preserves the command name in help" {
+	run python3 "$VALIDATOR" --help
+
+	assert_success
+	[[ "$output" == "usage: validate-plan-state.py "* ]] || false
+	[[ "$output" != *"usage: plan_archive.py"* ]] || false
+}
