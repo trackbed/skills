@@ -206,3 +206,54 @@ settings_block_is_closed() {
   [ "$status" -eq 1 ]
   [[ "$output" == *'skill-eval-compare: No eval suite "no-such-suite"'* ]] || false
 }
+
+@test "refactor eval history has measured churn and stays inside the rolling window" {
+  local workspace case_dir
+  workspace="$BATS_TEST_TMPDIR/refactor-history"
+  case_dir="$(plugin_root)/evals/refactor-opportunities/refactor-stable-import"
+  mkdir -p "$workspace"
+  (cd "$workspace" && env -i PATH="$PATH" HOME="$BATS_TEST_TMPDIR/home" TERM=dumb bash "$case_dir/scaffold.sh")
+
+  [ "$(git -C "$workspace" log --since='12 months ago' --format=%H -- src/routing/tariff.js | wc -l | tr -d ' ')" -eq 13 ]
+  [ "$(git -C "$workspace" log --since='12 months ago' --format=%H -- src/routing/quote.js | wc -l | tr -d ' ')" -eq 1 ]
+  [ "$(grep -rl 'import.*quote' "$workspace/src/routing/desks" | wc -l | tr -d ' ')" -eq 8 ]
+  (cd "$workspace" && node tests/run.mjs)
+}
+
+@test "shared fixture date keeps its default and accepts a future override" {
+  local workspace helper
+  workspace="$BATS_TEST_TMPDIR/fixture-date"
+  helper="$(plugin_root)/evals/_lib/git-fixture.sh"
+  mkdir -p "$workspace"
+  run env -u FIXTURE_DATE bash -c '. "$1"; printf "%s" "$FIXTURE_DATE"' bash "$helper"
+  [ "$status" -eq 0 ]
+  [ "$output" = '2026-01-15T10:00:00+00:00' ]
+
+  (cd "$workspace" && FIXTURE_DATE='2027-06-15T10:00:00+00:00' bash \
+    "$(plugin_root)/evals/refactor-opportunities/refactor-stable-import/scaffold.sh")
+  [ "$(git -C "$workspace" log --since='2027-01-01' --format=%H -- src/routing/tariff.js | wc -l | tr -d ' ')" -eq 13 ]
+  [ "$(git -C "$workspace" log --since='2027-01-01' --format=%H -- src/routing/quote.js | wc -l | tr -d ' ')" -eq 1 ]
+}
+
+@test "refactor semantic graders read the saved report independently of the reply" {
+  local case_dir
+  for case_dir in "$(plugin_root)"/evals/refactor-opportunities/refactor-*; do
+    node - "$case_dir" <<'NODE'
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const yaml = require('yaml');
+const grader = name => yaml.parse(fs.readFileSync(path.join(process.argv[2], 'graders', name + '.md'), 'utf8').split('---')[1]);
+const report = grader('audit-outcome');
+assert.equal(report.type, 'llm');
+assert.deepEqual(report.focus, { source: 'file', path: 'REFACTOR_OPPORTUNITIES_OVERVIEW.md' });
+assert.equal(report.target, undefined);
+const reply = grader('reply-summarizes-result');
+assert.equal(reply.type, 'llm');
+assert.equal(reply.focus, 'last_message');
+const existence = grader('report-exists');
+assert.equal(existence.type, 'file_exists');
+assert.equal(existence.path, report.focus.path);
+NODE
+  done
+}

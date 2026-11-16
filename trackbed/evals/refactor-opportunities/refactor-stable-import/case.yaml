@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: refactor-stable-import
+expected_outcome: |
+  Observed failure in the 2026-11-16 unchanged-main baseline: the scan
+  recommended small cleanups but did not flag quote.js importing the
+  volatile tariff.js or report both sides' change counts. The quote has
+  eight direct consumers and one touch; tariff has thirteen touches (or
+  zero versus twelve when explicitly excluding the initial commit).
+  Pass when the report flags that dependency and measures both sides.
+context:
+  scaffold_script: scaffold.sh

@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: refactor-shared-rule
+expected_outcome: |
+  Contract from the source-review gap hypothesis: recognize one delivery
+  requirement behind the API, CSV, and preview special cases and propose one
+  shared fix covering all three. In the 2026-11-16 unchanged-main baseline,
+  this outcome passed; the hypothesized miss was not reproduced, so this
+  remains a regression contract rather than an observed failure.
+context:
+  scaffold_script: scaffold.sh

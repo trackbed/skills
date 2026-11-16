@@ -56,6 +56,48 @@
       ],
       "trackbed/skills/visual:decisions/assets/decisions.js": [
         "trackbed/tests/visual-decisions-guidance.bats"
+      ],
+      "trackbed/evals/refactor-opportunities/_project/src/channels/api.js": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/refactor-opportunities/_project/src/channels/csv.js": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/refactor-opportunities/_project/src/channels/preview.js": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/refactor-opportunities/_project/src/routing/desks/batch.js": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/refactor-opportunities/_project/src/routing/desks/booking.js": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/refactor-opportunities/_project/src/routing/desks/budget.js": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/refactor-opportunities/_project/src/routing/desks/insurance.js": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/refactor-opportunities/_project/src/routing/desks/invoice.js": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/refactor-opportunities/_project/src/routing/desks/notice.js": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/refactor-opportunities/_project/src/routing/desks/receipt.js": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/refactor-opportunities/_project/src/routing/desks/refund.js": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/refactor-opportunities/_project/src/routing/quote.js": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/refactor-opportunities/_project/src/routing/tariff.js": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/refactor-opportunities/_project/src/units/weight.js": [
+        "trackbed/tests/skill-eval-suites.bats"
       ]
     },
     "excluded": {
@@ -1022,6 +1064,15 @@
       "trackbed/skills/workflow:wizard/assets/template.sh": [
         "trackbed/tests/skill-resource-references.bats",
         "trackbed/tests/workflow-wizard-template.bats"
+      ],
+      "trackbed/evals/refactor-opportunities/refactor-clean-module/scaffold.sh": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/refactor-opportunities/refactor-shared-rule/scaffold.sh": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/refactor-opportunities/refactor-stable-import/scaffold.sh": [
+        "trackbed/tests/skill-eval-suites.bats"
       ]
     }
   }
