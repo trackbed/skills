@@ -320,6 +320,8 @@ This file is a working artifact. It will be cleaned up by `/trackbed:workflow:cl
 
 When `VISUAL_REPORT=true`, add `QA_REPORT.html` beside the `QA_REPORT.md` written in Step 9. Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `qa`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-qa.html`. Its reader is deciding whether the app is ready to ship: what was tested, what broke, and how to reproduce it. Follow-up commands for the page: `/trackbed:code:breakdown-findings`, `/trackbed:linear:breakdown-findings`.
 
+**Decision document.** Synced decision document handoff (keep aligned across report producers): when the user asks for a decision document, a walkthrough with options and recommendations, or a place to record their choices, finish this skill's own output first and then invoke `trackbed:visual:decisions` with that output's path; never invoke it unasked, never write that page yourself, and never act on a recorded choice without a new request.
+
 ### Step 11: Output Summary
 
 After writing the report, display the inline summary using `assets/qa-summary-template.md`.

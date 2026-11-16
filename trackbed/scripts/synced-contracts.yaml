@@ -40,6 +40,25 @@
       ]
     },
     {
+      "name": "decision-document-handoff",
+      "extract_regex": "Synced decision document handoff \\(keep aligned across report producers\\):\\s*(when the user asks for a decision document.*?never act on a recorded choice without a new request\\.)",
+      "inventory": {
+        "glob": "trackbed/skills/**/SKILL.md",
+        "marker": "Synced decision document handoff (keep aligned across report producers):"
+      },
+      "paths": [
+        "trackbed/skills/pr:code-review/SKILL.md",
+        "trackbed/skills/pr:product-review/SKILL.md",
+        "trackbed/skills/product:review/SKILL.md",
+        "trackbed/skills/qa/SKILL.md",
+        "trackbed/skills/code:refactor-opportunities/SKILL.md",
+        "trackbed/skills/code:audit-security/SKILL.md",
+        "trackbed/skills/discovery:strategic-inquiry/SKILL.md",
+        "trackbed/skills/code:breakdown-findings/SKILL.md",
+        "trackbed/skills/discovery:interview/SKILL.md"
+      ]
+    },
+    {
       "name": "linear-agent-readiness-rubric",
       "extract_regex": "(?s)Synced Linear agent-readiness contract \\(keep aligned across Linear readiness workflows\\):\\s*(An issue is `?agent-ready`? only when every item passes\\..*?Never promote an issue while required evidence is unknown\\.)",
       "inventory": {
