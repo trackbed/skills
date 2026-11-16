@@ -19,7 +19,7 @@ setup() {
   grep -qF 'Do not add text only to satisfy a reviewer that lacked context.' "$REFERENCE"
   grep -qF 'Do not lower a severity to make a finding go away.' "$REFERENCE"
   grep -qF 'accept the finding, and record your evidence for the lower rating alongside it' "$REFERENCE"
-  ! grep -qF 'contest it and say why' "$REFERENCE"
+  ! grep -qF 'contest it and say why' "$REFERENCE" || false
 }
 
 @test "resolve-audit checks a finding before offering options" {
@@ -108,7 +108,7 @@ setup() {
 
   grep -qF 'Map it the same way for every finding type: Critical → High, Major → Medium, Minor → Low.' "$RESOLVE_AUDIT"
   grep -qF -- '- Set `Priority` with the Step 3 severity-to-priority rule, whatever the finding type.' "$RESOLVE_AUDIT"
-  ! grep -qF 'severity-inheritance' "$RESOLVE_AUDIT"
+  ! grep -qF 'severity-inheritance' "$RESOLVE_AUDIT" || false
   for template in skills/siw:resolve-audit/assets/issue-{div-ext,spec,prod}.md.template; do
     grep -qF '**Priority:** {High/Medium/Low — see Step 3 severity-to-priority rule}' "$template"
     grep -qF '**Audit Severity:** {Critical | Major | Minor, as the report states it} {Severity Note copied verbatim from the audit report, if present}' "$template"

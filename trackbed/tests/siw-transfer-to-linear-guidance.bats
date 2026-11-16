@@ -33,5 +33,5 @@ setup() {
 	grep -qF 'the Phase 7 read-back expects no relations from text alone' "$MAPPING"
 	grep -qF 'Text alone creates none: an identifier mentioned in a description adds no Linear relation, though Linear may show the mention as a backlink.' "$SKILL"
 	grep -qF 'With no relation support, expect no relations, and never count a backlink as a written relation.' "$SKILL"
-	! grep -qF 'When no relation parameters exist, text is the only record.' "$MAPPING"
+	! grep -qF 'When no relation parameters exist, text is the only record.' "$MAPPING" || false
 }

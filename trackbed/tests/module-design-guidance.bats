@@ -95,7 +95,7 @@ setup() {
 		grab && /^   ```$/ { exit }
 		grab { sub(/^   /, ""); print }
 	' "$skill")
-	[[ "$pipeline" == *"<in-scope source paths>"* ]]
+	[[ "$pipeline" == *"<in-scope source paths>"* ]] || false
 	pipeline=${pipeline//<in-scope source paths>/src}
 
 	local repo="$BATS_TEST_TMPDIR/co-change"
@@ -116,9 +116,9 @@ setup() {
 
 	run bash -c "$pipeline"
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"3 src/billing/invoice.ts"$'\t'"src/orders/checkout.ts"* ]]
-	[[ "$output" == *"3 src/billing/internal/tax.ts"$'\t'"src/orders/checkout.ts"* ]]
-	[[ "$output" != *"src/billing/internal/tax.ts"$'\t'"src/billing/invoice.ts"* ]]
+	[[ "$output" == *"3 src/billing/invoice.ts"$'\t'"src/orders/checkout.ts"* ]] || false
+	[[ "$output" == *"3 src/billing/internal/tax.ts"$'\t'"src/orders/checkout.ts"* ]] || false
+	[[ "$output" != *"src/billing/internal/tax.ts"$'\t'"src/billing/invoice.ts"* ]] || false
 }
 
 @test "code review runs the architecture reviewer as a conditional dimension with the shared glossary" {
@@ -175,8 +175,8 @@ setup() {
 	local description
 
 	description="$(sed -n 's/^description: "\(.*\)"$/\1/p' "$skill")"
-	[[ "$description" == *"in fresh-context sub-agents where the host allows"* ]]
-	[[ "$description" == *"verifies the pick before recommending it"* ]]
+	[[ "$description" == *"in fresh-context sub-agents where the host allows"* ]] || false
+	[[ "$description" == *"verifies the pick before recommending it"* ]] || false
 	[ "${#description}" -le 1024 ]
 	if grep -qF "sub-agents on Claude Code, sequentially elsewhere" "$skill"; then
 		echo "the description must not tie the parallel form to one host" >&2

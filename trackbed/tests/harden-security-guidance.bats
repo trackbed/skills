@@ -14,14 +14,14 @@ BOUNDARY_SYSTEM="skills/code:harden-security/references/boundary-system.md"
 @test "routing separates dependency hardening from dependency audits" {
   grep -qF "adding, upgrading, or remediating packages" "$SKILL"
   grep -qF "use \`trackbed:deps:audit\` instead" "$SKILL"
-  ! grep -qF "auditing packages" "$SKILL"
-  ! grep -qF "auditing dependencies" "$SKILL"
+  ! grep -qF "auditing packages" "$SKILL" || false
+  ! grep -qF "auditing dependencies" "$SKILL" || false
 }
 
 @test "LLM routing is limited to the implemented personal-data boundary" {
   grep -qF "personal-data sharing with LLM providers" "$SKILL"
   grep -qF "including sharing with an LLM provider" "$SKILL"
-  ! grep -qF "external/LLM integrations" "$SKILL"
+  ! grep -qF "external/LLM integrations" "$SKILL" || false
 }
 
 @test "dependency artifacts remain untrusted and hook approval follows reviewed bytes" {
@@ -83,7 +83,7 @@ BOUNDARY_SYSTEM="skills/code:harden-security/references/boundary-system.md"
     grep -qF "anonymous, credential-free public reads available to any client on the internet" "$file"
     grep -qF "intranet, VPN-only, IP-allow-listed, or credential-protected resources" "$file"
   done
-  ! grep -qF "wildcards are on the table (they should not be)" "$BOUNDARY_SYSTEM"
+  ! grep -qF "wildcards are on the table (they should not be)" "$BOUNDARY_SYSTEM" || false
   grep -qF "changing its CORS policy still remains Tier 2 and requires confirmation" "$BOUNDARY_SYSTEM"
 }
 
@@ -96,9 +96,9 @@ BOUNDARY_SYSTEM="skills/code:harden-security/references/boundary-system.md"
   grep -qF "application-owned messages" "$CHECKLIST"
   grep -qF "Unexpected production failures expose only a generic message and a correlation ID" "$OWASP"
   grep -qF "Validation failures use the project's own field-level error shape" "$OWASP"
-  ! grep -qF "Error responses in production expose only" "$OWASP"
-  ! grep -qF "result.error.flatten()" "$SKILL"
-  ! grep -qF "Validation errors return a generic message" "$CHECKLIST"
+  ! grep -qF "Error responses in production expose only" "$OWASP" || false
+  ! grep -qF "result.error.flatten()" "$SKILL" || false
+  ! grep -qF "Validation errors return a generic message" "$CHECKLIST" || false
 }
 
 @test "documented secret scans name staged matches without leaking their contents" {
@@ -144,7 +144,7 @@ BOUNDARY_SYSTEM="skills/code:harden-security/references/boundary-system.md"
     [ "$status" -ne 0 ]
   done
   grep -qF "Run before every commit" "${docs[0]}"
-  ! grep -qF "Run before every push" "${docs[0]}"
+  ! grep -qF "Run before every push" "${docs[0]}" || false
 }
 
 @test "CSRF guidance requires one server-enforced primary control and closes known bypasses" {
@@ -180,7 +180,7 @@ BOUNDARY_SYSTEM="skills/code:harden-security/references/boundary-system.md"
   grep -qF "attaches CSRF tokens only to the application's own endpoints" <<<"$csrf_group"
 
   grep -qF 'explicit `SameSite` cookies add a layer but are not the control' "$BOUNDARY_SYSTEM"
-  ! grep -qF 'appropriate `SameSite` cookies' "$BOUNDARY_SYSTEM"
+  ! grep -qF 'appropriate `SameSite` cookies' "$BOUNDARY_SYSTEM" || false
 }
 
 @test "security headers are never loosened to make a feature or test pass" {
@@ -200,5 +200,5 @@ BOUNDARY_SYSTEM="skills/code:harden-security/references/boundary-system.md"
   grep -qF "rotate or revoke it before cleaning history" "$SKILL"
   grep -qF "is rotated or revoked before history is cleaned" "$CHECKLIST"
   grep -qF "rotate or revoke it first and clean history second" "$BOUNDARY_SYSTEM"
-  ! grep -qF "\"I'll rotate it after\" is true and necessary" "$BOUNDARY_SYSTEM"
+  ! grep -qF "\"I'll rotate it after\" is true and necessary" "$BOUNDARY_SYSTEM" || false
 }

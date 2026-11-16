@@ -65,8 +65,8 @@ write_plugin_fixture() {
 	run resource_reference_check "$plugin_dir/skills"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"missing shared/topic/references/absent.md"* ]]
-	[[ "$output" == *"missing scripts/absent.sh"* ]]
+	[[ "$output" == *"missing shared/topic/references/absent.md"* ]] || false
+	[[ "$output" == *"missing scripts/absent.sh"* ]] || false
 }
 
 @test "plugin-level references cannot escape their directory" {
@@ -78,7 +78,7 @@ write_plugin_fixture() {
 	run resource_reference_check "$plugin_dir/skills"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"escapes plugin shared directory"* ]]
+	[[ "$output" == *"escapes plugin shared directory"* ]] || false
 }
 
 @test "reference files may only use plugin-level paths their SKILL.md names" {
@@ -90,8 +90,8 @@ write_plugin_fixture() {
 	run resource_reference_check "$plugin_dir/skills"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"references/steps.md:1: shared/topic/references/guide.md is not named in SKILL.md"* ]]
-	[[ "$output" == *"references/steps.md:1: scripts/helper.sh is not named in SKILL.md"* ]]
+	[[ "$output" == *"references/steps.md:1: shared/topic/references/guide.md is not named in SKILL.md"* ]] || false
+	[[ "$output" == *"references/steps.md:1: scripts/helper.sh is not named in SKILL.md"* ]] || false
 }
 
 @test "SIW spec audit keeps product judgment in the opt-in Product dimension" {
@@ -142,7 +142,7 @@ write_plugin_fixture() {
 	grep -qF "| Prototype / Spike | Prototype | Early Exploration | Actionability, Technical Design | Completeness, Testability |" "$work_contexts"
 	grep -qF "| Internal Tool | Internal Tool | Varies | Actionability, Clarity | None |" "$work_contexts"
 	grep -qF "| Tech Debt / Refactor | Refactor | Maintenance | Technical Design, Testability | Scope |" "$work_contexts"
-	! grep -qF "## Dimension: Value Proposition" "$dimensions"
+	! grep -qF "## Dimension: Value Proposition" "$dimensions" || false
 }
 
 @test "SIW spec audit owns the canonical apply procedure" {
@@ -155,9 +155,9 @@ write_plugin_fixture() {
 	[ ! -e "$skills/kramme:siw:apply-spec-audit-fixes" ]
 	! grep -rqF "siw:apply-spec-audit-fixes" "$skills" || false
 	hint="$(sed -n '/^argument-hint:/p' "$spec_skill")"
-	[[ "$hint" == *"audit-report-path"* ]]
-	[[ "$hint" == *"--threshold 60-100"* ]]
-	[[ "$hint" == *"--allow-dirty"* ]]
+	[[ "$hint" == *"audit-report-path"* ]] || false
+	[[ "$hint" == *"--threshold 60-100"* ]] || false
+	[[ "$hint" == *"--allow-dirty"* ]] || false
 	grep -qF '## Apply Mode' "$spec_skill"
 	grep -qF '## Apply-Only Entry' "$apply_now"
 	grep -qF 'Critical findings in Completeness, Scope, or Rationale Documentation dimensions always require decisions; treat the legacy `Value Proposition` label in older reports as Rationale Documentation.' "$apply_now"
@@ -176,7 +176,7 @@ write_plugin_fixture() {
 	run resource_reference_check "$skills_dir"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]]
+	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]] || false
 }
 
 @test "punctuated parent-relative runtime resource references cannot escape a skill" {
@@ -190,7 +190,7 @@ write_plugin_fixture() {
 	run resource_reference_check "$skills_dir"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]]
+	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]] || false
 }
 
 @test "normalized parent-relative runtime resource references cannot escape a skill" {
@@ -204,7 +204,7 @@ write_plugin_fixture() {
 	run resource_reference_check "$skills_dir"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"escapes skill directory: ./../../other-skill/references/policy.md"* ]]
+	[[ "$output" == *"escapes skill directory: ./../../other-skill/references/policy.md"* ]] || false
 }
 
 @test "fenced runtime resource references cannot escape a skill" {
@@ -221,7 +221,7 @@ write_plugin_fixture() {
 	run resource_reference_check "$skills_dir"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]]
+	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]] || false
 }
 
 @test "fenced runtime references keep their opening instruction context" {
@@ -241,7 +241,7 @@ write_plugin_fixture() {
 	run resource_reference_check "$skills_dir"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]]
+	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]] || false
 }
 
 @test "wrapped fenced runtime instructions retain the full lead-in paragraph" {
@@ -260,7 +260,7 @@ write_plugin_fixture() {
 	run resource_reference_check "$skills_dir"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]]
+	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]] || false
 }
 
 @test "direct fenced runtime instructions are checked under neutral lead-ins" {
@@ -278,7 +278,7 @@ write_plugin_fixture() {
 	run resource_reference_check "$skills_dir"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]]
+	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]] || false
 }
 
 @test "command-only fenced runtime references are checked under neutral lead-ins" {
@@ -296,7 +296,7 @@ write_plugin_fixture() {
 	run resource_reference_check "$skills_dir"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"escapes skill directory: ../../other-skill/scripts/helper.js"* ]]
+	[[ "$output" == *"escapes skill directory: ../../other-skill/scripts/helper.js"* ]] || false
 }
 
 @test "Markdown-labeled fenced runtime references are checked" {
@@ -314,7 +314,7 @@ write_plugin_fixture() {
 	run resource_reference_check "$skills_dir"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]]
+	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]] || false
 }
 
 @test "missing local resources in fenced runtime instructions are rejected" {
@@ -332,7 +332,7 @@ write_plugin_fixture() {
 	run resource_reference_check "$skills_dir"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"missing references/missing-policy.md"* ]]
+	[[ "$output" == *"missing references/missing-policy.md"* ]] || false
 }
 
 @test "different fence markers do not close a fenced runtime reference block" {
@@ -350,7 +350,7 @@ write_plugin_fixture() {
 	run resource_reference_check "$skills_dir"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]]
+	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]] || false
 }
 
 @test "explicit cross-skill runtime resource references are rejected" {
@@ -365,7 +365,7 @@ write_plugin_fixture() {
 	run resource_reference_check "$skills_dir"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"escapes skill directory: skills/other-skill/references/policy.md"* ]]
+	[[ "$output" == *"escapes skill directory: skills/other-skill/references/policy.md"* ]] || false
 }
 
 @test "cross-skill Markdown links are rejected without instruction verbs" {
@@ -379,7 +379,7 @@ write_plugin_fixture() {
 	run resource_reference_check "$skills_dir"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]]
+	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]] || false
 }
 
 @test "reference-style cross-skill Markdown links are rejected" {
@@ -395,7 +395,7 @@ write_plugin_fixture() {
 	run resource_reference_check "$skills_dir"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]]
+	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]] || false
 }
 
 @test "nested Markdown links resolve relative to their containing file" {
@@ -448,7 +448,7 @@ write_plugin_fixture() {
 	run resource_reference_check "$skills_dir"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"escapes skill directory: ../other/references/policy.md"* ]]
+	[[ "$output" == *"escapes skill directory: ../other/references/policy.md"* ]] || false
 }
 
 @test "Markdown links inside inline code remain inert examples" {
@@ -499,7 +499,7 @@ write_plugin_fixture() {
 	run resource_reference_check "$skills_dir"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]]
+	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]] || false
 }
 
 @test "direct runtime instructions inside Markdown fences are checked" {
@@ -517,7 +517,7 @@ write_plugin_fixture() {
 	run resource_reference_check "$skills_dir"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]]
+	[[ "$output" == *"escapes skill directory: ../../other-skill/references/policy.md"* ]] || false
 }
 
 @test "md-labeled authoring fences remain inert" {
@@ -569,7 +569,7 @@ write_plugin_fixture() {
 		printf 'Read `%s` before proceeding.\n' "$reference" >"$plugin_dir/skills/fixture-skill/SKILL.md"
 		run resource_reference_check "$plugin_dir/skills"
 		[ "$status" -eq 1 ]
-		[[ "$output" == *"escapes"* ]]
+		[[ "$output" == *"escapes"* ]] || false
 	done
 }
 
@@ -579,7 +579,7 @@ write_plugin_fixture() {
 	printf '[Guide](../../docs/development.md)\n' >"$plugin_dir/skills/fixture-skill/SKILL.md"
 	run resource_reference_check "$plugin_dir/skills"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"escapes skill directory: ../../docs/development.md"* ]]
+	[[ "$output" == *"escapes skill directory: ../../docs/development.md"* ]] || false
 	printf 'Run this:\n```sh\ncat ../../docs/development.md\n```\n' >"$plugin_dir/skills/fixture-skill/SKILL.md"
 	run resource_reference_check "$plugin_dir/skills"
 	[ "$status" -eq 1 ]

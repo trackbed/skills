@@ -37,9 +37,9 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh"
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"BASE_BRANCH=main"* ]]
-	[[ "$output" == *"BASE_REF=refs/remotes/origin/main"* ]]
-	[[ "$output" == *"MERGE_BASE="* ]]
+	[[ "$output" == *"BASE_BRANCH=main"* ]] || false
+	[[ "$output" == *"BASE_REF=refs/remotes/origin/main"* ]] || false
+	[[ "$output" == *"MERGE_BASE="* ]] || false
 }
 
 @test "resolve-base strict mode fails when fetch fails" {
@@ -49,7 +49,7 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --strict
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Failed to fetch origin/main"* ]]
+	[[ "$output" == *"Failed to fetch origin/main"* ]] || false
 }
 
 @test "resolve-base can tolerate fetch failure when cached ref exists" {
@@ -59,8 +59,8 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --tolerate-fetch-failure
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"BASE_BRANCH=main"* ]]
-	[[ "$output" == *"Warning: failed to fetch origin/main"* ]]
+	[[ "$output" == *"BASE_BRANCH=main"* ]] || false
+	[[ "$output" == *"Warning: failed to fetch origin/main"* ]] || false
 }
 
 @test "collect-review-diff includes committed staged unstaged and untracked files" {
@@ -302,13 +302,13 @@ PY
 	run bash -c 'printf "%s" "$1" | "$2" --decode-json' \
 		_ '{not-json' "$SCRIPT_DIR/collect-review-diff.sh"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Invalid collect-review-diff JSON output"* ]]
+	[[ "$output" == *"Invalid collect-review-diff JSON output"* ]] || false
 
 	run bash -c 'printf "%s" "$1" | "$2" --decode-json' \
 		_ '{"base_ref":"origin/main","base_branch":"main","changed_files":[]}' \
 		"$SCRIPT_DIR/collect-review-diff.sh"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"field 'merge_base' must be a string"* ]]
+	[[ "$output" == *"field 'merge_base' must be a string"* ]] || false
 }
 
 @test "collect-review-diff decoder rejects wrong field types" {
@@ -316,19 +316,19 @@ PY
 		_ '{"base_ref":[],"base_branch":"main","merge_base":"abc","changed_files":[]}' \
 		"$SCRIPT_DIR/collect-review-diff.sh"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"field 'base_ref' must be a string"* ]]
+	[[ "$output" == *"field 'base_ref' must be a string"* ]] || false
 
 	run bash -c 'printf "%s" "$1" | "$2" --decode-json' \
 		_ '{"base_ref":"origin/main","base_branch":"main","merge_base":"abc","changed_files":["ok",7]}' \
 		"$SCRIPT_DIR/collect-review-diff.sh"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"field 'changed_files' must be a string list"* ]]
+	[[ "$output" == *"field 'changed_files' must be a string list"* ]] || false
 
 	run bash -c 'printf "%s" "$1" | "$2" --decode-json' \
 		_ '{"base_ref":"origin/main","base_branch":"main\u0000evil","merge_base":"abc","changed_files":[]}' \
 		"$SCRIPT_DIR/collect-review-diff.sh"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"field 'base_branch' must not contain NUL"* ]]
+	[[ "$output" == *"field 'base_branch' must not contain NUL"* ]] || false
 }
 
 @test "collect-review-diff propagates resolver failure" {
@@ -337,7 +337,7 @@ PY
 	run "$SCRIPT_DIR/collect-review-diff.sh" --strict --format json
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Base resolution failed; see the message above and stop."* ]]
+	[[ "$output" == *"Base resolution failed; see the message above and stop."* ]] || false
 }
 
 @test "collect-review-diff NUL output propagates resolver failure without partial fields" {
@@ -348,7 +348,7 @@ PY
 		_ "$SCRIPT_DIR/collect-review-diff.sh" "$fields"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Base resolution failed; see the message above and stop."* ]]
+	[[ "$output" == *"Base resolution failed; see the message above and stop."* ]] || false
 	[ ! -s "$fields" ]
 }
 
@@ -524,25 +524,25 @@ PY
 	git add "$artifact"
 	run "$SCRIPT_DIR/collect-review-diff.sh" --require-local-artifact "$artifact"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"$artifact $trust_message"* ]]
+	[[ "$output" == *"$artifact $trust_message"* ]] || false
 
 	git commit -m "commit review report" >/dev/null
 	run "$SCRIPT_DIR/collect-review-diff.sh" --require-local-artifact "$artifact"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"$trust_message"* ]]
+	[[ "$output" == *"$trust_message"* ]] || false
 
 	git rm -q "$artifact"
 	git commit -m "remove review report" >/dev/null
 	ln -s /etc/passwd "$artifact"
 	run "$SCRIPT_DIR/collect-review-diff.sh" --require-local-artifact "$artifact"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"$trust_message"* ]]
+	[[ "$output" == *"$trust_message"* ]] || false
 
 	rm "$artifact"
 	mkdir "$artifact"
 	run "$SCRIPT_DIR/collect-review-diff.sh" --require-local-artifact "$artifact"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"$trust_message"* ]]
+	[[ "$output" == *"$trust_message"* ]] || false
 }
 
 @test "collect-review-diff fails closed without the canonical artifact list" {
@@ -554,29 +554,29 @@ PY
 	run "$fake_scripts/collect-review-diff.sh" --exclude-review-artifacts
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Review artifact list not found"* ]]
-	[[ "$output" == *"refusing to filter review scope without it"* ]]
+	[[ "$output" == *"Review artifact list not found"* ]] || false
+	[[ "$output" == *"refusing to filter review scope without it"* ]] || false
 }
 
 @test "collect-review-diff rejects review-preparation options in decoder mode" {
 	run bash -c 'printf "%s" "$1" | "$2" --decode-json --exclude-review-artifacts' \
 		_ '{}' "$SCRIPT_DIR/collect-review-diff.sh"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"--decode-json cannot be combined with collection options"* ]]
+	[[ "$output" == *"--decode-json cannot be combined with collection options"* ]] || false
 
 	run bash -c 'printf "%s" "$1" | "$2" --decode-json --format nul' \
 		_ '{}' "$SCRIPT_DIR/collect-review-diff.sh"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"--decode-json cannot be combined with collection options"* ]]
+	[[ "$output" == *"--decode-json cannot be combined with collection options"* ]] || false
 
 	run bash -c 'printf "%s" "$1" | "$2" --decode-json --require-local-artifact "$3"' \
 		_ '{}' "$SCRIPT_DIR/collect-review-diff.sh" OVERENGINEERING_REVIEW_OVERVIEW.md
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"--decode-json cannot be combined with collection options"* ]]
+	[[ "$output" == *"--decode-json cannot be combined with collection options"* ]] || false
 
 	run "$SCRIPT_DIR/collect-review-diff.sh" --require-local-artifact
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"--require-local-artifact requires a value"* ]]
+	[[ "$output" == *"--require-local-artifact requires a value"* ]] || false
 }
 
 # Two local gh-stack layers on main with no Pull Requests: layer-b is checked
@@ -653,7 +653,7 @@ PY
 	eval "$output"
 	[ "$BASE_BRANCH" = main ]
 	[ "$CHANGED_FILES" = a.txt ]
-	[[ "$STACK_CONTEXT" == *'"review_base":{"branch":"main","commit":null}'* ]]
+	[[ "$STACK_CONTEXT" == *'"review_base":{"branch":"main","commit":null}'* ]] || false
 }
 
 @test "collect-review-diff keeps an explicit base over the stack base" {
@@ -665,7 +665,7 @@ PY
 	eval "$output"
 	[ "$BASE_BRANCH" = main ]
 	[ "$CHANGED_FILES" = $'a.txt\nb.txt' ]
-	[[ "$STACK_CONTEXT" == *'"state":"stacked"'* ]]
+	[[ "$STACK_CONTEXT" == *'"state":"stacked"'* ]] || false
 }
 
 @test "collect-review-diff embeds the stack context object in JSON output" {
@@ -700,8 +700,8 @@ PY
 	eval "$output"
 	[ "$BASE_BRANCH" = main ]
 	[ "$CHANGED_FILES" = committed.txt ]
-	[[ "$STACK_CONTEXT" == *'"state":"unknown"'* ]]
-	[[ "$STACK_CONTEXT" == *'helper exploded'* ]]
+	[[ "$STACK_CONTEXT" == *'"state":"unknown"'* ]] || false
+	[[ "$STACK_CONTEXT" == *'helper exploded'* ]] || false
 }
 
 @test "resolve-base backup mode creates recovery branch" {
@@ -713,7 +713,7 @@ PY
 	run "$SCRIPT_DIR/resolve-base.sh" --backup
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"BACKUP_REF=feature-recreate-backup"* ]]
+	[[ "$output" == *"BACKUP_REF=feature-recreate-backup"* ]] || false
 	[ "$(git rev-parse feature-recreate-backup)" = "$feature_tip" ]
 }
 
@@ -782,12 +782,12 @@ PYTEST
 
 	run "$SCRIPT_DIR/collect-review-diff.sh" --format json
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"cannot represent a path containing a newline byte"* ]]
+	[[ "$output" == *"cannot represent a path containing a newline byte"* ]] || false
 
 	git -C "$WORK" add -- "$path"
 	run "$SCRIPT_DIR/collect-review-diff.sh" --format nul
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"cannot represent a path containing a newline byte"* ]]
+	[[ "$output" == *"cannot represent a path containing a newline byte"* ]] || false
 }
 
 @test "collect-review-diff validates root review artifacts when invoked below root" {
@@ -799,7 +799,7 @@ PYTEST
 
 	run "$SCRIPT_DIR/collect-review-diff.sh" --require-local-artifact "$artifact"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"must be an untracked local workflow artifact"* ]]
+	[[ "$output" == *"must be an untracked local workflow artifact"* ]] || false
 }
 
 @test "committed-only scope preserves raw paths and ignores local changes" {

@@ -46,7 +46,7 @@ assert_in_retained_prefix() {
 	done <<<"$flags"
 	[[ "$parse_section" == *"Ignore a leftover \`--auto\`."* ]] || false
 
-	! grep -qF "If \`--coarse\` was combined with \`--granular\`, stop" "$RECREATE"
+	! grep -qF "If \`--coarse\` was combined with \`--granular\`, stop" "$RECREATE" || false
 }
 
 @test "recreate-commits resumes a compacted run without rerunning Step 1" {

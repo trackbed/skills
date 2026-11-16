@@ -153,15 +153,15 @@ PY
   grep -qF 'CONFIGURED_BASE`, `CONDUCTOR_BASE`, and `REMOTE_DEFAULT`' "$COMMIT_MESSAGE"
   grep -qF 'Resolve once per repository per session' "$COMMIT_MESSAGE"
   grep -qF 'Subject follows the resolved convention' "$COMMIT_MESSAGE"
-  ! grep -qF 'Reject that here' "$COMMIT_MESSAGE"
-  ! grep -qF 'no Conventional Commit prefix' "$COMMIT_MESSAGE"
+  ! grep -qF 'Reject that here' "$COMMIT_MESSAGE" || false
+  ! grep -qF 'no Conventional Commit prefix' "$COMMIT_MESSAGE" || false
   grep -qF 'the `BASE_REF` value Step 1 printed' "$RECREATE_COMMITS"
   grep -qF 'Include a subject in the resolved convention' "$RECREATE_COMMITS"
   grep -qF 'Conventional Commits title (`<type>(<scope>): <description>`' "$RECREATE_COMMITS"
   grep -qF 'trackbed:pr:generate-description' "$RECREATE_COMMITS"
   grep -qF 'origin/<resolved-base>' "$RECREATE_COMMITS"
-  ! grep -qF 'plain-English, imperative title' "$RECREATE_COMMITS"
-  ! grep -qF 'Include a clear, plain-English commit message' "$RECREATE_COMMITS"
+  ! grep -qF 'plain-English, imperative title' "$RECREATE_COMMITS" || false
+  ! grep -qF 'Include a clear, plain-English commit message' "$RECREATE_COMMITS" || false
   grep -qF 'Never add AI attribution to any commit subject or body' "$REFERENCE"
   grep -qF 'generated-with banners' "$REFERENCE"
   grep -qF '## AI-Generated Changes' "$COMMIT_MESSAGE"
@@ -189,7 +189,7 @@ PY
   grep -qF 'Before the first remediation commit, read `${CLAUDE_PLUGIN_ROOT}/shared/git/references/commit-conventions.md`' "$review_policy"
   grep -qF 'with `{history-ref}` set to `{base-source-ref}`' "$review_policy"
   grep -qF 'resolved commit message including {work-id}' "$review_policy"
-  ! grep -qF 'plain-English message including {work-id}' "$review_policy"
+  ! grep -qF 'plain-English message including {work-id}' "$review_policy" || false
 
   python3 - "$plan_to_pr" "$issue_to_pr" "$pr_create" <<'PY'
 import pathlib
@@ -248,9 +248,9 @@ PY
 
   collect_signals "$FIXTURE" refs/remotes/origin/main
 
-  [[ "$output" == *'BRANCH=user/cp-1054-fix-x'* ]]
+  [[ "$output" == *'BRANCH=user/cp-1054-fix-x'* ]] || false
   [ "$(grep -c '^SUBJECT=' <<<"$output")" -eq 12 ]
-  [[ "$output" == *'SUBJECT=feat(api): CP-12 Add thing (#12)'* ]]
+  [[ "$output" == *'SUBJECT=feat(api): CP-12 Add thing (#12)'* ]] || false
 }
 
 @test "signal block limits history to 30 non-merge commits" {
@@ -264,9 +264,9 @@ PY
   collect_signals "$FIXTURE" main
 
   [ "$(grep -c '^SUBJECT=' <<<"$output")" -eq 30 ]
-  [[ "$output" == *'SUBJECT=feat(api): CP-40 Add thing (#40)'* ]]
-  [[ "$output" != *'SUBJECT=Merge fixture branch'* ]]
-  [[ "$output" != *'SUBJECT=feat(api): CP-1 Add thing (#1)'* ]]
+  [[ "$output" == *'SUBJECT=feat(api): CP-40 Add thing (#40)'* ]] || false
+  [[ "$output" != *'SUBJECT=Merge fixture branch'* ]] || false
+  [[ "$output" != *'SUBJECT=feat(api): CP-1 Add thing (#1)'* ]] || false
 }
 
 @test "signal block names tooling without executing configuration or hooks" {
@@ -283,9 +283,9 @@ SH
 
   collect_signals "$FIXTURE" main
 
-  [[ "$output" == *'CONFIG=commitlint.config.js'* ]]
-  [[ "$output" == *'CONFIG=.husky/commit-msg'* ]]
-  [[ "$output" == *'CONFIG=commit-msg hook'* ]]
+  [[ "$output" == *'CONFIG=commitlint.config.js'* ]] || false
+  [[ "$output" == *'CONFIG=.husky/commit-msg'* ]] || false
+  [[ "$output" == *'CONFIG=commit-msg hook'* ]] || false
   [ ! -e "$FIXTURE/config-ran" ]
   [ ! -e "$FIXTURE/hook-ran" ]
 }
@@ -317,7 +317,7 @@ MD
 
   collect_signals "$FIXTURE" main
 
-  [[ "$output" == *'INSTRUCTION=AGENTS.md:2:Use plain-English branch commit messages'* ]]
+  [[ "$output" == *'INSTRUCTION=AGENTS.md:2:Use plain-English branch commit messages'* ]] || false
   [ "$(grep -c '^INSTRUCTION=' <<<"$output")" -eq 9 ]
 }
 
@@ -331,8 +331,8 @@ MD
 
   collect_signals "$FIXTURE/nested" main
 
-  [[ "$output" == *'BRANCH=main'* ]]
-  [[ "$output" == *'SUBJECT=initial'* ]]
+  [[ "$output" == *'BRANCH=main'* ]] || false
+  [[ "$output" == *'SUBJECT=initial'* ]] || false
 }
 
 @test "a missing ref reports unavailable history instead of using feature commits" {
@@ -340,8 +340,8 @@ MD
 
   collect_signals "$FIXTURE" refs/remotes/origin/missing
 
-  [[ "$output" == *'HISTORY=unavailable'* ]]
-  [[ "$output" != *'SUBJECT='* ]]
+  [[ "$output" == *'HISTORY=unavailable'* ]] || false
+  [[ "$output" != *'SUBJECT='* ]] || false
 }
 
 @test "auto prefers configured base, then Conductor base, then origin HEAD" {
@@ -356,7 +356,7 @@ MD
 
   collect_signals "$FIXTURE" auto main
   [ "$(grep -c '^SUBJECT=' <<<"$output")" -eq 12 ]
-  [[ "$output" != *'SUBJECT=Feature-only work'* ]]
+  [[ "$output" != *'SUBJECT=Feature-only work'* ]] || false
 
   git -C "$FIXTURE" config --unset trackbed.baseBranch
   collect_signals "$FIXTURE" auto development
@@ -364,7 +364,7 @@ MD
 
   collect_signals "$FIXTURE" auto
   [ "$(grep -c '^SUBJECT=' <<<"$output")" -eq 1 ]
-  [[ "$output" == *'SUBJECT=feat(api): CP-1 Add thing (#1)'* ]]
+  [[ "$output" == *'SUBJECT=feat(api): CP-1 Add thing (#1)'* ]] || false
 }
 
 @test "auto with no base signal reports unavailable history" {
@@ -372,8 +372,8 @@ MD
 
   collect_signals "$FIXTURE" auto
 
-  [[ "$output" == *'HISTORY=unavailable'* ]]
-  [[ "$output" != *'SUBJECT='* ]]
+  [[ "$output" == *'HISTORY=unavailable'* ]] || false
+  [[ "$output" != *'SUBJECT='* ]] || false
 }
 
 @test "an explicit pinned base commit supplies history independently of current branch" {
@@ -386,12 +386,12 @@ MD
   collect_signals "$FIXTURE" "$base_commit"
 
   [ "$(grep -c '^SUBJECT=' <<<"$output")" -eq 12 ]
-  [[ "$output" != *'SUBJECT=Feature-only work'* ]]
+  [[ "$output" != *'SUBJECT=Feature-only work'* ]] || false
 }
 
 @test "this repository exposes its explicit plain-English branch rule above history" {
   collect_signals "$REPOSITORY_ROOT" auto
 
   instruction=$(grep '^INSTRUCTION=AGENTS.md:' <<<"$output")
-  [[ "$instruction" == *'plain-English branch commit messages'* ]]
+  [[ "$instruction" == *'plain-English branch commit messages'* ]] || false
 }

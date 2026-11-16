@@ -58,8 +58,8 @@ write_test_hook() {
 		--warmups 0
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"Enabled parallel set median:"* ]]
-	[[ "$output" == *"Added gating overhead median (paired):"* ]]
+	[[ "$output" == *"Enabled parallel set median:"* ]] || false
+	[[ "$output" == *"Added gating overhead median (paired):"* ]] || false
 	[ -e "$barrier_dir/block-rm-rf.ready" ]
 	[ -e "$barrier_dir/confirm-review-responses.ready" ]
 	[ -e "$barrier_dir/released" ]
@@ -78,7 +78,7 @@ write_test_hook() {
 		--warmups 0
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"Auto-format cache-hit path:"* ]]
+	[[ "$output" == *"Auto-format cache-hit path:"* ]] || false
 
 	median_ms=$(
 		printf '%s\n' "$output" |
@@ -86,5 +86,5 @@ write_test_hook() {
 			tail -n 1
 	)
 	[ -n "$median_ms" ]
-	[[ "$median_ms" =~ ^[0-9]+([.][0-9]+)?$ ]]
+	[[ "$median_ms" =~ ^[0-9]+([.][0-9]+)?$ ]] || false
 }

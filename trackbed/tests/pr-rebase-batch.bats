@@ -156,7 +156,7 @@ run_apply() {
 	[ "$(remote_head feature)" = "$new_head" ]
 	git -C "$TMP_DIR/wt-feature" merge-base --is-ancestor "$(remote_head main)" "$new_head"
 	grep -F 'pr list --repo owner/repo --author @me --state open' "$GH_LOG"
-	! grep -F "$REMOTE" "$GH_LOG"
+	! grep -F "$REMOTE" "$GH_LOG" || false
 }
 
 @test "counts untracked files as dirty even when status hides them" {
@@ -200,7 +200,7 @@ run_apply() {
 	pr_rows $'25\tcredentialed\tmain\tfalse'
 
 	run_plan
-	! grep -F 'token@example.com' "$GH_LOG"
+	! grep -F 'token@example.com' "$GH_LOG" || false
 	grep -F 'pr list --repo owner/repo --author @me --state open' "$GH_LOG"
 }
 
@@ -212,7 +212,7 @@ run_apply() {
 
 	run "$SCRIPT" plan --stack-resolver "$RESOLVER"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"control characters"* ]]
+	[[ "$output" == *"control characters"* ]] || false
 	[ ! -s "$GH_LOG" ]
 }
 
@@ -240,7 +240,7 @@ run_apply() {
 
 	run_apply
 	[ "$(result_field hooked 4)" = "skipped" ]
-	[[ "$(result_field hooked 7)" == "rebase failed before starting"* ]]
+	[[ "$(result_field hooked 7)" == "rebase failed before starting"* ]] || false
 	[ "$(git -C "$TMP_DIR/wt-hooked" rev-parse HEAD)" = "$old_head" ]
 	[ "$(remote_head hooked)" = "$old_head" ]
 }
@@ -385,7 +385,7 @@ run_apply() {
 	[ "$(result_field guarded 4)" = "push-rejected" ]
 	[ "$(result_field guarded 5)" = "$old_head" ]
 	[ "$(result_field guarded 6)" = "$(git -C "$TMP_DIR/wt-guarded" rev-parse HEAD)" ]
-	[[ "$(result_field guarded 7)" == *"pre-rebase head is $old_head"* ]]
+	[[ "$(result_field guarded 7)" == *"pre-rebase head is $old_head"* ]] || false
 	[ "$(remote_head guarded)" = "$old_head" ]
 }
 
@@ -473,7 +473,7 @@ run_apply() {
 	run "$SCRIPT" plan --stack-resolver "$RESOLVER"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"batch limit was reached"* ]]
+	[[ "$output" == *"batch limit was reached"* ]] || false
 }
 
 @test "plan rejects multiple configured push URLs before listing PRs" {
@@ -485,7 +485,7 @@ run_apply() {
 	run "$SCRIPT" plan --stack-resolver "$RESOLVER"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"exactly one push URL"* ]]
+	[[ "$output" == *"exactly one push URL"* ]] || false
 }
 
 @test "apply rejects a changed push URL before mutating any worktree" {
@@ -502,7 +502,7 @@ run_apply() {
 	run "$SCRIPT" apply --plan "$PLAN" --stack-resolver "$RESOLVER"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"push URL changed since the plan was created"* ]]
+	[[ "$output" == *"push URL changed since the plan was created"* ]] || false
 	[ "$(git -C "$TMP_DIR/wt-drifted" rev-parse HEAD)" = "$old_head" ]
 }
 
@@ -512,7 +512,7 @@ run_apply() {
 	run "$SCRIPT" apply --plan "$PLAN" --stack-resolver "$RESOLVER"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"batch plan header"* ]]
+	[[ "$output" == *"batch plan header"* ]] || false
 }
 
 @test "skill routes --all-open to the direct-user-only batch reference" {
@@ -522,7 +522,7 @@ run_apply() {
 	grep -F 'read `references/batch-mode.md` and follow it instead of Steps 1-7' "$REBASE_SKILL"
 	grep -F '`{batch-script}` = `${CLAUDE_PLUGIN_ROOT}/skills/pr:rebase/scripts/batch-rebase.sh`' "$REBASE_SKILL"
 	grep -F '`{stack-resolver}` = `${CLAUDE_PLUGIN_ROOT}/scripts/resolve-stack-membership.sh`' "$REBASE_SKILL"
-	! grep -F -- '--all-open' <(sed -n '/^description:/p' "$REBASE_SKILL")
+	! grep -F -- '--all-open' <(sed -n '/^description:/p' "$REBASE_SKILL") || false
 }
 
 @test "batch reference confirms once and never resolves conflicts or stashes" {

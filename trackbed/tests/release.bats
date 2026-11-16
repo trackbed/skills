@@ -119,16 +119,16 @@ SH
   run python3 "$PLUGIN_ROOT/scripts/release.py" 1.2.3 --dry-run
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Release: 0.64.0 -> 1.2.3"* ]]
-  [[ "$output" == *"Would update"* ]]
+  [[ "$output" == *"Release: 0.64.0 -> 1.2.3"* ]] || false
+  [[ "$output" == *"Would update"* ]] || false
 }
 
 @test "release rejects unknown version selector without traceback" {
   run python3 "$PLUGIN_ROOT/scripts/release.py" banana --dry-run
 
   [ "$status" -eq 2 ]
-  [[ "$output" == *"Invalid bump type: banana"* ]]
-  [[ "$output" != *"Traceback"* ]]
+  [[ "$output" == *"Invalid bump type: banana"* ]] || false
+  [[ "$output" != *"Traceback"* ]] || false
 }
 
 @test "release checks dependencies before mutating files" {
@@ -149,10 +149,10 @@ SH
   run env PATH="$MOCK_BIN:$PATH" python3 "$PLUGIN_ROOT/scripts/release.py" patch
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"Release verification dependencies are missing. Aborting before changing files."* ]]
+  [[ "$output" == *"Release verification dependencies are missing. Aborting before changing files."* ]] || false
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/.claude-plugin/plugin.json"
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/package.json"
-  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md"
+  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md" || false
 }
 
 @test "release verifies generated files after mutation before branch commit" {
@@ -191,10 +191,10 @@ SH
   run env PATH="$MOCK_BIN:$PATH" RELEASE_MAKE_LOG="$RELEASE_MAKE_LOG" bash -c 'printf "y\n" | python3 "$1" patch' _ "$PLUGIN_ROOT/scripts/release.py"
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *"2. Generating changelog..."*"3. Running release verification..."*"4. Creating release branch..."* ]]
+  [[ "$output" == *"2. Generating changelog..."*"3. Running release verification..."*"4. Creating release branch..."* ]] || false
   grep -q '^check-deps branch=' "$RELEASE_MAKE_LOG"
   grep -q '^verify branch=' "$RELEASE_MAKE_LOG"
-  ! grep -q '^verify branch=release/v0.64.1$' "$RELEASE_MAKE_LOG"
+  ! grep -q '^verify branch=release/v0.64.1$' "$RELEASE_MAKE_LOG" || false
   [ "$(git -C "$TMP_ROOT" rev-parse --abbrev-ref HEAD)" = "release/v0.64.1" ]
   [ "$(git -C "$TMP_ROOT" log -1 --pretty=%s)" = "Release v0.64.1" ]
 }
@@ -225,10 +225,10 @@ SH
   run env PATH="$MOCK_BIN:$PATH" bash -c 'printf "y\n" | python3 "$1" patch' _ "$PLUGIN_ROOT/scripts/release.py"
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"Restored release files to their pre-release state."* ]]
+  [[ "$output" == *"Restored release files to their pre-release state."* ]] || false
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/.claude-plugin/plugin.json"
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/package.json"
-  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md"
+  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md" || false
   [ -z "$(git -C "$TMP_ROOT" branch --list release/v0.64.1)" ]
   git -C "$TMP_ROOT" diff --quiet
 }
@@ -258,12 +258,12 @@ SH
   run env PATH="$MOCK_BIN:$PATH" python3 "$PLUGIN_ROOT/scripts/release.py" patch --ci
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"No commits found in repository history"* ]]
-  [[ "$output" == *"Release changelog generation failed:"* ]]
-  [[ "$output" == *"Aborting after restoring release files."* ]]
+  [[ "$output" == *"No commits found in repository history"* ]] || false
+  [[ "$output" == *"Release changelog generation failed:"* ]] || false
+  [[ "$output" == *"Aborting after restoring release files."* ]] || false
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/.claude-plugin/plugin.json"
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/package.json"
-  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md"
+  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md" || false
 }
 
 @test "release restores generated files when commit fails" {
@@ -298,11 +298,11 @@ SH
   run env PATH="$MOCK_BIN:$PATH" bash -c 'printf "y\n" | python3 "$1" patch' _ "$PLUGIN_ROOT/scripts/release.py"
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"Restored release files to their pre-release state."* ]]
-  [[ "$output" == *"Release git step failed: git commit -m Release v0.64.1"* ]]
+  [[ "$output" == *"Restored release files to their pre-release state."* ]] || false
+  [[ "$output" == *"Release git step failed: git commit -m Release v0.64.1"* ]] || false
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/.claude-plugin/plugin.json"
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/package.json"
-  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md"
+  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md" || false
   [ "$(git -C "$TMP_ROOT" rev-parse --abbrev-ref HEAD)" = "$INITIAL_BRANCH" ]
   git -C "$TMP_ROOT" diff --quiet
   git -C "$TMP_ROOT" diff --cached --quiet
@@ -334,11 +334,11 @@ SH
   run env PATH="$MOCK_BIN:$PATH" python3 "$PLUGIN_ROOT/scripts/release.py" patch --ci
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"Restored release files to their pre-release state."* ]]
-  [[ "$output" == *"Release git step failed: git push origin release/v0.64.1"* ]]
+  [[ "$output" == *"Restored release files to their pre-release state."* ]] || false
+  [[ "$output" == *"Release git step failed: git push origin release/v0.64.1"* ]] || false
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/.claude-plugin/plugin.json"
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/package.json"
-  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md"
+  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md" || false
   [ "$(git -C "$TMP_ROOT" rev-parse --abbrev-ref HEAD)" = "$INITIAL_BRANCH" ]
   git -C "$TMP_ROOT" diff --quiet
   git -C "$TMP_ROOT" diff --cached --quiet
@@ -371,11 +371,11 @@ SH
   run env PATH="$MOCK_BIN:$PATH" python3 "$PLUGIN_ROOT/scripts/release.py" patch --ci
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"Restored release files to their pre-release state."* ]]
-  [[ "$output" == *"Release git step failed: git push origin release/v0.64.1"* ]]
+  [[ "$output" == *"Restored release files to their pre-release state."* ]] || false
+  [[ "$output" == *"Release git step failed: git push origin release/v0.64.1"* ]] || false
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/.claude-plugin/plugin.json"
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/package.json"
-  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md"
+  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md" || false
   [ "$(git -C "$TMP_ROOT" rev-parse --abbrev-ref HEAD)" = "HEAD" ]
   [ "$(git -C "$TMP_ROOT" rev-parse HEAD)" = "$INITIAL_HEAD" ]
   git -C "$TMP_ROOT" diff --quiet
@@ -400,7 +400,7 @@ SH
   run env PATH="$MOCK_BIN:$RELEASE_TEST_PATH" python3 "$PLUGIN_ROOT/scripts/release.py" patch --ci
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"Restored release files to their pre-release state."* ]]
+  [[ "$output" == *"Restored release files to their pre-release state."* ]] || false
   [ "$(git hash-object "$TMP_ROOT/index.before")" = "$(git hash-object "$TMP_ROOT/.git/index")" ]
   [ "$(python3 -c 'import os, sys; print(os.stat(sys.argv[1]).st_mode & 0o777)' "$TMP_ROOT/.git/index")" = "$INDEX_MODE_BEFORE" ]
   grep -q '^working state$' "$PLUGIN_ROOT/CHANGELOG.md"
@@ -441,7 +441,7 @@ SH
     python3 "$PLUGIN_ROOT/scripts/release.py" patch --ci
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"Restored release files to their pre-release state."* ]]
+  [[ "$output" == *"Restored release files to their pre-release state."* ]] || false
   [ "$(grep -c '^reset$' "$RELEASE_GIT_LOG")" -eq 2 ]
   [ "$(grep -c '^checkout$' "$RELEASE_GIT_LOG")" -eq 2 ]
   [ "$(git -C "$TMP_ROOT" rev-parse --abbrev-ref HEAD)" = "$INITIAL_BRANCH" ]
@@ -465,12 +465,12 @@ SH
     python3 "$PLUGIN_ROOT/scripts/release.py" patch --ci
 
   [ "$status" -eq 2 ]
-  [[ "$output" == *"Automatic rollback was incomplete."* ]]
-  [[ "$output" == *"git -C $TMP_ROOT checkout $INITIAL_BRANCH"* ]]
-  [[ "$output" == *"Git recovery error: checkout recovery denied by fixture"* ]]
-  [[ "$output" == *"Rollback command failed (exit 73)"* ]]
-  [[ "$output" == *"Aborting with incomplete rollback."* ]]
-  [[ "$output" != *"Restored release files to their pre-release state."* ]]
+  [[ "$output" == *"Automatic rollback was incomplete."* ]] || false
+  [[ "$output" == *"git -C $TMP_ROOT checkout $INITIAL_BRANCH"* ]] || false
+  [[ "$output" == *"Git recovery error: checkout recovery denied by fixture"* ]] || false
+  [[ "$output" == *"Rollback command failed (exit 73)"* ]] || false
+  [[ "$output" == *"Aborting with incomplete rollback."* ]] || false
+  [[ "$output" != *"Restored release files to their pre-release state."* ]] || false
 }
 
 @test "release reports incomplete rollback when reset retries fail" {
@@ -488,10 +488,10 @@ SH
   run env PATH="$MOCK_BIN:$RELEASE_TEST_PATH" python3 "$PLUGIN_ROOT/scripts/release.py" patch --ci
 
   [ "$status" -eq 2 ]
-  [[ "$output" == *"Automatic rollback was incomplete."* ]]
-  [[ "$output" == *"git -C $TMP_ROOT reset --mixed"* ]]
-  [[ "$output" == *"Git recovery error: reset recovery denied by fixture"* ]]
-  [[ "$output" != *"Restored release files to their pre-release state."* ]]
+  [[ "$output" == *"Automatic rollback was incomplete."* ]] || false
+  [[ "$output" == *"git -C $TMP_ROOT reset --mixed"* ]] || false
+  [[ "$output" == *"Git recovery error: reset recovery denied by fixture"* ]] || false
+  [[ "$output" != *"Restored release files to their pre-release state."* ]] || false
 }
 
 @test "release reports incomplete rollback when detached checkout retries fail" {
@@ -510,8 +510,8 @@ SH
   run env PATH="$MOCK_BIN:$RELEASE_TEST_PATH" python3 "$PLUGIN_ROOT/scripts/release.py" patch --ci
 
   [ "$status" -eq 2 ]
-  [[ "$output" == *"git -C $TMP_ROOT checkout --detach $INITIAL_HEAD"* ]]
-  [[ "$output" != *"Restored release files to their pre-release state."* ]]
+  [[ "$output" == *"git -C $TMP_ROOT checkout --detach $INITIAL_HEAD"* ]] || false
+  [[ "$output" != *"Restored release files to their pre-release state."* ]] || false
 }
 
 @test "release reports incomplete rollback when the index cannot be restored" {
@@ -538,13 +538,13 @@ SH
     python3 "$PLUGIN_ROOT/scripts/release.py" patch --ci
 
   [ "$status" -eq 2 ]
-  [[ "$output" == *"Automatic rollback was incomplete."* ]]
-  [[ "$output" == *"$TMP_ROOT/.git/index"* ]]
-  [[ "$output" == *"cp -- $PHYSICAL_TMPDIR/release-recovery-"* ]]
-  [[ "$output" == *"Rollback file/index restore failed:"* ]]
-  [[ "$output" == *"Recovery target:"* ]]
-  [[ "$output" != *"$SYMLINKED_TMPDIR/release-recovery-"* ]]
-  [[ "$output" != *"Restored release files to their pre-release state."* ]]
+  [[ "$output" == *"Automatic rollback was incomplete."* ]] || false
+  [[ "$output" == *"$TMP_ROOT/.git/index"* ]] || false
+  [[ "$output" == *"cp -- $PHYSICAL_TMPDIR/release-recovery-"* ]] || false
+  [[ "$output" == *"Rollback file/index restore failed:"* ]] || false
+  [[ "$output" == *"Recovery target:"* ]] || false
+  [[ "$output" != *"$SYMLINKED_TMPDIR/release-recovery-"* ]] || false
+  [[ "$output" != *"Restored release files to their pre-release state."* ]] || false
 
   recovery_commands="$(printf '%s\n' "$output" | sed -n '/^    /s/^    //p')"
   while IFS= read -r recovery_command; do
@@ -565,14 +565,14 @@ SH
   run python3 "$PLUGIN_ROOT/scripts/release.py" patch --ci
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"local branch release/v0.64.1 already exists"* ]]
-  [[ "$output" == *"No file, branch, or remote ref was changed."* ]]
+  [[ "$output" == *"local branch release/v0.64.1 already exists"* ]] || false
+  [[ "$output" == *"No file, branch, or remote ref was changed."* ]] || false
   [ "$(git -C "$TMP_ROOT" rev-parse release/v0.64.1)" = "$BRANCH_OID_BEFORE" ]
   [ "$(git -C "$TMP_ROOT" rev-parse --abbrev-ref HEAD)" = "$INITIAL_BRANCH" ]
   [ "$(git hash-object "$TMP_ROOT/index.before")" = "$(git hash-object "$TMP_ROOT/.git/index")" ]
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/.claude-plugin/plugin.json"
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/package.json"
-  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md"
+  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md" || false
 }
 
 @test "release refuses to replace an existing remote release branch" {
@@ -583,12 +583,12 @@ SH
   run python3 "$PLUGIN_ROOT/scripts/release.py" patch --ci
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"remote branch origin/release/v0.64.1 already exists"* ]]
-  [[ "$output" == *"No file, branch, or remote ref was changed."* ]]
+  [[ "$output" == *"remote branch origin/release/v0.64.1 already exists"* ]] || false
+  [[ "$output" == *"No file, branch, or remote ref was changed."* ]] || false
   [ "$(git -C "$ORIGIN" rev-parse refs/heads/release/v0.64.1)" = "$REMOTE_OID_BEFORE" ]
   [ -z "$(git -C "$TMP_ROOT" branch --list release/v0.64.1)" ]
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/.claude-plugin/plugin.json"
-  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md"
+  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md" || false
 }
 
 @test "release refuses unrelated staged content and leaves the index untouched" {
@@ -600,13 +600,13 @@ SH
   run python3 "$PLUGIN_ROOT/scripts/release.py" patch --ci
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"unrelated staged changes would enter the release commit: unrelated.txt"* ]]
-  [[ "$output" == *"No file, branch, or remote ref was changed."* ]]
+  [[ "$output" == *"unrelated staged changes would enter the release commit: unrelated.txt"* ]] || false
+  [[ "$output" == *"No file, branch, or remote ref was changed."* ]] || false
   [ "$(git hash-object "$TMP_ROOT/index.before")" = "$(git hash-object "$TMP_ROOT/.git/index")" ]
   [ "$(git -C "$TMP_ROOT" rev-parse :unrelated.txt)" = "$STAGED_BLOB_BEFORE" ]
   [ -z "$(git -C "$TMP_ROOT" branch --list release/v0.64.1)" ]
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/.claude-plugin/plugin.json"
-  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md"
+  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md" || false
 }
 
 @test "local release preparation writes no remote refs and leaves the installer version alone" {
@@ -620,8 +620,8 @@ SH
     bash -c 'printf "y\n" | python3 "$1" patch' _ "$PLUGIN_ROOT/scripts/release.py"
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Created branch release/v0.64.1"* ]]
-  [[ "$output" == *"Run: git push origin release/v0.64.1"* ]]
+  [[ "$output" == *"Created branch release/v0.64.1"* ]] || false
+  [[ "$output" == *"Run: git push origin release/v0.64.1"* ]] || false
   [ ! -s "$RELEASE_PUSH_LOG" ]
   git -C "$ORIGIN" show-ref >"$TMP_ROOT/origin-refs.after"
   diff "$TMP_ROOT/origin-refs.before" "$TMP_ROOT/origin-refs.after"
@@ -641,18 +641,18 @@ SH
     python3 "$PLUGIN_ROOT/scripts/release.py" patch --ci
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"Release git step failed: git push origin release/v0.64.1"* ]]
-  [[ "$output" == *"Restored release files to their pre-release state."* ]]
+  [[ "$output" == *"Release git step failed: git push origin release/v0.64.1"* ]] || false
+  [[ "$output" == *"Restored release files to their pre-release state."* ]] || false
   [ "$(cat "$RELEASE_PUSH_LOG")" = "push origin release/v0.64.1" ]
   git -C "$ORIGIN" show-ref >"$TMP_ROOT/origin-refs.after"
   diff "$TMP_ROOT/origin-refs.before" "$TMP_ROOT/origin-refs.after"
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/.claude-plugin/plugin.json"
-  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md"
+  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md" || false
 
   # The attempt created a branch it must not delete, so it has to name it.
   [ -n "$(git -C "$TMP_ROOT" branch --list release/v0.64.1)" ]
-  [[ "$output" == *"Left local branch release/v0.64.1 in place"* ]]
-  [[ "$output" == *"git branch -D release/v0.64.1"* ]]
+  [[ "$output" == *"Left local branch release/v0.64.1 in place"* ]] || false
+  [[ "$output" == *"git branch -D release/v0.64.1"* ]] || false
 
   # Retrying without that cleanup refuses on the leftover instead of replacing it.
   LEFTOVER_OID="$(git -C "$TMP_ROOT" rev-parse release/v0.64.1)"
@@ -660,7 +660,7 @@ SH
     python3 "$PLUGIN_ROOT/scripts/release.py" patch --ci
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"local branch release/v0.64.1 already exists"* ]]
+  [[ "$output" == *"local branch release/v0.64.1 already exists"* ]] || false
   [ "$(git -C "$TMP_ROOT" rev-parse release/v0.64.1)" = "$LEFTOVER_OID" ]
   [ "$(cat "$RELEASE_PUSH_LOG")" = "push origin release/v0.64.1" ]
 }
@@ -687,12 +687,12 @@ SH
   run python3 "$PLUGIN_ROOT/scripts/release.py" patch --ci
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"could not inspect origin/release/v0.64.1"* ]]
-  [[ "$output" == *"No file, branch, or remote ref was changed."* ]]
+  [[ "$output" == *"could not inspect origin/release/v0.64.1"* ]] || false
+  [[ "$output" == *"No file, branch, or remote ref was changed."* ]] || false
   [ "$(git hash-object "$TMP_ROOT/index.before")" = "$(git hash-object "$TMP_ROOT/.git/index")" ]
   [ -z "$(git -C "$TMP_ROOT" branch --list release/v0.64.1)" ]
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/.claude-plugin/plugin.json"
-  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md"
+  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md" || false
 }
 
 @test "release refuses work staged during verification and keeps it staged" {
@@ -722,13 +722,13 @@ SH
     python3 "$PLUGIN_ROOT/scripts/release.py" patch --ci
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"unrelated staged changes would enter the release commit: unrelated.txt"* ]]
-  [[ "$output" == *"Aborting after restoring release files."* ]]
+  [[ "$output" == *"unrelated staged changes would enter the release commit: unrelated.txt"* ]] || false
+  [[ "$output" == *"Aborting after restoring release files."* ]] || false
   # The refusal must not discard the staging it refused for.
   [ "$(git -C "$TMP_ROOT" rev-parse :unrelated.txt)" = "$(git hash-object "$TMP_ROOT/unrelated.txt")" ]
   [ -z "$(git -C "$TMP_ROOT" branch --list release/v0.64.1)" ]
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/.claude-plugin/plugin.json"
-  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md"
+  ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md" || false
 }
 
 @test "release ignores a rename Git detects in the working tree" {
@@ -739,12 +739,12 @@ SH
   mv "$TMP_ROOT/rename-source.txt" "$TMP_ROOT/rename-target.txt"
   git -C "$TMP_ROOT" add -N rename-target.txt
   # Git reports this in the worktree column, which stages nothing.
-  [[ "$(git -C "$TMP_ROOT" status --porcelain -- rename-source.txt rename-target.txt)" == " R "* ]]
+  [[ "$(git -C "$TMP_ROOT" status --porcelain -- rename-source.txt rename-target.txt)" == " R "* ]] || false
 
   run env PATH="$MOCK_BIN:$RELEASE_TEST_PATH" bash -c 'printf "y\n" | python3 "$1" patch' _ "$PLUGIN_ROOT/scripts/release.py"
 
   [ "$status" -eq 0 ]
-  [[ "$output" != *"Release preflight refused"* ]]
+  [[ "$output" != *"Release preflight refused"* ]] || false
   [ "$(git -C "$TMP_ROOT" rev-parse --abbrev-ref HEAD)" = "release/v0.64.1" ]
   [ "$(git -C "$TMP_ROOT" log -1 --pretty=%s)" = "Release v0.64.1" ]
 }
@@ -776,7 +776,7 @@ SH
     bash -c 'printf "y\n" | python3 "$1" patch' _ "$PLUGIN_ROOT/scripts/release.py"
 
   [ "$status" -eq 0 ]
-  [[ "$output" != *"could not inspect origin"* ]]
+  [[ "$output" != *"could not inspect origin"* ]] || false
   [ "$(git -C "$TMP_ROOT" rev-parse --abbrev-ref HEAD)" = "release/v0.64.1" ]
   [ "$(git -C "$TMP_ROOT" log -1 --pretty=%s)" = "Release v0.64.1" ]
 }
@@ -789,7 +789,7 @@ SH
   run env PATH="$MOCK_BIN:$RELEASE_TEST_PATH" bash -c 'printf "y\n" | python3 "$1" patch' _ "$PLUGIN_ROOT/scripts/release.py"
 
   [ "$status" -eq 0 ]
-  [[ "$output" != *"Release preflight refused"* ]]
+  [[ "$output" != *"Release preflight refused"* ]] || false
   # Documented in RELEASE.md: release-owned files are rewritten from disk and committed,
   # so staging them is not the "unrelated staged content" the preflight refuses.
   git -C "$TMP_ROOT" show HEAD:trackbed/CHANGELOG.md | grep -q 'staged release note'
@@ -825,13 +825,13 @@ SH
     python3 "$PLUGIN_ROOT/scripts/release.py" patch --ci
 
   [ "$status" -eq 2 ]
-  [[ "$output" == *"Still holding this release's content: $PLUGIN_ROOT/CHANGELOG.md"* ]]
-  [[ "$output" == *"Restore those files yourself; your index was not touched."* ]]
-  [[ "$output" == *"Release file restore failed:"* ]]
-  [[ "$output" == *"Permission denied"* ]]
-  [[ "$output" == *"Aborting with incomplete rollback."* ]]
+  [[ "$output" == *"Still holding this release's content: $PLUGIN_ROOT/CHANGELOG.md"* ]] || false
+  [[ "$output" == *"Restore those files yourself; your index was not touched."* ]] || false
+  [[ "$output" == *"Release file restore failed:"* ]] || false
+  [[ "$output" == *"Permission denied"* ]] || false
+  [[ "$output" == *"Aborting with incomplete rollback."* ]] || false
   # No manual-recovery block: it would tell the operator to overwrite the index.
-  [[ "$output" != *"Automatic rollback was incomplete."* ]]
+  [[ "$output" != *"Automatic rollback was incomplete."* ]] || false
   # The staged work that caused the refusal is still staged.
   [ "$(git -C "$TMP_ROOT" rev-parse :unrelated.txt)" = "$(git hash-object "$TMP_ROOT/unrelated.txt")" ]
   [ -z "$(git -C "$TMP_ROOT" branch --list release/v0.64.1)" ]
@@ -856,14 +856,14 @@ SH
   [ -n "$dependency_check" ]
   [ -n "$dry_run_verification" ]
   [ -n "$scanner_run" ]
-  [[ "$verification_install" != *"SkillSpector.git"* ]]
-  [[ "$scanner_install" == *'python3 -m venv "$RUNNER_TEMP/skillspector-venv"'* ]]
-  [[ "$scanner_install" == *'"$RUNNER_TEMP/skillspector-venv/bin/python" -m pip install'* ]]
-  [[ "$scanner_install" == *'ln -s "$RUNNER_TEMP/skillspector-venv/bin/skillspector" "$RUNNER_TEMP/skillspector-bin/skillspector"'* ]]
-  [[ "$scanner_install" != *"GITHUB_PATH"* ]]
-  [[ "$dependency_check" == *'PATH="$RUNNER_TEMP/skillspector-bin:$PATH"'* ]]
-  [[ "$dry_run_verification" == *'PATH="$RUNNER_TEMP/skillspector-bin:$PATH"'* ]]
-  [[ "$scanner_run" == *'PATH="$RUNNER_TEMP/skillspector-bin:$PATH"'* ]]
+  [[ "$verification_install" != *"SkillSpector.git"* ]] || false
+  [[ "$scanner_install" == *'python3 -m venv "$RUNNER_TEMP/skillspector-venv"'* ]] || false
+  [[ "$scanner_install" == *'"$RUNNER_TEMP/skillspector-venv/bin/python" -m pip install'* ]] || false
+  [[ "$scanner_install" == *'ln -s "$RUNNER_TEMP/skillspector-venv/bin/skillspector" "$RUNNER_TEMP/skillspector-bin/skillspector"'* ]] || false
+  [[ "$scanner_install" != *"GITHUB_PATH"* ]] || false
+  [[ "$dependency_check" == *'PATH="$RUNNER_TEMP/skillspector-bin:$PATH"'* ]] || false
+  [[ "$dry_run_verification" == *'PATH="$RUNNER_TEMP/skillspector-bin:$PATH"'* ]] || false
+  [[ "$scanner_run" == *'PATH="$RUNNER_TEMP/skillspector-bin:$PATH"'* ]] || false
 }
 
 @test "release tag workflow calls Codex publication for the exact release tag" {
@@ -885,10 +885,10 @@ SH
   grep -q "startsWith(github.event.pull_request.head.ref, 'release/v')" "$WORKFLOW"
   grep -q 'github.event.pull_request.merged == true' "$WORKFLOW"
   [ -n "$deploy_job" ]
-  [[ "$deploy_job" == *'    needs: tag'* ]]
-  [[ "$deploy_job" == *'    permissions: {}'* ]]
-  [[ "$deploy_job" == *'    uses: ./.github/workflows/deploy-docs-site.yml'* ]]
-  [[ "$deploy_job" == *'      VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}'* ]]
+  [[ "$deploy_job" == *'    needs: tag'* ]] || false
+  [[ "$deploy_job" == *'    permissions: {}'* ]] || false
+  [[ "$deploy_job" == *'    uses: ./.github/workflows/deploy-docs-site.yml'* ]] || false
+  [[ "$deploy_job" == *'      VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}'* ]] || false
 }
 
 @test "docs deployment workflow posts the Deploy Hook and skips without the secret" {
@@ -945,7 +945,7 @@ SH
   cd "$TMP_ROOT"
   run_release_pr_step
   [ "$status" -ne 0 ]
-  [[ "$output" == *"Missing changelog section for 0.64.1"* ]]
+  [[ "$output" == *"Missing changelog section for 0.64.1"* ]] || false
   [ ! -e "$TMP_ROOT/gh.log" ]
 }
 
@@ -954,7 +954,7 @@ SH
   cd "$TMP_ROOT"
   run_release_pr_step
   [ "$status" -ne 0 ]
-  [[ "$output" == *"FileNotFoundError"* ]]
+  [[ "$output" == *"FileNotFoundError"* ]] || false
   [ ! -e "$TMP_ROOT/gh.log" ]
 }
 
@@ -963,7 +963,7 @@ SH
   cd "$TMP_ROOT"
   run_release_pr_step
   [ "$status" -ne 0 ]
-  [[ "$output" == *"Empty changelog section for 0.64.1"* ]]
+  [[ "$output" == *"Empty changelog section for 0.64.1"* ]] || false
   [ ! -e "$TMP_ROOT/gh.log" ]
 }
 
@@ -974,5 +974,5 @@ SH
   [ "$status" -eq 0 ]
   [ -s "$TMP_ROOT/gh.log" ]
   grep -q 'Recovery diagnostics' "$TMP_ROOT/release-pr-body.md"
-  ! grep -q 'Older notes' "$TMP_ROOT/release-pr-body.md"
+  ! grep -q 'Older notes' "$TMP_ROOT/release-pr-body.md" || false
 }

@@ -17,7 +17,7 @@
     test -f "$policy"
     grep -qF "including one transferred from SIW" "$parent"
     grep -qF "untransferred local SIW issues" "$parent"
-    ! grep -qF "SIW-tracked issues" "$parent"
+    ! grep -qF "SIW-tracked issues" "$parent" || false
     grep -qF "trackbed:linear:issue-implement" "$parent"
     grep -qF "## Step 3: Freeze Linear Intent and Invoke Review Convergence" "$parent"
     grep -qF "Compose \`{issue-requirements}\` once" "$parent"
@@ -32,7 +32,7 @@
     grep -qF "user-invocable: true" "$convergence"
     grep -qF "disable-model-invocation: false" "$convergence"
     grep -qF "The same phase is also used by \`trackbed:code:plan-to-pr\`" "$review_guide"
-    ! grep -qF "kramme:linear:issue-review" "$parent" "$convergence" "$readme" "$review_guide"
+    ! grep -qF "kramme:linear:issue-review" "$parent" "$convergence" "$readme" "$review_guide" || false
   '
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
@@ -522,7 +522,7 @@ PYTEST
 
     grep -qF "Step 2 already created and validated \`{review-archive}\`" "$policy"
     grep -qF "REVIEW_ARCHIVE_CANONICAL" "$policy"
-    ! grep -qF "mkdir -p .context/{archive-key}/reviews" "$policy"
+    ! grep -qF "mkdir -p .context/{archive-key}/reviews" "$policy" || false
     grep -qF "OVERENGINEERING_LIFECYCLE_ESTABLISHED=false" "$policy"
     grep -qF "When \`VALIDATION_ONLY=true\`" "$policy"
     grep -qF "permit no source, test, configuration, or documentation edit, deletion, revert, staging operation, or commit" "$policy"
@@ -564,7 +564,7 @@ PYTEST
     grep -qF "Start the gate without a report only while that flag is still \`false\`" "$policy"
     grep -qF "if the archived report is missing while the flag is \`true\`, stop" "$policy"
     grep -qF "this re-archive is mandatory after every normal-mode invocation" "$policy"
-    ! grep -qF "If no archived report exists, start the gate without one" "$policy"
+    ! grep -qF "If no archived report exists, start the gate without one" "$policy" || false
   '
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
@@ -593,8 +593,8 @@ PYTEST
     grep -qF "Mode: validation-only" "$shared_contract"
     grep -qF "JSON-decode the returned \`Requirements JSON\` field" "$shared_contract"
     grep -qF "invoke \`trackbed:verify:run\` with \`--full\`" "$shared_contract"
-    ! grep -qF "trackbed:pr:overengineering-review --requirements" "$shipping"
-    ! grep -qF "trackbed:pr:overengineering-review --requirements" "$shared_contract"
+    ! grep -qF "trackbed:pr:overengineering-review --requirements" "$shipping" || false
+    ! grep -qF "trackbed:pr:overengineering-review --requirements" "$shared_contract" || false
   '
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
@@ -642,7 +642,7 @@ PYTEST
       grep -qF -- "- \`$hook\`: " "$shipping" || { echo "unbound hook: $hook"; exit 1; }
     done
 
-    ! grep -qE "trackbed:linear|trackbed:code:plan-to-pr|workflow-artifacts" "$shared_contract"
+    ! grep -qE "trackbed:linear|trackbed:code:plan-to-pr|workflow-artifacts" "$shared_contract" || false
   '
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }

@@ -37,7 +37,7 @@ JSONL
 	grep -qF '"platform": "codex"' <<<"$output"
 	grep -qF '"match_count": 1' <<<"$output"
 	grep -qF '"files_matched": 1' <<<"$output"
-	! grep -qF 'sk-abcdefghijklmnopqrstuvwxyz123456' <<<"$output"
+	! grep -qF 'sk-abcdefghijklmnopqrstuvwxyz123456' <<<"$output" || false
 }
 
 @test "extract-skeleton writes redacted scratch output" {
@@ -49,8 +49,8 @@ JSONL
 	[ "$status" -eq 0 ]
 	grep -qF '"wrote":' <<<"$output"
 	grep -qF '[REDACTED]' "$out"
-	! grep -qF 'sk-abcdefghijklmnopqrstuvwxyz123456' "$out"
-	! grep -qF 'supersecret1234567890' "$out"
+	! grep -qF 'sk-abcdefghijklmnopqrstuvwxyz123456' "$out" || false
+	! grep -qF 'supersecret1234567890' "$out" || false
 }
 
 @test "extract-errors writes redacted error output" {
@@ -62,7 +62,7 @@ JSONL
 	[ "$status" -eq 0 ]
 	grep -qF '"errors_found": 1' <<<"$output"
 	grep -qF '[REDACTED]' "$out"
-	! grep -qF 'supersecret1234567890' "$out"
+	! grep -qF 'supersecret1234567890' "$out" || false
 }
 
 @test "extract-skill-usage writes only validated skill names" {
@@ -80,8 +80,8 @@ JSONL
 	grep -qF '"skills": ["trackbed:session:automate-repeats"]' "$out"
 	grep -qF '"skill_events": 1' "$out"
 	grep -qF '"unknown_skill_events": 0' "$out"
-	! grep -qF '/tmp/.codex' "$out"
-	! grep -qF 'sk-abcdefghijklmnopqrstuvwxyz123456' "$out"
+	! grep -qF '/tmp/.codex' "$out" || false
+	! grep -qF 'sk-abcdefghijklmnopqrstuvwxyz123456' "$out" || false
 }
 
 @test "discover-sessions lists Claude projects by encoded cwd prefix, not repo-name glob" {
@@ -95,15 +95,15 @@ JSONL
 
 	[ "$status" -eq 0 ]
 	[ "${#lines[@]}" -eq 1 ]
-	[[ "${lines[0]}" == "$claude/-work-my-repo/"*"a.jsonl" ]]
+	[[ "${lines[0]}" == "$claude/-work-my-repo/"*"a.jsonl" ]] || false
 
 	run env -u CODEX_HOME HOME="$TEST_DIR/home" CLAUDE_CONFIG_DIR="$TEST_DIR/claude-config" \
 		bash "$SCRIPTS/discover-sessions.sh" my.repo 1 --platform claude
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"a.jsonl"* ]]
-	[[ "$output" == *"c.jsonl"* ]]
-	[[ "$output" != *"d.jsonl"* ]]
+	[[ "$output" == *"a.jsonl"* ]] || false
+	[[ "$output" == *"c.jsonl"* ]] || false
+	[[ "$output" != *"d.jsonl"* ]] || false
 }
 
 @test "discover-sessions honors CODEX_HOME and lists a shared store once" {

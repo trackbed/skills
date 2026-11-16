@@ -53,7 +53,7 @@ PY
 		"never close the loop on a delta round" \
 		"a fingerprint re-emitted by a delta round or confirmation pass after its batch counts as persisting" \
 		"Every fingerprint fixed by a batch was confirmed absent by the final full pass"
-	! grep -qF 'with the inline report' "$POLICY"
+	! grep -qF 'with the inline report' "$POLICY" || false
 }
 
 @test "convergence records review cost through the run-state script" {

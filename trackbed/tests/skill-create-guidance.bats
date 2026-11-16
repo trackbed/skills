@@ -41,9 +41,9 @@ heading_line() {
 
 	grep -qi "observable execution plan" <<<"$logic_validation"
 	grep -qi "If correctness or safety depends on order" <<<"$logic_validation"
-	! grep -qF "Simulate execution step-by-step. For each step" <<<"$logic_validation"
+	! grep -qF "Simulate execution step-by-step. For each step" <<<"$logic_validation" || false
 	grep -qi "Include ordered steps only when correctness or safety depends on order" <<<"$architecture_refinement"
-	! grep -qF "Keep SKILL.md as high-level steps" <<<"$architecture_refinement"
+	! grep -qF "Keep SKILL.md as high-level steps" <<<"$architecture_refinement" || false
 }
 
 @test "mandatory ordered steps are reserved for correctness-dependent workflows" {
@@ -79,8 +79,8 @@ heading_line() {
 		context_section="$(sed -n '/^## Context$/,/^## Verification$/p' "$template")"
 		grep -qi "Remove this section when there are none" <<<"$context_section"
 		grep -qi "Remove this section otherwise" "$template"
-		! grep -qE "^[0-9]+\. \*\*\{Step" "$template"
-		! grep -qE "^### Step [0-9]+" "$template"
+		! grep -qE "^[0-9]+\. \*\*\{Step" "$template" || false
+		! grep -qE "^### Step [0-9]+" "$template" || false
 	done
 }
 
@@ -129,7 +129,7 @@ heading_line() {
 
 @test "resource-backed goal leaves scope boundaries to constraints" {
 	grep -qF "{TODO: The outcome a run must produce, in one or two sentences.}" "$RESOURCES_TEMPLATE"
-	! grep -qF "scope boundary" "$RESOURCES_TEMPLATE"
+	! grep -qF "scope boundary" "$RESOURCES_TEMPLATE" || false
 }
 
 @test "external authoring inspiration is recorded in the source manifest" {

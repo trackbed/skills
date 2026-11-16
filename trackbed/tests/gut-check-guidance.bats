@@ -31,7 +31,7 @@ setup() {
 
   grep -qF 'COLLECT_ARGS=(--strict --format nul --exclude-review-artifacts --stack-context)' "$skill"
   grep -qF 'collect_review_scope "${COLLECT_ARGS[@]}" || exit 1' "$skill"
-  ! grep -qF '"${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh" --decode-json' "$skill"
+  ! grep -qF '"${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh" --decode-json' "$skill" || false
   grep -qF 'No changes detected against $BASE_REF. If this is wrong, re-run with --base <branch>.' "$skill"
 }
 
@@ -97,7 +97,7 @@ setup() {
   grep -qF "Reply in chat. Do not create or update any report file." "$skill"
   grep -qF "do not manufacture an item" "$skill"
   grep -qF "no file was created or modified" "$skill"
-  ! grep -qF "GUT_CHECK_OVERVIEW.md" "$skill"
+  ! grep -qF "GUT_CHECK_OVERVIEW.md" "$skill" || false
 }
 
 @test "gut check routes deeper passes to the existing review skills" {

@@ -44,7 +44,7 @@ RUBRIC="skills/test:audit/references/audit-rubric.md"
 	grep -qF "A rewritten implementation can still violate the same invariant." "$RUBRIC"
 	grep -qF "Default verdict: REMOVE only with high confidence" "$RUBRIC"
 	grep -qF "otherwise reject the lead when the test remains justified" "$RUBRIC"
-	! grep -qF "INVESTIGATE or KEEP" "$RUBRIC"
+	! grep -qF "INVESTIGATE or KEEP" "$RUBRIC" || false
 }
 
 @test "test audit uses explicit evidence-backed verdicts and inline output" {
@@ -124,5 +124,5 @@ RUBRIC="skills/test:audit/references/audit-rubric.md"
 @test "test audit routing preserves the report-only permission boundary" {
 	grep -qF "Use to find poor-quality tests across a repository or path." "$SKILL"
 	grep -qF "editing or pruning tests" "$SKILL"
-	! grep -qF "Use when asked to clean up, prune" "$SKILL"
+	! grep -qF "Use when asked to clean up, prune" "$SKILL" || false
 }

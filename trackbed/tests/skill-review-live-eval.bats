@@ -12,7 +12,7 @@ setup() {
   [ "$(printf '%s' "$output" | jq -r .status)" = DRY_RUN ]
   [ "$(printf '%s' "$output" | jq -r .provider)" = anthropic ]
   [ "$(printf '%s' "$output" | jq '.cases | length')" -eq 2 ]
-  [[ "$output" != *sk-ant-bats* ]]
+  [[ "$output" != *sk-ant-bats* ]] || false
   [ ! -e "$BATS_TEST_TMPDIR/state" ]
 }
 
@@ -22,7 +22,7 @@ setup() {
   [ "$status" -eq 0 ]
   [ "$(printf '%s' "$output" | jq -r .provider)" = openai ]
   [ "$(printf '%s' "$output" | jq -c .organizations)" = '["org-a","org-b","org-c"]' ]
-  [[ "$output" != *sk-proj-bats* ]]
+  [[ "$output" != *sk-proj-bats* ]] || false
   [ ! -e "$BATS_TEST_TMPDIR/state" ]
 }
 
@@ -30,8 +30,8 @@ setup() {
   for adapter in claude-predict.js openai-predict.js; do
     run bash -c 'printf "%s" "sk-ant-never-echo-this" | node "$1/$2"' _ "$LIVE_ROOT" "$adapter"
     [ "$status" -eq 1 ]
-    [[ "$output" == *invalid_adapter_context* ]]
-    [[ "$output" != *sk-ant-never-echo-this* ]]
+    [[ "$output" == *invalid_adapter_context* ]] || false
+    [[ "$output" != *sk-ant-never-echo-this* ]] || false
   done
 }
 

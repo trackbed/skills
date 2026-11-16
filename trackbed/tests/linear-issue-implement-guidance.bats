@@ -14,7 +14,7 @@ load 'test_helper/common'
 
 	    grep -qF "Local SIW work must be transferred to Linear first." "$skill/SKILL.md"
 	    grep -qF "run \`trackbed:siw:transfer-to-linear\` first" "$skill/SKILL.md"
-	    ! grep -qF "kramme:siw:issue-implement" "$skill/SKILL.md"
+	    ! grep -qF "kramme:siw:issue-implement" "$skill/SKILL.md" || false
 	    grep -qF "Reject direct, incomplete, mismatched, or duplicate use" "$skill/SKILL.md"
 	    grep -qF "Require current \`HEAD\`, committed paths, and dirty paths to equal the captured entry handoff" "$skill/references/branch-setup.md"
 

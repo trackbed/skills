@@ -347,7 +347,7 @@ EOF
 	for failure in backup missing-title missing-body; do
 		run_publication "$failure"
 		[ "$status" -ne 0 ] || { echo "unexpected success for $failure"; false; }
-		[[ "$output" == *"no update was made"* ]]
+		[[ "$output" == *"no update was made"* ]] || false
 		[ ! -s "$edit_log" ]
 		[ ! -e "$backup_file" ]
 		if [ "$failure" = backup ]; then
@@ -362,7 +362,7 @@ EOF
 	for number in '' invalid -1 0 01 042; do
 		run_publication "" "$number"
 		[ "$status" -ne 0 ] || { echo "unexpected success for PR number '$number'"; false; }
-		[[ "$output" == *"no update was made"* ]]
+		[[ "$output" == *"no update was made"* ]] || false
 		[ ! -s "$gh_call_log" ]
 		[ ! -e "$title_file" ]
 		[ ! -e "$body_file" ]
@@ -389,7 +389,7 @@ EOF
 		PR_JSON_BASE=$(printf '%s' "$pr_json" | jq --arg url "$url" '.url = $url')
 		run_publication ""
 		[ "$status" -ne 0 ] || { echo "unexpected success for URL '$url'"; false; }
-		[[ "$output" == *"Could not determine the backed-up PR hostname"* ]]
+		[[ "$output" == *"Could not determine the backed-up PR hostname"* ]] || false
 		[ ! -s "$edit_log" ]
 		[ -s "$backup_file" ]
 		[ ! -e "$title_file" ]
@@ -567,7 +567,7 @@ EOF
 	for number in '' invalid -1 0 01 042; do
 		run_publication "" "$number"
 		[ "$status" -ne 0 ] || { echo "unexpected success for PR number '$number'"; false; }
-		[[ "$output" == *"no update was made"* ]]
+		[[ "$output" == *"no update was made"* ]] || false
 		[ ! -s "$gh_call_log" ]
 		[ ! -e "$title_file" ]
 		[ ! -e "$body_file" ]
@@ -594,7 +594,7 @@ EOF
 		PR_JSON_BASE=$(printf '%s' "$pr_json" | jq --arg url "$url" '.url = $url')
 		run_publication ""
 		[ "$status" -ne 0 ] || { echo "unexpected success for URL '$url'"; false; }
-		[[ "$output" == *"Could not determine the backed-up PR hostname"* ]]
+		[[ "$output" == *"Could not determine the backed-up PR hostname"* ]] || false
 		[ ! -s "$edit_log" ]
 		[ -s "$backup_file" ]
 		[ ! -e "$title_file" ]

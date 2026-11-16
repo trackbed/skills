@@ -172,8 +172,8 @@ settings_block_is_closed() {
   run make --no-print-directory -C "$(plugin_root)" -n lint-shell
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *'evals/_lib/*.sh'* ]]
-  [[ "$output" == *'evals/*/*/scaffold.sh'* ]]
+  [[ "$output" == *'evals/_lib/*.sh'* ]] || false
+  [[ "$output" == *'evals/*/*/scaffold.sh'* ]] || false
 }
 
 @test "eval run output stays out of Git" {
@@ -187,22 +187,22 @@ settings_block_is_closed() {
     SUITE=demo BASE=origin/main RUNS=5 ARGS='--concurrency 4'
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *'node scripts/skill-eval-compare.js "demo" --base "origin/main" --runs "5" --concurrency 4'* ]]
+  [[ "$output" == *'node scripts/skill-eval-compare.js "demo" --base "origin/main" --runs "5" --concurrency 4'* ]] || false
 
   run make --no-print-directory -C "$(plugin_root)" skill-eval-compare
 
   [ "$status" -ne 0 ]
-  [[ "$output" == *'SUITE=<suite>'* ]]
+  [[ "$output" == *'SUITE=<suite>'* ]] || false
 }
 
 @test "skill-eval-compare prints usage and refuses an unknown suite before any run" {
   run node "$(plugin_root)/scripts/skill-eval-compare.js" --help
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *'Usage: node scripts/skill-eval-compare.js <suite>'* ]]
+  [[ "$output" == *'Usage: node scripts/skill-eval-compare.js <suite>'* ]] || false
 
   run node "$(plugin_root)/scripts/skill-eval-compare.js" no-such-suite
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *'skill-eval-compare: No eval suite "no-such-suite"'* ]]
+  [[ "$output" == *'skill-eval-compare: No eval suite "no-such-suite"'* ]] || false
 }

@@ -106,14 +106,14 @@ teardown() {
 @test "tree id rejects arguments and non-repositories" {
   run "$TREE_ID" --unexpected
   [ "$status" -eq 2 ]
-  [[ "$output" == *"unknown argument: --unexpected"* ]]
+  [[ "$output" == *"unknown argument: --unexpected"* ]] || false
 
   run "$TREE_ID" --help
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Usage: worktree-tree-id.sh"* ]]
+  [[ "$output" == *"Usage: worktree-tree-id.sh"* ]] || false
 
   cd "$TMP_DIR"
   run "$TREE_ID"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"not inside a git working tree"* ]]
+  [[ "$output" == *"not inside a git working tree"* ]] || false
 }

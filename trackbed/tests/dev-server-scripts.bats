@@ -310,8 +310,8 @@ JSON
   run "$SCRIPT_DIR/read-launch-json.sh" --root "$WORK_DIR" admin
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"name":"admin"'* ]]
-  [[ "$output" == *'"port":4200'* ]]
+  [[ "$output" == *'"name":"admin"'* ]] || false
+  [[ "$output" == *'"port":4200'* ]] || false
 }
 
 @test "read-launch-json does not auto-select sole config when requested name is missing" {
@@ -386,11 +386,11 @@ SH
 @test "explicit port flags reject invalid values" {
   run "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR" --port not-a-port
   [ "$status" -eq 1 ]
-  [[ "$output" == *"explicit port must be between 1 and 65535"* ]]
+  [[ "$output" == *"explicit port must be between 1 and 65535"* ]] || false
 
   run "$SCRIPT_DIR/resolve-port.sh" "$WORK_DIR" --port not-a-port
   [ "$status" -eq 1 ]
-  [[ "$output" == *"explicit port must be between 1 and 65535"* ]]
+  [[ "$output" == *"explicit port must be between 1 and 65535"* ]] || false
 }
 
 @test "detect-url uses selected launch configuration port" {
@@ -559,8 +559,8 @@ SH
   PATH="$MOCK_BIN:$PATH" run "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR" --launch-config admin
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *"launch configuration not found: admin"* ]]
-  [[ "$output" == *"__NO_RUNNING_SERVER__"* ]]
+  [[ "$output" == *"launch configuration not found: admin"* ]] || false
+  [[ "$output" == *"__NO_RUNNING_SERVER__"* ]] || false
 }
 
 @test "resolve-port ignores non-dev package scripts" {
@@ -633,7 +633,7 @@ JSON
 
   [ "$status" -eq 0 ]
   [ "$output" = "__NO_RUNNING_SERVER__" ]
-  [[ "$stderr" == *"launch configuration port 4200 did not answer"* ]]
+  [[ "$stderr" == *"launch configuration port 4200 did not answer"* ]] || false
 }
 
 @test "detect-url stops when the only launch configuration's port does not answer" {
@@ -700,7 +700,7 @@ JSON
 
   [ "$status" -eq 0 ]
   [ "$output" = "http://localhost:5173" ]
-  [[ "$stderr" == *"skipped http://localhost:3000, served from another checkout"* ]]
+  [[ "$stderr" == *"skipped http://localhost:3000, served from another checkout"* ]] || false
 }
 
 @test "detect-url --check-owner leaves an explicit port unchecked" {
@@ -827,8 +827,8 @@ JSON
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = "__MULTIPLE_URLS__" ]
   [ "${#lines[@]}" -eq 3 ]
-  [[ "$output" == *"http://localhost:3000"* ]]
-  [[ "$output" == *"http://localhost:4001"* ]]
+  [[ "$output" == *"http://localhost:3000"* ]] || false
+  [[ "$output" == *"http://localhost:4001"* ]] || false
 
   ANSWERING_PORTS="3000 4001" LSOF_LISTENERS="3000=$WORK_DIR/apps/admin 4001=$sibling_dir" PATH="$MOCK_BIN:$PATH" run --separate-stderr env -u CONDUCTOR_PORT "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR" --check-owner
   [ "$status" -eq 0 ]

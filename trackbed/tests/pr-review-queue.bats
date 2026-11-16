@@ -482,5 +482,5 @@ EOF
 
 @test "SKILL.md diagnosis commands use quoted variables, not shell-redirect placeholders" {
 	grep -Fq 'gh run view "$RUN_ID" -R "$REPO" --log-failed' "$SKILL"
-	! grep -Eq '< (run|repo|head) >' "$SKILL"
+	! grep -Eq '< (run|repo|head) >' "$SKILL" || false
 }

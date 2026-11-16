@@ -40,7 +40,7 @@ teardown() {
 	[ "$(git -C "$WORK" log --format=%an%n%ae%n%cn%n%ce%n%s -1)" = \
 		$'Test User\ntest@example.com\nTest User\ntest@example.com\ninitial' ]
 	[ "$(git -C "$WORK" rev-list --count HEAD)" -eq 1 ]
-	! git -C "$WORK" cat-file commit HEAD | grep -q '^gpgsig'
+	! git -C "$WORK" cat-file commit HEAD | grep -q '^gpgsig' || false
 }
 
 @test "creates annotated tags while global tag signing is enabled" {
@@ -89,7 +89,7 @@ teardown() {
 	run init_test_git_repo "$WORK" --branch trunk
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"init_test_git_repo: unknown option: --branch"* ]]
+	[[ "$output" == *"init_test_git_repo: unknown option: --branch"* ]] || false
 	[ ! -e "$WORK" ]
 }
 
@@ -100,7 +100,7 @@ teardown() {
 		run init_test_git_repo "$WORK" "$option"
 
 		[ "$status" -eq 1 ]
-		[[ "$output" == *"init_test_git_repo: option requires a value: $option"* ]]
+		[[ "$output" == *"init_test_git_repo: option requires a value: $option"* ]] || false
 		[ ! -e "$WORK" ]
 	done
 }
@@ -111,5 +111,5 @@ teardown() {
 	run init_test_git_repo "$WORK"
 
 	[ "$status" -ne 0 ]
-	! git -C "$WORK" rev-parse --verify HEAD >/dev/null 2>&1
+	! git -C "$WORK" rev-parse --verify HEAD >/dev/null 2>&1 || false
 }

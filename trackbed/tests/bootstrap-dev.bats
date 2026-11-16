@@ -148,8 +148,8 @@ SH
 		/bin/bash "$BOOTSTRAP_SCRIPT" --check
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"missing: Make"* ]]
-	[[ "$output" == *"brew install make bats-core jq node python"* ]]
+	[[ "$output" == *"missing: Make"* ]] || false
+	[[ "$output" == *"brew install make bats-core jq node python"* ]] || false
 	[ ! -s "$BOOTSTRAP_COMMAND_LOG" ]
 }
 
@@ -163,11 +163,11 @@ SH
 		/bin/bash "$BOOTSTRAP_SCRIPT"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"missing: Node.js 20+"* ]]
-	[[ "$output" == *"Install Node.js 20+ with npm"* ]]
-	[[ "$output" == *"Use Python 3.10+"* ]]
-	[[ "$output" == *"apt-get install -y make bats jq python3 python3-venv"* ]]
-	[[ "$output" != *"apt-get install -y make bats jq nodejs npm"* ]]
+	[[ "$output" == *"missing: Node.js 20+"* ]] || false
+	[[ "$output" == *"Install Node.js 20+ with npm"* ]] || false
+	[[ "$output" == *"Use Python 3.10+"* ]] || false
+	[[ "$output" == *"apt-get install -y make bats jq python3 python3-venv"* ]] || false
+	[[ "$output" != *"apt-get install -y make bats jq nodejs npm"* ]] || false
 	[ ! -s "$BOOTSTRAP_COMMAND_LOG" ]
 }
 
@@ -181,7 +181,7 @@ SH
 		/bin/bash "$BOOTSTRAP_SCRIPT" --check
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"missing: Python 3.10+ (found v3.9.18"* ]]
+	[[ "$output" == *"missing: Python 3.10+ (found v3.9.18"* ]] || false
 }
 
 @test "check mode rejects Node versions below 20" {
@@ -194,8 +194,8 @@ SH
 		/bin/bash "$BOOTSTRAP_SCRIPT" --check
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"missing: Node.js 20+ (found v18.20.0"* ]]
-	[[ "$output" == *"skipped: Node dependencies (requires Node.js 20+)"* ]]
+	[[ "$output" == *"missing: Node.js 20+ (found v18.20.0"* ]] || false
+	[[ "$output" == *"skipped: Node dependencies (requires Node.js 20+)"* ]] || false
 }
 
 @test "Node dependency check covers every required development module" {
@@ -208,8 +208,8 @@ SH
 		/bin/bash "$BOOTSTRAP_SCRIPT" --check
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"ok: Node dependencies"* ]]
-	[[ "$output" == *"All portable development dependencies are available."* ]]
+	[[ "$output" == *"ok: Node dependencies"* ]] || false
+	[[ "$output" == *"All portable development dependencies are available."* ]] || false
 }
 
 @test "Node dependency failures make check mode fail" {
@@ -223,7 +223,7 @@ SH
 		/bin/bash "$BOOTSTRAP_SCRIPT" --check
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"missing: Node dependencies"* ]]
+	[[ "$output" == *"missing: Node dependencies"* ]] || false
 }
 
 @test "Node dependency check accepts type declarations without a runtime entry point" {
@@ -242,13 +242,13 @@ SH
 	run env BOOTSTRAP_DEV_OS=Linux PATH="$TEST_BIN" /bin/bash "$BOOTSTRAP_SCRIPT" --check
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"ok: Node dependencies"* ]]
+	[[ "$output" == *"ok: Node dependencies"* ]] || false
 
 	rm "$TEST_REPO/node_modules/@types/node/package.json"
 	run env BOOTSTRAP_DEV_OS=Linux PATH="$TEST_BIN" /bin/bash "$BOOTSTRAP_SCRIPT" --check
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"missing: Node dependencies"* ]]
+	[[ "$output" == *"missing: Node dependencies"* ]] || false
 }
 
 @test "Linux install refuses an unsupported Node before invoking apt" {
@@ -262,7 +262,7 @@ SH
 		/bin/bash "$BOOTSTRAP_SCRIPT" --install
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Node.js 20+ with npm is required before --install on Linux."* ]]
+	[[ "$output" == *"Node.js 20+ with npm is required before --install on Linux."* ]] || false
 	[ ! -s "$BOOTSTRAP_COMMAND_LOG" ]
 }
 
@@ -278,7 +278,7 @@ SH
 		/bin/bash "$BOOTSTRAP_SCRIPT" --install
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Python 3.10+ is required before --install on Linux."* ]]
+	[[ "$output" == *"Python 3.10+ is required before --install on Linux."* ]] || false
 	[ ! -s "$BOOTSTRAP_COMMAND_LOG" ]
 }
 
@@ -295,7 +295,7 @@ SH
 	[ "$status" -eq 73 ]
 	grep -Fx "apt-get update" "$BOOTSTRAP_COMMAND_LOG"
 	grep -Fx "apt-get install -y make bats jq python3 python3-venv" "$BOOTSTRAP_COMMAND_LOG"
-	! grep -Eq 'nodejs|(^| )npm( |$)' "$BOOTSTRAP_COMMAND_LOG"
+	! grep -Eq 'nodejs|(^| )npm( |$)' "$BOOTSTRAP_COMMAND_LOG" || false
 }
 
 @test "Linux install runs the complete dependency setup and final verification" {
@@ -316,8 +316,8 @@ SH
 	grep -Fx "python3 -m venv .venv" "$BOOTSTRAP_COMMAND_LOG"
 	grep -Fx "python -m pip install --disable-pip-version-check --requirement requirements-dev.txt" "$BOOTSTRAP_COMMAND_LOG"
 	grep -Fx "npm ci --no-audit --no-fund" "$BOOTSTRAP_COMMAND_LOG"
-	[[ "$output" == *"Installation finished; verifying dependencies."* ]]
-	[[ "$output" == *"All portable development dependencies are available."* ]]
+	[[ "$output" == *"Installation finished; verifying dependencies."* ]] || false
+	[[ "$output" == *"All portable development dependencies are available."* ]] || false
 }
 
 @test "Linux install propagates pinned Python dependency failures" {
@@ -335,7 +335,7 @@ SH
 
 	[ "$status" -eq 42 ]
 	grep -Fx "python -m pip install --disable-pip-version-check --requirement requirements-dev.txt" "$BOOTSTRAP_COMMAND_LOG"
-	! grep -Fq "npm ci --no-audit --no-fund" "$BOOTSTRAP_COMMAND_LOG"
+	! grep -Fq "npm ci --no-audit --no-fund" "$BOOTSTRAP_COMMAND_LOG" || false
 }
 
 @test "repository ignores the generated virtual environment" {

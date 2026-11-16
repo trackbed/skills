@@ -220,7 +220,7 @@ EOF
 
 	[ "$status" -eq 0 ]
 	[ "$(curl_calls)" = "1" ]
-	[[ "$(system_message)" == "trackbed 0.90.0 is available (you have 0.89.0)."* ]]
+	[[ "$(system_message)" == "trackbed 0.90.0 is available (you have 0.89.0)."* ]] || false
 }
 
 wait_for_fetch() {
@@ -278,7 +278,7 @@ wait_for_fetch() {
 	touch "$gate.release"
 	wait "$first_pid"
 	run run_hook
-	[[ "$(system_message)" == *"updated from 0.89.0 to 0.90.0."* ]]
+	[[ "$(system_message)" == *"updated from 0.89.0 to 0.90.0."* ]] || false
 	[ "$(state_value seenVersion)" = "0.90.0" ]
 	[ "$(curl_calls)" = "1" ]
 	run run_hook
@@ -410,7 +410,7 @@ wait_for_fetch() {
 
 	[ "$status" -eq 0 ]
 	[ "$(system_message | sed -n 1p)" = "trackbed updated from 0.88.0 to 0.89.0 (2 breaking changes). Changelog: $CHANGELOG_URL" ]
-	[[ "$(system_message | sed -n 2p)" == "trackbed 0.90.0 is available (you have 0.89.0)."* ]]
+	[[ "$(system_message | sed -n 2p)" == "trackbed 0.90.0 is available (you have 0.89.0)."* ]] || false
 }
 
 @test "emits an empty object without side effects when toggled off" {

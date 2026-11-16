@@ -59,7 +59,7 @@
     grep -qF "Capture stdout as JSON. Never \`eval\`, source, or render it as shell code." "$skill"
 	grep -qF "reject every other user-supplied flag, including \`--repo-root\` and \`--allow-worktree-drift\`" "$skill"
 	grep -qF "without forwarding raw \`\$@\`" "$skill"
-	! grep -qF -- "--repo-root \"\$REPO_ROOT\" \"\$@\"" "$skill"
+	! grep -qF -- "--repo-root \"\$REPO_ROOT\" \"\$@\"" "$skill" || false
     grep -qF "STATUS_REPAIR_REQUIRED" "$skill"
 	grep -qF "STATUS_REPAIR_REQUIRED\`: require \`details.verified: true\`" "$skill"
     grep -qF "ARCHIVE_MIGRATION_REQUIRED" "$skill"
@@ -91,7 +91,7 @@
 	    grep -qF "SCOPE_PATH_INVALID" "$validator"
 	    grep -qF "CHECKPOINT_PARTIAL" "$validator"
 	    grep -qF "STATUS_REPAIR_REQUIRED" "$validator"
-	    ! grep -Eq "os\\.(rename|replace|remove|unlink)|shutil\\.(move|rmtree)|write_(text|bytes)" "$validator"
+	    ! grep -Eq "os\\.(rename|replace|remove|unlink)|shutil\\.(move|rmtree)|write_(text|bytes)" "$validator" || false
     grep -qF "Load this reference for either direct intake" "$attachment"
     grep -qF "the attachment is deliberately the complete input" "$attachment"
     grep -qF "Do not search for or request the source \`PR_PLAN_INDEX.md\`" "$attachment"
@@ -169,7 +169,7 @@
     grep -qF "stop without switching, and report that commit so the user can attach it to a branch" "$skill"
     grep -qF "select it automatically without asking whether to switch this workspace or open another one" "$skill"
     grep -qF "every subsequent stop must report \`{workspace-entry-branch}\`, the observed current branch (expected \`{plan-branch}\`), and the exact \`{active-plan}\` retry path" "$skill"
-    ! grep -qF "stop before branch selection and ask whether to switch this workspace explicitly" "$skill"
+    ! grep -qF "stop before branch selection and ask whether to switch this workspace explicitly" "$skill" || false
     grep -qF "require its tip to equal the fetched \`origin/{base-branch}\` tip exactly" "$skill"
 	    grep -qF "never adopt, reset, delete, or rewrite an uncheckpointed local branch with commits" "$skill"
     grep -qF "git diff --name-only \"{proven-base-commit}\"..\"{checkpoint-head}\"" "$skill"
@@ -184,7 +184,7 @@
 	    grep -qF "out-of-scope post-publication path" "$skill"
     grep -qF "trackbed:code:work-from-plan" "$skill"
     grep -qF "route \`direct\`" "$skill"
-    ! grep -qF -- "--archive-key code-plan-to-pr" "$skill"
+    ! grep -qF -- "--archive-key code-plan-to-pr" "$skill" || false
     grep -qF -- "--scope-plan {validated-scope-plan}" "$skill"
     grep -qF "Require the work branch and local head/tree recorded by the completion result to equal the observed branch" "$skill"
     grep -qF "stop without advancing plan state on the first mismatch" "$skill"
@@ -225,7 +225,7 @@
     grep -qF "Require \`{selected-basename}\` to match \`PR_PLAN_[A-Z][0-9][0-9][A-Z]_[A-Z0-9_]+.md\`" "$handoff"
     grep -qF "## Preserve Exact-File Scope" "$handoff"
     grep -qF "git check-ignore --index -z --stdin" "$handoff"
-    ! grep -qF "git check-ignore --index -q -z --stdin" "$handoff"
+    ! grep -qF "git check-ignore --index -q -z --stdin" "$handoff" || false
     grep -qF "first matching path as the exact blocker" "$handoff"
     grep -qF "Run \`RECHECK_STANDALONE_SCOPE\` when \`PLAN_SCOPE_ACTIVE=true\` and \`PLAN_SCOPE_MODE=exact-files\`, then stage only" "$review"
     grep -qF "Before every fix commit or push" "$shipping"
@@ -237,8 +237,8 @@
     grep -qF "Use that atomic replacement to update only the archived workflow-state checkpoint head/tree" "$shipping"
     grep -qF "A later session resumes with that exact invocation" "$shipping"
     grep -qF "Recovery: {fix-ci-invocation}" "$shipping"
-    ! grep -qF "Recovery: \${fix-ci-invocation}" "$shipping"
-    ! grep -qF "PLAN_SCOPE_ACTIVE" "$shipping"
+    ! grep -qF "Recovery: \${fix-ci-invocation}" "$shipping" || false
+    ! grep -qF "PLAN_SCOPE_ACTIVE" "$shipping" || false
     grep -qF "Set \`{fix-ci-invocation}\` to the exact scoped value" "$shipping"
     grep -qF "the same \`--scope-plan {validated-scope-plan}\`" "$shipping"
     grep -qF "argument-hint: \"[--fixup] [--manual] [--no-consolidate] [--rebase|--no-rebase] [--scope-plan <archived-plan>]\"" "$fix_ci"
@@ -382,9 +382,9 @@
 		[ "$quality_gate" -lt "$plan_write" ]
 		[ "$plan_write" -lt "$phase_four" ]
 
-		! grep -qF "Mixed source arguments are ambiguous:" "$skill"
-		! grep -qF "git rev-parse --short HEAD" "$skill"
-		! grep -qF "Before writing each final plan" "$generation"
+		! grep -qF "Mixed source arguments are ambiguous:" "$skill" || false
+		! grep -qF "git rev-parse --short HEAD" "$skill" || false
+		! grep -qF "Before writing each final plan" "$generation" || false
 	'
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
@@ -436,7 +436,7 @@
     grep -qF ".context/{archive-key}/reviews/" "$review"
 
 	    grep -qF "trackbed:pr:create --base {base-branch} --require-generated-description" "$shipping"
-	    ! grep -qF -- "--authorize-history-rewrite" "$shipping"
+	    ! grep -qF -- "--authorize-history-rewrite" "$shipping" || false
 	    grep -qF "trackbed:pr:fix-ci --no-consolidate" "$shipping"
 	    [ "$(grep -cF "trackbed:pr:fix-ci --no-consolidate --scope-plan {validated-scope-plan}" "$skill")" -eq 3 ]
 	    [ "$(grep -cF "trackbed:pr:fix-ci --no-consolidate --scope-plan {validated-scope-plan}" "$shipping")" -eq 1 ]
@@ -514,7 +514,7 @@
     grep -qF "\"path\": \".context/siw-issue-to-pr/reviews/REFACTOR_OPPORTUNITIES_OVERVIEW.md\"" "$registry"
     grep -qF "\"path\": \"AUDIT_IMPLEMENTATION_REPORT.md\"" "$registry"
     grep -qF "\"path\": \"siw/AUDIT_IMPLEMENTATION_REPORT.md\"" "$registry"
-    ! grep -qF "\"path\": \".context/code-plan-to-pr/\"" "$registry"
+    ! grep -qF "\"path\": \".context/code-plan-to-pr/\"" "$registry" || false
   '
 
 	[ "$status" -eq 0 ]
@@ -538,9 +538,9 @@
 	    printf "%s\n" "$routing_route" | grep -qF "$routing_contract"
 	    grep -qF "A local SIW ticket reaches it through \`trackbed:siw:transfer-to-linear\`" "$triage"
 
-	    ! grep -qF "kramme:siw:issue-implement" "$skill"
-	    ! grep -qF "kramme:siw:issue-implement" "$routing"
-	    ! grep -qF "kramme:siw:issue-implement" "$triage"
+	    ! grep -qF "kramme:siw:issue-implement" "$skill" || false
+	    ! grep -qF "kramme:siw:issue-implement" "$routing" || false
+	    ! grep -qF "kramme:siw:issue-implement" "$triage" || false
   '
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
@@ -558,7 +558,7 @@
     grep -qF "through a public interface using the reproduction inputs captured in Phase 3 and an independently derived expected result" "$triage"
     grep -qF "reproduction gate and preserve the marker in the issue body" "$triage"
     grep -qF "FAIL before the fix and PASS after" "$triage"
-    ! grep -qF "kramme:test:tdd" "$triage"
+    ! grep -qF "kramme:test:tdd" "$triage" || false
   '
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
@@ -595,7 +595,7 @@
     if printf "%s\n" "$discovery" | grep -qF "AUDIT_IMPLEMENTATION_REPORT.md"; then exit 1; fi
     grep -qF "Explicitly supplied legacy implementation-audit reports remain supported" "$skill"
     grep -qF "they are never auto-detected" "$skill"
-    ! grep -qF "Implementation audit (Recommended when available)" "$skill"
+    ! grep -qF "Implementation audit (Recommended when available)" "$skill" || false
   '
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
@@ -794,7 +794,7 @@
 		grep -qF "SOURCES: sibling worktree reports" "$autodetect"
 		grep -qF "\`AUTO_MODE=true\` does not bypass this confirmation." "$autodetect"
 		grep -qF "List \`not in HEAD\` candidates without preselecting them." "$autodetect"
-		! grep -qE "^[[:space:]]*[0-9]+\.[[:space:]]+\`" <(sed -n "/^## Sibling worktree reports/,\$p" "$autodetect")
+		! grep -qE "^[[:space:]]*[0-9]+\.[[:space:]]+\`" <(sed -n "/^## Sibling worktree reports/,\$p" "$autodetect") || false
 
 		grep -qF "Then apply **Sibling worktree reports** discovery and add only the reports the user selects." "$autodetect"
 		grep -qF "Explicit source paths are already user-selected" "$autodetect"
@@ -807,7 +807,7 @@
 		grep -qF "List every generated plan exactly once." "$templates"
 		grep -qF "implement in its own worktree per the plan'"'"'s Implementation Setup" "$templates"
 		grep -qF "/trackbed:code:breakdown-findings --reconcile PR_PLAN_{EXECUTION_LABEL}_{SLUG}.md [--worktree <path> | --source <ref>]" "$templates"
-		! grep -qF "Recommended first PR" "$templates"
+		! grep -qF "Recommended first PR" "$templates" || false
 
 		grep -qF "The template'"'"'s \`LAUNCH SHEET:\` block is mandatory" "$skill"
 		grep -qF "\`LAUNCH SHEET:\` for the per-wave launch list in the final summary." "$skill"
@@ -847,20 +847,20 @@
 
 		candidates=$(sed -n "/^## Auto-detect candidates/,/^## /p" "$shared" | grep -E "^[0-9]+\. \`")
 		[ -n "$candidates" ]
-		! printf "%s\n" "$candidates" | grep -qF "AUDIT_SPEC_REPORT.md"
+		! printf "%s\n" "$candidates" | grep -qF "AUDIT_SPEC_REPORT.md" || false
 		grep -qF "SIW audit decisions route through \`trackbed:siw:resolve-audit\`" "$shared"
 		grep -qF "an explicitly passed spec-audit report is still accepted" "$shared"
-		! grep -qF "trackbed:siw:spec-audit" "$shared"
+		! grep -qF "trackbed:siw:spec-audit" "$shared" || false
 
 		grep -qF "effort (\`S\`, \`M\`, or \`L\`)" "$shared"
 		grep -qF "| **XL** | **9+ files - split into a series** |" "$shared"
 		grep -qF "Dependencies always override value ordering." "$shared"
 		for file in "$code/references/source-intake.md" "$code/references/clustering.md" \
 			"$linear/references/source-intake.md" "$linear/references/clustering-and-recon.md"; do
-			! grep -qF "effort (\`" "$file"
-			! grep -qE "^[[:space:]]*\|[[:space:]]*(XS|\*\*XL\*\*|XL)[[:space:]]*\|" "$file"
-			! grep -qF "REVIEW_OVERVIEW.md" "$file"
-			! grep -qF "Mixed source arguments are ambiguous:" "$file"
+			! grep -qF "effort (\`" "$file" || false
+			! grep -qE "^[[:space:]]*\|[[:space:]]*(XS|\*\*XL\*\*|XL)[[:space:]]*\|" "$file" || false
+			! grep -qF "REVIEW_OVERVIEW.md" "$file" || false
+			! grep -qF "Mixed source arguments are ambiguous:" "$file" || false
 		done
 	'
 
@@ -903,10 +903,10 @@
 		grep -qF "Synced Conductor workspace boundary contract (keep aligned across git-mutating workflow skills):" "$split"
 		grep -qF "reconcile each slice against its own evidence" "$split"
 		grep -qF "Omit the plan path only when the evidence root or source represents the complete indexed plan set" "$split"
-		! grep -qF "workflow-artifacts" "$split"
+		! grep -qF "workflow-artifacts" "$split" || false
 
 		test ! -e "skills/kramme:pr:plan-split"
-		! grep -rqF "kramme:pr:plan-split" skills
+		! grep -rqF "kramme:pr:plan-split" skills || false
 	'
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }

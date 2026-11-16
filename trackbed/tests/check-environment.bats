@@ -122,15 +122,15 @@ assert_text_row() {
 	run "$BASH_PATH" "$SCRIPT" --help
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"Usage: check-environment.sh"* ]]
-	[[ "$output" == *"--json"* ]]
+	[[ "$output" == *"Usage: check-environment.sh"* ]] || false
+	[[ "$output" == *"--json"* ]] || false
 }
 
 @test "rejects unknown arguments" {
 	run "$BASH_PATH" "$SCRIPT" --unknown
 
 	[ "$status" -eq 2 ]
-	[[ "$output" == *"Unknown argument: --unknown"* ]]
+	[[ "$output" == *"Unknown argument: --unknown"* ]] || false
 }
 
 @test "prints valid json with mocked tool availability and repo context" {
@@ -193,7 +193,7 @@ assert_text_row() {
 		"$BASH_PATH" "$SCRIPT"
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"[manual-check] Conductor MCP"* ]]
+	[[ "$output" == *"[manual-check] Conductor MCP"* ]] || false
 	assert_text_row "Conductor mode" "local"
 	assert_text_row "Workspace name" "local workspace"
 	assert_text_row "Workspace path" "$workspace_dir"
@@ -272,16 +272,16 @@ assert_text_row() {
 	run env PATH="$FAKE_BIN" "$BASH_PATH" "$SCRIPT"
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"[ok]      git"* ]]
-	[[ "$output" == *"[missing] jq"* ]]
-	[[ "$output" == *"[missing] python3"* ]]
-	[[ "$output" == *"install: Install Python 3.10+"* ]]
-	[[ "$output" == *"[missing] node"* ]]
-	[[ "$output" == *"install: Install Node.js 18+"* ]]
-	[[ "$output" == *"[missing] gh"* ]]
-	[[ "$output" == *"install: brew install gh"* ]]
-	[[ "$output" == *"Branch:                  test-branch"* ]]
-	[[ "$output" == *"Git state:               clean"* ]]
+	[[ "$output" == *"[ok]      git"* ]] || false
+	[[ "$output" == *"[missing] jq"* ]] || false
+	[[ "$output" == *"[missing] python3"* ]] || false
+	[[ "$output" == *"install: Install Python 3.10+"* ]] || false
+	[[ "$output" == *"[missing] node"* ]] || false
+	[[ "$output" == *"install: Install Node.js 18+"* ]] || false
+	[[ "$output" == *"[missing] gh"* ]] || false
+	[[ "$output" == *"install: brew install gh"* ]] || false
+	[[ "$output" == *"Branch:                  test-branch"* ]] || false
+	[[ "$output" == *"Git state:               clean"* ]] || false
 }
 
 @test "reports required runtimes below their minimum versions" {
@@ -324,9 +324,9 @@ assert_text_row() {
 	run env PATH="$FAKE_BIN" "$BASH_PATH" "$SCRIPT"
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"[error]    node"* ]]
-	[[ "$output" == *"runtime probe failed"* ]]
-	[[ "$output" != *"[outdated] node"* ]]
+	[[ "$output" == *"[error]    node"* ]] || false
+	[[ "$output" == *"runtime probe failed"* ]] || false
+	[[ "$output" != *"[outdated] node"* ]] || false
 }
 
 assert_context_value() {
@@ -345,7 +345,7 @@ assert_context_value() {
 	run env PATH="$FAKE_BIN" "$BASH_PATH" "$SCRIPT"
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"[ok]      codex"*"(codex-cli 0.162.1)"* ]]
+	[[ "$output" == *"[ok]      codex"*"(codex-cli 0.162.1)"* ]] || false
 }
 
 @test "reports a missing codex CLI with its install hint in both formats" {
@@ -359,7 +359,7 @@ assert_context_value() {
 	run env PATH="$FAKE_BIN" "$BASH_PATH" "$SCRIPT"
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"[missing] codex"*"install: npm install -g @openai/codex"* ]]
+	[[ "$output" == *"[missing] codex"*"install: npm install -g @openai/codex"* ]] || false
 }
 
 @test "reports a cached native codex plugin without exposing or changing config" {
@@ -376,13 +376,13 @@ assert_context_value() {
 
 	[ "$status" -eq 0 ]
 	assert_context_value codexPlugin "installed (cached 0.88.0)"
-	[[ "$output" != *"setup-test-decoy"* ]]
+	[[ "$output" != *"setup-test-decoy"* ]] || false
 
 	run env PATH="$FAKE_BIN" CODEX_HOME="$codex_home" "$BASH_PATH" "$SCRIPT"
 
 	[ "$status" -eq 0 ]
 	assert_text_row "Codex plugin" "installed (cached 0.88.0)"
-	[[ "$output" != *"setup-test-decoy"* ]]
+	[[ "$output" != *"setup-test-decoy"* ]] || false
 	cmp -s "$codex_home/config.toml" "$BATS_TEST_TMPDIR/config.before"
 	[ "$(find "$codex_home" -print | LC_ALL=C sort)" = "$before_listing" ]
 }

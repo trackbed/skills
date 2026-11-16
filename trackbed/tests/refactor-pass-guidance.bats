@@ -144,8 +144,8 @@ setup() {
   grep -qF "Do not treat a failed reviewer call as an empty finding set or report the scope clean." "$skill"
   grep -qF "Visual redesign findings are not behavior-preserving simplifications." "$skill"
   grep -qF 'suggest `trackbed:pr:product-review` instead' "$skill"
-  ! grep -qF "Generic AI-aesthetic UI defaults" "$skill"
-  ! grep -qF "generic UI defaults" "$skill"
+  ! grep -qF "Generic AI-aesthetic UI defaults" "$skill" || false
+  ! grep -qF "generic UI defaults" "$skill" || false
 }
 
 @test "simplification commits preserve complete scoped git state" {

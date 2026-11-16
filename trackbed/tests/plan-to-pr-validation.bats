@@ -328,7 +328,7 @@ tree_digest() {
 	[ "$(json_get facts.plan_leverage)" = "HIGH" ]
 	[ "$(json_get facts.sequencing_summary)" = "none" ]
 	first_id="$(json_get facts.plan_set_id)"
-	[[ "$first_id" == ps-* ]]
+	[[ "$first_id" == ps-* ]] || false
 
 	run python3 "$VALIDATOR" --repo-root "$REPO" "$REPO/PR_PLAN_W01A_VALIDATE_PLAN_STATE.md"
 	assert_success
@@ -367,7 +367,7 @@ EOF
 	assert_success
 	[ "$(json_get facts.prerequisite_records.0.label)" = "W01A" ]
 	[ "$(json_get facts.prerequisite_records.0.status)" = "DONE" ]
-	[[ "$(json_get facts.prerequisite_records.0.execution_result)" == *"Landed commit"* ]]
+	[[ "$(json_get facts.prerequisite_records.0.execution_result)" == *"Landed commit"* ]] || false
 }
 
 @test "complete plan set rejects a DONE prerequisite without an execution result" {
@@ -396,7 +396,7 @@ EOF
 	run python3 "$VALIDATOR" --repo-root "$REPO" "$REPO/PR_PLAN_W01A_VALIDATE_PLAN_STATE.md"
 
 	assert_success
-	[[ "$(json_get facts.terminal_execution_result)" == *"Landed commit"* ]]
+	[[ "$(json_get facts.terminal_execution_result)" == *"Landed commit"* ]] || false
 	[ "$(json_get facts.drift_check_reason)" = "terminal-retry" ]
 }
 
@@ -1380,7 +1380,7 @@ EOF
 	[ "$(json_get facts.terminal_retry_required)" = "true" ]
 	[ "$(json_get facts.completion_resume)" = "false" ]
 	[ "$(json_get facts.drift_check_reason)" = "terminal-retry" ]
-	[[ "$(json_get facts.terminal_execution_result)" == *"Completion commit"* ]]
+	[[ "$(json_get facts.terminal_execution_result)" == *"Completion commit"* ]] || false
 }
 
 @test "validator rejects an execution result on an active standalone archive" {

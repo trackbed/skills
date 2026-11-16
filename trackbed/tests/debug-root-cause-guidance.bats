@@ -42,7 +42,7 @@ setup() {
   for text in 'Linear issue reference' 'TEAM-123' 'mcp__linear__get_issue' 'Codex `get_issue`' 'description, steps to reproduce, and expected vs. actual behavior' 'unavailable or the fetch fails' 'ask the user to paste the issue content and wait' 'even with `--yes` or `--auto`' 'Store the resolved description as `BUG_DESCRIPTION`'; do
     [[ "$capture" == *"$text"* ]] || return 1
   done
-  [[ "$investigation" == *'with `BUG_DESCRIPTION` from Phase 1'* ]]
+  [[ "$investigation" == *'with `BUG_DESCRIPTION` from Phase 1'* ]] || false
 }
 
 @test "investigate keeps its fix workflow after the shared procedure" {

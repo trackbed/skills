@@ -243,13 +243,13 @@ assert_review_parser_fixture_decision() {
 @test "blocks malformed hook input" {
 	run bash "$HOOK" <<<'{"tool_input":'
 	is_blocked
-	[[ "$output" == *"Unable to safely parse command"* ]]
+	[[ "$output" == *"Unable to safely parse command"* ]] || false
 }
 
 @test "blocks malformed parser output" {
 	run run_safety_hook_with_parser_output "$HOOK" "git commit -m 'test'" '{}'
 	is_blocked
-	[[ "$output" == *"Unable to safely parse command"* ]]
+	[[ "$output" == *"Unable to safely parse command"* ]] || false
 }
 
 @test "blocks malformed commit context fields" {
@@ -258,8 +258,8 @@ assert_review_parser_fixture_decision() {
 		"git commit -m 'test'" \
 		'[{"git_args":{},"git_env":[]}]'
 	is_blocked
-	[[ "$output" == *"Unable to safely decode git commit context"* ]]
-	[[ "$output" == *"commit-context field contract"* ]]
+	[[ "$output" == *"Unable to safely decode git commit context"* ]] || false
+	[[ "$output" == *"commit-context field contract"* ]] || false
 }
 
 @test "names the failing contract for every malformed commit context field type" {
@@ -296,8 +296,8 @@ assert_review_parser_fixture_decision() {
 	run run_safety_hook_with_parser_output "$HOOK" "git commit -m 'test'" "$parser_output"
 
 	is_blocked
-	[[ "$output" == *"Unable to safely decode git commit context"* ]]
-	[[ "$output" == *"NUL byte"* ]]
+	[[ "$output" == *"Unable to safely decode git commit context"* ]] || false
+	[[ "$output" == *"NUL byte"* ]] || false
 }
 
 @test "preserves special characters when decoding commit context arrays" {
@@ -332,7 +332,7 @@ assert_review_parser_fixture_decision() {
 	run run_safety_hook_with_parser_output "$HOOK" "git commit -m 'test'" "$parser_output"
 
 	is_blocked
-	[[ "$output" == *"$spaced_artifact"* ]]
+	[[ "$output" == *"$spaced_artifact"* ]] || false
 }
 
 @test "blocks when the decoded context stream ends before its context count" {
@@ -346,7 +346,7 @@ assert_review_parser_fixture_decision() {
 	is_blocked
 	# Assert the specific reason: the shared prefix is also what an empty or
 	# unreadable records file produces, so matching it alone proves nothing.
-	[[ "$output" == *"ended before the parser's context count"* ]]
+	[[ "$output" == *"ended before the parser's context count"* ]] || false
 }
 
 @test "blocks when the decoded context stream loses its end marker" {
@@ -360,7 +360,7 @@ assert_review_parser_fixture_decision() {
 	is_blocked
 	# A satisfied context count with a missing frame is the opposite condition
 	# from the test above, and must not report the same reason.
-	[[ "$output" == *"missing their end marker"* ]]
+	[[ "$output" == *"missing their end marker"* ]] || false
 }
 
 @test "blocks when parser output carries more than one JSON document" {
@@ -381,7 +381,7 @@ assert_review_parser_fixture_decision() {
 	run run_safety_hook_with_parser_output "$HOOK" "git commit -m 'test'" "$parser_output"
 
 	is_blocked
-	[[ "$output" == *"commit-context field contract"* ]]
+	[[ "$output" == *"commit-context field contract"* ]] || false
 }
 
 @test "blocks when the private inspection workspace cannot be created" {
@@ -389,7 +389,7 @@ assert_review_parser_fixture_decision() {
 		<<<"$(make_bash_input "git commit -m 'test'")"
 
 	is_blocked
-	[[ "$output" == *"private workspace for commit inspection"* ]]
+	[[ "$output" == *"private workspace for commit inspection"* ]] || false
 }
 
 @test "names the failing step when staged commit content cannot be read" {
@@ -399,7 +399,7 @@ assert_review_parser_fixture_decision() {
 		'[{"git_args":["-C","/nonexistent-hook-repo"],"git_env":[]}]'
 
 	is_blocked
-	[[ "$output" == *"Unable to read the already staged commit content"* ]]
+	[[ "$output" == *"Unable to read the already staged commit content"* ]] || false
 }
 
 @test "names the failing step when the repository index is not a regular file" {
@@ -416,7 +416,7 @@ assert_review_parser_fixture_decision() {
 	run run_safety_hook_with_parser_output "$HOOK" "git commit -m 'test'" "$parser_output"
 
 	is_blocked
-	[[ "$output" == *"Repository index is not a regular file"* ]]
+	[[ "$output" == *"Repository index is not a regular file"* ]] || false
 }
 
 @test "decodes commit contexts with a bounded number of jq processes" {
@@ -456,10 +456,10 @@ assert_review_parser_fixture_decision() {
 @test "blocks command when jq is unavailable" {
 	run run_safety_hook_without_jq "$HOOK" "git commit -m 'test commit'"
 	is_blocked
-	[[ "$output" == *"jq not found"* ]]
-	[[ "$output" == *"refusing to run safety hook without JSON parsing"* ]]
-	[[ "$output" == *"Install jq or disable this hook explicitly"* ]]
-	[[ "$output" != *"allowing command unchanged"* ]]
+	[[ "$output" == *"jq not found"* ]] || false
+	[[ "$output" == *"refusing to run safety hook without JSON parsing"* ]] || false
+	[[ "$output" == *"Install jq or disable this hook explicitly"* ]] || false
+	[[ "$output" != *"allowing command unchanged"* ]] || false
 }
 
 @test "allows disabled hook when jq is unavailable" {
@@ -471,15 +471,15 @@ assert_review_parser_fixture_decision() {
 @test "blocks when python parser file is unavailable" {
 	run run_hook_missing_python_parser "git commit -m 'test commit'"
 	is_blocked
-	[[ "$output" == *"Unable to safely parse command"* ]]
+	[[ "$output" == *"Unable to safely parse command"* ]] || false
 }
 
 @test "blocks commands when python3 is unavailable" {
 	run run_safety_hook_without_python "$HOOK" "ls -la" "$MOCK_DIR/git"
 	is_blocked
-	[[ "$output" == *"python3 not found"* ]]
-	[[ "$output" == *"refusing to run safety hook without the shared git command parser"* ]]
-	[[ "$output" == *"Install python3 or disable this hook explicitly"* ]]
+	[[ "$output" == *"python3 not found"* ]] || false
+	[[ "$output" == *"refusing to run safety hook without the shared git command parser"* ]] || false
+	[[ "$output" == *"Install python3 or disable this hook explicitly"* ]] || false
 }
 
 @test "allows non-git commands" {
@@ -547,7 +547,7 @@ assert_review_parser_fixture_decision() {
 			printf 'Expected prefixed command to be blocked: %s\n' "$command" >&2
 			return 1
 		fi
-		[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+		[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 	done < <(safety_command_prefix_matrix "git commit -m test")
 }
 
@@ -569,7 +569,7 @@ assert_review_parser_fixture_decision() {
 
 	run run_hook "git --attr-source HEAD commit -m test"
 	is_blocked
-	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "blocks review-artifact commit behind --attr-source=<tree-ish>" {
@@ -577,7 +577,7 @@ assert_review_parser_fixture_decision() {
 
 	run run_hook "git --attr-source=HEAD commit -m test"
 	is_blocked
-	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "preserves unguarded commit behavior behind --attr-source" {
@@ -627,7 +627,7 @@ assert_review_parser_fixture_decision() {
 	run run_hook "GIT_LITERAL_PATHSPECS=1 git -C $REAL_COMMIT_REPO --shallow-file $REAL_COMMIT_REPO/.git/shallow --no-literal-pathspecs commit --only -m test 'guard*.txt'"
 
 	is_blocked
-	[[ "$output" == *"guarded.txt"* ]]
+	[[ "$output" == *"guarded.txt"* ]] || false
 }
 
 @test "fails closed for commits behind an unknown git global option" {
@@ -635,7 +635,7 @@ assert_review_parser_fixture_decision() {
 
 	run run_hook "git --future-global value commit -m test"
 	is_blocked
-	[[ "$output" == *"Unable to safely parse command"* ]]
+	[[ "$output" == *"Unable to safely parse command"* ]] || false
 }
 
 @test "allows supported non-commit command behind legacy --super-prefix" {
@@ -655,7 +655,7 @@ assert_review_parser_fixture_decision() {
 			printf 'Expected malformed prefixed command to be blocked: %s\n' "$command" >&2
 			return 1
 		fi
-		[[ "$output" == *"Unable to safely parse command"* ]]
+		[[ "$output" == *"Unable to safely parse command"* ]] || false
 	done < <(safety_malformed_prefix_matrix "git commit -m test")
 }
 
@@ -669,7 +669,7 @@ assert_review_parser_fixture_decision() {
 			printf 'Expected external-wrapper export to leave the current repo selected: %s\n' "$prefix" >&2
 			return 1
 		fi
-		[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+		[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 	done < <(printf '%s\n' "timeout 1" "nice" "nohup" "env" "sudo" "exec" "command time")
 }
 
@@ -678,7 +678,7 @@ assert_review_parser_fixture_decision() {
 
 	run run_hook "GIT_DIR=other/.git GIT_WORK_TREE=other env -i; export GIT_DIR GIT_WORK_TREE; git commit -m test"
 	is_blocked
-	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "preserves shell builtin state through the time keyword" {
@@ -686,7 +686,7 @@ assert_review_parser_fixture_decision() {
 
 	run run_hook "time export GIT_DIR=other/.git GIT_WORK_TREE=other; git commit -m test"
 	is_blocked
-	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "preserves shell builtin state through builtin lookup prefixes" {
@@ -699,7 +699,7 @@ assert_review_parser_fixture_decision() {
 			printf 'Expected builtin-lookup export to select the redirected repo: %s\n' "$prefix" >&2
 			return 1
 		fi
-		[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+		[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 	done < <(printf '%s\n' "command" "builtin")
 }
 
@@ -713,7 +713,7 @@ assert_review_parser_fixture_decision() {
 			printf 'Expected non-keyword time to leave the current repo selected: %s\n' "$prefix" >&2
 			return 1
 		fi
-		[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+		[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 	done < <(printf '%s\n' '\time' '"time"' "'time'")
 }
 
@@ -722,7 +722,7 @@ assert_review_parser_fixture_decision() {
 
 	run run_hook "GIT_DIR=other/.git GIT_WORK_TREE=other exec -c git commit -m test"
 	is_blocked
-	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 }
 
 # ============================================================================
@@ -806,36 +806,36 @@ REVIEW_SUMMARY.md"
 	mock_git_staged "REVIEW_OVERVIEW.md"
 	run run_hook "git commit -m 'test commit'"
 	is_blocked
-	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
-	[[ "$output" == *"Unstage these files"* ]]
+	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
+	[[ "$output" == *"Unstage these files"* ]] || false
 }
 
 @test "blocks git commit when AUDIT_IMPLEMENTATION_REPORT.md is staged" {
 	mock_git_staged "AUDIT_IMPLEMENTATION_REPORT.md"
 	run run_hook "git commit -m 'audit report staged'"
 	is_blocked
-	[[ "$output" == *"AUDIT_IMPLEMENTATION_REPORT.md"* ]]
+	[[ "$output" == *"AUDIT_IMPLEMENTATION_REPORT.md"* ]] || false
 }
 
 @test "blocks git commit when AUDIT_IMPLEMENTATION_REPORT.md is staged in subdirectory" {
 	mock_git_staged "siw/AUDIT_IMPLEMENTATION_REPORT.md"
 	run run_hook "git commit -m 'audit report in siw'"
 	is_blocked
-	[[ "$output" == *"siw/AUDIT_IMPLEMENTATION_REPORT.md"* ]]
+	[[ "$output" == *"siw/AUDIT_IMPLEMENTATION_REPORT.md"* ]] || false
 }
 
 @test "blocks git commit when AUDIT_SPEC_REPORT.md is staged" {
 	mock_git_staged "AUDIT_SPEC_REPORT.md"
 	run run_hook "git commit -m 'spec audit report staged'"
 	is_blocked
-	[[ "$output" == *"AUDIT_SPEC_REPORT.md"* ]]
+	[[ "$output" == *"AUDIT_SPEC_REPORT.md"* ]] || false
 }
 
 @test "blocks git commit when AUDIT_SPEC_REPORT.md is staged in subdirectory" {
 	mock_git_staged "siw/AUDIT_SPEC_REPORT.md"
 	run run_hook "git commit -m 'spec audit report in siw'"
 	is_blocked
-	[[ "$output" == *"siw/AUDIT_SPEC_REPORT.md"* ]]
+	[[ "$output" == *"siw/AUDIT_SPEC_REPORT.md"* ]] || false
 }
 
 @test "allows git commit when siw/LOG.md is staged" {
@@ -877,112 +877,112 @@ REVIEW_SUMMARY.md"
 	mock_git_staged "PRODUCT_REVIEW_OVERVIEW.md"
 	run run_hook "git commit -m 'product review staged'"
 	is_blocked
-	[[ "$output" == *"PRODUCT_REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"PRODUCT_REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "blocks git commit when PRODUCT_AUDIT_OVERVIEW.md is staged" {
 	mock_git_staged "PRODUCT_AUDIT_OVERVIEW.md"
 	run run_hook "git commit -m 'product audit overview staged'"
 	is_blocked
-	[[ "$output" == *"PRODUCT_AUDIT_OVERVIEW.md"* ]]
+	[[ "$output" == *"PRODUCT_AUDIT_OVERVIEW.md"* ]] || false
 }
 
 @test "blocks git commit when COPY_REVIEW_OVERVIEW.md is staged" {
 	mock_git_staged "COPY_REVIEW_OVERVIEW.md"
 	run run_hook "git commit -m 'copy review staged'"
 	is_blocked
-	[[ "$output" == *"COPY_REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"COPY_REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "blocks git commit when CONVENTION_REVIEW_OVERVIEW.md is staged" {
 	mock_git_staged "CONVENTION_REVIEW_OVERVIEW.md"
 	run run_hook "git commit -m 'convention review staged'"
 	is_blocked
-	[[ "$output" == *"CONVENTION_REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"CONVENTION_REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "blocks git commit when OVERENGINEERING_REVIEW_OVERVIEW.md is staged" {
 	mock_git_staged "OVERENGINEERING_REVIEW_OVERVIEW.md"
 	run run_hook "git commit -m 'overengineering review staged'"
 	is_blocked
-	[[ "$output" == *"OVERENGINEERING_REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"OVERENGINEERING_REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "blocks git commit when CODEBASE_WEAKNESS_REPORT.md is staged" {
 	mock_git_staged "CODEBASE_WEAKNESS_REPORT.md"
 	run run_hook "git commit -m 'weakness report staged'"
 	is_blocked
-	[[ "$output" == *"CODEBASE_WEAKNESS_REPORT.md"* ]]
+	[[ "$output" == *"CODEBASE_WEAKNESS_REPORT.md"* ]] || false
 }
 
 @test "blocks git commit when GITHUB_PR_REVIEW_OVERVIEW.md is staged" {
 	mock_git_staged "GITHUB_PR_REVIEW_OVERVIEW.md"
 	run run_hook "git commit -m 'github pr review staged'"
 	is_blocked
-	[[ "$output" == *"GITHUB_PR_REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"GITHUB_PR_REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "blocks git commit when PR plan artifact matching glob is staged" {
 	mock_git_staged "PR_PLAN_ADD_API_ERROR_HANDLING.md"
 	run run_hook "git commit -m 'plan staged'"
 	is_blocked
-	[[ "$output" == *"PR_PLAN_ADD_API_ERROR_HANDLING.md"* ]]
+	[[ "$output" == *"PR_PLAN_ADD_API_ERROR_HANDLING.md"* ]] || false
 }
 
 @test "blocks git commit when QA_REPORT.md is staged" {
 	mock_git_staged "QA_REPORT.md"
 	run run_hook "git commit -m 'qa report staged'"
 	is_blocked
-	[[ "$output" == *"QA_REPORT.md"* ]]
+	[[ "$output" == *"QA_REPORT.md"* ]] || false
 }
 
 @test "blocks git commit when QA_BASELINE.json is staged" {
 	mock_git_staged "QA_BASELINE.json"
 	run run_hook "git commit -m 'qa baseline staged'"
 	is_blocked
-	[[ "$output" == *"QA_BASELINE.json"* ]]
+	[[ "$output" == *"QA_BASELINE.json"* ]] || false
 }
 
 @test "blocks git commit when OUTSIDE_VIEW_REPORT.md is staged" {
 	mock_git_staged "OUTSIDE_VIEW_REPORT.md"
 	run run_hook "git commit -m 'outside view report staged'"
 	is_blocked
-	[[ "$output" == *"OUTSIDE_VIEW_REPORT.md"* ]]
+	[[ "$output" == *"OUTSIDE_VIEW_REPORT.md"* ]] || false
 }
 
 @test "blocks git commit when AGENT_NATIVE_AUDIT.md is staged" {
 	mock_git_staged "AGENT_NATIVE_AUDIT.md"
 	run run_hook "git commit -m 'agent native audit staged'"
 	is_blocked
-	[[ "$output" == *"AGENT_NATIVE_AUDIT.md"* ]]
+	[[ "$output" == *"AGENT_NATIVE_AUDIT.md"* ]] || false
 }
 
 @test "blocks git commit when DEPENDENCY_AUDIT.md is staged" {
 	mock_git_staged "DEPENDENCY_AUDIT.md"
 	run run_hook "git commit -m 'dependency audit staged'"
 	is_blocked
-	[[ "$output" == *"DEPENDENCY_AUDIT.md"* ]]
+	[[ "$output" == *"DEPENDENCY_AUDIT.md"* ]] || false
 }
 
 @test "blocks git commit when legacy DEPRECATION_PLAN.md is staged" {
 	mock_git_staged "DEPRECATION_PLAN.md"
 	run run_hook "git commit -m 'legacy deprecation plan staged'"
 	is_blocked
-	[[ "$output" == *"DEPRECATION_PLAN.md"* ]]
+	[[ "$output" == *"DEPRECATION_PLAN.md"* ]] || false
 }
 
 @test "blocks git commit when suffixed deprecation plan matching glob is staged" {
 	mock_git_staged "DEPRECATION_PLAN_billing-v1-api.md"
 	run run_hook "git commit -m 'suffixed deprecation plan staged'"
 	is_blocked
-	[[ "$output" == *"DEPRECATION_PLAN_billing-v1-api.md"* ]]
+	[[ "$output" == *"DEPRECATION_PLAN_billing-v1-api.md"* ]] || false
 }
 
 @test "blocks git commit when suffixed deprecation plan is staged in subdirectory" {
 	mock_git_staged "siw/DEPRECATION_PLAN_billing-v1-api.md"
 	run run_hook "git commit -m 'suffixed deprecation plan in siw'"
 	is_blocked
-	[[ "$output" == *"siw/DEPRECATION_PLAN_billing-v1-api.md"* ]]
+	[[ "$output" == *"siw/DEPRECATION_PLAN_billing-v1-api.md"* ]] || false
 }
 
 @test "blocks git commit when configured artifact is staged with other files" {
@@ -1018,7 +1018,7 @@ REVIEW_SUMMARY.md"
 	run run_hook "git commit -m 'first' && git commit -m 'second'"
 	is_blocked
 	# Two contexts resolve to the same file, so the reason must not repeat it.
-	[[ "$output" == *"commit: REVIEW_OVERVIEW.md."* ]]
+	[[ "$output" == *"commit: REVIEW_OVERVIEW.md."* ]] || false
 }
 
 # ============================================================================
@@ -1054,7 +1054,7 @@ REVIEW_SUMMARY.md"
 	run run_hook "git -C $REAL_COMMIT_REPO commit -a -m 'auto stage'"
 
 	is_blocked
-	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "selection inspection leaves the real index and object store unchanged" {
@@ -1102,7 +1102,7 @@ REVIEW_SUMMARY.md"
 	run run_hook "git -C $REAL_COMMIT_REPO commit -a -m 'auto stage'"
 
 	is_blocked
-	[[ "$output" == *"configured clean filters"* ]]
+	[[ "$output" == *"configured clean filters"* ]] || false
 	# The specific reason replaces the generic one instead of joining it.
 	[ "${#lines[@]}" -eq 1 ]
 	[ ! -e "$marker" ]
@@ -1118,7 +1118,7 @@ REVIEW_SUMMARY.md"
 	run run_hook "git -C $REAL_COMMIT_REPO commit -a -m 'auto stage'"
 
 	is_blocked
-	[[ "$output" == *"configured clean filters"* ]]
+	[[ "$output" == *"configured clean filters"* ]] || false
 	[ "${#lines[@]}" -eq 1 ]
 	[ ! -e "$marker" ]
 }
@@ -1132,7 +1132,7 @@ REVIEW_SUMMARY.md"
 	run run_hook "git -C $REAL_COMMIT_REPO commit --include -m 'include' REVIEW_OVERVIEW.md"
 
 	is_blocked
-	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "allows --include to resolve the selected path in an unmerged index" {
@@ -1169,7 +1169,7 @@ REVIEW_SUMMARY.md"
 			printf 'Expected %s selection to block, got status %s and output: %s\n' "$only_flag" "$status" "$output" >&2
 			return 1
 		fi
-		[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+		[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 		rm -rf "$REAL_COMMIT_REPO"
 		REAL_COMMIT_REPO=""
 	done
@@ -1196,7 +1196,7 @@ REVIEW_SUMMARY.md"
 	run run_hook "git -C $REAL_COMMIT_REPO commit -m 'selected' -- REVIEW_OVERVIEW.md"
 
 	is_blocked
-	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "allows a heredoc commit message with quotes when no artifact is staged" {
@@ -1224,7 +1224,7 @@ EOF
 )\""
 
 	is_blocked
-	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "allows redirected commits when no artifact is staged" {
@@ -1259,7 +1259,7 @@ EOF"
 	run run_hook "git -C $REAL_COMMIT_REPO commit -m 'msg' 2>&1"
 
 	is_blocked
-	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "blocks redirected commits whose later words select a protected artifact" {
@@ -1325,7 +1325,7 @@ EOF)\""
 			printf 'Expected pathspec selection to block: %s\n' "$pathspec_args" >&2
 			return 1
 		fi
-		[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+		[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 		rm -rf "$REAL_COMMIT_REPO"
 		REAL_COMMIT_REPO=""
 	done
@@ -1335,21 +1335,21 @@ EOF)\""
 	run run_hook "git commit --patch -m 'partial'"
 
 	is_blocked
-	[[ "$output" == *"Unable to safely inspect git commit content selection"* ]]
+	[[ "$output" == *"Unable to safely inspect git commit content selection"* ]] || false
 }
 
 @test "blocks dynamic commit pathspec selection" {
 	run run_hook "git commit --only -m 'dynamic' \$(printf REVIEW_OVERVIEW.md)"
 
 	is_blocked
-	[[ "$output" == *"Unable to safely inspect git commit content selection"* ]]
+	[[ "$output" == *"Unable to safely inspect git commit content selection"* ]] || false
 }
 
 @test "blocks abbreviated long commit options that could consume pathspecs" {
 	run run_hook "git commit --mes notes.txt"
 
 	is_blocked
-	[[ "$output" == *"unrecognized commit option --mes"* ]]
+	[[ "$output" == *"unrecognized commit option --mes"* ]] || false
 }
 
 @test "blocks git commit with multiple flags" {
@@ -1452,14 +1452,14 @@ EOF)\""
 	mock_git_staged_for_repo "repo" "" "REVIEW_OVERVIEW.md"
 	run run_hook "export GIT_DIR=repo/.git GIT_WORK_TREE=repo | git commit -m 'test'"
 	is_blocked
-	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "blocks git commit when subshell export does not actually retarget the repo" {
 	mock_git_staged_for_repo "repo" "" "REVIEW_OVERVIEW.md"
 	run run_hook "(export GIT_DIR=repo/.git GIT_WORK_TREE=repo) && git commit -m 'test'"
 	is_blocked
-	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "blocks chained git commit when artifact is staged" {
@@ -1514,21 +1514,21 @@ EOF)\""
 	mock_git_staged "REVIEW_OVERVIEW.md"
 	run run_hook $'shopt -s expand_aliases\nalias g=git\ng commit -m test'
 	is_blocked
-	[[ "$output" == *"Unable to safely parse command"* ]]
+	[[ "$output" == *"Unable to safely parse command"* ]] || false
 }
 
 @test "blocks nested shell commit contexts when later context stages artifact" {
 	mock_git_staged_for_repo "repo" "REVIEW_OVERVIEW.md" "notes.txt"
 	run run_hook "sh -c 'git commit -m \"default\"; git -C repo commit -m \"selected\"'"
 	is_blocked
-	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "blocks git commit inside command substitution when exported repo selection is inherited" {
 	mock_git_staged_for_repo "repo" "REVIEW_OVERVIEW.md"
 	run run_hook "export GIT_DIR=repo/.git GIT_WORK_TREE=repo && out=\$(git commit -m 'test')"
 	is_blocked
-	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "allows git commit text inside heredoc command substitution" {
@@ -1546,7 +1546,7 @@ EOF"
 \$(git commit -m 'test')
 EOF"
 	is_blocked
-	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "blocks git commit with prefixed command substitution when artifact is staged" {
@@ -1584,14 +1584,14 @@ EOF"
 	mock_git_staged_for_repo "repo" "REVIEW_OVERVIEW.md"
 	run run_hook "git -C \$(printf repo) commit -m 'test'"
 	is_blocked
-	[[ "$output" == *"Unable to safely determine the git commit target"* ]]
+	[[ "$output" == *"Unable to safely determine the git commit target"* ]] || false
 }
 
 @test "blocks GIT_DIR command substitution when repo selection is dynamic" {
 	mock_git_staged_for_repo "repo" "REVIEW_OVERVIEW.md"
 	run run_hook "GIT_DIR=\$(printf repo/.git) GIT_WORK_TREE=repo git commit -m 'test'"
 	is_blocked
-	[[ "$output" == *"Unable to safely determine the git commit target"* ]]
+	[[ "$output" == *"Unable to safely determine the git commit target"* ]] || false
 }
 
 @test "blocks sudo git commit when artifact is staged" {
@@ -1700,7 +1700,7 @@ EOF
 
 	run run_hook "git commit -m 'custom artifact'"
 	is_blocked
-	[[ "$output" == *"siw/CUSTOM_LOG.md"* ]]
+	[[ "$output" == *"siw/CUSTOM_LOG.md"* ]] || false
 }
 
 @test "falls back to REVIEW_OVERVIEW.md when configured list file is missing" {
@@ -1709,7 +1709,7 @@ EOF
 
 	run run_hook "git commit -m 'fallback list'"
 	is_blocked
-	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "compound add commands inspect untracked reports without changing the real index" {
@@ -1720,9 +1720,9 @@ EOF
 	for add_args in '-A' '--all' '.' 'AUDIT_SPEC_REPORT.md' '-- AUDIT_SPEC_REPORT.md'; do
 		run run_hook_with_system_bash "git add $add_args && git commit -m test" "$REAL_COMMIT_REPO"
 		is_blocked
-		[[ "$output" == *"AUDIT_SPEC_REPORT.md"* ]]
-		[[ "$output" == *"Unstage these files or select commit paths"* ]]
-		[[ "$output" != *"Please confirm"* ]]
+		[[ "$output" == *"AUDIT_SPEC_REPORT.md"* ]] || false
+		[[ "$output" == *"Unstage these files or select commit paths"* ]] || false
+		[[ "$output" != *"Please confirm"* ]] || false
 		after="$(git -C "$REAL_COMMIT_REPO" status --porcelain)"
 		[ "$before" = "$after" ]
 	done
@@ -1754,7 +1754,7 @@ EOF
 	printf 'report\n' >"$REAL_COMMIT_REPO/AUDIT_SPEC_REPORT.md"
 	run run_hook_with_system_bash "git add notes.txt; git add AUDIT_SPEC_REPORT.md; git commit -m test" "$REAL_COMMIT_REPO"
 	is_blocked
-	[[ "$output" == *"AUDIT_SPEC_REPORT.md"* ]]
+	[[ "$output" == *"AUDIT_SPEC_REPORT.md"* ]] || false
 }
 
 @test "compound add refuses clean filters without executing them" {
@@ -1766,7 +1766,7 @@ EOF
 	printf 'report\n' >"$REAL_COMMIT_REPO/AUDIT_SPEC_REPORT.md"
 	run run_hook_with_system_bash "git add -A && git commit -m test" "$REAL_COMMIT_REPO"
 	is_blocked
-	[[ "$output" == *"clean filters"* ]]
+	[[ "$output" == *"clean filters"* ]] || false
 	[ ! -f "$marker" ]
 }
 
@@ -1774,14 +1774,14 @@ EOF
 	setup_real_commit_repo
 	run run_hook "git -C $REAL_COMMIT_REPO add -A && git commit -m test"
 	is_blocked
-	[[ "$output" == *"different repository or index context"* ]]
+	[[ "$output" == *"different repository or index context"* ]] || false
 }
 
 @test "protected commit between apostrophe comment lines remains blocked" {
 	mock_git_staged "REVIEW_OVERVIEW.md"
 	run run_hook $'# don\'t hide\ngit commit -m test\n# another\'s comment'
 	is_blocked
-	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "compound staging survives command substitutions and nested shells" {
@@ -1795,7 +1795,7 @@ EOF
 		'git add -A && bash -c "git commit -m test"'; do
 		run run_hook_with_system_bash "$command" "$REAL_COMMIT_REPO"
 		is_blocked
-		[[ "$output" == *"AUDIT_SPEC_REPORT.md"* ]]
+		[[ "$output" == *"AUDIT_SPEC_REPORT.md"* ]] || false
 	done
 }
 
@@ -1803,7 +1803,7 @@ EOF
 	mock_git_staged "REVIEW_OVERVIEW.md"
 	run run_hook 'echo ${x:- # literal}; git commit -m test'
 	is_blocked
-	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]]
+	[[ "$output" == *"REVIEW_OVERVIEW.md"* ]] || false
 }
 
 @test "forced add of an ignored report refuses clean filters without executing them" {
@@ -1816,7 +1816,7 @@ EOF
 	printf 'report\n' >"$REAL_COMMIT_REPO/AUDIT_SPEC_REPORT.md"
 	run run_hook_with_system_bash "git add -f AUDIT_SPEC_REPORT.md && git commit -m test" "$REAL_COMMIT_REPO"
 	is_blocked
-	[[ "$output" == *"clean filters"* ]]
+	[[ "$output" == *"clean filters"* ]] || false
 	[ ! -f "$marker" ]
 }
 
@@ -1829,7 +1829,7 @@ EOF
 		'[{"staging_steps":[["bad\u0000path"]]}]'; do
 		run run_safety_hook_with_parser_output "$HOOK" "git commit -m test" "$parser_output"
 		is_blocked
-		[[ "$output" == *"Unable to safely decode git commit context"* ]]
+		[[ "$output" == *"Unable to safely decode git commit context"* ]] || false
 	done
 }
 
@@ -1838,12 +1838,12 @@ EOF
 	run run_safety_hook_with_parser_output "$HOOK" "git commit -m test" \
 		'[{"staging_steps":[["--","notes.txt"]]}]'
 	is_blocked
-	[[ "$output" == *"ended before the parser's context count"* ]]
+	[[ "$output" == *"ended before the parser's context count"* ]] || false
 }
 
 
 @test "staging from an unplaced heredoc expansion blocks with its ordering reason" {
 	run run_hook $'cat <<EOF\n$(git add -A)\nEOF\ngit commit -m test'
 	is_blocked
-	[[ "$output" == *"heredoc expansion cannot be replayed safely"* ]]
+	[[ "$output" == *"heredoc expansion cannot be replayed safely"* ]] || false
 }

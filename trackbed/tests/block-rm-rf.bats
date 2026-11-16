@@ -39,20 +39,20 @@ make_nested_bash_command() {
 rm -rf directory/
 # it's done"
 	is_blocked
-	[[ "$output" == *"rm -rf is blocked"* ]]
+	[[ "$output" == *"rm -rf is blocked"* ]] || false
 }
 
 @test "keeps quoted hashes literal before a destructive command" {
 	run run_hook 'printf "%s" "# literal"; rm -rf directory/'
 	is_blocked
-	[[ "$output" == *"rm -rf is blocked"* ]]
+	[[ "$output" == *"rm -rf is blocked"* ]] || false
 }
 
 @test "blocks genuine quote ambiguity with a parse reason" {
 	run run_hook "git status '"
 	is_blocked
-	[[ "$output" == *"Unable to safely parse command"* ]]
-	[[ "$output" != *"rm -rf is blocked"* ]]
+	[[ "$output" == *"Unable to safely parse command"* ]] || false
+	[[ "$output" != *"rm -rf is blocked"* ]] || false
 }
 
 @test "allows empty input" {
@@ -70,25 +70,25 @@ rm -rf directory/
 @test "blocks malformed hook input" {
 	run bash "$HOOK" <<<'{"tool_input":'
 	is_blocked
-	[[ "$output" == *"Unable to safely parse command metadata"* ]]
+	[[ "$output" == *"Unable to safely parse command metadata"* ]] || false
 }
 
 @test "blocks malformed parser output" {
 	run run_safety_hook_with_parser_output "$HOOK" "rm -rf directory/" 'not-json'
 	is_blocked
-	[[ "$output" == *"Unable to safely parse command metadata"* ]]
+	[[ "$output" == *"Unable to safely parse command metadata"* ]] || false
 
 	run run_safety_hook_with_parser_output "$HOOK" "rm -rf directory/" '[]'
 	is_blocked
-	[[ "$output" == *"Unable to safely parse command metadata"* ]]
+	[[ "$output" == *"Unable to safely parse command metadata"* ]] || false
 }
 
 @test "blocks command when jq is unavailable" {
 	run run_safety_hook_without_jq "$HOOK" "rm -rf directory/"
 	is_blocked
-	[[ "$output" == *"jq not found"* ]]
-	[[ "$output" == *"refusing to run safety hook without JSON parsing"* ]]
-	[[ "$output" == *"Install jq or disable this hook explicitly"* ]]
+	[[ "$output" == *"jq not found"* ]] || false
+	[[ "$output" == *"refusing to run safety hook without JSON parsing"* ]] || false
+	[[ "$output" == *"Install jq or disable this hook explicitly"* ]] || false
 }
 
 @test "allows disabled hook when jq is unavailable" {
@@ -100,15 +100,15 @@ rm -rf directory/
 @test "blocks command when python3 is unavailable" {
 	run run_safety_hook_without_python "$HOOK" "rm -rf directory/"
 	is_blocked
-	[[ "$output" == *"python3 not found"* ]]
-	[[ "$output" == *"refusing to run safety hook without the shared command parser"* ]]
-	[[ "$output" == *"Install python3 or disable this hook explicitly"* ]]
+	[[ "$output" == *"python3 not found"* ]] || false
+	[[ "$output" == *"refusing to run safety hook without the shared command parser"* ]] || false
+	[[ "$output" == *"Install python3 or disable this hook explicitly"* ]] || false
 }
 
 @test "blocks command when shared safety parser is unavailable" {
 	run run_safety_hook_without_shared_parser "$HOOK" "rm -rf directory/"
 	is_blocked
-	[[ "$output" == *"Unable to safely parse command metadata"* ]]
+	[[ "$output" == *"Unable to safely parse command metadata"* ]] || false
 }
 
 @test "pins shared parser when Python safe-path mode ignores cwd" {
@@ -123,7 +123,7 @@ rm -rf directory/
 		bash "$HOOK" <<<"$(make_bash_input "rm -rf directory/")"
 
 	is_blocked
-	[[ "$output" == *"trash"* ]]
+	[[ "$output" == *"trash"* ]] || false
 }
 
 @test "allows simple ls command" {
@@ -153,7 +153,7 @@ rm -rf directory/
 			printf 'Expected prefixed command to be blocked: %s\n' "$command" >&2
 			return 1
 		fi
-		[[ "$output" == *"trash"* ]]
+		[[ "$output" == *"trash"* ]] || false
 	done < <(safety_command_prefix_matrix "rm -rf directory/")
 }
 
@@ -178,7 +178,7 @@ rm -rf directory/
 			printf 'Expected malformed prefixed command to be blocked: %s\n' "$command" >&2
 			return 1
 		fi
-		[[ "$output" == *"Unable to safely parse command"* ]]
+		[[ "$output" == *"Unable to safely parse command"* ]] || false
 	done < <(safety_malformed_prefix_matrix "rm -rf directory/")
 }
 
@@ -308,7 +308,7 @@ rm -rf directory/
 @test "blocks rm -rf" {
 	run run_hook "rm -rf directory/"
 	is_blocked
-	[[ "$output" == *"trash"* ]]
+	[[ "$output" == *"trash"* ]] || false
 }
 
 @test "blocks rm -fr (flag order reversed)" {

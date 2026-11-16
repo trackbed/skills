@@ -4,6 +4,7 @@ setup() {
   cd "$BATS_TEST_DIRNAME/.."
   SKILL="skills/pr:shape-up/SKILL.md"
   SNAPSHOT="skills/pr:shape-up/scripts/shape-snapshot.py"
+  SNAPSHOT_MUTATIONS='"(push|commit|rebase|merge|reset|checkout|switch|stash)"[[:space:]]*(,|\)|\]|$)'
   FIX_CI="skills/pr:fix-ci/SKILL.md"
   REPLY="skills/pr:github-review-reply/SKILL.md"
   ADR="docs/decisions/2026-08-29-model-invocable-orchestration-children.md"
@@ -16,7 +17,7 @@ setup() {
   grep -qF 'name: pr:shape-up' "$SKILL"
   grep -qF 'disable-model-invocation: true' "$SKILL"
   grep -qF 'user-invocable: true' "$SKILL"
-  ! grep -qE '^argument-hint:' "$SKILL"
+  ! grep -qE '^argument-hint:' "$SKILL" || false
   grep -qF 'If `$ARGUMENTS` is not empty, stop and say that this skill takes none.' "$SKILL"
   grep -qF 'Not for human review comments, opening a PR, or reviewing code.' "$SKILL"
 }
@@ -25,7 +26,7 @@ setup() {
   grep -qF 'This skill never edits a file, commits, rebases, pushes, or writes to GitHub.' "$SKILL"
   grep -qF 'invoked from this session and never from a subagent' "$SKILL"
   grep -qF 'Do not poll CI, read logs, or edit files alongside it.' "$SKILL"
-  ! grep -qE '^(git (commit|push|rebase|add)|gh (pr comment|api -X))' "$SKILL"
+  ! grep -qE '^(git (commit|push|rebase|add)|gh (pr comment|api -X))' "$SKILL" || false
 }
 
 @test "shape-up hands work to exactly two skills with pinned arguments" {
@@ -56,8 +57,16 @@ PY
 
   grep -qF 'It never writes to GitHub and never changes a branch, the index, or the working' "$SNAPSHOT"
   grep -qF 'the only Git state it updates is the remote-tracking ref of the target branch' "$SNAPSHOT"
-  ! grep -qE '"(push|commit|rebase|merge|reset|checkout|switch|stash)"' "$SNAPSHOT"
-  ! grep -qE 'mutation|"-X"|--method' "$SNAPSHOT"
+  ! grep -qE "$SNAPSHOT_MUTATIONS" "$SNAPSHOT" || false
+  ! grep -qE 'mutation|"-X"|--method' "$SNAPSHOT" || false
+}
+
+@test "snapshot mutation check catches multiline arguments without matching metadata keys" {
+  local code
+  for code in 'git("push")' 'run(["git", "stash"])' $'git(\n "push"\n)' $'run([\n "git",\n "rebase"\n], LOCAL_TIMEOUT)'; do
+    printf '%s\n' "$code" | grep -qE "$SNAPSHOT_MUTATIONS"
+  done
+  ! printf '%s\n' '"rebase": base["behind"] > 0,' | grep -qE "$SNAPSHOT_MUTATIONS" || false
 }
 
 @test "shape-up answers AI reviewers only" {

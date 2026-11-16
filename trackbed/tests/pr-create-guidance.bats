@@ -75,19 +75,19 @@ file_mode() {
     grep -qF -- "args: \"--base {base-source-ref} --base-commit {base-ref} --backup-ref {recreate-backup-ref} --require-unstacked --no-push\"" "$create"
     [ "$(grep -cF "skill: \"trackbed:git:recreate-commits\", args:" "$create")" -eq 5 ]
     while IFS= read -r invocation; do
-      [[ "$invocation" == *"--base {base-source-ref} --base-commit {base-ref}"* ]]
-      [[ "$invocation" == *"--backup-ref {recreate-backup-ref}"* ]]
-      [[ "$invocation" == *"--require-unstacked --no-push"* ]]
+      [[ "$invocation" == *"--base {base-source-ref} --base-commit {base-ref}"* ]] || false
+      [[ "$invocation" == *"--backup-ref {recreate-backup-ref}"* ]] || false
+      [[ "$invocation" == *"--require-unstacked --no-push"* ]] || false
     done < <(grep -F "skill: \"trackbed:git:recreate-commits\", args:" "$create")
     [ "$(grep -F "skill: \"trackbed:git:recreate-commits\", args:" "$create" | grep -cF -- "--manual ")" -eq 2 ]
     [ "$(grep -F "skill: \"trackbed:git:recreate-commits\", args:" "$create" | grep -cF -- "--authorize-history-rewrite")" -eq 2 ]
     [ "$(grep -F "skill: \"trackbed:git:recreate-commits\", args:" "$create" | grep -cF -- "--after {observed-origin-oid}")" -eq 1 ]
     grep -qF "pass \`--authorize-history-rewrite\` only when the user supplied that flag" "$create"
-    ! grep -qF "args: \"--no-push\"" "$create"
+    ! grep -qF "args: \"--no-push\"" "$create" || false
     grep -qF "Always pass \`--base {base-source-ref} --base-commit {base-ref} --backup-ref {recreate-backup-ref} --require-unstacked --no-push\`" "$create"
     grep -qF "Always pass \`--no-update --base {base-source-ref} --base-commit {base-ref}\`, and never \`--manual\`" "$create"
     grep -qF "Do not push or change upstream configuration" "$branch"
-    ! grep -qF "git push -u origin \$(git branch --show-current)" "$branch"
+    ! grep -qF "git push -u origin \$(git branch --show-current)" "$branch" || false
     grep -qF "Step 5 proved that \`{rollback-origin-ref}\` was absent" "$confirmation"
     grep -qF "If any actor creates the remote branch after Step 5, the lease fails" "$confirmation"
     grep -qF "no Pull Request could have existed for that branch at the moment this workflow created it" "$confirmation"
@@ -113,11 +113,11 @@ file_mode() {
     grep -qF -- "--no-follow-tags" "$confirmation"
     grep -qF -- "-- \"\$ORIGIN_PUSH_URL\" \"{publication-commit}:refs/heads/{feature-branch}\"" "$confirmation"
     grep -qF "{origin-push-url-assignment}" "$confirmation"
-    ! grep -qF "\"{origin-push-url}\"" "$confirmation"
-    ! grep -qF -- "-u origin \"HEAD:refs/heads/{feature-branch}\"" "$confirmation"
+    ! grep -qF "\"{origin-push-url}\"" "$confirmation" || false
+    ! grep -qF -- "-u origin \"HEAD:refs/heads/{feature-branch}\"" "$confirmation" || false
     grep -qF "GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=Never" "$confirmation"
     grep -qF "authentication failure is a hard blocker, never a reason to wait for terminal input" "$confirmation"
-    ! grep -qF -- "--force-with-lease=\"{rollback-origin-ref}:{rollback-origin-oid}\"" "$confirmation"
+    ! grep -qF -- "--force-with-lease=\"{rollback-origin-ref}:{rollback-origin-oid}\"" "$confirmation" || false
     grep -qF "The exact lease rejects every remote change after classification" "$confirmation"
     grep -qF "The immediately preceding strict-ancestor proof ensures this invocation cannot use the force capability to replace remote-only work" "$confirmation"
     grep -qF "Do not use plain \`--force\`, an absence lease for a pre-existing remote ref" "$confirmation"
@@ -131,8 +131,8 @@ file_mode() {
     grep -qF "trackbed:pr:create does not publish stacked branches; use trackbed:pr:stack instead." "$create"
     grep -qF "Both locally tracked and server-side stacks stop here" "$create"
     grep -qF "any later stack detection is state drift" "$create"
-    ! grep -qF "leaves any stacked rewrite to the nested skill" "$create"
-    ! grep -qF "\`--auto\` alone is not authorization" "$recreate"
+    ! grep -qF "leaves any stacked rewrite to the nested skill" "$create" || false
+    ! grep -qF "\`--auto\` alone is not authorization" "$recreate" || false
   '
 
 	assert_required_contracts_registered \
@@ -169,7 +169,7 @@ file_mode() {
     grep -qF "The branch joined a local or server-side stack after initial validation; stop before rewriting history." "$recreate"
     grep -qF "Run the stack-revalidation block above only when the parsed agent state has \`REQUIRE_UNSTACKED=true\`" "$recreate"
     grep -qF "Do not wrap it in a shell-local \`REQUIRE_UNSTACKED\` conditional" "$recreate"
-    ! grep -qF '\${REQUIRE_UNSTACKED:-false}' "$recreate"
+    ! grep -qF "\${REQUIRE_UNSTACKED:-false}" "$recreate" || false
     latest_stack_line=$(grep -nF "LATEST_STACK_RESOLVED=" "$recreate" | tail -1 | cut -d: -f1)
     reset_line=$(grep -nF "git reset --hard \"\$RESET_POINT\"" "$recreate" | head -1 | cut -d: -f1)
     [ "$latest_stack_line" -lt "$reset_line" ]
@@ -192,8 +192,8 @@ file_mode() {
     grep -qF -- "--no-follow-tags" "$recreate"
     grep -qF -- "--force-with-lease=\"\${PUSH_REMOTE_REF}:\${PUSH_LEASE_OID}\"" "$recreate"
     grep -qF -- "-- \"\$PUSH_REMOTE_URL\" \"HEAD:\${PUSH_REMOTE_REF}\"" "$recreate"
-    ! grep -qF "push with \`git push --force-with-lease\`" "$recreate"
-    ! grep -qF "\`--auto\` alone is not authorization" "$recreate"
+    ! grep -qF "push with \`git push --force-with-lease\`" "$recreate" || false
+    ! grep -qF "\`--auto\` alone is not authorization" "$recreate" || false
 	'
 
 	[ "$status" -eq 0 ]
@@ -250,8 +250,8 @@ file_mode() {
     grep -qF "Never move or delete \`BACKUP_REF\`" <<<"$section"
     grep -qF "never with a \`{branch_name}-clean\` branch" <<<"$section"
     grep -qF "has already run before this point" <<<"$section"
-    ! grep -qF "git push" <<<"$section"
-    ! grep -qF "git reset --hard \"\$RESET_POINT\"" <<<"$section"
+    ! grep -qF "git push" <<<"$section" || false
+    ! grep -qF "git reset --hard \"\$RESET_POINT\"" <<<"$section" || false
 	'
 
 	[ "$status" -eq 0 ]
@@ -321,7 +321,7 @@ file_mode() {
 	ORIGINAL_TIP="$ORIGINAL_TIP" RESET_POINT="$RESET_POINT" MESSAGE_FILE="$MESSAGE_FILE" \
 		run bash "$block"
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"HEAD moved after revalidation; stop before rewording."* ]]
+	[[ "$output" == *"HEAD moved after revalidation; stop before rewording."* ]] || false
 	[ "$(git rev-parse HEAD)" = "$moved_head" ]
 	[ "$(git log -1 --format='%s')" = "Concurrent work" ]
 }
@@ -415,7 +415,7 @@ file_mode() {
 	[ "$(git rev-parse HEAD)" = "$live_head" ]
 	[ "$(git config --get branch.feature.remote)" = "$upstream_remote" ]
 	[ "$(git config --get branch.feature.merge)" = "$upstream_merge" ]
-	! git --git-dir="$remote" show-ref --verify --quiet refs/tags/release-candidate
+	! git --git-dir="$remote" show-ref --verify --quiet refs/tags/release-candidate || false
 }
 
 @test "OID lease rejects a remote change after fast-forward classification" {
@@ -469,7 +469,7 @@ file_mode() {
 	run "$resolver"
 	[ "$status" -eq 0 ]
 	assignment="$output"
-	[[ "$assignment" == ORIGIN_PUSH_URL=* ]]
+	[[ "$assignment" == ORIGIN_PUSH_URL=* ]] || false
 
 	run bash -c '
     set -e
@@ -493,8 +493,8 @@ file_mode() {
 	run "$resolver"
 
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"must not contain inline HTTP credentials"* ]]
-	[[ "$output" != *"secret-token"* ]]
+	[[ "$output" == *"must not contain inline HTTP credentials"* ]] || false
+	[[ "$output" != *"secret-token"* ]] || false
 }
 
 @test "origin push URL resolver rejects executable and unknown transports" {
@@ -509,8 +509,8 @@ file_mode() {
 		run "$resolver"
 
 		[ "$status" -ne 0 ]
-		[[ "$output" == *"executable Git remote-helper syntax"* || "$output" == *"unsupported transport"* ]]
-		[[ "$output" != *"payload-marker"* ]]
+		[[ "$output" == *"executable Git remote-helper syntax"* || "$output" == *"unsupported transport"* ]] || false
+		[[ "$output" != *"payload-marker"* ]] || false
 	done
 }
 
@@ -561,12 +561,12 @@ file_mode() {
 		[ "$remote_head" = "$publication_commit" ]
 		[ "$(git show "$remote_head:staged.txt")" = staged ]
 		[ "$(git show "$remote_head:untracked.txt")" = untracked ]
-		[[ "$(git show "$remote_head:tracked.txt")" == *unstaged* ]]
+		[[ "$(git show "$remote_head:tracked.txt")" == *unstaged* ]] || false
 		if [ "$mode" = exact ]; then
 			[ "$entry_commit" = "$observed" ]
 		else
 			[ "$entry_commit" != "$observed" ]
-			[[ "$(git show "$remote_head:tracked.txt")" == *unpublished* ]]
+			[[ "$(git show "$remote_head:tracked.txt")" == *unpublished* ]] || false
 		fi
 	done
 }
@@ -603,9 +603,9 @@ file_mode() {
 
 	[ "$(git -C "$publisher" rev-parse HEAD)" = "$original_commit" ]
 	[ "$(git -C "$publisher" ls-remote --heads origin refs/heads/feature | awk '{print $1}')" = "$original_commit" ]
-	[[ "$(git -C "$publisher" status --porcelain)" == *" M tracked.txt"* ]]
-	[[ "$(git -C "$publisher" status --porcelain)" == *"?? untracked.txt"* ]]
-	[[ "$(cat "$publisher/tracked.txt")" == *"dirty tracked"* ]]
+	[[ "$(git -C "$publisher" status --porcelain)" == *" M tracked.txt"* ]] || false
+	[[ "$(git -C "$publisher" status --porcelain)" == *"?? untracked.txt"* ]] || false
+	[[ "$(cat "$publisher/tracked.txt")" == *"dirty tracked"* ]] || false
 	[ "$(cat "$publisher/untracked.txt")" = "dirty untracked" ]
 }
 
@@ -639,8 +639,8 @@ file_mode() {
 	git reset >/dev/null
 
 	[ "$(git rev-parse HEAD)" = "$original_commit" ]
-	[[ "$(git status --porcelain)" == *" M tracked.txt"* ]]
-	[[ "$(git status --porcelain)" == *"?? untracked.txt"* ]]
+	[[ "$(git status --porcelain)" == *" M tracked.txt"* ]] || false
+	[[ "$(git status --porcelain)" == *"?? untracked.txt"* ]] || false
 }
 
 @test "dirty append rollback refuses work added after its final guard" {
@@ -680,7 +680,7 @@ file_mode() {
 	run "$resolver"
 
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"must resolve to exactly one push URL"* ]]
+	[[ "$output" == *"must resolve to exactly one push URL"* ]] || false
 }
 
 @test "existing remote branch recovers at exact tip or safely fast-forwards from an ancestor" {
@@ -727,7 +727,7 @@ file_mode() {
     grep -qF -- "--head \"{feature-branch}\"" "$confirmation"
     grep -qF "prevents \`gh pr create\` from offering to push or fork" "$confirmation"
     grep -qF "Do not use plain \`--force\`, an absence lease for a pre-existing remote ref" "$confirmation"
-    ! grep -qF "git fetch --no-tags origin \"{rollback-origin-ref}\"" "$state"
+    ! grep -qF "git fetch --no-tags origin \"{rollback-origin-ref}\"" "$state" || false
   '
 
 	assert_required_contracts_registered \
@@ -806,7 +806,7 @@ file_mode() {
 
 	run bash -c 'cd "$1" && "$2"' _ "$repo" "$verifier"
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"Working tree has uncommitted or untracked changes"* ]]
+	[[ "$output" == *"Working tree has uncommitted or untracked changes"* ]] || false
 }
 
 @test "pr-create clean-worktree verifier rejects modified assume-unchanged content" {
@@ -824,7 +824,7 @@ file_mode() {
 
 	run bash -c 'cd "$1" && "$2"' _ "$repo" "$verifier"
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"Hidden tracked content differs from the index"* ]]
+	[[ "$output" == *"Hidden tracked content differs from the index"* ]] || false
 }
 
 @test "pr-create verifier detects skip-worktree edits while allowing visible work" {
@@ -848,12 +848,12 @@ file_mode() {
 	printf 'hidden change\n' >"$repo/hidden.txt"
 	run bash -c 'cd "$1" && "$2"' _ "$repo" "$verifier"
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"Hidden tracked content differs from the index"* ]]
+	[[ "$output" == *"Hidden tracked content differs from the index"* ]] || false
 
 	printf 'visible change\n' >"$repo/visible.txt"
 	run bash -c 'cd "$1" && "$2" --allow-visible' _ "$repo" "$verifier"
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"Hidden tracked content differs from the index"* ]]
+	[[ "$output" == *"Hidden tracked content differs from the index"* ]] || false
 }
 
 @test "pr-create verifier accepts clean sparse-checkout omissions" {
@@ -894,7 +894,7 @@ file_mode() {
 
 	run bash -c 'cd "$1" && PATH="$2:$PATH" "$3"' _ "$repo" "$fake_bin" "$verifier"
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"Could not inspect the working tree"* ]]
+	[[ "$output" == *"Could not inspect the working tree"* ]] || false
 }
 
 @test "pr-create guidance contracts are registered and files are wired" {
@@ -939,9 +939,9 @@ file_mode() {
     [ "$branch_validation_line" -lt "$git_validation_line" ]
     [ "$git_validation_line" -lt "$existing_pr_query_line" ]
 
-    ! grep -qF "pr-title.XXXXXX.txt" "$confirmation"
-    ! grep -qF "pr-body.XXXXXX.md" "$confirmation"
-    ! grep -q -- "--body \"\$(cat <<" "$confirmation"
+    ! grep -qF "pr-title.XXXXXX.txt" "$confirmation" || false
+    ! grep -qF "pr-body.XXXXXX.md" "$confirmation" || false
+    ! grep -q -- "--body \"\$(cat <<" "$confirmation" || false
   '
 
 	assert_required_contracts_registered \
@@ -990,7 +990,7 @@ file_mode() {
 
 	run bash "$block"
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"restored the original Git index"* ]]
+	[[ "$output" == *"restored the original Git index"* ]] || false
 	[ "$(git rev-parse HEAD)" = "$before_head" ]
 	[ "$(git hash-object "$index_path")" = "$before_index" ]
 	[ "$(file_mode "$index_path")" = "$before_mode" ]
@@ -1029,8 +1029,8 @@ file_mode() {
 
 	run env PATH="$fake_bin:$PATH" bash "$block"
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"Failed to restore the original Git index. Backup remains at "* ]]
-	[[ "$output" != *"restored the original Git index"* ]]
+	[[ "$output" == *"Failed to restore the original Git index. Backup remains at "* ]] || false
+	[[ "$output" != *"restored the original Git index"* ]] || false
 	backup_path=${output##*Backup remains at }
 	backup_path=${backup_path%.}
 	[ -f "$backup_path" ]
@@ -1049,7 +1049,7 @@ file_mode() {
     test -f "$abort"
     grep -q "^## Step 5: State Preservation" "$state"
     grep -q "^## Step 9.0: Restore Excluded Uncommitted Changes" "$state"
-    ! grep -q "^## Step 10" "$state"
+    ! grep -q "^## Step 10" "$state" || false
     grep -qF "Step 10 (abort path) lives in \`abort-and-rollback.md\`; read it only when Step 10 runs" "$state"
     grep -q "^## Step 10: Abort and Rollback" "$abort"
     grep -qF "{rollback-origin-ref}" "$state"
@@ -1061,7 +1061,7 @@ file_mode() {
     grep -qF "never force-push, delete, or recreate the remote ref during automatic rollback" "$abort"
     grep -qF "Remote state: {unchanged at captured OID/absence | diverged" "$abort"
     grep -qF "Remote restoration is claimed only when the read-only comparison reports \`unchanged\`" "$abort"
-    ! grep -qF "Your work has been restored to the pre-skill branch state." "$abort"
+    ! grep -qF "Your work has been restored to the pre-skill branch state." "$abort" || false
   '
 
 	assert_required_contracts_registered \
@@ -1107,8 +1107,8 @@ file_mode() {
     grep -qF "Never create a Pull Request containing placeholder fallback text." "$create"
     grep -qF "Every other \`MISSING REQUIREMENT:\` marker is blocking" "$create"
     grep -qF "any future requirement the generator marks as missing" "$create"
-    ! grep -qF "**Fallback description**" "$create"
-    ! grep -qF "**Fallback title**" "$create"
+    ! grep -qF "**Fallback description**" "$create" || false
+    ! grep -qF "**Fallback title**" "$create" || false
 
     grep -qF "Do not ask for initials" "$branch"
     grep -qF "feature/{issue-id-lowercase}-{sanitized-title}" "$branch"
@@ -1128,7 +1128,7 @@ file_mode() {
     grep -qF "shell tool'\''s bounded timeout" "$confirmation"
     grep -qF "If the push command exits non-zero, its remote outcome is ambiguous" "$confirmation"
     grep -qF "never continue to \`gh pr create\` after a non-zero push status" "$confirmation"
-    ! grep -qF "The generated description is saved." "$confirmation"
+    ! grep -qF "The generated description is saved." "$confirmation" || false
   '
 
 	[ "$status" -eq 0 ]
@@ -1161,7 +1161,7 @@ file_mode() {
 	grep -qF 'git diff --name-only "{base-ref}"...HEAD' "$branch_guidance"
 	grep -qF "stop without deleting any ref" "$state_guidance"
 	grep -qF "{feature-branch}-recreate-backup-{recreate-input-tip}" "$state_guidance"
-	! grep -qF "If branch creation fails, inspect whether Git created the ref" "$state_guidance"
+	! grep -qF "If branch creation fails, inspect whether Git created the ref" "$state_guidance" || false
 
 	git init "$repo"
 	git -C "$repo" config user.name "Test User"
@@ -1187,7 +1187,7 @@ file_mode() {
 
 	[ "$(git -C "$repo" branch --show-current)" = "main" ]
 	[ "$(git -C "$repo" rev-parse HEAD)" = "$entry_commit" ]
-	! git -C "$repo" show-ref --verify --quiet refs/heads/feature/preserved
+	! git -C "$repo" show-ref --verify --quiet refs/heads/feature/preserved || false
 }
 
 @test "pr-create accepts --rebase and its --rebase-first alias" {
@@ -1348,7 +1348,7 @@ PY
 
 	BASE_BRANCH_OVERRIDE=main BASE_COMMIT_OVERRIDE="$(printf 'a%.0s' $(seq 40))" run bash "$block"
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"Pinned base commit does not resolve locally"* ]]
+	[[ "$output" == *"Pinned base commit does not resolve locally"* ]] || false
 }
 
 @test "PR creation carries bounded independent review evidence through description and publication" {

@@ -367,7 +367,7 @@ SH
 		--merge-base "$MERGE_BASE"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"entry mode is unsupported"* ]]
+	[[ "$output" == *"entry mode is unsupported"* ]] || false
 }
 
 @test "Conductor mode waits through queued idle before completion" {
@@ -423,7 +423,7 @@ SH
 		--merge-base "$MERGE_BASE"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"timed out"* ]]
+	[[ "$output" == *"timed out"* ]] || false
 	grep -qF -- 'cancel' "$FAKE_ARGS_FILE"
 	[ "$(cat "$FAKE_STATUS_COUNT_FILE")" -eq 2 ]
 }
@@ -442,7 +442,7 @@ SH
 		--merge-base "$MERGE_BASE"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"could not create"* ]]
+	[[ "$output" == *"could not create"* ]] || false
 	[ -s "$FAKE_SESSION_ID_FILE" ]
 	grep -qF -- '--session-id' "$FAKE_ARGS_FILE"
 	grep -qF -- "$(cat "$FAKE_SESSION_ID_FILE")" "$FAKE_ARGS_FILE"
@@ -465,7 +465,7 @@ SH
 		--merge-base "$MERGE_BASE"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"timed out"* ]]
+	[[ "$output" == *"timed out"* ]] || false
 	[ ! -e "$(cat "$FAKE_CWD_FILE")" ]
 }
 
@@ -514,7 +514,7 @@ SH
 		fi
 
 		[ "$runner_status" -eq 1 ]
-		! kill -0 "$provider_pid" 2>/dev/null
+		! kill -0 "$provider_pid" 2>/dev/null || false
 	done
 }
 
@@ -525,7 +525,7 @@ SH
 		--merge-base "$MERGE_BASE"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"review provider must differ from host provider"* ]]
+	[[ "$output" == *"review provider must differ from host provider"* ]] || false
 }
 
 @test "review refuses a dirty prepared tree" {
@@ -538,7 +538,7 @@ SH
 		--merge-base "$MERGE_BASE"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"working tree must be clean"* ]]
+	[[ "$output" == *"working tree must be clean"* ]] || false
 }
 
 @test "review detects untracked files when Git config hides them by default" {
@@ -552,7 +552,7 @@ SH
 		--merge-base "$MERGE_BASE"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"working tree must be clean"* ]]
+	[[ "$output" == *"working tree must be clean"* ]] || false
 	[ ! -e "$FAKE_ARGS_FILE" ]
 }
 
@@ -567,7 +567,7 @@ SH
 		--merge-base "$MERGE_BASE"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"could not inspect the working tree before"* ]]
+	[[ "$output" == *"could not inspect the working tree before"* ]] || false
 	[ ! -e "$FAKE_ARGS_FILE" ]
 }
 
@@ -582,7 +582,7 @@ SH
 		--merge-base "$MERGE_BASE"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"could not inspect the working tree after"* ]]
+	[[ "$output" == *"could not inspect the working tree after"* ]] || false
 }
 
 @test "Conductor workspace change fails closed" {
@@ -598,8 +598,8 @@ SH
 		--merge-base "$MERGE_BASE"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"the prepared working tree changed during the review"* ]]
-	[[ "$output" == *"the Conductor reviewer session shares this workspace"* ]]
+	[[ "$output" == *"the prepared working tree changed during the review"* ]] || false
+	[[ "$output" == *"the Conductor reviewer session shares this workspace"* ]] || false
 }
 
 @test "local review reports a workspace change without blaming the snapshot reviewer" {
@@ -613,9 +613,9 @@ SH
 		--merge-base "$MERGE_BASE"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"the prepared working tree changed during the review"* ]]
-	[[ "$output" == *"the local reviewer only read an isolated snapshot"* ]]
-	[[ "$output" != *"the Conductor reviewer session"* ]]
+	[[ "$output" == *"the prepared working tree changed during the review"* ]] || false
+	[[ "$output" == *"the local reviewer only read an isolated snapshot"* ]] || false
+	[[ "$output" != *"the Conductor reviewer session"* ]] || false
 }
 
 @test "Conductor failure still reports a workspace change" {
@@ -635,10 +635,10 @@ SH
 		--merge-base "$MERGE_BASE"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Conductor adversarial review failed"* ]]
-	[[ "$output" == *"integrity check after provider failure"* ]]
-	[[ "$output" == *"the prepared working tree changed during the review"* ]]
-	[[ "$output" == *"the Conductor reviewer session shares this workspace"* ]]
+	[[ "$output" == *"Conductor adversarial review failed"* ]] || false
+	[[ "$output" == *"integrity check after provider failure"* ]] || false
+	[[ "$output" == *"the prepared working tree changed during the review"* ]] || false
+	[[ "$output" == *"the Conductor reviewer session shares this workspace"* ]] || false
 }
 
 @test "malformed reviewer output fails closed" {
@@ -655,7 +655,7 @@ SH
 		--merge-base "$MERGE_BASE"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"review result did not match the required schema"* ]]
+	[[ "$output" == *"review result did not match the required schema"* ]] || false
 }
 
 @test "consumed requirements are removed when provider execution fails" {
@@ -716,7 +716,7 @@ REQ
 		--merge-base "$MERGE_BASE"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"review result did not match the required schema"* ]]
+	[[ "$output" == *"review result did not match the required schema"* ]] || false
 }
 
 @test "review output requires non-empty coverage" {
@@ -730,7 +730,7 @@ REQ
 		--merge-base "$MERGE_BASE"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"review result did not match the required schema"* ]]
+	[[ "$output" == *"review result did not match the required schema"* ]] || false
 }
 
 @test "review output rejects incompatible severity and action class" {
@@ -749,7 +749,7 @@ REQ
 			--merge-base "$MERGE_BASE"
 
 		[ "$status" -eq 1 ]
-		[[ "$output" == *"review result did not match the required schema"* ]]
+		[[ "$output" == *"review result did not match the required schema"* ]] || false
 	done
 }
 
@@ -833,7 +833,7 @@ SH
 		PATH="$original_path"
 
 		[ "$status" -eq 1 ]
-		[[ "$output" == *"refusing codex from untrusted PATH entry '$repository_entry'"* ]]
+		[[ "$output" == *"refusing codex from untrusted PATH entry '$repository_entry'"* ]] || false
 		[ ! -e "$FAKE_REPOSITORY_TOOL_MARKER" ]
 	done
 }
@@ -867,9 +867,9 @@ SH
 	bin_dir_physical="$(cd "$BIN_DIR" && pwd -P)"
 	IFS=: read -r -a provider_entries <"$FAKE_PATH_FILE"
 	for provider_entry in "${provider_entries[@]}"; do
-		[[ "$provider_entry" == /* ]]
-		[[ "$provider_entry/" != "$work_physical/"* ]]
-		[[ "$provider_entry/" != "$WORK/"* ]]
+		[[ "$provider_entry" == /* ]] || false
+		[[ "$provider_entry/" != "$work_physical/"* ]] || false
+		[[ "$provider_entry/" != "$WORK/"* ]] || false
 		[ "$provider_entry" != "$bin_dir_physical" ] || kept_bin_dir=1
 	done
 	[ "$kept_bin_dir" -eq 1 ]

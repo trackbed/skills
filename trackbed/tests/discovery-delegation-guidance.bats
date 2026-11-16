@@ -25,10 +25,10 @@
     grep -qF "argument-hint: \"[topic | file-path(s) | siw] [--siw] [--apply] [--visual] [--ideate] [--decision-tree] [--research]\"" "$interview_skill"
 
     # The sibling-skill delegation contract is retired.
-    ! grep -qF "INTERVIEW DELEGATION" "$interview_skill"
-    ! grep -qF "## Called by Another Skill" "$interview_skill"
-    ! grep -qiF "delegated" "$interview_skill"
-    ! grep -qF "caller_mode" "$siw_mode"
+    ! grep -qF "INTERVIEW DELEGATION" "$interview_skill" || false
+    ! grep -qF "## Called by Another Skill" "$interview_skill" || false
+    ! grep -qiF "delegated" "$interview_skill" || false
+    ! grep -qF "caller_mode" "$siw_mode" || false
 
     # Shared interview engine behavior
     grep -qF "If the user requests Decision-Tree mode mid-session" "$interview_skill"
@@ -38,7 +38,7 @@
     grep -qF "Do not omit the required predefined options" "$probing"
     grep -qF "Ask 1-3 high-value questions per round" "$probing"
     grep -qF "ADR-offer hook owned by the active progress profile" "$decision_tree"
-    ! grep -qF "## In SIW Discovery" "$decision_tree"
+    ! grep -qF "## In SIW Discovery" "$decision_tree" || false
     grep -qF "Direct standalone hand-off includes the \`PLAN:\` marker." "$interview_skill"
 
     # SIW mode selection: flags are stripped before the bare siw keyword is detected.
@@ -71,7 +71,7 @@
     grep -qF "references/siw-synthesis-checklist.md" "$siw_mode"
     grep -qF "references/siw-apply-protocol.md" "$siw_mode"
     grep -qF "validated \`INTERVIEW RESULT:\` and its artifact impact map" "$apply_protocol"
-    ! grep -qF "decisions from Step 4" "$apply_protocol"
+    ! grep -qF "decisions from Step 4" "$apply_protocol" || false
   '
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
@@ -105,7 +105,7 @@
     grep -qF "Never pass \`--apply\`." "$handoff"
     grep -qF "If the runtime cannot invoke the skill, stop and tell the user to run \`/trackbed:discovery:interview --siw <topic>\` and then \`/trackbed:siw:init siw/DISCOVERY_BRIEF.md\`." "$handoff"
     grep -qF "If the discovery run does not create \`siw/DISCOVERY_BRIEF.md\`, stop without creating SIW workflow files." "$handoff"
-    ! grep -qF "kramme:siw:discovery" "$handoff"
+    ! grep -qF "kramme:siw:discovery" "$handoff" || false
   '
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
