@@ -328,6 +328,18 @@ function sharedRuntimeFor(plugin) {
         targetPath: path.join("scripts", "worktree-tree-id.sh"),
       },
       {
+        sourceFile: path.join(plugin.root, "scripts", "plan_archive.py"),
+        targetPath: path.join("scripts", "plan_archive.py"),
+      },
+      {
+        sourceFile: path.join(
+          plugin.root,
+          "scripts",
+          "validate-archive-scope.py",
+        ),
+        targetPath: path.join("scripts", "validate-archive-scope.py"),
+      },
+      {
         sourceFile: path.join(plugin.root, "scripts", "risk-signals.py"),
         targetPath: path.join("scripts", "risk-signals.py"),
       },

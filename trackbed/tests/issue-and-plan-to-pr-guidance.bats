@@ -6,7 +6,7 @@
     set -e
     cd "'"$BATS_TEST_DIRNAME"'/.."
 	    skill="skills/code:plan-to-pr/SKILL.md"
-	    validator="skills/code:plan-to-pr/scripts/validate-plan-state.py"
+	    validator="scripts/plan_archive.py"
 	    attachment="skills/code:plan-to-pr/references/attachment-input.md"
 	    breakdown="skills/code:breakdown-findings/SKILL.md"
 		    plan_template="skills/code:breakdown-findings/assets/plan-template.md"
@@ -201,11 +201,13 @@
     grep -qF "the exact \`Recovery\` payload recorded by the completion result" "$skill"
     grep -qF "Report only that recorded recovery (the exact synced scoped recovery payload when a Pull Request exists" "$skill"
     for consumer in "$convergence" "$fix_ci"; do
-        grep -qF "\${CLAUDE_PLUGIN_ROOT}/skills/code:plan-to-pr/scripts/validate-archive-scope.py" "$consumer"
+        grep -qF "\${CLAUDE_PLUGIN_ROOT}/scripts/validate-archive-scope.py" "$consumer"
         grep -qF "\${CLAUDE_PLUGIN_ROOT}/shared/implementation/references/archive-validation.md" "$consumer"
     done
     grep -qF "references/standalone-scope-handoff.md" "$convergence"
     grep -qF "runtime boundary" "$handoff"
+    grep -qF "initial shipping may still have a nonterminal" "$handoff"
+    grep -qF "post-create and recovery retain their terminal checkpoints" "$handoff"
     grep -qF "runtime facts" "$fix_ci_scope"
     grep -qF "accept \`IN_PROGRESS\`; for a legacy checkpoint" "$handoff"
     grep -qF "status \`IN_PROGRESS\`; for a legacy checkpoint" "$fix_ci_scope"

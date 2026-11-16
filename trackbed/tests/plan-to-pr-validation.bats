@@ -4,6 +4,7 @@ load 'test_helper/common'
 
 setup() {
 	VALIDATOR="$BATS_TEST_DIRNAME/../skills/code:plan-to-pr/scripts/validate-plan-state.py"
+	ARCHIVE_VALIDATOR="$BATS_TEST_DIRNAME/../scripts/validate-archive-scope.py"
 	TMP_DIR="$(mktemp -d)"
 	REPO="$TMP_DIR/repo"
 	init_test_git_repo "$REPO"
@@ -1532,7 +1533,7 @@ PY
 		printf 'implementation drift\n' >"$REPO/tracked.txt"
 		before="$(tree_digest)"
 
-		run python3 "${VALIDATOR%/*}/validate-archive-scope.py" --repo-root "$REPO" "$plan"
+		run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" "$plan"
 
 		assert_success
 		[ "$(json_get facts.plan_status)" = "$plan_status" ]
@@ -1560,7 +1561,7 @@ PY
 		mkdir -p "$archive"
 		mv "$REPO/PR_PLAN_W01A_VALIDATE_PLAN_STATE.md" "$REPO/PR_PLAN_INDEX.md" "$REPO/PR_PLAN_REJECTIONS.md" "$archive/"
 
-		run python3 "${VALIDATOR%/*}/validate-archive-scope.py" --repo-root "$REPO" "$archive/PR_PLAN_W01A_VALIDATE_PLAN_STATE.md"
+		run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" "$archive/PR_PLAN_W01A_VALIDATE_PLAN_STATE.md"
 
 		assert_success
 		[ "$(json_get facts.scope_mode)" = "$scope_mode" ]
@@ -1579,13 +1580,13 @@ PY
 	run python3 "$VALIDATOR" --repo-root "$REPO" "$plan"
 	assert_error PREREQUISITE_EVIDENCE_MISSING
 
-	run python3 "${VALIDATOR%/*}/validate-archive-scope.py" --repo-root "$REPO" "$plan"
+	run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" "$plan"
 	assert_success
 	[ "$(json_get facts.detached_generated_plan)" = true ]
 	[ "$(json_get facts.attachment_contract)" = "detached generated plan" ]
 
 	sed -i.bak 's/| after W01A | Fixture./| none | Fixture./' "$archive/PR_PLAN_INDEX.md"
-	run python3 "${VALIDATOR%/*}/validate-archive-scope.py" --repo-root "$REPO" "$plan"
+	run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" "$plan"
 	assert_error INDEX_DEPENDENCY_MISMATCH
 }
 
@@ -1595,12 +1596,12 @@ PY
 	plan="$archive/PR_PLAN_A01A_VALIDATE_PLAN_STATE.md"
 	printf '\nTampered source.\n' >>"$archive/ATTACHMENT_SOURCE.md"
 
-	run python3 "${VALIDATOR%/*}/validate-archive-scope.py" --repo-root "$REPO" "$plan"
+	run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" "$plan"
 	assert_error ARCHIVE_SOURCE_HASH_MISMATCH
 
 	cp "$REPO/source.md" "$archive/ATTACHMENT_SOURCE.md"
 	printf '\nTampered plan.\n' >>"$plan"
-	run python3 "${VALIDATOR%/*}/validate-archive-scope.py" --repo-root "$REPO" "$plan"
+	run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" "$plan"
 	assert_error ARCHIVE_SOURCE_DIVERGED
 }
 
@@ -1611,7 +1612,7 @@ PY
 		write_plan "$REPO/source.md" A01A TODO "$scope_path"
 		archive="$(write_archive "$REPO/source.md")"
 
-		run python3 "${VALIDATOR%/*}/validate-archive-scope.py" --repo-root "$REPO" "$archive/PR_PLAN_A01A_VALIDATE_PLAN_STATE.md"
+		run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" "$archive/PR_PLAN_A01A_VALIDATE_PLAN_STATE.md"
 
 		case "$scope_path" in
 		source-dir) assert_error SCOPE_DIRECTORY_INVALID ;;
@@ -1627,12 +1628,12 @@ PY
 	sed -i.bak 's/ \*\*Attachment contract:\*\* independent plan//' "$archive/PR_PLAN_INDEX.md"
 	before="$(tree_digest)"
 
-	run python3 "${VALIDATOR%/*}/validate-archive-scope.py" --repo-root "$REPO" "$archive/PR_PLAN_A01A_VALIDATE_PLAN_STATE.md"
+	run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" "$archive/PR_PLAN_A01A_VALIDATE_PLAN_STATE.md"
 	assert_error ARCHIVE_MIGRATION_REQUIRED
 	[ "$(json_get error.details.verified)" = true ]
 	[ "$(tree_digest)" = "$before" ]
 
 	write_plan "$REPO/.context/attachments/input.md" A01A TODO
-	run python3 "${VALIDATOR%/*}/validate-archive-scope.py" --repo-root "$REPO" "$REPO/.context/attachments/input.md"
+	run python3 "$ARCHIVE_VALIDATOR" --repo-root "$REPO" "$REPO/.context/attachments/input.md"
 	assert_error INPUT_LOCATION_UNSUPPORTED
 }
