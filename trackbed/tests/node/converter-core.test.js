@@ -10,9 +10,7 @@ const {
 } = require("../../scripts/convert-plugin/ask-user-question-parser");
 
 const {
-  applyReplacements,
   CODEX_PHRASE_REPAIRS,
-  CODEX_TOOL_NAME_SUBSTITUTIONS,
   convertClaudeToCodex,
   transformContentForCodex,
 } = require("../../scripts/convert-plugin/codex-transformer");
@@ -526,7 +524,7 @@ test("transformer rewrites task calls, references, and AskUserQuestion guidance"
     output,
     /1\. Ask for the issue ID:\n   Ask the user directly in chat:\n   Question label: Linear issue\n   Question: Enter the Linear issue ID \(e\.g\., WAN-521\):/,
   );
-  assert.match(output, /### Asking Questions in Codex/);
+  assert.match(output, /^### Asking Questions in Codex$/m);
   assert.match(
     output,
     /When asking directly in chat, offer a small set of concrete options/,
@@ -653,32 +651,53 @@ test("codex phrase repairs never match raw source vocabulary", async () => {
   }
 });
 
-test("codex tool-name substitutions run before phrase repairs so repair artifacts get cleaned up", () => {
-  const rawInput =
-    "Use the AskUserQuestion tool to ask users which option they prefer.";
+test("transformer produces coherent direct-chat instructions", () => {
+  for (const [input, expected] of [
+    [
+      "Use the AskUserQuestion tool to ask users which option they prefer.",
+      "Ask users directly in chat which option they prefer.",
+    ],
+    [
+      "Then use the `AskUserQuestion` tool to ask the user about scope.",
+      "Then ask the user directly in chat about scope.",
+    ],
+    [
+      "Use AskUserQuestion to ask about scope.",
+      "Ask the user directly in chat about scope.",
+    ],
+  ]) {
+    const output = transformContentForCodex(input);
+    assert.equal(output, expected);
+    assert.equal(transformContentForCodex(output), output);
+  }
+});
 
-  const substitutionOnlyOutput = applyReplacements(
-    rawInput,
-    CODEX_TOOL_NAME_SUBSTITUTIONS,
+test("transformer preserves interview heading levels and option bullets", async () => {
+  for (const level of [2, 3]) {
+    const input = `${"#".repeat(level)} Using AskUserQuestion Correctly`;
+    assert.equal(
+      transformContentForCodex(input),
+      `${"#".repeat(level)} Asking Questions in Codex`,
+    );
+  }
+  const input = await readText(
+    path.join(
+      __dirname,
+      "..",
+      "..",
+      "skills",
+      "discovery:interview",
+      "references",
+      "question-dimensions.md",
+    ),
   );
-  assert.equal(
-    substitutionOnlyOutput,
-    "Ask the user directly in chat to ask users which option they prefer.",
+  const output = transformContentForCodex(input);
+  assert.match(output, /^## Asking Questions in Codex$/m);
+  assert.match(
+    output,
+    /^- `Suggested options`: 2-4 concise choices, each with a short label and a tradeoff explanation$/m,
   );
-
-  const doubledAskRepair = CODEX_PHRASE_REPAIRS.find(
-    ([pattern]) =>
-      pattern.source === "\\bAsk the user directly in chat to ask\\b",
-  );
-  assert.ok(doubledAskRepair, "expected the doubled-'to ask' repair rule");
-  doubledAskRepair[0].lastIndex = 0;
-  assert.equal(doubledAskRepair[0].test(substitutionOnlyOutput), true);
-
-  const finalOutput = transformContentForCodex(rawInput);
-  assert.equal(
-    finalOutput,
-    "Ask the user directly in chat users which option they prefer.",
-  );
+  assert.doesNotMatch(output, /`options`:|explains tradeoff/);
 });
 
 test("loader derives invocable skill commands and normalizes boolean fields", async () => {

@@ -19,6 +19,7 @@ const {
 const { loadClaudePlugin } = require("../../scripts/convert-plugin/loader");
 
 const {
+  createFixturePlugin,
   pathExists,
   readMarkdownTree,
   readText,
@@ -374,3 +375,88 @@ test("CLI build refuses a non-empty output directory without reporting success",
     assert.equal(await pathExists(path.join(outputRoot, "plugins")), false);
   });
 });
+
+for (const failure of ["invalid-json", "missing", "access"]) {
+  test(`install preserves ownership refusal cause: ${failure}`, async () => {
+    await withTempDir(async (root) => {
+      const pluginRoot = path.join(root, "source");
+      await createFixturePlugin(pluginRoot);
+      const marketplace = path.join(root, "marketplace");
+      const marker = path.join(
+        marketplace,
+        ".trackbed-plugin-marketplace.json",
+      );
+      const manifest = path.join(
+        marketplace,
+        ".agents/plugins/marketplace.json",
+      );
+      await writeFile(manifest, '{"name":"fixture-plugin"}');
+      await writeFile(path.join(marketplace, "keep.txt"), "preserve me");
+      const nodeArgs = [];
+      if (failure === "invalid-json") await writeFile(marker, "{invalid");
+      if (failure === "access") {
+        // Inject EACCES so this check also works when run as root.
+        const preload = path.join(root, "deny-read.cjs");
+        await writeFile(
+          preload,
+          `
+          const fs = require("node:fs/promises");
+          const readFile = fs.readFile;
+          fs.readFile = async function(file, ...args) {
+            if (file === ${JSON.stringify(marker)}) {
+              throw Object.assign(new Error("EACCES: permission denied, open " + file), {code: "EACCES"});
+            }
+            return readFile.call(this, file, ...args);
+          };
+        `,
+        );
+        nodeArgs.push("--require", preload);
+        await writeFile(marker, "{}");
+        await writeFile(
+          path.join(marketplace, ".kramme-plugin-marketplace.json"),
+          JSON.stringify({
+            generatedBy: "kramme-cc-workflow",
+            markerVersion: 1,
+            marketplaceName: "fixture-plugin",
+            pluginName: "fixture-plugin",
+            pluginVersion: "1.0.0",
+          }),
+        );
+      }
+      const result = spawnSync(
+        process.execPath,
+        [
+          ...nodeArgs,
+          path.join(__dirname, "../../scripts/convert-plugin.js"),
+          "install",
+          pluginRoot,
+          "--marketplace-dir",
+          marketplace,
+          "--codex-home",
+          path.join(root, "codex"),
+          "--yes",
+        ],
+        { encoding: "utf8", env: { ...process.env, PATH: root } },
+      );
+      assert.equal(result.status, 1, result.stderr);
+      assert.match(result.stderr, /ownership could not be verified/);
+      assert.match(
+        result.stderr,
+        failure === "invalid-json"
+          ? /JSON|Unexpected/
+          : failure === "missing"
+            ? /ENOENT/
+            : /EACCES/,
+      );
+      assert.ok(
+        result.stderr.includes(`Could not read ${marker}: `),
+        result.stderr,
+      );
+      assert.equal(
+        await readText(path.join(marketplace, "keep.txt")),
+        "preserve me",
+      );
+      assert.equal(await readText(manifest), '{"name":"fixture-plugin"}');
+    });
+  });
+}

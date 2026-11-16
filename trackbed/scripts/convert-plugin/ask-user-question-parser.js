@@ -34,6 +34,7 @@ function rewriteAskUserQuestionCodeBlocks(text) {
 
     result += text.slice(cursor, match.index);
     result += renderDirectChatQuestion(parsed, { indent });
+    if (text[closingFence.afterIndex - 1] === "\n") result += "\n";
     cursor = closingFence.afterIndex;
     openFencePattern.lastIndex = closingFence.afterIndex;
   }
