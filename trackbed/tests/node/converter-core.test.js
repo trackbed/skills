@@ -792,6 +792,17 @@ Typed body.
 
 test("loader validates agent descriptions and capabilities before conversion", async () => {
   const invalidAgents = [
+    ...[
+      "name",
+      "model",
+      "color",
+      "tools",
+      "disallowedTools",
+      "omitClaudeMd",
+    ].map((field) => ({
+      expected: `frontmatter field "${field}" must be`,
+      frontmatter: `${field}:\n  bad: value`,
+    })),
     {
       expected: 'frontmatter field "description" must be a string',
       frontmatter: `description:
@@ -820,7 +831,7 @@ capabilities:
       await writeFile(
         agentPath,
         `---
-name: reviewer
+${invalidAgent.frontmatter.startsWith("name:") ? "" : "name: reviewer"}
 ${invalidAgent.frontmatter}
 ---
 Review changes.

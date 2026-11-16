@@ -1991,11 +1991,7 @@
     "max_description_chars": 1024,
     "warn_description_chars": 500,
     "skill_description_report_limit": 20,
-    "allow_line_count_over": [
-      "trackbed/skills/siw:generate-phases/SKILL.md",
-      "trackbed/skills/siw:init/SKILL.md",
-      "trackbed/skills/siw:spec-audit/SKILL.md"
-    ],
+    "allow_line_count_over": [],
     "file_line_budgets": [
       {
         "name": "production code",

@@ -59,3 +59,21 @@ test("codexName and sanitizeDescription normalize generated metadata", () => {
   );
   assert.equal(sanitizeDescription("abcdef", 5), "ab...");
 });
+
+test("component scalar fixtures agree with Python and site consumers", () => {
+  const cases = JSON.parse(
+    require("node:fs").readFileSync(
+      require("node:path").join(
+        __dirname,
+        "../fixtures/component-scalars.json",
+      ),
+      "utf8",
+    ),
+  );
+  for (const fixture of cases) {
+    const { data } = parseFrontmatter(
+      `---\ndescription: ${fixture.source}\n---\n`,
+    );
+    assert.equal(data.description, fixture.expected, fixture.name);
+  }
+});

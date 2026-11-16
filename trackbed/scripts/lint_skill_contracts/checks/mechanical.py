@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from ..frontmatter import (
     frontmatter_string_value,
@@ -8,22 +9,50 @@ from ..frontmatter import (
     parse_frontmatter,
 )
 from ..io import read_text, rel, skill_paths
-from ..schema import skill_frontmatter_required_fields
+from ..schema import DEFAULT_CONTRACT_SCHEMA, skill_frontmatter_required_fields
 from .types import CheckResult, LintContext
 
 SKILL_CONTRACT_KINDS = {"executable", "evaluation", "guidance", "registry"}
 
 
+def mechanical_config(context: LintContext, result: CheckResult) -> dict[str, Any] | None:
+    config = context.registry.get("mechanical", {})
+    if not isinstance(config, dict):
+        result.failures.append("mechanical: registry entry must be an object")
+        return None
+    for field in (
+        "max_skill_lines",
+        "warn_skill_lines",
+        "skill_line_report_limit",
+        "max_description_chars",
+        "warn_description_chars",
+        "skill_description_report_limit",
+    ):
+        if field in config and (type(config[field]) is not int or config[field] < 0):
+            result.failures.append(f"mechanical: {field} must be a non-negative integer")
+    for field in ("required_frontmatter", "allow_line_count_over"):
+        if field in config and (
+            not isinstance(config[field], list) or not all(isinstance(item, str) and item for item in config[field])
+        ):
+            result.failures.append(f"mechanical: {field} must be an array of non-empty strings")
+    for field in ("skill_glob", "agent_glob"):
+        if field in config and (not isinstance(config[field], str) or not config[field]):
+            result.failures.append(f"mechanical: {field} must be a non-empty string")
+    return None if result.failures else config
+
+
 def check_mechanical(context: LintContext) -> CheckResult:
     result = CheckResult()
-    config = context.registry.get("mechanical", {})
+    config = mechanical_config(context, result)
+    if config is None:
+        return result
     pattern = config.get("skill_glob", "trackbed/skills/*/SKILL.md")
-    max_lines = int(config.get("max_skill_lines", 500))
-    warn_lines = int(config.get("warn_skill_lines", 0) or 0)
-    report_limit = int(config.get("skill_line_report_limit", 20))
-    max_description = int(config.get("max_description_chars", 1024))
-    warn_description = int(config.get("warn_description_chars", 0) or 0)
-    description_report_limit = int(config.get("skill_description_report_limit", 20))
+    max_lines = config.get("max_skill_lines", 500)
+    warn_lines = config.get("warn_skill_lines", 0)
+    report_limit = config.get("skill_line_report_limit", 20)
+    max_description = config.get("max_description_chars", 1024)
+    warn_description = config.get("warn_description_chars", 0)
+    description_report_limit = config.get("skill_description_report_limit", 20)
     if "contract_schema" in context.registry and "required_frontmatter" in config:
         result.failures.append(
             "mechanical: required_frontmatter must come from contract_schema, not synced-contracts.yaml"
@@ -157,8 +186,10 @@ def check_skill_contract_coverage(context: LintContext, *, required: bool = Fals
         result.failures.append(f"mechanical: {inventory_relative}.skill_contracts must be an array")
         return result
 
-    mechanical_config = context.registry.get("mechanical", {})
-    pattern = mechanical_config.get("skill_glob", "trackbed/skills/*/SKILL.md")
+    validated_config = mechanical_config(context, result)
+    if validated_config is None:
+        return result
+    pattern = validated_config.get("skill_glob", "trackbed/skills/*/SKILL.md")
     discovered = {rel(path, context.root) for path in skill_paths(context.root, pattern)}
     mapped: set[str] = set()
     relationships: set[tuple[str, str]] = set()
@@ -222,7 +253,9 @@ def check_skill_contract_coverage(context: LintContext, *, required: bool = Fals
 
 def check_file_line_budgets(context: LintContext) -> CheckResult:
     result = CheckResult()
-    config = context.registry.get("mechanical", {})
+    config = mechanical_config(context, result)
+    if config is None:
+        return result
     budgets = config.get("file_line_budgets", [])
     if not isinstance(budgets, list):
         result.failures.append("mechanical: file_line_budgets must be an array")
@@ -309,9 +342,11 @@ def check_file_line_budgets(context: LintContext) -> CheckResult:
 
 def check_agent_frontmatter(context: LintContext) -> CheckResult:
     result = CheckResult()
-    config = context.registry.get("mechanical", {})
+    config = mechanical_config(context, result)
+    if config is None:
+        return result
     pattern = config.get("agent_glob", "trackbed/agents/*.md")
-    max_description = int(config.get("max_description_chars", 1024))
+    max_description = config.get("max_description_chars", 1024)
 
     for path in skill_paths(context.root, pattern):
         relative = rel(path, context.root)
@@ -321,6 +356,13 @@ def check_agent_frontmatter(context: LintContext) -> CheckResult:
             result.failures.append(f"mechanical: {relative} is missing YAML frontmatter")
             continue
 
+        for field, expected_type in frontmatter_type_errors(text, context.schema, component="agent"):
+            result.failures.append(f"mechanical: {relative} frontmatter field {field!r} must be {expected_type}")
+
+        fields = (context.schema or DEFAULT_CONTRACT_SCHEMA).get("agent_frontmatter", {}).get("fields", {})
+        for field, contract in fields.items():
+            if contract.get("required") and field not in frontmatter and field not in {"name", "description"}:
+                result.failures.append(f"mechanical: {relative} is missing frontmatter field {field!r}")
         expected_name = path.stem
         actual_name = frontmatter.get("name")
         if actual_name is None:

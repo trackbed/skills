@@ -1,0 +1,37 @@
+[
+  {
+    "name": "folded",
+    "source": ">\n  first line\n  second line",
+    "expected": "first line second line"
+  },
+  {
+    "name": "literal",
+    "source": "|\n  first line\n  second line",
+    "expected": "first line\nsecond line"
+  },
+  {
+    "name": "paragraph",
+    "source": ">-\n  first\n\n  second\n  third",
+    "expected": "first\nsecond third"
+  },
+  {
+    "name": "indent",
+    "source": ">2+\n  first\n    code\n  last\n\n",
+    "expected": "first\n  code\nlast"
+  },
+  {
+    "name": "literal-keep",
+    "source": "|+\n  first\n\n  last\n\n",
+    "expected": "first\n\nlast"
+  },
+  {
+    "name": "literal-quotes",
+    "source": "|-\n  \"literal text\"",
+    "expected": "\"literal text\""
+  },
+  {
+    "name": "folded-boolean-text",
+    "source": ">\n  true",
+    "expected": "true"
+  }
+]

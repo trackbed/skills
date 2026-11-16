@@ -267,22 +267,31 @@ async function loadAgents(agentsDirs) {
 
 /** @param {Record<string, unknown>} data @param {string} file */
 function validateAgentFrontmatter(data, file) {
-  if (
-    Object.hasOwn(data, "description") &&
-    typeof data.description !== "string"
-  ) {
-    throw new Error(
-      `${file}: frontmatter field "description" must be a string.`,
-    );
-  }
-  if (
-    Object.hasOwn(data, "capabilities") &&
-    (!Array.isArray(data.capabilities) ||
-      !data.capabilities.every((capability) => typeof capability === "string"))
-  ) {
-    throw new Error(
-      `${file}: frontmatter field "capabilities" must be an array of strings.`,
-    );
+  for (const [field, contract] of Object.entries(
+    skillContracts.agent_frontmatter.fields,
+  )) {
+    if (!Object.hasOwn(data, field)) continue;
+    const value = data[field];
+    let expected = frontmatterTypeError(contract.type, value);
+    if (contract.type === "text" && typeof value !== "string")
+      expected = "a string";
+    if (
+      contract.type === "text_array" &&
+      (!Array.isArray(value) ||
+        !value.every((item) => typeof item === "string"))
+    ) {
+      expected = "an array of strings";
+    }
+    if (
+      contract.type === "tool_list" &&
+      !(isNonEmptyString(value) || isNonEmptyStringArray(value))
+    ) {
+      expected = "a non-empty string or array of non-empty strings";
+    }
+    if (expected)
+      throw new Error(
+        `${file}: frontmatter field "${field}" must be ${expected}.`,
+      );
   }
 }
 

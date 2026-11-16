@@ -42,5 +42,41 @@
       "baseline_hash"
     ],
     "one_of_fields": ["url", "context7_library"]
+  },
+  "agent_frontmatter": {
+    "fields": {
+      "name": {
+        "type": "string",
+        "required": true
+      },
+      "description": {
+        "type": "text",
+        "required": true
+      },
+      "model": {
+        "type": "string",
+        "required": true
+      },
+      "color": {
+        "type": "string",
+        "required": true
+      },
+      "tools": {
+        "type": "tool_list",
+        "required": false
+      },
+      "disallowedTools": {
+        "type": "tool_list",
+        "required": false
+      },
+      "capabilities": {
+        "type": "text_array",
+        "required": false
+      },
+      "omitClaudeMd": {
+        "type": "boolean",
+        "required": false
+      }
+    }
   }
 }
