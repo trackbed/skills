@@ -233,6 +233,47 @@ class StepOneTests(PreflightCase):
         )
         self.assertEqual(self.invoke()["details"]["operations"], ["cherry-pick"])
 
+    def test_operation_marker_policy_inside_a_linked_worktree(self) -> None:
+        self.feature()
+        git(self.repo, "remote", "set-url", "origin", str(self.origin))
+        linked = self.tmp / "operation-policy"
+        git(self.repo, "worktree", "add", "-q", "-b", "operation-policy", str(linked), BRANCH)
+        os.chdir(linked)
+        cases = (
+            ("rebase-merge", "rebase"),
+            ("rebase-apply", "rebase"),
+            ("MERGE_HEAD", "merge"),
+            ("CHERRY_PICK_HEAD", "cherry-pick"),
+            ("REVERT_HEAD", "revert"),
+            ("rebase-apply/applying", "rebase"),
+            ("BISECT_START", None),
+            ("BISECT_LOG", None),
+            ("sequencer", None),
+        )
+        for marker, operation in cases:
+            with self.subTest(marker=marker):
+                location = Path(git(linked, "rev-parse", "--path-format=absolute", "--git-path", marker))
+                location.parent.mkdir(parents=True, exist_ok=True)
+                directory = marker in {"rebase-merge", "rebase-apply", "sequencer"}
+                if directory:
+                    location.mkdir()
+                else:
+                    location.write_text(git(linked, "rev-parse", "HEAD") + "\n", encoding="utf-8")
+                try:
+                    payload = self.invoke("--base", "main")
+                    if operation is None:
+                        self.assert_status(payload, "ok")
+                    else:
+                        self.assert_status(payload, "blocked", "operation_in_progress")
+                        self.assertEqual(payload["details"]["operations"], [operation])
+                finally:
+                    if directory:
+                        location.rmdir()
+                    else:
+                        location.unlink()
+                    if marker == "rebase-apply/applying":
+                        location.parent.rmdir()
+
 
 class BranchTests(PreflightCase):
     def test_current_feature_branch_with_absent_remote_is_fresh(self) -> None:
@@ -268,6 +309,27 @@ class BranchTests(PreflightCase):
             self.gh_calls(),
         )
 
+    def test_branch_issue_extraction_uses_complete_tokens(self) -> None:
+        self.feature()
+        cases = {
+            "ab/skills-105-fix": "SKILLS-105",
+            "feature/LONGTEAM123-42": "LONGTEAM123-42",
+            "a1-9-fix": "A1-9",
+            "12AB-34-fix": "12AB-34",
+            "SKILLS-105": "SKILLS-105",
+            "feature/release-2026.11": None,
+            "feature/v1-2.3": None,
+            "feature/123-456": None,
+            "feature/ABC-123abc": None,
+            "feature/ABC-123.4-SKILLS-105-fix": "SKILLS-105",
+        }
+        for branch, expected in cases.items():
+            with self.subTest(branch=branch):
+                git(self.repo, "branch", "-m", branch)
+                payload = self.invoke()
+                self.assert_status(payload, "ok")
+                self.assertEqual(payload["facts"]["linear_issue_id"], expected)
+
     def test_linear_override_wins_over_the_branch_name(self) -> None:
         self.feature()
         self.assertEqual(self.invoke("--linear-issue", "abc-42")["facts"]["linear_issue_id"], "ABC-42")
@@ -285,6 +347,38 @@ class BranchTests(PreflightCase):
             (facts["base_source_ref"], facts["base_ref"], facts["base_branch"], facts["ahead_count"]),
             ("refs/remotes/origin/develop", develop, "develop", 1),
         )
+
+    def test_cached_base_does_not_allow_a_failed_required_fetch(self) -> None:
+        self.feature()
+        cached = git(self.repo, "rev-parse", "refs/remotes/origin/main")
+        git(self.origin, "update-ref", "-d", "refs/heads/main")
+
+        self.assert_status(self.invoke("--base", "main"), "blocked", "base_unresolved")
+        self.assertEqual(git(self.repo, "rev-parse", "refs/remotes/origin/main"), cached)
+
+    def test_base_snapshot_survives_a_later_remote_tracking_ref_move(self) -> None:
+        head = self.feature()
+        base = git(self.repo, "rev-parse", "refs/remotes/origin/main")
+        facts: dict[str, Any] = {}
+        preflight.step_2(self.repo, "main", facts)
+
+        git(self.repo, "update-ref", "refs/remotes/origin/main", head)
+        preflight.step_4_local(self.repo, facts)
+
+        self.assertEqual(facts["base_source_ref"], "refs/remotes/origin/main")
+        self.assertEqual(facts["base_ref"], base)
+        self.assertEqual(facts["ahead_count"], 1)
+        self.assertEqual(git(self.repo, "rev-parse", facts["base_source_ref"]), head)
+
+    def test_develop_is_an_ordinary_feature_branch_for_pr_creation(self) -> None:
+        git(self.repo, "checkout", "-q", "-b", "develop")
+        self.commit("Add the widget")
+
+        payload = self.invoke("--base", "main")
+
+        self.assert_status(payload, "ok")
+        self.assertEqual(payload["facts"]["feature_branch"], "develop")
+        self.assertNotIn("develop", payload["facts"]["protected_branches"])
 
     def test_detached_entry_requires_a_feature_branch_name_then_creates_from_entry_head(self) -> None:
         self.feature()

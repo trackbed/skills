@@ -487,9 +487,11 @@ class CaptureTests(RepoCase):
                 repo = self.make_repo(f"op-{operation}")
                 os.chdir(repo)
                 prepare(repo)
-                payload = self.capture(self.start("DISC-1 --continue"))
-                self.assert_status(payload, "blocked", "git_operation_in_progress")
-                self.assertIn(operation, payload["details"]["git_operations"])
+                for arguments in ("DISC-1", "DISC-1 --continue"):
+                    with self.subTest(arguments=arguments):
+                        payload = self.capture(self.start(arguments))
+                        self.assert_status(payload, "blocked", "git_operation_in_progress")
+                        self.assertIn(operation, payload["details"]["git_operations"])
 
     def test_continue_capture_refuses_unmerged_paths_without_an_operation(self) -> None:
         git(self.repo, "checkout", "-q", "-b", BRANCH)

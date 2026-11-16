@@ -756,6 +756,22 @@ GH
 	! git show-ref --verify --quiet refs/heads/development-recreate-backup || false
 }
 
+@test "backup mode permits develop when it has no protected branch role" {
+	git switch -c develop >/dev/null 2>&1
+	commit_file "develop.txt" "feature work" "Work on develop"
+	local original_tip
+	original_tip="$(git rev-parse HEAD)"
+
+	run "$SCRIPT_DIR/resolve-base.sh" --backup --base main
+
+	[ "$status" -eq 0 ]
+	load_assignments
+	[ "$ORIGINAL_BRANCH" = "develop" ]
+	[ "$ORIGINAL_TIP" = "$original_tip" ]
+	[ "$(git rev-parse develop-recreate-backup)" = "$original_tip" ]
+	[ "$(git rev-parse HEAD)" = "$original_tip" ]
+}
+
 @test "fails when histories are unrelated" {
 	git switch --orphan unrelated >/dev/null 2>&1
 	git rm -r --cached . >/dev/null 2>&1 || true

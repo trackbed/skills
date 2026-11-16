@@ -45,7 +45,8 @@ REF_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._/-]*")
 OID_RE = re.compile(r"[0-9a-f]{40}")
 HOST_RE = re.compile(r"[A-Za-z0-9.-]+(:[0-9]+)?")
 LINEAR_OVERRIDE_RE = re.compile(r"[A-Za-z0-9]+-[0-9]+")
-LINEAR_BRANCH_RE = re.compile(r"[A-Z]{2,5}-[0-9]+", re.IGNORECASE)
+# Match a complete alphanumeric team token with a letter; exclude dotted version suffixes.
+LINEAR_BRANCH_RE = re.compile(r"(?<![A-Z0-9])(?=[A-Z0-9]*[A-Z])[A-Z0-9]+-[0-9]+(?![A-Z0-9.])", re.IGNORECASE)
 GIT_OPERATIONS = (
     ("rebase-merge", "rebase"),
     ("rebase-apply", "rebase"),
