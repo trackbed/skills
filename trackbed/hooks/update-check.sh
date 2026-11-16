@@ -89,7 +89,10 @@ if ! is_release_version "$installed"; then
   exit 0
 fi
 
-state_file="$(resolve_trackbed_path "TRACKBED_UPDATE_CHECK_FILE" "XDG_STATE_HOME" ".local/state" "update-check.json")"
+if ! state_file="$(resolve_trackbed_path "TRACKBED_UPDATE_CHECK_FILE" "XDG_STATE_HOME" ".local/state" "update-check.json")"; then
+  echo '{}'
+  exit 0
+fi
 # Hold a kernel lock across the entire read/check/write operation. Re-exec with
 # the descriptor inherited by Bash; the OS releases it even if the hook is killed.
 # Competing startups skip this run instead of delaying the session. Python is

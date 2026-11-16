@@ -19,6 +19,8 @@ case "$SCRIPT_PATH" in
 esac
 PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
+source "$PLUGIN_ROOT/scripts/lib/trackbed-paths.sh"
+
 OUTPUT_FORMAT="text"
 
 # Avoid here-documents and here-strings in this script: bash before 5.1 backs
@@ -289,6 +291,19 @@ cached_versions() {
   printf '%s' "$versions"
 }
 
+# Prefer a populated current cache; retain discovery of pre-1.0.0 installs.
+plugin_cache_dir() {
+  local cache_root="$1"
+  local plugin_name
+  for plugin_name in trackbed kramme-cc-workflow; do
+    if [ -n "$(cached_versions "$cache_root/$plugin_name/$plugin_name")" ]; then
+      printf '%s\n' "$cache_root/$plugin_name/$plugin_name"
+      return
+    fi
+  done
+  printf '%s\n' "$cache_root/trackbed/trackbed"
+}
+
 # Cache presence only: deliberately do not read Codex config.toml.
 detect_codex_plugin() {
   local codex_home
@@ -299,7 +314,7 @@ detect_codex_plugin() {
     echo "not checked (HOME and CODEX_HOME unset)"
     return
   fi
-  versions="$(cached_versions "$codex_home/plugins/cache/trackbed/trackbed")"
+  versions="$(cached_versions "$(plugin_cache_dir "$codex_home/plugins/cache")")"
   if [ -n "$versions" ]; then
     echo "installed (cached $versions)"
   else
@@ -336,7 +351,7 @@ detect_claude_plugin_cache() {
     echo "not checked (HOME, CLAUDE_CONFIG_DIR, and CLAUDE_CODE_PLUGIN_CACHE_DIR unset)"
     return
   fi
-  cache_dir="$plugins_root/cache/trackbed/trackbed"
+  cache_dir="$(plugin_cache_dir "$plugins_root/cache")"
   versions="$(cached_versions "$cache_dir")"
   if [ -z "$versions" ]; then
     echo "none"
@@ -345,7 +360,7 @@ detect_claude_plugin_cache() {
   # Registrations may belong to different scopes or projects. They do not
   # identify the copy loaded in the current session.
   if [ -r "$plugins_root/installed_plugins.json" ] && command -v jq > /dev/null 2>&1; then
-    installed_paths="$(jq -er '.plugins["trackbed@trackbed"][]? | .installPath | strings' \
+    installed_paths="$(jq -er --arg key "${cache_dir##*/}@${cache_dir##*/}" '.plugins[$key][]? | .installPath | strings' \
       "$plugins_root/installed_plugins.json" 2> /dev/null)" || installed_paths=""
   fi
   for version_dir in "$cache_dir"/*; do
@@ -597,23 +612,7 @@ detect_plugin_copy() {
 # including the KRAMME_ override name and kramme-cc-workflow/ directory that
 # releases before 1.0.0 used.
 update_check_state_file() {
-  local state_home override="${TRACKBED_UPDATE_CHECK_FILE:-${KRAMME_UPDATE_CHECK_FILE:-}}"
-  if [ -n "$override" ]; then
-    printf '%s\n' "$override"
-    return 0
-  fi
-  if [ -n "${XDG_STATE_HOME:-}" ]; then
-    state_home="$XDG_STATE_HOME"
-  elif [ -n "${HOME:-}" ]; then
-    state_home="$HOME/.local/state"
-  else
-    return 1
-  fi
-  if [ ! -f "$state_home/trackbed/update-check.json" ] && [ -f "$state_home/kramme-cc-workflow/update-check.json" ]; then
-    printf '%s\n' "$state_home/kramme-cc-workflow/update-check.json"
-  else
-    printf '%s\n' "$state_home/trackbed/update-check.json"
-  fi
+  resolve_trackbed_path "TRACKBED_UPDATE_CHECK_FILE" "XDG_STATE_HOME" ".local/state" "update-check.json"
 }
 
 # Reports the newest release the update-check hook last saw. The checker itself

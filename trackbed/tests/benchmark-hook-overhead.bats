@@ -6,6 +6,8 @@ setup() {
 	BENCHMARK_ROOT="$BATS_TEST_TMPDIR/benchmark-plugin"
 	mkdir -p "$BENCHMARK_ROOT/hooks/lib" "$BENCHMARK_ROOT/scripts"
 	cp "$HOOKS_DIR/lib/check-enabled.sh" "$BENCHMARK_ROOT/hooks/lib/check-enabled.sh"
+	mkdir -p "$BENCHMARK_ROOT/scripts/lib"
+	cp "$HOOKS_DIR/../scripts/lib/trackbed-paths.sh" "$BENCHMARK_ROOT/scripts/lib/trackbed-paths.sh"
 	cp \
 		"$BATS_TEST_DIRNAME/../scripts/benchmark-hook-overhead.sh" \
 		"$BENCHMARK_ROOT/scripts/benchmark-hook-overhead.sh"

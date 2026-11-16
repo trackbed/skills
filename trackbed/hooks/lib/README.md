@@ -8,7 +8,7 @@ cross-hook parsing and toggle behavior here.
 
 | File | Responsibility |
 | --- | --- |
-| `check-enabled.sh` | Reads the resolved hook state file, honors disabled hooks, drains stdin on disabled hooks, and optionally emits `{}` for JSON hook events. |
+| `check-enabled.sh` | Reads the resolved hook state file, honors disabled hooks, drains stdin on disabled hooks, and optionally emits `{}` for JSON hook events. Loads the state and config path resolver from [`scripts/lib/trackbed-paths.sh`](../../scripts/lib/trackbed-paths.sh). |
 | `git_command_parser.py` | Executable entry point for the command-safety parser. Holds no parsing logic; it re-exports the dispatcher from `command_safety/` so both `python3 -m git_command_parser` and the direct script path keep working. The module form is the hook-facing one and the only form that works under `PYTHONSAFEPATH=1`, because `safety-hook-parser.sh` passes an explicit `PYTHONPATH=.`. |
 | `command_safety/` | The parser itself. Handles shell wrappers, environment propagation, command substitutions, heredocs, and git subcommands, then emits JSON with allow/block details. See the module map below. |
 | `safety-hook-parser.sh` | Provides fail-closed dependency checks, hook input extraction, parser invocation, and parser-output validation for command-safety hook wrappers. |

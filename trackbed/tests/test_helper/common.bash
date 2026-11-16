@@ -132,6 +132,8 @@ _prepare_safety_hook_plugin_root() {
   rm -rf "$plugin_root"
   mkdir -p "$plugin_root/hooks/lib"
   cp "$HOOKS_DIR/lib/check-enabled.sh" "$plugin_root/hooks/lib/check-enabled.sh"
+  mkdir -p "$plugin_root/scripts/lib"
+  cp "$HOOKS_DIR/../scripts/lib/trackbed-paths.sh" "$plugin_root/scripts/lib/trackbed-paths.sh"
   if [ "$include_parser_wrapper" = "true" ]; then
     cp "$HOOKS_DIR/lib/safety-hook-parser.sh" "$plugin_root/hooks/lib/safety-hook-parser.sh"
   fi

@@ -29,7 +29,7 @@ Fetched source bodies are never repository artifacts. Do not create or commit a 
    - Exact skill name (e.g. `trackbed:code:harden-security`) → single target.
    - Glob (e.g. `trackbed:code:*`) → expand against every skills directory in the repo.
    - `all` → every skill found in the repo.
-2. Resolve the target list by globbing skill directories under (in order): `.agents/skills/`, `trackbed/skills/`, `kramme-connect-workflow/skills/`. Skip the `.claude/skills/` symlink to avoid double-counting. Deduplicate. If the list is empty, stop and report "no skills matched".
+2. Resolve the target list by globbing skill directories under (in order): `.agents/skills/`, `trackbed/skills/`. Skip the `.claude/skills/` symlink to avoid double-counting. Deduplicate. If the list is empty, stop and report "no skills matched".
 3. If the list has more than 10 skills, confirm with the user before proceeding (audits make network calls and can be slow).
 
 ## Phase 2: Collect Sources and Group by Upstream

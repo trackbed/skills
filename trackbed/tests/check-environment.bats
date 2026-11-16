@@ -597,6 +597,8 @@ assert_context_value() {
 	local copied_script="$plugin_root/skills/setup/scripts/check-environment.sh"
 	mkdir -p "${copied_script%/*}" "$plugin_root/.claude-plugin" "$plugin_root/.codex-plugin"
 	cp "$SCRIPT" "$copied_script"
+	mkdir -p "$plugin_root/scripts/lib"
+	cp "$BATS_TEST_DIRNAME/../scripts/lib/trackbed-paths.sh" "$plugin_root/scripts/lib/"
 
 	run env PATH="$FAKE_BIN" "$BASH_PATH" "$copied_script" --json
 	[ "$status" -eq 0 ]
@@ -859,6 +861,8 @@ assert_context_value() {
 	local state_file="$XDG_STATE_HOME/trackbed/update-check.json"
 	mkdir -p "${copied_script%/*}" "$plugin_root/.claude-plugin" "${state_file%/*}"
 	cp "$SCRIPT" "$copied_script"
+	mkdir -p "$plugin_root/scripts/lib"
+	cp "$BATS_TEST_DIRNAME/../scripts/lib/trackbed-paths.sh" "$plugin_root/scripts/lib/"
 	printf '{"version":"0.89.0"}\n' >"$plugin_root/.claude-plugin/plugin.json"
 
 	run env PATH="$FAKE_BIN" "$BASH_PATH" "$copied_script" --json
@@ -898,6 +902,8 @@ assert_context_value() {
 	local home_state="$BATS_TEST_TMPDIR/home/.local/state/trackbed/update-check.json"
 	mkdir -p "${copied_script%/*}" "${override%/*}" "${home_state%/*}"
 	cp "$SCRIPT" "$copied_script"
+	mkdir -p "$plugin_root/scripts/lib"
+	cp "$BATS_TEST_DIRNAME/../scripts/lib/trackbed-paths.sh" "$plugin_root/scripts/lib/"
 	printf '{"checkedAt":1793176010,"latestVersion":"0.90.0"}\n' >"$override"
 	printf '{"latestVersion":"0.91.0"}\n' >"$home_state"
 
@@ -924,6 +930,8 @@ assert_context_value() {
 	local current_state="$BATS_TEST_TMPDIR/home/.local/state/trackbed/update-check.json"
 	mkdir -p "${copied_script%/*}" "${override%/*}" "${previous_state%/*}"
 	cp "$SCRIPT" "$copied_script"
+	mkdir -p "$plugin_root/scripts/lib"
+	cp "$BATS_TEST_DIRNAME/../scripts/lib/trackbed-paths.sh" "$plugin_root/scripts/lib/"
 	printf '{"latestVersion":"0.92.0"}\n' >"$override"
 	printf '{"latestVersion":"0.93.0"}\n' >"$previous_state"
 
@@ -1119,4 +1127,28 @@ assert_context_value() {
 	chmod 755 "${managed%/*}/managed-settings.d"
 	[ "$status" -eq 0 ]
 	assert_context_value claudeAutoUpdate "unknown (managed settings fragments unreadable; check /plugin)"
+}
+
+@test "legacy caches are discovered without HOME and populated current caches take precedence" {
+	setup_all_tools_path
+	ln -sf "$REAL_JQ" "$FAKE_BIN/jq"
+	local codex_root="$BATS_TEST_TMPDIR/codex"
+	local claude_root="$BATS_TEST_TMPDIR/claude"
+	local name="kramme-cc-workflow"
+	local legacy="$claude_root/plugins/cache/$name/$name"
+	mkdir -p "$codex_root/plugins/cache/$name/$name/0.99.0" "$legacy/0.99.0"
+	mkdir -p "$codex_root/plugins/cache/trackbed/trackbed" "$claude_root/plugins/cache/trackbed/trackbed"
+	touch "$codex_root/plugins/cache/trackbed/trackbed/file-only"
+	printf '{"plugins":{"kramme-cc-workflow@kramme-cc-workflow":[{"installPath":"%s/0.99.0"}]}}\n' "$legacy" >"$claude_root/plugins/installed_plugins.json"
+
+	run env -u HOME PATH="$FAKE_BIN" CODEX_HOME="$codex_root" CLAUDE_CONFIG_DIR="$claude_root" "$BASH_PATH" "$SCRIPT" --json
+	[ "$status" -eq 0 ]
+	assert_context_value codexPlugin "installed (cached 0.99.0)"
+	assert_context_value claudePluginCache "0.99.0 (registered 0.99.0)"
+
+	mkdir -p "$codex_root/plugins/cache/trackbed/trackbed/1.0.0" "$claude_root/plugins/cache/trackbed/trackbed/1.0.0"
+	run env -u HOME PATH="$FAKE_BIN" CODEX_HOME="$codex_root" CLAUDE_CONFIG_DIR="$claude_root" "$BASH_PATH" "$SCRIPT" --json
+	[ "$status" -eq 0 ]
+	assert_context_value codexPlugin "installed (cached 1.0.0)"
+	assert_context_value claudePluginCache "1.0.0"
 }
