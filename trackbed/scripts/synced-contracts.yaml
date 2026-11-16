@@ -1848,6 +1848,7 @@
       "trackbed:test:audit": "Find low-value, brittle, obsolete, or duplicated tests and get a read-only report of what to remove, repair, or consolidate.",
       "trackbed:text:clarify": "Rewrite prose so readers can understand and act on it quickly; `--humanize` removes AI-writing patterns instead.",
       "trackbed:verify:run": "Run the project's tests, linting, formatting, builds, and type checks for affected code; `--fast` runs the quick tier.",
+      "trackbed:visual:decisions": "Gather what needs your decision, from a report, a plan, or what it finds open itself, into an offline HTML walkthrough where you record your choices.",
       "trackbed:visual:explain": "Generate a self-contained HTML page that explains a system, change, plan, or data visually; `--onboarding` builds a codebase guide.",
       "trackbed:workflow:cleanup-artifacts": "Delete disposable workflow artifacts such as review, audit, and QA reports, plans, and diagrams; `--siw` retires the `siw/` workspace.",
       "trackbed:workflow:suggest-next": "Suggest at most three trackbed commands for a task or for the artifacts in your workspace, read from the installed skills. Read-only.",
@@ -2032,7 +2033,8 @@
           "trackbed/scripts/run-skillspector.sh": 644,
           "trackbed/scripts/siw-issue-reservation.sh": 1772,
           "trackbed/scripts/skill-usage.js": 1165,
-          "trackbed/skills/session:automate-repeats/scripts/extract-metadata.py": 540
+          "trackbed/skills/session:automate-repeats/scripts/extract-metadata.py": 540,
+          "trackbed/skills/visual:decisions/assets/decisions.js": 1291
         },
         "excluded": ["trackbed/skills/pr:walkthrough/assets/d3.v7.9.0.min.js"]
       },

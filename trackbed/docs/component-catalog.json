@@ -433,6 +433,11 @@
       "path": "trackbed/skills/verify:run/SKILL.md"
     },
     {
+      "name": "trackbed:visual:decisions",
+      "invocation": "User, Auto",
+      "path": "trackbed/skills/visual:decisions/SKILL.md"
+    },
+    {
       "name": "trackbed:visual:explain",
       "invocation": "User, Auto",
       "path": "trackbed/skills/visual:explain/SKILL.md"
