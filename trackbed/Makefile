@@ -1,4 +1,4 @@
-.PHONY: lint lint-shell lint-python lint-js typecheck-python format-check pre-commit pr-verify verify test test-smoke installed-resources test-bootstrap test-bats test-bats-file test-node test-node-watch test-node-file test-python test-python-file test-verbose test-convert test-block test-format test-skill-usage test-skill-contracts test-skill-review-eval test-skill-review-live-eval coverage unit-coverage coverage-node coverage-python coverage-bats-contract check-python-static-inventory skill-contracts skill-security skill-security-changed skill-security-semantic skill-security-semantic-changed skill-eval-skill-review skill-eval-compare skillopt-candidate-check bootstrap-check bootstrap-install install-test-deps check-deps check-bats-deps check-node-deps check-python-deps check-coverage-inventory-deps check-shell-deps check-ruff-deps check-mypy-deps check-js-deps check-static-deps check-test-deps check-format-deps check-security-deps check-security-changed-deps
+.PHONY: test-walkthrough-browser test-python38-compatibility lint lint-shell lint-python lint-js typecheck-python format-check pre-commit pr-verify verify test test-smoke installed-resources test-bootstrap test-bats test-bats-file test-node test-node-watch test-node-file test-python test-python-file test-verbose test-convert test-block test-format test-skill-usage test-skill-contracts test-skill-review-eval test-skill-review-live-eval coverage unit-coverage coverage-node coverage-python coverage-bats-contract check-python-static-inventory skill-contracts skill-security skill-security-changed skill-security-semantic skill-security-semantic-changed skill-eval-skill-review skill-eval-compare skillopt-candidate-check bootstrap-check bootstrap-install install-test-deps check-deps check-bats-deps check-node-deps check-python-deps check-coverage-inventory-deps check-shell-deps check-ruff-deps check-mypy-deps check-js-deps check-static-deps check-test-deps check-format-deps check-security-deps check-security-changed-deps
 
 ROOT_DIR := $(abspath ..)
 PLUGIN_REL := $(shell basename "$(CURDIR)")
@@ -9,6 +9,7 @@ SHELLCHECK_SEVERITY ?= warning
 RUFF ?= $(call dev_tool,ruff)
 MYPY ?= $(call dev_tool,mypy)
 PRETTIER ?= $(ROOT_DIR)/node_modules/.bin/prettier
+PYTHON38 ?= python3.8
 TSC ?= $(ROOT_DIR)/node_modules/.bin/tsc
 SKILLSPECTOR_FORMAT ?= markdown
 SKILLSPECTOR_SEMANTIC_FORMAT ?= json
@@ -168,7 +169,7 @@ skill-contracts: check-python-deps
 # Default target - run all tests
 test: check-test-deps check-bats-assertions test-node test-python test-bats
 
-# Representative cross-language loop; measured locally at 8.9 seconds.
+# Representative cross-language loop; historical timings are in docs/development.md.
 test-smoke: check-test-deps test-bootstrap
 	@node --test $(SMOKE_NODE_TEST_FILES)
 	@python3 -m unittest $(SMOKE_PYTHON_TEST_FILE)
@@ -215,6 +216,16 @@ test-python: check-python-deps
 test-python-file: check-python-deps
 	@test -n "$(PYTHON_TEST_FILE)" || { echo "PYTHON_TEST_FILE is required (for example: tests/python/test_git_command_parser.py)"; exit 2; }
 	@python3 -m unittest "$(PYTHON_TEST_FILE)"
+
+# Required CI browser interaction check; missing Chrome is a failure.
+test-walkthrough-browser:
+	@command -v bats >/dev/null 2>&1 || { echo "BATS not found."; exit 1; }
+	@TRACKBED_REQUIRE_BROWSER_SMOKE=1 bats --filter '^PR walkthrough supports initial render, tab switch, search, and tour navigation$$' tests/pr-walkthrough.bats
+
+# Isolated legacy extractor compatibility, separate from the contributor floor.
+test-python38-compatibility:
+	@"$(PYTHON38)" -c 'import sys; sys.exit(0 if sys.version_info[:2] == (3, 8) else "Use Python 3.8 for this compatibility check")'
+	@"$(PYTHON38)" tests/python/test_session_search_python38.py
 
 # Verbose output (shows each test name)
 test-verbose:

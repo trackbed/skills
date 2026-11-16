@@ -104,20 +104,24 @@ jobs:
           echo "TRACKBED_BROWSER_SMOKE_CHROME=$chrome" >> "$GITHUB_ENV"
 
       - name: Run required walkthrough interactions
-        env:
-          TRACKBED_REQUIRE_BROWSER_SMOKE: "1"
-        run: >-
-          bats --filter '^PR walkthrough supports initial render, tab switch, search, and tour navigation$' trackbed/tests/pr-walkthrough.bats
-
+        run: make -C trackbed test-walkthrough-browser
 
   hooks-required:
     name: Run hook tests
     runs-on: ubuntu-latest
-    needs: [hooks, walkthrough-browser-smoke]
+    needs: [hooks, walkthrough-browser-smoke, lint, python38-compatibility]
     if: ${{ always() }}
     steps:
-      - name: Check matrix hook tests
+      - name: Check required test and static jobs
         run: |
+          if [ "${{ needs.lint.result }}" != "success" ]; then
+            echo "Static checks did not pass: ${{ needs.lint.result }}"
+            exit 1
+          fi
+          if [ "${{ needs.python38-compatibility.result }}" != "success" ]; then
+            echo "Python 3.8 compatibility did not pass: ${{ needs.python38-compatibility.result }}"
+            exit 1
+          fi
           if [ "${{ needs.hooks.result }}" != "success" ]; then
             echo "Hook test matrix did not pass: ${{ needs.hooks.result }}"
             exit 1
@@ -141,7 +145,7 @@ jobs:
           python-version: "3.8"
 
       - name: Run session-search compatibility smoke tests
-        run: python3 trackbed/tests/python/test_session_search_python38.py
+        run: make -C trackbed test-python38-compatibility PYTHON38=python3
 
   lint:
     name: Run static checks

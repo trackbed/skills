@@ -797,7 +797,7 @@ Regular branch commits should use plain-English commit messages (no Conventional
 # Read-only prerequisite check
 bash trackbed/scripts/bootstrap-dev.sh --check
 
-# Explicit macOS, Debian 12+, or Ubuntu 22.04+ setup
+# Contributor setup (Python 3.11+ and Node.js 20+)
 bash trackbed/scripts/bootstrap-dev.sh --install
 
 # Closest focused test for a documentation change
@@ -814,6 +814,12 @@ make -C trackbed test
 
 # Ordinary Pull Request gate
 make -C trackbed pr-verify
+
+# Required CI browser interactions (Chrome/Chromium and Node.js 22+)
+make -C trackbed test-walkthrough-browser
+
+# Isolated extractor compatibility (requires Python 3.8)
+make -C trackbed test-python38-compatibility
 
 # Stronger release-candidate gate
 make -C trackbed verify

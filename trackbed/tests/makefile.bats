@@ -1273,3 +1273,29 @@ JS
   [ "$status" -eq 0 ]
   [[ "$output" == *"node scripts/check-installed-resources.js"* ]] || false
 }
+
+@test "required browser target selects the interaction case and propagates failure" {
+  setup_makefile_contract_repo
+  cat >"$MAKEFILE_CONTRACT_BIN/bats" <<'SH'
+#!/bin/sh
+printf 'required=%s\narg=%s\n' "$TRACKBED_REQUIRE_BROWSER_SMOKE" "$1"
+printf 'filter=%s\nfile=%s\n' "$2" "$3"
+exit 7
+SH
+  chmod +x "$MAKEFILE_CONTRACT_BIN/bats"
+
+  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory test-walkthrough-browser
+
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"required=1"* ]] || false
+  [[ "$output" == *"arg=--filter"* ]] || false
+  [[ "$output" == *'filter=^PR walkthrough supports initial render, tab switch, search, and tour navigation$'* ]] || false
+  [[ "$output" == *"file=tests/pr-walkthrough.bats"* ]] || false
+}
+
+@test "Python 3.8 compatibility target refuses a different runtime under optimization" {
+  run env PYTHONOPTIMIZE=1 make -C "$BATS_TEST_DIRNAME/.." --no-print-directory test-python38-compatibility PYTHON38=python3
+
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"Use Python 3.8 for this compatibility check"* ]] || false
+}
