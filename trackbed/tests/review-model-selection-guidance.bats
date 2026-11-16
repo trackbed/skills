@@ -31,7 +31,7 @@ PY
 @test "every review producer loads the one shared policy" {
   local skill
   for skill in code-review convention-review github-review overengineering-review product-review review-convergence; do
-    [[ "$(cat "$ROOT/skills/pr:$skill/SKILL.md")" == *'read and apply `${CLAUDE_PLUGIN_ROOT}/shared/pr-review/references/model-selection.md`'* ]]
+    [[ "$(cat "$ROOT/skills/pr:$skill/SKILL.md")" == *'read and apply `${CLAUDE_PLUGIN_ROOT}/shared/pr-review/references/model-selection.md`'* ]] || false
     [ ! -e "$ROOT/skills/pr:$skill/references/model-selection.md" ]
   done
 }
@@ -62,46 +62,46 @@ PY
 @test "override parsing validates values without interpreting requirements or shell text" {
   local policy
   policy="$(cat "$POLICY")"
-  [[ "$policy" == *'parse `--subagent-model <model>` at most once'* ]]
-  [[ "$policy" == *'matching `[A-Za-z0-9][A-Za-z0-9._:/-]*`'* ]]
-  [[ "$policy" == *'Reject duplicate occurrences, a missing value, a following flag in place of a value, and invalid characters'* ]]
-  [[ "$policy" == *'never parse flag-shaped text in the inert requirements remainder'* ]]
-  [[ "$policy" == *'Do not evaluate or interpolate the value as shell code'* ]]
-  [[ "$policy" == *'remove the flag and its value from the remaining arguments before parsing aspects, categories, positional selectors, or Team Mode'* ]]
-  [[ "$policy" == *'flag takes precedence over conversational model preferences and the `TRACKBED_REVIEW_SUBAGENT_LEVEL` setting'* ]]
-  [[ "$policy" == *'preserve an exact model ID unchanged'* ]]
-  [[ "$policy" == *'Validate availability before repository work'* ]]
-  [[ "$policy" == *'`--subagent-model inherit` uses the orchestrator'* ]]
-  [[ "$policy" == *'bypasses the step-down ladder'* ]]
-  [[ "$(cat "$ROOT/skills/pr:code-review/SKILL.md")" == *'removing the model pair must not merge later positional aspects into an emphasis span'* ]]
+  [[ "$policy" == *'parse `--subagent-model <model>` at most once'* ]] || false
+  [[ "$policy" == *'matching `[A-Za-z0-9][A-Za-z0-9._:/-]*`'* ]] || false
+  [[ "$policy" == *'Reject duplicate occurrences, a missing value, a following flag in place of a value, and invalid characters'* ]] || false
+  [[ "$policy" == *'never parse flag-shaped text in the inert requirements remainder'* ]] || false
+  [[ "$policy" == *'Do not evaluate or interpolate the value as shell code'* ]] || false
+  [[ "$policy" == *'remove the flag and its value from the remaining arguments before parsing aspects, categories, positional selectors, or Team Mode'* ]] || false
+  [[ "$policy" == *'flag takes precedence over conversational model preferences and the `TRACKBED_REVIEW_SUBAGENT_LEVEL` setting'* ]] || false
+  [[ "$policy" == *'preserve an exact model ID unchanged'* ]] || false
+  [[ "$policy" == *'Validate availability before repository work'* ]] || false
+  [[ "$policy" == *'`--subagent-model inherit` uses the orchestrator'* ]] || false
+  [[ "$policy" == *'bypasses the step-down ladder'* ]] || false
+  [[ "$(cat "$ROOT/skills/pr:code-review/SKILL.md")" == *'removing the model pair must not merge later positional aspects into an emphasis span'* ]] || false
 }
 
 @test "level environment setting chooses step-down or same-level reviewers" {
   local policy
   policy="$(cat "$POLICY")"
-  [[ "$policy" == *'read the `TRACKBED_REVIEW_SUBAGENT_LEVEL` environment variable'* ]]
-  [[ "$policy" == *'Accept `lower` or `same` case-insensitively after trimming whitespace; unset or empty means `same`'* ]]
-  [[ "$policy" == *'Reject any other value before repository work and report `Expected TRACKBED_REVIEW_SUBAGENT_LEVEL=lower|same.`'* ]]
-  [[ "$policy" == *'`same`, the default, keeps review subagents on the orchestrator'* ]]
-  [[ "$policy" == *'`lower` opts into the step-down ladder below'* ]]
-  [[ "$policy" == *'When `SUBAGENT_MODEL_LEVEL` is `lower`, select one class lower within the same provider'* ]]
-  [[ "$policy" == *'otherwise honor a conversational reviewer-model choice; otherwise follow `SUBAGENT_MODEL_LEVEL`: `same` uses the orchestrator'*'and `lower` applies the ladder in step 3'* ]]
-  [[ "$policy" == *'do not convert the setting into a forwarded `--subagent-model` flag'* ]]
+  [[ "$policy" == *'read the `TRACKBED_REVIEW_SUBAGENT_LEVEL` environment variable'* ]] || false
+  [[ "$policy" == *'Accept `lower` or `same` case-insensitively after trimming whitespace; unset or empty means `same`'* ]] || false
+  [[ "$policy" == *'Reject any other value before repository work and report `Expected TRACKBED_REVIEW_SUBAGENT_LEVEL=lower|same.`'* ]] || false
+  [[ "$policy" == *'`same`, the default, keeps review subagents on the orchestrator'* ]] || false
+  [[ "$policy" == *'`lower` opts into the step-down ladder below'* ]] || false
+  [[ "$policy" == *'When `SUBAGENT_MODEL_LEVEL` is `lower`, select one class lower within the same provider'* ]] || false
+  [[ "$policy" == *'otherwise honor a conversational reviewer-model choice; otherwise follow `SUBAGENT_MODEL_LEVEL`: `same` uses the orchestrator'*'and `lower` applies the ladder in step 3'* ]] || false
+  [[ "$policy" == *'do not convert the setting into a forwarded `--subagent-model` flag'* ]] || false
 }
 
 @test "non-review roles share the model controls without changing review defaults or duplicating the ladder" {
   local policy
   policy="$(cat "$POLICY")"
-  [[ "$policy" == *'## Non-Review Subagent Roles'* ]]
-  [[ "$policy" == *'**Lens or scan agents**'* ]]
-  [[ "$policy" == *'**Recon or exploration agents**'* ]]
-  [[ "$policy" == *'**Drafting agents**'* ]]
-  [[ "$policy" == *'**Filter or validator agents**'* ]]
-  [[ "$policy" == *'It changes nothing for review subagents'* ]]
-  [[ "$policy" == *'`same` remains the default for every role'* ]]
-  [[ "$policy" == *'a role never steps down twice'* ]]
-  [[ "$policy" == *'any agent that edits files, commits, or applies fixes'* ]]
-  [[ "$policy" == *'explicit different-provider or cross-model modes'* ]]
+  [[ "$policy" == *'## Non-Review Subagent Roles'* ]] || false
+  [[ "$policy" == *'**Lens or scan agents**'* ]] || false
+  [[ "$policy" == *'**Recon or exploration agents**'* ]] || false
+  [[ "$policy" == *'**Drafting agents**'* ]] || false
+  [[ "$policy" == *'**Filter or validator agents**'* ]] || false
+  [[ "$policy" == *'It changes nothing for review subagents'* ]] || false
+  [[ "$policy" == *'`same` remains the default for every role'* ]] || false
+  [[ "$policy" == *'a role never steps down twice'* ]] || false
+  [[ "$policy" == *'any agent that edits files, commits, or applies fixes'* ]] || false
+  [[ "$policy" == *'explicit different-provider or cross-model modes'* ]] || false
   run python3 - "$POLICY" <<'PY'
 from pathlib import Path
 import re
@@ -116,48 +116,48 @@ PY
 @test "wrappers and reruns forward the override without changing requirements or adversarial models" {
   local policy team skill
   policy="$(cat "$POLICY")"
-  [[ "$policy" == *'Insert it before `--requirements` when that sentinel is present'* ]]
-  [[ "$policy" == *'Do not place it inside the requirements block or append it after the sentinel'* ]]
-  [[ "$(cat "$ROOT/skills/pr:github-review/SKILL.md")" == *'include `--subagent-model <model>` in both the code-review and product-review invocations'* ]]
-  [[ "$(cat "$ROOT/skills/pr:code-review/references/closeout-loop.md")" == *'Restore `--subagent-model <model>` from a non-empty `SUBAGENT_MODEL_OVERRIDE` in every nested review invocation; preserve explicit `inherit` as well'* ]]
+  [[ "$policy" == *'Insert it before `--requirements` when that sentinel is present'* ]] || false
+  [[ "$policy" == *'Do not place it inside the requirements block or append it after the sentinel'* ]] || false
+  [[ "$(cat "$ROOT/skills/pr:github-review/SKILL.md")" == *'include `--subagent-model <model>` in both the code-review and product-review invocations'* ]] || false
+  [[ "$(cat "$ROOT/skills/pr:code-review/references/closeout-loop.md")" == *'Restore `--subagent-model <model>` from a non-empty `SUBAGENT_MODEL_OVERRIDE` in every nested review invocation; preserve explicit `inherit` as well'* ]] || false
   for skill in code-review product-review; do
     team="$(cat "$ROOT/skills/pr:$skill/references/team-mode.md")"
-    [[ "$team" == *'Preserve `SUBAGENT_MODEL_OVERRIDE` from startup parsing'* ]]
+    [[ "$team" == *'Preserve `SUBAGENT_MODEL_OVERRIDE` from startup parsing'* ]] || false
   done
   policy="$(cat "$ROOT/skills/pr:review-convergence/references/review-convergence.md")"
-  [[ "$policy" == *'forward `--subagent-model <model>` to every code-review, convention-review, and overengineering-review invocation, including reruns, validation-only mode, and bounded-stop validation'* ]]
-  [[ "$policy" == *'keep the requirements remainder byte-for-byte unchanged'* ]]
-  [[ "$policy" == *'`--adversarial-model` controls that gate independently'* ]]
+  [[ "$policy" == *'forward `--subagent-model <model>` to every code-review, convention-review, and overengineering-review invocation, including reruns, validation-only mode, and bounded-stop validation'* ]] || false
+  [[ "$policy" == *'keep the requirements remainder byte-for-byte unchanged'* ]] || false
+  [[ "$policy" == *'`--adversarial-model` controls that gate independently'* ]] || false
 }
 
 @test "team and loop entry points preserve the reviewer selection" {
   local skill
   for skill in code-review product-review; do
-    [[ "$(cat "$ROOT/skills/pr:$skill/references/team-mode.md")" == *'selected reviewer model for every teammate and later validation spawn'* ]]
+    [[ "$(cat "$ROOT/skills/pr:$skill/references/team-mode.md")" == *'selected reviewer model for every teammate and later validation spawn'* ]] || false
   done
-  [[ "$(cat "$ROOT/skills/pr:code-review/references/closeout-loop.md")" == *'for review reruns and the independent termination verifier'* ]]
-  [[ "$(cat "$POLICY")" == *"Do not step down again from a review subagent's model"* ]]
+  [[ "$(cat "$ROOT/skills/pr:code-review/references/closeout-loop.md")" == *'for review reruns and the independent termination verifier'* ]] || false
+  [[ "$(cat "$POLICY")" == *"Do not step down again from a review subagent's model"* ]] || false
 }
 
 @test "model policy sets launch parameters and handles Codex fork constraints" {
   local policy
   policy="$(cat "$POLICY")"
-  [[ "$policy" == *'Set the actual agent-launch `model` parameter on every spawn'* ]]
-  [[ "$policy" == *'pass the selected model to `spawn_agent`'* ]]
-  [[ "$policy" == *'use `fork_turns="none"` or a supported bounded fork'* ]]
-  [[ "$policy" == *'include the complete review mission, frozen scope, applicable conventions, and required review contracts'* ]]
-  [[ "$policy" == *'Preserve the current reasoning effort when supported'* ]]
+  [[ "$policy" == *'Set the actual agent-launch `model` parameter on every spawn'* ]] || false
+  [[ "$policy" == *'pass the selected model to `spawn_agent`'* ]] || false
+  [[ "$policy" == *'use `fork_turns="none"` or a supported bounded fork'* ]] || false
+  [[ "$policy" == *'include the complete review mission, frozen scope, applicable conventions, and required review contracts'* ]] || false
+  [[ "$policy" == *'Preserve the current reasoning effort when supported'* ]] || false
 }
 
 @test "model policy preserves explicit choices and reports unsupported defaults" {
   local policy
   policy="$(cat "$POLICY")"
-  [[ "$policy" == *'Honor an explicit user model choice for review subagents over these defaults'* ]]
-  [[ "$policy" == *'trusted session/runtime metadata'* ]]
-  [[ "$policy" == *'If the active class is unknown, the selected step-down model is unavailable, or the host cannot select a subagent model'* ]]
-  [[ "$policy" == *"retain the host's inherited/default behavior and report the limitation once"* ]]
-  [[ "$policy" == *'If an explicit user model choice cannot be honored, report that blocker'* ]]
-  [[ "$policy" == *'Explicit different-provider adversarial reviews retain their own provider/model policy'* ]]
+  [[ "$policy" == *'Honor an explicit user model choice for review subagents over these defaults'* ]] || false
+  [[ "$policy" == *'trusted session/runtime metadata'* ]] || false
+  [[ "$policy" == *'If the active class is unknown, the selected step-down model is unavailable, or the host cannot select a subagent model'* ]] || false
+  [[ "$policy" == *"retain the host's inherited/default behavior and report the limitation once"* ]] || false
+  [[ "$policy" == *'If an explicit user model choice cannot be honored, report that blocker'* ]] || false
+  [[ "$policy" == *'Explicit different-provider adversarial reviews retain their own provider/model policy'* ]] || false
 }
 
 @test "review wrappers preserve orchestrator class and forward explicit reviewer choices" {
@@ -166,8 +166,8 @@ PY
     "$ROOT/skills/pr:github-review/SKILL.md" \
     "$ROOT/skills/pr:review-convergence/references/review-convergence.md"; do
     text="$(cat "$file")"
-    [[ "$text" == *"Keep delegated review orchestrators on this session's model"* ]]
-    [[ "$text" == *'do not lower the orchestrator first and cause a second step-down'* ]]
-    [[ "$text" == *'Forward any explicit user reviewer-model choice with the review handoff'* ]]
+    [[ "$text" == *"Keep delegated review orchestrators on this session's model"* ]] || false
+    [[ "$text" == *'do not lower the orchestrator first and cause a second step-down'* ]] || false
+    [[ "$text" == *'Forward any explicit user reviewer-model choice with the review handoff'* ]] || false
   done
 }

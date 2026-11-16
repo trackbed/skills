@@ -87,7 +87,7 @@ count_invocations() {
 	run "$SCRIPT" --changed --base main --output-dir "$REPORT_DIR"
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"No changed skill directories found against main"* ]]
+	[[ "$output" == *"No changed skill directories found against main"* ]] || false
 	[ "$(count_invocations)" = "0" ]
 }
 
@@ -95,16 +95,16 @@ count_invocations() {
 	run env PATH="/usr/bin:/bin" BASE_REF=HEAD make -C "$REPO/trackbed" --no-print-directory skill-security-changed
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"No changed skill directories found against HEAD."* ]]
+	[[ "$output" == *"No changed skill directories found against HEAD."* ]] || false
 }
 
 @test "changed scan explains a base ref it cannot resolve" {
 	run "$SCRIPT" --changed --base origin/does-not-exist --output-dir "$REPORT_DIR"
 
 	[ "$status" -eq 2 ]
-	[[ "$output" == *"Cannot resolve a merge base between 'origin/does-not-exist' and HEAD."* ]]
-	[[ "$output" == *"git fetch origin main"* ]]
-	[[ "$output" != *"fatal:"* ]]
+	[[ "$output" == *"Cannot resolve a merge base between 'origin/does-not-exist' and HEAD."* ]] || false
+	[[ "$output" == *"git fetch origin main"* ]] || false
+	[[ "$output" != *"fatal:"* ]] || false
 	[ "$(count_invocations)" = "0" ]
 }
 
@@ -315,7 +315,7 @@ NODE
 	run -127 env PATH="/usr/bin:/bin:/usr/sbin:/sbin" "$SCRIPT" --all --output-dir "$REPORT_DIR"
 
 	[ "$status" -eq 127 ]
-	[[ "$output" == *"SkillSpector scanner not found on PATH"* ]]
+	[[ "$output" == *"SkillSpector scanner not found on PATH"* ]] || false
 }
 
 @test "scanner process failure exits non-zero" {
@@ -325,7 +325,7 @@ NODE
 	run "$SCRIPT" --all --output-dir "$REPORT_DIR"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"SkillSpector scan failed"* ]]
+	[[ "$output" == *"SkillSpector scan failed"* ]] || false
 }
 
 @test "high threshold fails when JSON report contains a high finding" {
@@ -334,7 +334,7 @@ NODE
 	run "$SCRIPT" --all --fail-on high --output-dir "$REPORT_DIR"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Findings meet --fail-on high threshold"* ]]
+	[[ "$output" == *"Findings meet --fail-on high threshold"* ]] || false
 }
 
 @test "matching accepted finding is excluded from threshold failure" {
@@ -357,9 +357,9 @@ NODE
 	run "$SCRIPT" --changed --base main --fail-on high --output-dir "$REPORT_DIR"
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"Accepted findings:"*"/trackbed/config/skillspector-accepted-findings.json"* ]]
-	[[ "$output" == *"Findings: total=1 accepted=1 enforceable=0"* ]]
-	[[ "$output" != *"Findings meet --fail-on high threshold"* ]]
+	[[ "$output" == *"Accepted findings:"*"/trackbed/config/skillspector-accepted-findings.json"* ]] || false
+	[[ "$output" == *"Findings: total=1 accepted=1 enforceable=0"* ]] || false
+	[[ "$output" != *"Findings meet --fail-on high threshold"* ]] || false
 }
 
 @test "same rule on a different path is not accepted" {
@@ -382,8 +382,8 @@ NODE
 	run "$SCRIPT" --changed --base main --fail-on high --accepted-findings "$policy_file" --output-dir "$REPORT_DIR"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Findings: total=1 accepted=0 enforceable=1"* ]]
-	[[ "$output" == *"Findings meet --fail-on high threshold"* ]]
+	[[ "$output" == *"Findings: total=1 accepted=0 enforceable=1"* ]] || false
+	[[ "$output" == *"Findings meet --fail-on high threshold"* ]] || false
 }
 
 @test "different rule on the same path is not accepted" {
@@ -406,8 +406,8 @@ NODE
 	run "$SCRIPT" --changed --base main --fail-on high --accepted-findings "$policy_file" --output-dir "$REPORT_DIR"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Findings: total=1 accepted=0 enforceable=1"* ]]
-	[[ "$output" == *"Findings meet --fail-on high threshold"* ]]
+	[[ "$output" == *"Findings: total=1 accepted=0 enforceable=1"* ]] || false
+	[[ "$output" == *"Findings meet --fail-on high threshold"* ]] || false
 }
 
 @test "accepted finding policy requires review metadata" {
@@ -426,9 +426,9 @@ NODE
 	run "$SCRIPT" --all --accepted-findings "$policy_file" --output-dir "$REPORT_DIR"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Accepted-findings policy is invalid"* ]]
-	[[ "$output" == *"accepted_findings[0].owner is required"* ]]
-	[[ "$output" == *"accepted_findings[0] requires expires_at or review_after"* ]]
+	[[ "$output" == *"Accepted-findings policy is invalid"* ]] || false
+	[[ "$output" == *"accepted_findings[0].owner is required"* ]] || false
+	[[ "$output" == *"accepted_findings[0] requires expires_at or review_after"* ]] || false
 	[ "$(count_invocations)" = "0" ]
 }
 
@@ -439,7 +439,7 @@ NODE
 	run "$SCRIPT" --changed --base main --accepted-findings "$policy_file" --output-dir "$REPORT_DIR"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Accepted-findings policy is not valid JSON"* ]]
+	[[ "$output" == *"Accepted-findings policy is not valid JSON"* ]] || false
 	[ "$(count_invocations)" = "0" ]
 }
 
@@ -461,8 +461,8 @@ NODE
 	run "$SCRIPT" --all --fail-on high --accepted-findings "$policy_file" --output-dir "$REPORT_DIR"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Accepted-findings policy contains expired entries"* ]]
-	[[ "$output" == *"expired accepted finding: trackbed/skills/kramme:one/SKILL.md E4 expired on 2000-01-01"* ]]
+	[[ "$output" == *"Accepted-findings policy contains expired entries"* ]] || false
+	[[ "$output" == *"expired accepted finding: trackbed/skills/kramme:one/SKILL.md E4 expired on 2000-01-01"* ]] || false
 	[ "$(count_invocations)" = "0" ]
 }
 
@@ -485,8 +485,8 @@ NODE
 	run "$SCRIPT" --all --accepted-findings "$policy_file" --output-dir "$REPORT_DIR"
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"WARNING: expired accepted finding: trackbed/skills/kramme:one/SKILL.md E4 expired on 2000-01-01"* ]]
-	[[ "$output" == *"Findings: total=1 accepted=0 enforceable=1"* ]]
+	[[ "$output" == *"WARNING: expired accepted finding: trackbed/skills/kramme:one/SKILL.md E4 expired on 2000-01-01"* ]] || false
+	[[ "$output" == *"Findings: total=1 accepted=0 enforceable=1"* ]] || false
 }
 
 @test "review_after due accepted finding warns in advisory mode and does not accept" {
@@ -508,8 +508,8 @@ NODE
 	run "$SCRIPT" --all --accepted-findings "$policy_file" --output-dir "$REPORT_DIR"
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"WARNING: expired accepted finding: trackbed/skills/kramme:one/SKILL.md E4 expired on 2000-01-01"* ]]
-	[[ "$output" == *"Findings: total=1 accepted=0 enforceable=1"* ]]
+	[[ "$output" == *"WARNING: expired accepted finding: trackbed/skills/kramme:one/SKILL.md E4 expired on 2000-01-01"* ]] || false
+	[[ "$output" == *"Findings: total=1 accepted=0 enforceable=1"* ]] || false
 }
 
 @test "primary markdown format writes markdown and json reports" {
@@ -541,9 +541,9 @@ SH
 	mock_discovery_failure diff
 	run "$SCRIPT" --changed --base main --output-dir "$REPORT_DIR"
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"fixture discovery error: diff"* ]]
-	[[ "$output" == *"Changed-skill discovery failed"* ]]
-	[[ "$output" != *"No changed skill directories found"* ]]
+	[[ "$output" == *"fixture discovery error: diff"* ]] || false
+	[[ "$output" == *"Changed-skill discovery failed"* ]] || false
+	[[ "$output" != *"No changed skill directories found"* ]] || false
 	[ "$(count_invocations)" = 0 ]
 }
 
@@ -552,9 +552,9 @@ SH
 	mock_discovery_failure ls-files
 	run "$SCRIPT" --changed --base main --output-dir "$REPORT_DIR"
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"fixture discovery error: ls-files"* ]]
-	[[ "$output" == *"Changed-skill discovery failed"* ]]
-	[[ "$output" != *"No changed skill directories found"* ]]
+	[[ "$output" == *"fixture discovery error: ls-files"* ]] || false
+	[[ "$output" == *"Changed-skill discovery failed"* ]] || false
+	[[ "$output" != *"No changed skill directories found"* ]] || false
 	[ "$(count_invocations)" = 0 ]
 }
 
@@ -572,14 +572,14 @@ write_expired_policy() {
 	run "$SCRIPT" --changed --base main --fail-on high --accepted-findings "$TMP_DIR/expired.json" --output-dir "$REPORT_DIR"
 	[ "$status" -eq 0 ]
 	[ "$(count_invocations)" = 1 ]
-	[[ "$output" != *"expired accepted finding"* ]]
+	[[ "$output" != *"expired accepted finding"* ]] || false
 }
 
 @test "expired acceptance does not block an empty changed set" {
 	write_expired_policy
 	run "$SCRIPT" --changed --base main --fail-on high --accepted-findings "$TMP_DIR/expired.json" --output-dir "$REPORT_DIR"
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"No changed skill directories found"* ]]
+	[[ "$output" == *"No changed skill directories found"* ]] || false
 	[ "$(count_invocations)" = 0 ]
 }
 
@@ -588,7 +588,7 @@ write_expired_policy() {
 	printf 'edit\n' >>trackbed/skills/kramme:one/SKILL.md
 	run "$SCRIPT" --changed --base main --fail-on high --accepted-findings "$TMP_DIR/expired.json" --output-dir "$REPORT_DIR"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"expired accepted finding: trackbed/skills/kramme:one/SKILL.md E4 expired on 2000-01-01"* ]]
+	[[ "$output" == *"expired accepted finding: trackbed/skills/kramme:one/SKILL.md E4 expired on 2000-01-01"* ]] || false
 	[ "$(count_invocations)" = 0 ]
 }
 

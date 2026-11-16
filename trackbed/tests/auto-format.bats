@@ -197,7 +197,7 @@ EOF
 		printf '%s\n' 'original' >"$allowed_path"
 		run run_format_hook "$TEST_DIR/$allowed_path"
 		[ "$status" -eq 0 ]
-		[[ "$output" == *'Formatted with Biome:'* ]]
+		[[ "$output" == *'Formatted with Biome:'* ]] || false
 		grep -q 'formatted-by-biome' "$allowed_path"
 	done
 	[ "$(wc -l <"$FORMATTER_LOG")" -eq 2 ]
@@ -243,7 +243,7 @@ EOF
 	[ "$status" -eq 0 ]
 	has_system_message
 	# Either formatted with global tool or no formatter
-	[[ "$output" == *'Formatted'* ]] || [[ "$output" == *'No formatter'* ]]
+	[[ "$output" == *'Formatted'* ]] || [[ "$output" == *'No formatter'* ]] || false
 }
 
 @test "stores detection cache under XDG_CACHE_HOME" {
@@ -274,7 +274,7 @@ EOF
 	printf '%s\n' 'original' >src/components/App.tsx
 	run run_format_hook "$TEST_DIR/src/components/App.tsx"
 	[ "$status" -eq 0 ]
-	[[ "$output" == *'Formatted with Biome:'* ]]
+	[[ "$output" == *'Formatted with Biome:'* ]] || false
 	[ "$(cat "$FORMATTER_LOG")" = $'biome\t'"$TEST_DIR"$'\tformat --write '"$TEST_DIR/src/components/App.tsx" ]
 	grep -q 'formatted-by-biome' src/components/App.tsx
 }
@@ -317,7 +317,7 @@ EOF
 	run run_format_hook "$TEST_DIR/test.js"
 	[ "$status" -eq 0 ]
 	has_system_message
-	[[ "$output" == *'Formatted (CLAUDE.md:'* ]]
+	[[ "$output" == *'Formatted (CLAUDE.md:'* ]] || false
 }
 
 @test "uses CLAUDE.md formatter directive" {
@@ -327,7 +327,7 @@ EOF
 	run run_format_hook "$TEST_DIR/test.ts"
 	[ "$status" -eq 0 ]
 	has_system_message
-	[[ "$output" == *'Formatted (CLAUDE.md:'* ]]
+	[[ "$output" == *'Formatted (CLAUDE.md:'* ]] || false
 }
 
 @test "reports CLAUDE.md command failure" {
@@ -337,7 +337,7 @@ EOF
 	run run_format_hook "$TEST_DIR/test.js"
 	[ "$status" -eq 0 ]
 	has_system_message
-	[[ "$output" == *'failed'* ]]
+	[[ "$output" == *'failed'* ]] || false
 }
 
 @test "blocks CLAUDE.md formatter with shell metacharacters" {
@@ -347,7 +347,7 @@ EOF
 	run run_format_hook "$TEST_DIR/test.js"
 	[ "$status" -eq 0 ]
 	has_system_message
-	[[ "$output" == *'Format command failed (CLAUDE.md:'* ]]
+	[[ "$output" == *'Format command failed (CLAUDE.md:'* ]] || false
 }
 
 @test "allows CLAUDE.md formatter with brace expansion" {
@@ -357,7 +357,7 @@ EOF
 	run run_format_hook "$TEST_DIR/test.js"
 	[ "$status" -eq 0 ]
 	has_system_message
-	[[ "$output" == *'Formatted (CLAUDE.md:'* ]]
+	[[ "$output" == *'Formatted (CLAUDE.md:'* ]] || false
 }
 
 @test "allows CLAUDE.md formatter with environment variable expansion" {
@@ -368,7 +368,7 @@ EOF
 	run run_format_hook "$TEST_DIR/test.js"
 	[ "$status" -eq 0 ]
 	has_system_message
-	[[ "$output" == *'Formatted (CLAUDE.md:'* ]]
+	[[ "$output" == *'Formatted (CLAUDE.md:'* ]] || false
 }
 
 @test "blocks CLAUDE.md formatter with command substitution" {
@@ -378,7 +378,7 @@ EOF
 	run run_format_hook "$TEST_DIR/test.js"
 	[ "$status" -eq 0 ]
 	has_system_message
-	[[ "$output" == *'Format command failed (CLAUDE.md:'* ]]
+	[[ "$output" == *'Format command failed (CLAUDE.md:'* ]] || false
 }
 
 @test "skips untrusted CLAUDE.md format command and falls through" {
@@ -389,8 +389,8 @@ EOF
 	has_system_message
 	has_no_formatter
 	[ ! -f untrusted.marker ]
-	[[ "$output" == *'CLAUDE.md formatter not run'* ]]
-	[[ "$output" == *"$TRACKBED_AUTOFORMAT_TRUST_FILE"* ]]
+	[[ "$output" == *'CLAUDE.md formatter not run'* ]] || false
+	[[ "$output" == *"$TRACKBED_AUTOFORMAT_TRUST_FILE"* ]] || false
 }
 
 @test "skips CLAUDE.md format command when trust file lists different root" {
@@ -402,7 +402,7 @@ EOF
 	has_system_message
 	has_no_formatter
 	[ ! -f wrong-root.marker ]
-	[[ "$output" == *'CLAUDE.md formatter not run'* ]]
+	[[ "$output" == *'CLAUDE.md formatter not run'* ]] || false
 }
 
 @test "skips npm format script after untrusted CLAUDE.md directive" {
@@ -417,7 +417,7 @@ EOF
 	has_no_formatter
 	[ ! -f claude-format.marker ]
 	[ ! -f npm-format.marker ]
-	[[ "$output" == *'CLAUDE.md formatter not run'* ]]
+	[[ "$output" == *'CLAUDE.md formatter not run'* ]] || false
 }
 
 @test "cached untrusted directive cannot become a matching npm script" {
@@ -430,13 +430,13 @@ EOF
 	run run_format_hook "$TEST_DIR/test.xyz"
 	[ "$status" -eq 0 ]
 	has_no_formatter
-	[[ "$output" == *'CLAUDE.md formatter not run'* ]]
+	[[ "$output" == *'CLAUDE.md formatter not run'* ]] || false
 	[ ! -f cached-directive.marker ]
 
 	run run_format_hook "$TEST_DIR/test.xyz"
 	[ "$status" -eq 0 ]
 	has_no_formatter
-	[[ "$output" == *'CLAUDE.md formatter not run'* ]]
+	[[ "$output" == *'CLAUDE.md formatter not run'* ]] || false
 	[ ! -f cached-directive.marker ]
 }
 
@@ -449,13 +449,13 @@ EOF
 
 	run run_format_hook "$TEST_DIR/test.js"
 	[ "$status" -eq 0 ]
-	[[ "$output" == *'Formatted (CLAUDE.md:'* ]]
+	[[ "$output" == *'Formatted (CLAUDE.md:'* ]] || false
 	[ -f "$marker" ]
 	rm "$marker"
 
 	run run_format_hook "$TEST_DIR/test.js"
 	[ "$status" -eq 0 ]
-	[[ "$output" == *'Formatted (CLAUDE.md:'* ]]
+	[[ "$output" == *'Formatted (CLAUDE.md:'* ]] || false
 	[ -f "$marker" ]
 }
 
@@ -472,8 +472,8 @@ EOF
 	[ "$status" -eq 0 ]
 	has_system_message
 	[ -f trusted.marker ]
-	[[ "$output" == *'Formatted (CLAUDE.md:'* ]]
-	[[ "$output" != *'CLAUDE.md formatter not run'* ]]
+	[[ "$output" == *'Formatted (CLAUDE.md:'* ]] || false
+	[[ "$output" != *'CLAUDE.md formatter not run'* ]] || false
 }
 
 @test "does not append CLAUDE.md trust notice when no directive exists" {
@@ -482,7 +482,7 @@ EOF
 	[ "$status" -eq 0 ]
 	has_system_message
 	has_no_formatter
-	[[ "$output" != *'CLAUDE.md formatter not run'* ]]
+	[[ "$output" != *'CLAUDE.md formatter not run'* ]] || false
 }
 
 # ============================================================================
@@ -531,9 +531,9 @@ EOF
 	run run_format_hook "$TEST_DIR/test.ts"
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *'Formatted with Biome:'* ]]
+	[[ "$output" == *'Formatted with Biome:'* ]] || false
 	[ "$(wc -l <"$FORMATTER_LOG")" -eq 1 ]
-	[[ "$(cat "$FORMATTER_LOG")" == biome* ]]
+	[[ "$(cat "$FORMATTER_LOG")" == biome* ]] || false
 }
 
 @test "tries Prettier after Biome fails" {
@@ -548,7 +548,7 @@ EOF
 	run run_format_hook "$TEST_DIR/test.ts"
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *'Formatted with Prettier:'* ]]
+	[[ "$output" == *'Formatted with Prettier:'* ]] || false
 	[ "$(sed -n '1p' "$FORMATTER_LOG")" = "biome format --write $TEST_DIR/test.ts" ]
 	[ "$(sed -n '2p' "$FORMATTER_LOG")" = "prettier --write $TEST_DIR/test.ts" ]
 }
@@ -566,9 +566,9 @@ EOF
 
 	[ "$status" -eq 0 ]
 	has_formatter_failure
-	[[ "$output" != *'No formatter'* ]]
-	[[ "$output" == *'Biome'* ]]
-	[[ "$output" == *'Prettier'* ]]
+	[[ "$output" != *'No formatter'* ]] || false
+	[[ "$output" == *'Biome'* ]] || false
+	[[ "$output" == *'Prettier'* ]] || false
 }
 
 @test "debug mode retains bounded private formatter stderr without leaking it to JSON" {
@@ -598,8 +598,8 @@ EOF
 	[ "$status" -eq 0 ]
 	assert_valid_json
 	has_formatter_failure
-	[[ "$output" == *"$debug_log"* ]]
-	[[ "$output" != *'hostile'* ]]
+	[[ "$output" == *"$debug_log"* ]] || false
+	[[ "$output" != *'hostile'* ]] || false
 	[ -f "$debug_log" ]
 	[ "$(wc -c <"$debug_log")" -le 65536 ]
 	grep -q 'hostile' "$debug_log"
@@ -622,7 +622,7 @@ EOF
 	[ "$status" -eq 0 ]
 	assert_valid_json
 	has_formatter_failure
-	[[ "$output" != *'known fake formatter error'* ]]
+	[[ "$output" != *'known fake formatter error'* ]] || false
 	[ ! -e "$(formatter_debug_log_file)" ]
 }
 
@@ -647,7 +647,7 @@ EOF
 	[ "$status" -eq 0 ]
 	assert_valid_json
 	has_formatter_failure
-	[[ "$output" != *'Formatter diagnostics:'* ]]
+	[[ "$output" != *'Formatter diagnostics:'* ]] || false
 	[ ! -e "$(formatter_debug_log_file)" ]
 }
 
@@ -674,7 +674,7 @@ EOF
 
 	[ "$status" -eq 0 ]
 	assert_valid_json
-	[[ "$output" == *'Formatted with Prettier:'* ]]
+	[[ "$output" == *'Formatted with Prettier:'* ]] || false
 	grep -q 'formatted-by-prettier' test.js
 	[ "$(wc -l <"$FORMATTER_LOG")" -eq 1 ]
 }
@@ -695,8 +695,8 @@ EOF
 
 	[ "$status" -eq 0 ]
 	assert_valid_json
-	[[ "$output" == *'Formatted with Prettier:'* ]]
-	[[ "$output" == *"$(formatter_debug_log_file)"* ]]
+	[[ "$output" == *'Formatted with Prettier:'* ]] || false
+	[[ "$output" == *"$(formatter_debug_log_file)"* ]] || false
 	grep -q 'biome failed safely' "$(formatter_debug_log_file)"
 	[ -z "$(find "$(dirname "$(formatter_cache_file)")" -name '.*.formatter-error.*' -print)" ]
 }
@@ -731,7 +731,7 @@ EOF
 	assert_valid_json
 	has_formatter_failure
 	grep -q 'prettier failure evidence' "$debug_log"
-	! grep -q 'biome failure evidence' "$debug_log"
+	! grep -q 'biome failure evidence' "$debug_log" || false
 	[ -z "$(find "$(dirname "$debug_log")" -name '.*.formatter-error.*' -print)" ]
 }
 
@@ -903,7 +903,7 @@ EOF
 	run run_format_hook "$TEST_DIR/test.xyz"
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *'Formatted with npm run format'* ]]
+	[[ "$output" == *'Formatted with npm run format'* ]] || false
 	[ "$(sed -n '1p' "$FORMATTER_LOG")" = "nx format:write --files=test.xyz" ]
 	[ "$(sed -n '2p' "$FORMATTER_LOG")" = "npm run format" ]
 }
@@ -941,7 +941,7 @@ EOF
 	touch test.js
 	run run_format_hook "$TEST_DIR/test.js"
 	[ "$status" -eq 0 ]
-	[[ "$output" == *'Formatted with Prettier:'* ]]
+	[[ "$output" == *'Formatted with Prettier:'* ]] || false
 
 	: >"$FORMATTER_LOG"
 	echo '{}' >package.json
@@ -949,7 +949,7 @@ EOF
 	run run_format_hook "$TEST_DIR/test.js"
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *'Formatted with Prettier:'* ]]
+	[[ "$output" == *'Formatted with Prettier:'* ]] || false
 	[ "$(wc -l <"$FORMATTER_LOG")" -eq 1 ]
 }
 
@@ -970,7 +970,7 @@ EOF
 	# Second run - should detect the change
 	run run_format_hook "$TEST_DIR/test.js"
 	[ "$status" -eq 0 ]
-	[[ "$output" == *'Formatted with Biome:'* ]]
+	[[ "$output" == *'Formatted with Biome:'* ]] || false
 	[ "$(cat "$FORMATTER_LOG")" = $'biome\t'"$TEST_DIR"$'\tformat --write '"$TEST_DIR/test.js" ]
 	grep -q 'formatted-by-biome' test.js
 }
@@ -999,7 +999,7 @@ EOF
 
 	[ "$status" -eq 0 ]
 	assert_valid_json
-	[[ "$output" == *'Format command failed'* ]]
+	[[ "$output" == *'Format command failed'* ]] || false
 	[ ! -e newline-first ]
 	[ ! -e newline-second ]
 	[ ! -e newline-firstnnewline-second ]
@@ -1051,7 +1051,7 @@ EOF
 	[ "$status" -eq 0 ]
 	has_system_message
 	# Should NOT mention Prettier (that's at the Node root)
-	[[ "$output" != *"Prettier"* ]]
+	[[ "$output" != *"Prettier"* ]] || false
 }
 
 @test "nested Python project gets its own project root" {
@@ -1071,7 +1071,7 @@ EOF
 	[ "$status" -eq 0 ]
 	has_system_message
 	# Should NOT mention Prettier
-	[[ "$output" != *"Prettier"* ]]
+	[[ "$output" != *"Prettier"* ]] || false
 }
 
 @test "file without nested config uses parent project root" {
@@ -1140,6 +1140,6 @@ EOF
 	run run_format_hook "$TEST_DIR/test.js"
 	[ "$status" -eq 0 ]
 	assert_valid_json
-	[[ "$output" == *'Format command failed'* ]]
-	[[ "$output" == *'not real'* ]]
+	[[ "$output" == *'Format command failed'* ]] || false
+	[[ "$output" == *'not real'* ]] || false
 }

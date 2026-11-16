@@ -68,7 +68,7 @@ JAVASCRIPT_BROWSER_ASSETS = $(filter-out \
 	$(wildcard skills/*/assets/*.js shared/*/assets/*.js))
 
 # Keep ShellCheck warning-clean by default so new shell risks stay visible.
-lint: lint-shell lint-python lint-js skill-contracts
+lint: lint-shell lint-python lint-js skill-contracts check-bats-assertions
 
 lint-shell: check-shell-deps
 	@"$(SHELLCHECK)" --severity=$(SHELLCHECK_SEVERITY) $(SHELLCHECK_FILES)
@@ -166,7 +166,7 @@ skill-contracts: check-python-deps
 	@python3 scripts/lint-skill-contracts.py
 
 # Default target - run all tests
-test: check-test-deps test-node test-python test-bats
+test: check-test-deps check-bats-assertions test-node test-python test-bats
 
 # Representative cross-language loop; measured locally at 8.9 seconds.
 test-smoke: check-test-deps test-bootstrap
@@ -178,8 +178,13 @@ test-smoke: check-test-deps test-bootstrap
 test-bootstrap: check-bats-deps
 	@bats $(BOOTSTRAP_BATS_TEST_FILE)
 
+# Reject Bash 3.2 assertions whose failures can be hidden by later commands.
+.PHONY: check-bats-assertions
+check-bats-assertions: check-python-deps
+	@python3 tests/test_helper/check_bats_assertions.py
+
 # Run all Bats integration tests
-test-bats: check-bats-deps
+test-bats: check-bats-deps check-bats-assertions
 	@./tests/run-tests.sh
 
 # Run one Bats integration test file.

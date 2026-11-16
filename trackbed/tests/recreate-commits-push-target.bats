@@ -103,7 +103,7 @@ add_fork_remote() {
 	run "$SCRIPT" --original-tip "$original_tip" --base-branch main
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"remaps it to 'refs/remotes/origin/review/feature'"* ]]
+	[[ "$output" == *"remaps it to 'refs/remotes/origin/review/feature'"* ]] || false
 }
 
 @test "rejects fetched upstream commits missing from the local original tip" {
@@ -124,7 +124,7 @@ add_fork_remote() {
 	run "$SCRIPT" --original-tip "$original_tip" --base-branch main
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"contains commits absent from the local original tip"* ]]
+	[[ "$output" == *"contains commits absent from the local original tip"* ]] || false
 }
 
 @test "explicit push target ignores wildcard configured push refspecs" {
@@ -156,7 +156,7 @@ add_fork_remote() {
 
 	[ "$(git --git-dir="$REMOTE" rev-parse refs/heads/victim)" = "$victim_remote_before" ]
 	[ "$(git --git-dir="$REMOTE" rev-parse refs/heads/feature)" = "$(git rev-parse HEAD)" ]
-	! git --git-dir="$REMOTE" show-ref --verify --quiet refs/tags/release-candidate
+	! git --git-dir="$REMOTE" show-ref --verify --quiet refs/tags/release-candidate || false
 }
 
 @test "returns an empty target for a branch without a remote upstream" {
@@ -182,7 +182,7 @@ add_fork_remote() {
 	run "$SCRIPT" --original-tip "$original_tip" --base-branch main
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"branch.feature.remote' is present but empty"* ]]
+	[[ "$output" == *"branch.feature.remote' is present but empty"* ]] || false
 }
 
 @test "fails closed when upstream config cannot be read" {
@@ -204,7 +204,7 @@ GIT
 	run env PATH="$bin_dir:$PATH" REAL_GIT="$real_git" "$SCRIPT" --original-tip "$original_tip" --base-branch main
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Could not read Git configuration 'branch.feature.remote'"* ]]
+	[[ "$output" == *"Could not read Git configuration 'branch.feature.remote'"* ]] || false
 }
 
 @test "rejects an upstream that targets the base branch" {
@@ -215,7 +215,7 @@ GIT
 	run "$SCRIPT" --original-tip "$original_tip" --base-branch main
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"targets the base branch 'main'"* ]]
+	[[ "$output" == *"targets the base branch 'main'"* ]] || false
 }
 
 @test "rejects incomplete upstream configuration instead of treating it as local-only" {
@@ -226,7 +226,7 @@ GIT
 	run "$SCRIPT" --original-tip "$original_tip" --base-branch main
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"upstream configuration for 'feature' is incomplete"* ]]
+	[[ "$output" == *"upstream configuration for 'feature' is incomplete"* ]] || false
 }
 
 @test "rejects remotes with multiple push destinations" {
@@ -240,7 +240,7 @@ GIT
 	run "$SCRIPT" --original-tip "$original_tip" --base-branch main
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"must resolve to exactly one push URL"* ]]
+	[[ "$output" == *"must resolve to exactly one push URL"* ]] || false
 }
 
 @test "rejects a branch tip that changed after backup creation" {
@@ -252,5 +252,5 @@ GIT
 	run "$SCRIPT" --original-tip "$original_tip" --base-branch main
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"current tip changed after backup creation"* ]]
+	[[ "$output" == *"current tip changed after backup creation"* ]] || false
 }

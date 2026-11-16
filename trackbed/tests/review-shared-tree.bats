@@ -78,8 +78,8 @@ EOF
   run env REAL_GIT="$real_git" PATH="$fake_bin:$PATH" "$FINGERPRINT"
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"HEAD changed during manifest capture"* ]]
-  [[ "$output" != *$'@head\t'* ]]
+  [[ "$output" == *"HEAD changed during manifest capture"* ]] || false
+  [[ "$output" != *$'@head\t'* ]] || false
 }
 
 @test "fingerprint fails without metadata when either path collection command fails" {
@@ -101,8 +101,8 @@ EOF
     run env FAIL_COMMAND="$failing_command" REAL_GIT="$real_git" PATH="$fake_bin:$PATH" "$FINGERPRINT"
 
     [ "$status" -eq 1 ]
-    [[ "$output" == *"could not capture working-tree paths"* ]]
-    [[ "$output" != *$'@head\t'* ]]
+    [[ "$output" == *"could not capture working-tree paths"* ]] || false
+    [[ "$output" != *$'@head\t'* ]] || false
   done
 }
 
@@ -115,7 +115,7 @@ EOF
 
   [ "$status" -eq 0 ]
   [ "$output" != "$before" ]
-  [[ "$output" == *"tracked.txt"* ]]
+  [[ "$output" == *"tracked.txt"* ]] || false
 }
 
 @test "fingerprint detects a file created during the review" {
@@ -124,7 +124,7 @@ EOF
   run "$FINGERPRINT"
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *"added.txt"* ]]
+  [[ "$output" == *"added.txt"* ]] || false
 }
 
 @test "fingerprint describes an untracked symlink without confusing metadata and paths" {
@@ -133,8 +133,8 @@ EOF
   run "$FINGERPRINT"
 
   [ "$status" -eq 0 ]
-  [[ "$output" == $'@head\t'"$(git rev-parse HEAD)"$'\n'* ]]
-  [[ "$output" == *$'symlink:tracked.txt\tlinked.txt'* ]]
+  [[ "$output" == $'@head\t'"$(git rev-parse HEAD)"$'\n'* ]] || false
+  [[ "$output" == *$'symlink:tracked.txt\tlinked.txt'* ]] || false
 }
 
 @test "fingerprint marks a deleted tracked file as absent" {
@@ -143,7 +143,7 @@ EOF
   run "$FINGERPRINT"
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *"absent"$'\t'"tracked.txt"* ]]
+  [[ "$output" == *"absent"$'\t'"tracked.txt"* ]] || false
 }
 
 @test "fingerprint ignores build output and other ignored paths" {
@@ -167,20 +167,20 @@ EOF
   from_nested="$(cd nested && "$FINGERPRINT")"
 
   [ "$from_root" = "$from_nested" ]
-  [[ "$from_root" == *"added.txt"* ]]
+  [[ "$from_root" == *"added.txt"* ]] || false
 }
 
 @test "fingerprint rejects unknown arguments and non-repository directories" {
   run "$FINGERPRINT" --digest
   [ "$status" -eq 2 ]
-  [[ "$output" == *"unknown argument"* ]]
+  [[ "$output" == *"unknown argument"* ]] || false
 
   cd "$TMP_DIR"
   mkdir -p outside
   cd outside
   run "$FINGERPRINT"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"not inside a git working tree"* ]]
+  [[ "$output" == *"not inside a git working tree"* ]] || false
 }
 
 @test "review discipline documents the shared working tree constraint" {
@@ -205,8 +205,8 @@ EOF
   grep -qF 'stop without writing `REVIEW_OVERVIEW.md`' "$SKILL"
   grep -qF 'apply the mutation handling in the `Shared working tree` section of `references/review-discipline.md`' "$SKILL"
   grep -qF "stop without writing \`REVIEW_OVERVIEW.md\` and report the mutation instead" "$SKILL"
-  ! grep -qF 'No reviewer may create, edit, delete, move, or rename files' "$SKILL"
-  ! grep -qF 'never revert or clean them' "$SKILL"
+  ! grep -qF 'No reviewer may create, edit, delete, move, or rename files' "$SKILL" || false
+  ! grep -qF 'never revert or clean them' "$SKILL" || false
 }
 
 @test "team mode carries the same read-only mandate and integrity check" {
@@ -217,7 +217,7 @@ EOF
   grep -qF "TREE_MANIFEST_AFTER" "$TEAM_MODE"
   grep -qF 'compare the `@head` metadata records before interpreting path differences' "$TEAM_MODE"
   grep -qF 'discard every finding from the stale batch' "$TEAM_MODE"
-  ! grep -qF 'no creating, editing, deleting, moving, or renaming files' "$TEAM_MODE"
+  ! grep -qF 'no creating, editing, deleting, moving, or renaming files' "$TEAM_MODE" || false
 }
 
 @test "output template can report a mutated working tree" {

@@ -43,8 +43,8 @@ create_reserved_fixture_issue() {
   owner_a="$(sh "$ISSUE_DEFINE_RESERVATION_HELPER" new-owner)"
   owner_b="$(sh "$GENERATE_PHASES_RESERVATION_HELPER" new-owner)"
   [ "$owner_a" != "$owner_b" ]
-  [[ "$owner_a" =~ ^[a-z0-9-]+$ ]]
-  [[ "$owner_b" =~ ^[a-z0-9-]+$ ]]
+  [[ "$owner_a" =~ ^[a-z0-9-]+$ ]] || false
+  [[ "$owner_b" =~ ^[a-z0-9-]+$ ]] || false
 
   sh "$ISSUE_DEFINE_RESERVATION_HELPER" acquire "$siw_dir" "$owner_a" 1
   issue_id="$(sh "$ISSUE_DEFINE_RESERVATION_HELPER" reserve "$siw_dir" G "$owner_a" 1)"
@@ -69,8 +69,8 @@ EOF
 
   run env PATH="$mock_bin:$PATH" SIW_RESERVATION_RETRY_DELAY=0 sh "$GENERATE_PHASES_RESERVATION_HELPER" acquire "$siw_dir" "$owner_b" 2
   [ "$status" -ne 0 ]
-  [[ "$output" == *'publication is owned by another writer'* ]]
-  [[ "$output" != *"$owner_a"* ]]
+  [[ "$output" == *'publication is owned by another writer'* ]] || false
+  [[ "$output" != *"$owner_a"* ]] || false
   [ ! -e "$hash_log" ]
   [ "$(sed -n '1p' "$siw_dir/.issue-publication.lock")" = "$owner_a" ]
   [ "$(cat "$siw_dir/.issue-id-reservations/ISSUE-$issue_id")" = "$owner_a" ]
@@ -96,8 +96,8 @@ EOF
   run env SIW_RESERVATION_RETRY_DELAY=0 sh "$ISSUE_DEFINE_RESERVATION_HELPER" acquire "$siw_dir" owner-a 1
 
   [ "$status" -ne 0 ]
-  [[ "$output" == *'publication lock is not a regular ownership claim'* ]]
-  [[ "$output" != *'owner-a'* ]]
+  [[ "$output" == *'publication lock is not a regular ownership claim'* ]] || false
+  [[ "$output" != *'owner-a'* ]] || false
   [ -d "$siw_dir/.issue-publication.lock" ]
 }
 
@@ -158,16 +158,16 @@ EOF
   sh "$ISSUE_DEFINE_RESERVATION_HELPER" acquire "$siw_dir" owner-a 1
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" reserve "$siw_dir" P12x owner-a 5
   [ "$status" -ne 0 ]
-  [[ "$output" == *'issue prefix must be G or P followed by a positive phase number'* ]]
+  [[ "$output" == *'issue prefix must be G or P followed by a positive phase number'* ]] || false
   issue_id="$(sh "$ISSUE_DEFINE_RESERVATION_HELPER" reserve "$siw_dir" G owner-a 5)"
   [ "$issue_id" = G-001 ]
 
   run sh "$GENERATE_PHASES_RESERVATION_HELPER" abandon "$siw_dir" "$issue_id" owner-b
   [ "$status" -ne 0 ]
-  [[ "$output" == *'reservation belongs to a different owner'* ]]
+  [[ "$output" == *'reservation belongs to a different owner'* ]] || false
   run sh "$GENERATE_PHASES_RESERVATION_HELPER" release-publication "$siw_dir" owner-a
   [ "$status" -ne 0 ]
-  [[ "$output" == *'release or abandon owned issue reservations'* ]]
+  [[ "$output" == *'release or abandon owned issue reservations'* ]] || false
 
   sh "$ISSUE_DEFINE_RESERVATION_HELPER" abandon "$siw_dir" "$issue_id" owner-a
   issue_id="$(sh "$ISSUE_DEFINE_RESERVATION_HELPER" reserve-exact "$siw_dir" G-010 owner-a)"
@@ -183,7 +183,7 @@ EOF
 
   run sh "$GENERATE_PHASES_RESERVATION_HELPER" abandon "$siw_dir" "$issue_id" owner-b
   [ "$status" -ne 0 ]
-  [[ "$output" == *'cannot abandon G-001 after its issue file exists'* ]]
+  [[ "$output" == *'cannot abandon G-001 after its issue file exists'* ]] || false
   printf '| %s | recovered | READY |\n' "$issue_id" >>"$siw_dir/OPEN_ISSUES_OVERVIEW.md"
   printf -- '- Created %s: recovered\n' "$issue_id" >>"$siw_dir/LOG.md"
   sh "$GENERATE_PHASES_RESERVATION_HELPER" publish-receipt "$siw_dir" owner-b "$issue_id"
@@ -230,10 +230,10 @@ EOF
 
   run sh "$GENERATE_PHASES_RESERVATION_HELPER" reserve-exact "$siw_dir" G-002 owner-a
   [ "$status" -ne 0 ]
-  [[ "$output" == *'exact issue ID is already reserved: G-002'* ]]
+  [[ "$output" == *'exact issue ID is already reserved: G-002'* ]] || false
   run sh "$GENERATE_PHASES_RESERVATION_HELPER" abandon "$siw_dir" G-001 owner-a
   [ "$status" -ne 0 ]
-  [[ "$output" == *'cannot abandon G-001 after its issue file exists'* ]]
+  [[ "$output" == *'cannot abandon G-001 after its issue file exists'* ]] || false
 
   sh "$GENERATE_PHASES_RESERVATION_HELPER" release "$siw_dir" G-001 owner-a
   sh "$GENERATE_PHASES_RESERVATION_HELPER" release-publication "$siw_dir" owner-a
@@ -256,24 +256,24 @@ EOF
 
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" acquire "$siw_dir" owner-a 1
   [ "$status" -ne 0 ]
-  [[ "$output" == *'ownership claim is not a regular file'* ]]
+  [[ "$output" == *'ownership claim is not a regular file'* ]] || false
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" release-publication "$siw_dir" owner-a
   [ "$status" -ne 0 ]
-  [[ "$output" == *'ownership claim is not a regular file'* ]]
+  [[ "$output" == *'ownership claim is not a regular file'* ]] || false
   [ -f "$siw_dir/.issue-publication.lock" ]
 
   rmdir "$reservation_dir"
   : >"$reservation_root/ISSUE-G-999"
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" release-publication "$siw_dir" owner-a
   [ "$status" -ne 0 ]
-  [[ "$output" == *'ownership claim has an empty token'* ]]
+  [[ "$output" == *'ownership claim has an empty token'* ]] || false
   [ -f "$siw_dir/.issue-publication.lock" ]
 
   unlink "$reservation_root/ISSUE-G-999"
   ln -s "$TMP_ROOT/missing-reservation" "$reservation_root/ISSUE-G-998"
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" release-publication "$siw_dir" owner-a
   [ "$status" -ne 0 ]
-  [[ "$output" == *'ownership claim must not be a symlink'* ]]
+  [[ "$output" == *'ownership claim must not be a symlink'* ]] || false
   [ -f "$siw_dir/.issue-publication.lock" ]
 
   unlink "$reservation_root/ISSUE-G-998"
@@ -281,7 +281,7 @@ EOF
   ln -s "$TMP_ROOT/external-reservations" "$reservation_root"
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" reserve "$siw_dir" G owner-a 1
   [ "$status" -ne 0 ]
-  [[ "$output" == *'reservation root must not be a symlink'* ]]
+  [[ "$output" == *'reservation root must not be a symlink'* ]] || false
   [ -z "$(find "$TMP_ROOT/external-reservations" -mindepth 1 -print -quit)" ]
 }
 
@@ -300,7 +300,7 @@ EOF
   chmod 700 "$reservation_root"
 
   [ "$status" -ne 0 ]
-  [[ "$output" == *'could not enumerate directory'* ]]
+  [[ "$output" == *'could not enumerate directory'* ]] || false
   [ ! -e "$reservation_root/ISSUE-G-001" ]
   [ "$(cat "$reservation_root/ISSUE-G-010")" = $'owner-a\nsame-key' ]
 
@@ -319,7 +319,7 @@ EOF
 
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" acquire "$siw_dir" owner-a 1
   [ "$status" -ne 0 ]
-  [[ "$output" == *'issue path is not a regular file'* ]]
+  [[ "$output" == *'issue path is not a regular file'* ]] || false
   [ ! -e "$siw_dir/.issue-publication.lock" ]
 
   unlink "$issue_link"
@@ -329,12 +329,12 @@ EOF
   ln -s "$TMP_ROOT/missing-issue" "$issue_link"
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" reserve "$siw_dir" G owner-a 1 issue-create
   [ "$status" -ne 0 ]
-  [[ "$output" == *'issue path is not a regular file'* ]]
+  [[ "$output" == *'issue path is not a regular file'* ]] || false
   [ ! -e "$siw_dir/.issue-id-reservations/ISSUE-G-002" ]
 
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" abandon "$siw_dir" "$issue_id" owner-a
   [ "$status" -ne 0 ]
-  [[ "$output" == *'issue path is not a regular file'* ]]
+  [[ "$output" == *'issue path is not a regular file'* ]] || false
   [ -f "$reservation_claim" ]
 
   unlink "$issue_link"
@@ -344,11 +344,11 @@ EOF
   printf '# ISSUE-G-001: second\n' >"$second_issue_path"
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" reserve "$siw_dir" G owner-a 1 duplicate-check
   [ "$status" -ne 0 ]
-  [[ "$output" == *'multiple issue files exist for G-001'* ]]
+  [[ "$output" == *'multiple issue files exist for G-001'* ]] || false
   [ ! -e "$siw_dir/.issue-id-reservations/ISSUE-G-002" ]
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" release "$siw_dir" "$issue_id" owner-a
   [ "$status" -ne 0 ]
-  [[ "$output" == *'multiple issue files exist for G-001'* ]]
+  [[ "$output" == *'multiple issue files exist for G-001'* ]] || false
   [ -f "$reservation_claim" ]
 
   unlink "$first_issue_path"
@@ -371,7 +371,7 @@ EOF
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" release-publication "$siw_dir" owner-a
   chmod 700 "$reservation_root"
   [ "$status" -ne 0 ]
-  [[ "$output" == *'could not enumerate directory'* ]]
+  [[ "$output" == *'could not enumerate directory'* ]] || false
   [ -f "$siw_dir/.issue-publication.lock" ]
   [ -f "$reservation_root/ISSUE-$issue_id" ]
   sh "$ISSUE_DEFINE_RESERVATION_HELPER" abandon "$siw_dir" "$issue_id" owner-a
@@ -389,7 +389,7 @@ EOF
   run sh "$GENERATE_PHASES_RESERVATION_HELPER" reserve "$siw_dir" G owner-b 1
   chmod 700 "$siw_dir/issues"
   [ "$status" -ne 0 ]
-  [[ "$output" == *'could not enumerate directory'* ]]
+  [[ "$output" == *'could not enumerate directory'* ]] || false
   set -- "$reservation_root"/ISSUE-*
   [ ! -e "$1" ]
   sh "$GENERATE_PHASES_RESERVATION_HELPER" release-publication "$siw_dir" owner-b
@@ -435,7 +435,7 @@ EOF
   printf '# ISSUE-%s: receipt crash\n' "$issue_id" >"$siw_dir/issues/ISSUE-$issue_id-receipt-crash.md"
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" publish-receipt "$siw_dir" owner-a "$issue_id"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"overview does not reference $issue_id"* ]]
+  [[ "$output" == *"overview does not reference $issue_id"* ]] || false
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" release "$siw_dir" "$issue_id" owner-a
   [ "$status" -ne 0 ]
   [ -f "$reservation_claim" ]
@@ -444,7 +444,7 @@ EOF
   printf '| %s | receipt crash | READY |\n' "$issue_id" >>"$siw_dir/OPEN_ISSUES_OVERVIEW.md"
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" publish-receipt "$siw_dir" owner-a "$issue_id"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"log does not reference $issue_id"* ]]
+  [[ "$output" == *"log does not reference $issue_id"* ]] || false
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" release "$siw_dir" "$issue_id" owner-a
   [ "$status" -ne 0 ]
   [ -f "$reservation_claim" ]
@@ -453,7 +453,7 @@ EOF
   printf -- '- Created %s: receipt crash\n' "$issue_id" >>"$siw_dir/LOG.md"
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" release "$siw_dir" "$issue_id" owner-a
   [ "$status" -ne 0 ]
-  [[ "$output" == *'publication receipt is required'* ]]
+  [[ "$output" == *'publication receipt is required'* ]] || false
   [ -f "$reservation_claim" ]
   [ -f "$siw_dir/.issue-publication.lock" ]
 
@@ -473,7 +473,7 @@ EOF
   unlink "$siw_dir/.issue-publication.lock"
   run sh "$GENERATE_PHASES_RESERVATION_HELPER" release-publication "$siw_dir" owner-b
   [ "$status" -ne 0 ]
-  [[ "$output" == *'publication receipt belongs to a different owner'* ]]
+  [[ "$output" == *'publication receipt belongs to a different owner'* ]] || false
   [ -f "$receipt_file" ]
   sh "$GENERATE_PHASES_RESERVATION_HELPER" release-publication "$siw_dir" owner-a
   sh "$GENERATE_PHASES_RESERVATION_HELPER" release-publication "$siw_dir" owner-a
@@ -509,13 +509,13 @@ EOF
 
   run sh "$GENERATE_PHASES_RESERVATION_HELPER" release-publication "$siw_dir" owner-a
   [ "$status" -ne 0 ]
-  [[ "$output" == *'publication receipt is required before ownership can be released'* ]]
+  [[ "$output" == *'publication receipt is required before ownership can be released'* ]] || false
   [ -f "$siw_dir/.issue-publication.lock" ]
 
   printf '# ISSUE-G-001: original\n' >"$issue_path"
   run sh "$GENERATE_PHASES_RESERVATION_HELPER" release-publication "$siw_dir" owner-a
   [ "$status" -ne 0 ]
-  [[ "$output" == *'publication receipt is required before ownership can be released'* ]]
+  [[ "$output" == *'publication receipt is required before ownership can be released'* ]] || false
 
   sh "$ISSUE_DEFINE_RESERVATION_HELPER" publish-receipt "$siw_dir" owner-a
   sh "$GENERATE_PHASES_RESERVATION_HELPER" verify-receipt "$siw_dir" owner-a
@@ -526,7 +526,7 @@ EOF
   sh "$ISSUE_DEFINE_RESERVATION_HELPER" acquire "$siw_dir" owner-b 1
   run sh "$GENERATE_PHASES_RESERVATION_HELPER" publish-receipt "$siw_dir" owner-b
   [ "$status" -ne 0 ]
-  [[ "$output" == *'publish-receipt requires at least one issue ID for non-legacy publication'* ]]
+  [[ "$output" == *'publish-receipt requires at least one issue ID for non-legacy publication'* ]] || false
   sh "$GENERATE_PHASES_RESERVATION_HELPER" release-publication "$siw_dir" owner-b
 }
 
@@ -553,7 +553,7 @@ EOF
   printf 'owner-b\nexact-G-002\n' >"$second_claim"
   run sh "$GENERATE_PHASES_RESERVATION_HELPER" release-batch "$siw_dir" owner-a $issue_ids
   [ "$status" -ne 0 ]
-  [[ "$output" == *'reservation belongs to a different owner'* ]]
+  [[ "$output" == *'reservation belongs to a different owner'* ]] || false
   [ -f "$first_claim" ]
   [ -f "$second_claim" ]
   [ -f "$third_claim" ]
@@ -561,7 +561,7 @@ EOF
   printf 'owner-a\nexact-G-002\n' >"$second_claim"
   run sh "$GENERATE_PHASES_RESERVATION_HELPER" release-batch "$siw_dir" owner-a G-001 ISSUE-G-001
   [ "$status" -ne 0 ]
-  [[ "$output" == *'release contains duplicate issue ID: G-001'* ]]
+  [[ "$output" == *'release contains duplicate issue ID: G-001'* ]] || false
   [ -f "$first_claim" ]
   [ -f "$second_claim" ]
   [ -f "$third_claim" ]
@@ -593,7 +593,7 @@ EOF
   printf -- '- Updated %s: later partial edit\n' "$issue_id" >>"$siw_dir/LOG.md"
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" verify-receipt "$siw_dir" owner-a "$issue_id"
   [ "$status" -ne 0 ]
-  [[ "$output" == *'publication receipt does not match the current log'* ]]
+  [[ "$output" == *'publication receipt does not match the current log'* ]] || false
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" release "$siw_dir" "$issue_id" owner-a
   [ "$status" -ne 0 ]
   [ -f "$receipt_file" ]
@@ -604,7 +604,7 @@ EOF
   printf 'malformed\n' >"$receipt_file"
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" verify-receipt "$siw_dir" owner-a "$issue_id"
   [ "$status" -ne 0 ]
-  [[ "$output" == *'publication receipt has an invalid version record'* ]]
+  [[ "$output" == *'publication receipt has an invalid version record'* ]] || false
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" release "$siw_dir" "$issue_id" owner-a
   [ "$status" -ne 0 ]
   [ -f "$reservation_claim" ]
@@ -614,7 +614,7 @@ EOF
   printf 'unterminated' >>"$receipt_file"
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" verify-receipt "$siw_dir" owner-a "$issue_id"
   [ "$status" -ne 0 ]
-  [[ "$output" == *'publication receipt has an invalid issue record'* ]]
+  [[ "$output" == *'publication receipt has an invalid issue record'* ]] || false
   [ -f "$reservation_claim" ]
   [ -f "$siw_dir/.issue-publication.lock" ]
 
@@ -640,7 +640,7 @@ EOF
 
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" release-publication "$siw_dir" owner-a
   [ "$status" -ne 0 ]
-  [[ "$output" == *'publication receipt is required because SIW state changed'* ]]
+  [[ "$output" == *'publication receipt is required because SIW state changed'* ]] || false
   [ -f "$siw_dir/.issue-publication.lock" ]
 
   sh "$ISSUE_DEFINE_RESERVATION_HELPER" publish-receipt "$siw_dir" owner-a "$issue_id"
@@ -662,10 +662,10 @@ EOF
 
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" publish-receipt "$siw_dir" owner-a
   [ "$status" -ne 0 ]
-  [[ "$output" == *'publication receipt omits owned reservation: G-001'* ]]
+  [[ "$output" == *'publication receipt omits owned reservation: G-001'* ]] || false
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" abandon "$siw_dir" G-001 owner-a
   [ "$status" -ne 0 ]
-  [[ "$output" == *'cannot abandon a legacy reservation without a trustworthy publication baseline'* ]]
+  [[ "$output" == *'cannot abandon a legacy reservation without a trustworthy publication baseline'* ]] || false
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" release-publication "$siw_dir" owner-a
   [ "$status" -ne 0 ]
   [ -f "$reservation_claim" ]
@@ -694,15 +694,15 @@ EOF
 
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" publish-receipt "$siw_dir" owner-a "$issue_id"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"issue file heading does not identify $issue_id"* ]]
+  [[ "$output" == *"issue file heading does not identify $issue_id"* ]] || false
   printf '# ISSUE-%s: exact views\n' "$issue_id" >"$issue_path"
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" publish-receipt "$siw_dir" owner-a "$issue_id"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"overview does not reference $issue_id in an issue row"* ]]
+  [[ "$output" == *"overview does not reference $issue_id in an issue row"* ]] || false
   printf '# Open Issues\n| %s | exact views | READY |\n' "$issue_id" >"$siw_dir/OPEN_ISSUES_OVERVIEW.md"
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" publish-receipt "$siw_dir" owner-a "$issue_id"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"log does not reference $issue_id in a publication entry"* ]]
+  [[ "$output" == *"log does not reference $issue_id in a publication entry"* ]] || false
 
   printf '# Log\n- Created %s: exact views\n' "$issue_id" >"$siw_dir/LOG.md"
   sh "$ISSUE_DEFINE_RESERVATION_HELPER" publish-receipt "$siw_dir" owner-a "$issue_id"
@@ -725,7 +725,7 @@ EOF
 
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" publish-receipt "$siw_dir" owner-a G-001
   [ "$status" -ne 0 ]
-  [[ "$output" == *'publication receipt issue ID is reserved by a different owner: G-001'* ]]
+  [[ "$output" == *'publication receipt issue ID is reserved by a different owner: G-001'* ]] || false
   [ -f "$reservation_claim" ]
   [ -f "$siw_dir/.issue-publication.lock" ]
 }
@@ -745,7 +745,7 @@ EOF
   printf '# Log\n- Created G-001: original one\n- Created G-002: original two\n- Updated G-001: title\n' >"$siw_dir/LOG.md"
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" publish-receipt "$siw_dir" owner-a G-002
   [ "$status" -ne 0 ]
-  [[ "$output" == *'publication receipt omits changed issue ID: G-001'* ]]
+  [[ "$output" == *'publication receipt omits changed issue ID: G-001'* ]] || false
   [ ! -e "$siw_dir/.issue-publication.receipt" ]
 
   sh "$ISSUE_DEFINE_RESERVATION_HELPER" publish-receipt "$siw_dir" owner-a G-001
@@ -767,7 +767,7 @@ EOF
 
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" publish-receipt "$siw_dir" owner-a G-001
   [ "$status" -ne 0 ]
-  [[ "$output" == *'overview issue row changed without a new log publication entry: G-001'* ]]
+  [[ "$output" == *'overview issue row changed without a new log publication entry: G-001'* ]] || false
   [ ! -e "$siw_dir/.issue-publication.receipt" ]
   [ -f "$siw_dir/.issue-publication.lock" ]
 
@@ -797,14 +797,14 @@ EOF
 
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" publish-receipt "$siw_dir" owner-a G-001
   [ "$status" -ne 0 ]
-  [[ "$output" == *'overview changed without a canonical issue-row change'* ]]
+  [[ "$output" == *'overview changed without a canonical issue-row change'* ]] || false
   [ ! -e "$siw_dir/.issue-publication.receipt" ]
 
   printf '# Open Issues\nProtected overview text.\n| G-001 | changed | READY |\n' >"$siw_dir/OPEN_ISSUES_OVERVIEW.md"
   printf '# Log\nProtected log text.\n- Created G-001: original\n- Updated G-001: title\nUnrelated log mutation.\n' >"$siw_dir/LOG.md"
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" publish-receipt "$siw_dir" owner-a G-001
   [ "$status" -ne 0 ]
-  [[ "$output" == *'log changed without a recognized publication entry'* ]]
+  [[ "$output" == *'log changed without a recognized publication entry'* ]] || false
   [ ! -e "$siw_dir/.issue-publication.receipt" ]
 
   printf '# Log\nProtected log text.\n- Created G-001: original\n- Updated G-001: title\n' >"$siw_dir/LOG.md"
@@ -849,7 +849,7 @@ EOF
 
   run sh "$GENERATE_PHASES_RESERVATION_HELPER" publish-receipt "$siw_dir" owner-a P1-001
   [ "$status" -ne 0 ]
-  [[ "$output" == *'publication receipt omits changed issue ID:'* ]]
+  [[ "$output" == *'publication receipt omits changed issue ID:'* ]] || false
   [ ! -e "$siw_dir/.issue-publication.receipt" ]
 
   sh "$GENERATE_PHASES_RESERVATION_HELPER" publish-receipt "$siw_dir" owner-a P1-001 G-001 G-002
@@ -880,7 +880,7 @@ EOF
   printf '\nUnrelated overview edit.\n' >>"$siw_dir/OPEN_ISSUES_OVERVIEW.md"
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" publish-receipt "$siw_dir" owner-b G-001
   [ "$status" -ne 0 ]
-  [[ "$output" == *'overview changed without a canonical issue-row change'* ]]
+  [[ "$output" == *'overview changed without a canonical issue-row change'* ]] || false
   [ ! -e "$siw_dir/.issue-publication.receipt" ]
   [ -f "$siw_dir/.issue-publication.lock" ]
 }
@@ -941,14 +941,14 @@ EOF
   : >"$siw_dir/.issue-publication.lock"
   run env SIW_RESERVATION_RETRY_DELAY=0 sh "$ISSUE_DEFINE_RESERVATION_HELPER" acquire "$siw_dir" owner-a 1
   [ "$status" -ne 0 ]
-  [[ "$output" == *'ownership claim has an empty token'* ]]
-  [[ "$output" != *'owned by another writer'* ]]
+  [[ "$output" == *'ownership claim has an empty token'* ]] || false
+  [[ "$output" != *'owned by another writer'* ]] || false
 
   printf 'owner-a\n' >"$siw_dir/.issue-publication.lock"
   mkdir -p "$reservation_root/ISSUE-G-999"
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" reserve "$siw_dir" G owner-a 1 malformed-check
   [ "$status" -ne 0 ]
-  [[ "$output" == *'ownership claim is not a regular file'* ]]
+  [[ "$output" == *'ownership claim is not a regular file'* ]] || false
   set -- "$reservation_root"/ISSUE-G-*
   [ "$#" -eq 1 ]
   [ "$1" = "$reservation_root/ISSUE-G-999" ]
@@ -1006,7 +1006,7 @@ EOF
   [ "$output" = $'draft-P1-001 P1-001\ndraft-P1-002 P1-002' ]
 
   [ "$(find "$siw_dir/.issue-id-reservations" -name 'ISSUE-*' -type f | wc -l | tr -d ' ')" -eq 3 ]
-  ! grep -q 'sed ' "$ISSUE_DEFINE_RESERVATION_HELPER"
+  ! grep -qE '(^|[^[:alnum:]_])sed[[:space:]]' "$ISSUE_DEFINE_RESERVATION_HELPER" || false
   sh "$ISSUE_DEFINE_RESERVATION_HELPER" abandon "$siw_dir" G-001 owner-a
   sh "$ISSUE_DEFINE_RESERVATION_HELPER" abandon "$siw_dir" P1-001 owner-a
   sh "$ISSUE_DEFINE_RESERVATION_HELPER" abandon "$siw_dir" P1-002 owner-a
@@ -1093,12 +1093,12 @@ EOF
 
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" acquire "$siw_dir" owner-a 1
   [ "$status" -ne 0 ]
-  [[ "$output" == *'ownership claim is not a regular file'* ]]
+  [[ "$output" == *'ownership claim is not a regular file'* ]] || false
   [ "$(sed -n '1p' "$siw_dir/.issue-publication.lock")" = owner-a ]
 
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" acquire "$siw_dir" owner-a 1
   [ "$status" -ne 0 ]
-  [[ "$output" == *'ownership claim is not a regular file'* ]]
+  [[ "$output" == *'ownership claim is not a regular file'* ]] || false
 
   rmdir "$reservation_root/ISSUE-G-999"
   sh "$ISSUE_DEFINE_RESERVATION_HELPER" release-publication "$siw_dir" owner-a
@@ -1114,14 +1114,14 @@ EOF
 
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" acquire "$siw_dir" owner-a 1
   [ "$status" -ne 0 ]
-  [[ "$output" == *'ownership claim has unexpected data'* ]]
+  [[ "$output" == *'ownership claim has unexpected data'* ]] || false
 
   printf 'owner-a\n' >"$siw_dir/.issue-publication.lock"
   mkdir -p "$reservation_root"
   printf 'owner-a\nrequest-key\n\nhidden\n' >"$reservation_root/ISSUE-G-001"
   run sh "$ISSUE_DEFINE_RESERVATION_HELPER" acquire "$siw_dir" owner-a 1
   [ "$status" -ne 0 ]
-  [[ "$output" == *'ownership claim has unexpected data'* ]]
+  [[ "$output" == *'ownership claim has unexpected data'* ]] || false
 }
 
 @test "siw issue reservation serializes overlapping reordered batch retries" {

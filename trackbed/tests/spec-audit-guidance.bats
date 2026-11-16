@@ -44,7 +44,7 @@ setup() {
   grep -qF '**Decisions left to the implementer.**' "$DIMENSIONS"
   grep -qF 'Mechanical choices with one defensible answer, such as a local variable name, are not findings.' "$DIMENSIONS"
   grep -qF 'File paths belong to the file-boundary check, not to this exemption.' "$DIMENSIONS"
-  ! grep -qiF 'such as a file name' "$DIMENSIONS"
+  ! grep -qiF 'such as a file name' "$DIMENSIONS" || false
 }
 
 @test "actionability requires a file boundary of full repository paths" {
@@ -76,7 +76,7 @@ setup() {
 @test "only findings that were really addressed count as previously resolved" {
   grep -qF 'carrying an `Existing issue:` note for an issue that is `DONE` in `siw/OPEN_ISSUES_OVERVIEW.md`' "$SKILL"
   grep -qF 'If a listed gap still exists, report it as usual.' "$AUDIT_PROMPT"
-  ! grep -qF 'Do not re-raise the findings themselves' "$AUDIT_PROMPT"
+  ! grep -qF 'Do not re-raise the findings themselves' "$AUDIT_PROMPT" || false
 }
 
 @test "team mode waits for the comprehension reply" {

@@ -52,7 +52,7 @@ export_boundary_dir() {
   '
 
   [ "$status" -eq 2 ]
-  [[ "$output" == *"--split-dir requires a value"* ]]
+  [[ "$output" == *"--split-dir requires a value"* ]] || false
 }
 
 @test "skillopt runner dry-run prints command without requiring external checkout" {
@@ -143,14 +143,14 @@ export_boundary_dir() {
     bash evals/skillopt/scripts/run-skillopt-skill-review.sh --run-id
   '
   [ "$status" -eq 2 ]
-  [[ "$output" == *"--run-id requires a value"* ]]
+  [[ "$output" == *"--run-id requires a value"* ]] || false
 
   run bash -c '
     cd "'"$BATS_TEST_DIRNAME"'/.."
     bash evals/skillopt/scripts/run-skillopt-skill-review.sh --out-root
   '
   [ "$status" -eq 2 ]
-  [[ "$output" == *"--out-root requires a value"* ]]
+  [[ "$output" == *"--out-root requires a value"* ]] || false
 }
 
 @test "skillopt config roots eval command at exported repository root" {
@@ -244,7 +244,7 @@ export_boundary_dir() {
       exit 1
     fi
     grep -q "destination path must stay under" "$BATS_TEST_TMPDIR/err.txt"
-    ! find "$lookalike" -mindepth 1 | grep -q .
+    ! find "$lookalike" -mindepth 1 | grep -q . || false
   '
 
   [ "$status" -eq 0 ]
@@ -323,7 +323,7 @@ export_boundary_dir() {
     bash evals/skillopt/scripts/export-candidate.sh --run-dir
   '
   [ "$status" -eq 2 ]
-  [[ "$output" == *"--run-dir requires a value"* ]]
+  [[ "$output" == *"--run-dir requires a value"* ]] || false
 
   run bash -c '
     cd "'"$BATS_TEST_DIRNAME"'/.."
@@ -332,5 +332,5 @@ export_boundary_dir() {
     bash evals/skillopt/scripts/export-candidate.sh --run-dir "$run_dir" --dest-dir
   '
   [ "$status" -eq 2 ]
-  [[ "$output" == *"--dest-dir requires a value"* ]]
+  [[ "$output" == *"--dest-dir requires a value"* ]] || false
 }

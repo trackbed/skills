@@ -96,10 +96,10 @@ prepare_merge_check() {
 	run bash "$MERGE_CHECK"
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"MERGED_PRS=#17"* ]]
-	[[ "$output" == *"QUEUED_PRS=#18"* ]]
-	[[ "$output" == *"OPEN_PRS="* ]]
-	[[ "$output" != *"#19"* ]]
+	[[ "$output" == *"MERGED_PRS=#17"* ]] || false
+	[[ "$output" == *"QUEUED_PRS=#18"* ]] || false
+	[[ "$output" == *"OPEN_PRS="* ]] || false
+	[[ "$output" != *"#19"* ]] || false
 	[ "$(cat "$MOCK_GRAPHQL_LOG")" = $'17\n18' ]
 }
 
@@ -111,9 +111,9 @@ prepare_merge_check() {
 	run bash "$MERGE_CHECK"
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"MERGED_PRS=#17"* ]]
-	[[ "$output" == *"QUEUED_PRS="$'\n'* ]]
-	[[ "$output" == *"OPEN_PRS=#18(closed) #19"* ]]
+	[[ "$output" == *"MERGED_PRS=#17"* ]] || false
+	[[ "$output" == *"QUEUED_PRS="$'\n'* ]] || false
+	[[ "$output" == *"OPEN_PRS=#18(closed) #19"* ]] || false
 }
 
 @test "merge check fails closed on an API failure or a target outside the stack" {
@@ -121,7 +121,7 @@ prepare_merge_check() {
 	export MOCK_GRAPHQL_STATUS=1
 	run bash "$MERGE_CHECK"
 	[ "$status" -ne 0 ]
-	[[ "$output" != *"MERGED_PRS="* ]]
+	[[ "$output" != *"MERGED_PRS="* ]] || false
 
 	export MOCK_GRAPHQL_STATUS=0
 	export TARGET_PR_NUMBER=99
@@ -131,12 +131,12 @@ prepare_merge_check() {
 	export TARGET_PR_NUMBER=18 TARGET_STACK_JSON='[{"number":41,"pull_requests":[{"number":"17"},{"number":18}]}]'
 	run bash "$MERGE_CHECK"
 	[ "$status" -ne 0 ]
-	[[ "$output" != *"MERGED_PRS="* ]]
+	[[ "$output" != *"MERGED_PRS="* ]] || false
 
 	unset TARGET_STACK_JSON
 	run bash "$MERGE_CHECK"
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"Run the merge-target resolution in this Bash call first"* ]]
+	[[ "$output" == *"Run the merge-target resolution in this Bash call first"* ]] || false
 }
 
 @test "merge guidance prunes only after every PR merged and never re-runs a possibly running merge" {
@@ -154,7 +154,7 @@ prepare_merge_check() {
 	grep -qF 'A call that stopped before printing `MERGE_STARTED=true` never ran the merge: follow the stop message from the target resolution or method check.' "$SHARED"
 	grep -qxF 'echo "MERGE_STARTED=true"' "$STACK_SKILL"
 	grep -A1 -xF 'echo "MERGE_STARTED=true"' "$STACK_SKILL" | grep -qF 'MERGE_OUTPUT=$(gh stack merge "$MERGE_TARGET"'
-	! grep -E '^gh stack merge' "$STACK_SKILL"
+	! grep -E '^gh stack merge' "$STACK_SKILL" || false
 }
 
 prepare_linked_worktree() {
@@ -190,14 +190,14 @@ PY
 
 	run bash "$IN_PROGRESS_CHECK"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"In progress: rebase-merge"* ]]
+	[[ "$output" == *"In progress: rebase-merge"* ]] || false
 
 	cd "$TMP_DIR"
 	run bash "$IN_PROGRESS_CHECK"
 	[ "$status" -eq 1 ]
-	[[ "$output" != *"In progress"* ]]
+	[[ "$output" != *"In progress"* ]] || false
 	grep -qF "If it exits 1, stop. When it printed \`In progress\`, use this error; otherwise report Git's message:" "$REBASE_SKILL"
-	! grep -qF 'ls -d .git/' "$REBASE_SKILL"
+	! grep -qF 'ls -d .git/' "$REBASE_SKILL" || false
 }
 
 @test "pr:rebase detects a paused merge inside a linked worktree" {
@@ -213,7 +213,7 @@ PY
 
 	run bash "$IN_PROGRESS_CHECK"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"In progress: MERGE_HEAD"* ]]
+	[[ "$output" == *"In progress: MERGE_HEAD"* ]] || false
 }
 
 @test "pr:rebase stack path stops with a reason on every other gh-stack failure" {

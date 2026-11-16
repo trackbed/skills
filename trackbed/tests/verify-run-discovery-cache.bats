@@ -57,7 +57,7 @@ write_record() {
   local first second
   first="$(current_key)"
   second="$(current_key)"
-  [[ "$first" =~ ^[0-9a-f]{40}$ ]]
+  [[ "$first" =~ ^[0-9a-f]{40}$ ]] || false
   [ "$first" = "$second" ]
 
   printf 'Also run `npm run typecheck`.\n' >> AGENTS.md
@@ -103,13 +103,13 @@ write_record() {
   run "$HELPER" key
   [ "$status" -eq 0 ]
   [ "$(jq -r .enabled <<< "$output")" = false ]
-  [[ "$(jq -r .reason <<< "$output")" == *".context/verify-run/ is not Git-ignored"* ]]
+  [[ "$(jq -r .reason <<< "$output")" == *".context/verify-run/ is not Git-ignored"* ]] || false
 
   key="$(current_key)"
   write_record "$TMP_DIR/record.json" "$key"
   run "$HELPER" write "$key" "$TMP_DIR/record.json"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"cache disabled"* ]]
+  [[ "$output" == *"cache disabled"* ]] || false
   [ ! -e .context/verify-run ]
 
   run "$HELPER" read "$key"
@@ -126,8 +126,8 @@ write_record() {
 
   run env PATH="$no_jq_bin" "$HELPER" key
   [ "$status" -eq 0 ]
-  [[ "$output" == *'"enabled":false'* ]]
-  [[ "$output" == *'"reason":"jq is not available"'* ]]
+  [[ "$output" == *'"enabled":false'* ]] || false
+  [[ "$output" == *'"reason":"jq is not available"'* ]] || false
   key="$(sed -n 's/.*"key":"\([0-9a-f]*\)".*/\1/p' <<< "$output")"
 
   run env PATH="$no_jq_bin" "$HELPER" read "$key"
@@ -211,17 +211,17 @@ write_record() {
   printf '{not json' > "$record"
   run "$HELPER" read "$key"
   [ "$status" -eq 4 ]
-  [[ "$output" == *"not valid JSON"* ]]
+  [[ "$output" == *"not valid JSON"* ]] || false
 
   write_record "$record" "$key" '.key = "0000000000000000000000000000000000000000"'
   run "$HELPER" read "$key"
   [ "$status" -eq 4 ]
-  [[ "$output" == *"key does not match"* ]]
+  [[ "$output" == *"key does not match"* ]] || false
 
   write_record "$record" "$key" '.checks[0].source = "src/app.js:1"'
   run "$HELPER" read "$key"
   [ "$status" -eq 4 ]
-  [[ "$output" == *"not a hashed discovery input"* ]]
+  [[ "$output" == *"not a hashed discovery input"* ]] || false
 
   write_record "$record" "$key" '.checks[0].cwd = "../elsewhere"'
   run "$HELPER" read "$key"
@@ -248,7 +248,7 @@ write_record() {
 
   run "$HELPER" write "$key" "$TMP_DIR/record.json"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"not a hashed discovery input"* ]]
+  [[ "$output" == *"not a hashed discovery input"* ]] || false
   [ ! -e ".context/verify-run/discovery-$key.json" ]
 }
 
@@ -263,7 +263,7 @@ write_record() {
 
   run "$HELPER" read "$key"
   [ "$status" -eq 4 ]
-  [[ "$output" == *"tracked by Git"* ]]
+  [[ "$output" == *"tracked by Git"* ]] || false
 }
 
 @test "writing a record leaves the working-tree ID unchanged" {

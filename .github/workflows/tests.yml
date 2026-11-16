@@ -5,12 +5,18 @@ on:
 
 jobs:
   hooks:
-    name: Run hook tests (${{ matrix.os }})
+    name: Run hook tests (${{ matrix.os }}, ${{ matrix.bash }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            bash: system
+          - os: macos-latest
+            bash: system
+          - os: macos-latest
+            bash: modern
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -37,19 +43,38 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y bats jq
           elif [ "$RUNNER_OS" = "macOS" ]; then
-            brew install bats-core jq
+            brew install bats-core jq bash
           else
             echo "Unsupported runner OS: $RUNNER_OS"
             exit 1
           fi
 
+      - name: Select Bash for Bats and shell subprocesses
+        shell: bash
+        run: |
+          selected_bash=/bin/bash
+          if [ "${{ matrix.bash }}" = modern ]; then
+            selected_bash="$(brew --prefix bash)/bin/bash"
+          fi
+          "$selected_bash" --version
+          shell_bin="$(mktemp -d)"
+          ln -s "$selected_bash" "$shell_bin/bash"
+          echo "$shell_bin" >> "$GITHUB_PATH"
+
       - name: Run measured smoke suite
+        if: matrix.bash != 'modern'
         run: time make -C trackbed test-smoke
 
       - name: Run tests
+        if: matrix.bash != 'modern'
         run: make -C trackbed test
 
+      - name: Run Bats compatibility suite
+        if: matrix.bash == 'modern'
+        run: make -C trackbed test-bats
+
       - name: Run coverage gates
+        if: matrix.bash != 'modern'
         run: make -C trackbed coverage
 
   walkthrough-browser-smoke:

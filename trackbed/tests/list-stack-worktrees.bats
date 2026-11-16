@@ -85,14 +85,14 @@ teardown() {
 	export MOCK_STACK_VIEW_STATUS=2
 	run "$SCRIPT"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Could not read the stack"* ]]
+	[[ "$output" == *"Could not read the stack"* ]] || false
 }
 
 @test "fails closed on a stack view without a trunk or branch list" {
 	export MOCK_STACK_VIEW='{"branches":[]}'
 	run "$SCRIPT"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"did not return a valid stack"* ]]
+	[[ "$output" == *"did not return a valid stack"* ]] || false
 
 	export MOCK_STACK_VIEW='{"trunk":"main","branches":[{"name":"bad\tname"}]}'
 	run "$SCRIPT"
@@ -102,7 +102,7 @@ teardown() {
 @test "rejects unknown arguments" {
 	run "$SCRIPT" --upstack
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Usage:"* ]]
+	[[ "$output" == *"Usage:"* ]] || false
 }
 
 @test "stack skills share gh-stack exit codes and cross-worktree rules" {

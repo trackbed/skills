@@ -362,7 +362,7 @@ PY
 @test "conversation fetch keeps its read-only boundary scoped to that operation" {
 	run bash -c '
     grep -qF "All operations in this reference are reads" "$1"
-    ! grep -qF "this skill never posts" "$1"
+    ! grep -qF "this skill never posts" "$1" || false
   ' _ "$CONVERSATION_REFERENCE"
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
@@ -588,8 +588,8 @@ PY
     set -e
     grep -qF "references/ui-relevance.md" "$1"
     grep -qF "references/comment-drafting.md" "$1"
-    ! grep -qF "is_ui_relevant_path() {" "$1"
-    ! grep -qF "Sound like a person, not a report" "$1"
+    ! grep -qF "is_ui_relevant_path() {" "$1" || false
+    ! grep -qF "Sound like a person, not a report" "$1" || false
     grep -qF "UI relevance path contract: \`ui-relevance-path-contract-v1\`" "$2"
     grep -qF "is_ui_relevant_path() {" "$2"
     grep -qF "rmdir \"\$TMP_PARENT\"" "$1"
@@ -1248,15 +1248,15 @@ PY
 
 	run "$ANCHOR_SCRIPT" "$repo" "$base" HEAD src/a.ts:15
 	[ "$status" -eq 2 ]
-	[[ "$output" == *"Expected a full commit object ID, got 'HEAD'."* ]]
+	[[ "$output" == *"Expected a full commit object ID, got 'HEAD'."* ]] || false
 
 	run "$ANCHOR_SCRIPT" "$repo" "$base" 0123456789abcdef0123456789abcdef01234567 src/a.ts:15
 	[ "$status" -eq 2 ]
-	[[ "$output" == *"Commit 0123456789abcdef0123456789abcdef01234567 is not available"* ]]
+	[[ "$output" == *"Commit 0123456789abcdef0123456789abcdef01234567 is not available"* ]] || false
 
 	run "$ANCHOR_SCRIPT" "$repo" "$base" "$head" src/a.ts
 	[ "$status" -eq 2 ]
-	[[ "$output" == *"Expected <path:line>"* ]]
+	[[ "$output" == *"Expected <path:line>"* ]] || false
 }
 
 @test "comment anchor check decodes Git-quoted filenames" {
@@ -1767,18 +1767,18 @@ PY
 	printf 'new\n' >"$repo/src/new.ts"
 	run "$script" "$repo" "$pr_head" src/a.ts src/new.ts src/b.ts
 	[ "$status" -eq 1 ] || { echo "$output"; false; }
-	[[ "$output" == *"uncommitted src/a.ts"* ]]
-	[[ "$output" == *"uncommitted src/new.ts"* ]]
-	[[ "$output" != *"src/b.ts"* ]]
+	[[ "$output" == *"uncommitted src/a.ts"* ]] || false
+	[[ "$output" == *"uncommitted src/new.ts"* ]] || false
+	[[ "$output" != *"src/b.ts"* ]] || false
 
 	# A committed but unpushed fix still differs from the PR head.
 	git -C "$repo" add src/a.ts src/new.ts
 	git -C "$repo" commit -qm fix
 	run "$script" "$repo" "$pr_head" src/a.ts src/new.ts src/b.ts
 	[ "$status" -eq 1 ] || { echo "$output"; false; }
-	[[ "$output" == *"not-on-head src/a.ts"* ]]
-	[[ "$output" == *"not-on-head src/new.ts"* ]]
-	[[ "$output" != *"uncommitted"* ]]
+	[[ "$output" == *"not-on-head src/a.ts"* ]] || false
+	[[ "$output" == *"not-on-head src/new.ts"* ]] || false
+	[[ "$output" != *"uncommitted"* ]] || false
 
 	# A path the unpushed commit did not touch still passes against the PR head.
 	run "$script" "$repo" "$pr_head" src/b.ts
@@ -1808,7 +1808,7 @@ PY
 	for unknown in src/typo.ts a.ts scratch.log; do
 		run "$script" "$repo" "$(git -C "$repo" rev-parse HEAD)" "$unknown"
 		[ "$status" -eq 2 ] || { echo "$unknown: $output"; false; }
-		[[ "$output" == *"Path '$unknown' is not known"* ]]
+		[[ "$output" == *"Path '$unknown' is not known"* ]] || false
 	done
 
 	# A deletion the PR head already has still passes.

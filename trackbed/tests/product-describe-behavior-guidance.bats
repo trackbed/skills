@@ -51,7 +51,7 @@ TRIAGE_TEMPLATE="skills/product:describe-behavior/assets/triage-template.md"
 	grep -qi "Evidence may support a draft without proving runtime truth" "$SKILL"
 	grep -qi "through the channel a real user experiences" "$SKILL"
 	grep -qF 'A `BLOCKED`, `NOT_RUN`, or `FAIL` result keeps the document `partially verified`' "$SKILL"
-	! grep -qF "blocked with an accepted limitation" "$SKILL"
+	! grep -qF "blocked with an accepted limitation" "$SKILL" || false
 	grep -qF "NOT_RUN" "$VERIFICATION_TEMPLATE"
 	grep -qF "PASS" "$VERIFICATION_TEMPLATE"
 	grep -qF "FAIL" "$VERIFICATION_TEMPLATE"
@@ -87,14 +87,14 @@ TRIAGE_TEMPLATE="skills/product:describe-behavior/assets/triage-template.md"
 	grep -qi "separately authorizes filing" "$TRIAGE_TEMPLATE"
 	grep -qF "Status: open | resolved | accepted" "$TRIAGE_TEMPLATE"
 	grep -qF "External issue state: not filed | filed" "$TRIAGE_TEMPLATE"
-	! grep -qF "Status: open | resolved | accepted | filed" "$TRIAGE_TEMPLATE"
+	! grep -qF "Status: open | resolved | accepted | filed" "$TRIAGE_TEMPLATE" || false
 }
 
 @test "planned coverage does not create broken relative links" {
 	grep -qF '`behaviors/{area}/{feature}.md`' "$INDEX_TEMPLATE"
 	grep -qF '`verification/{area}/{feature}.md`' "$INDEX_TEMPLATE"
 	grep -qi "convert them to relative links when drafting creates" "$INDEX_TEMPLATE"
-	! grep -qF '[behavior](behaviors/{area}/{feature}.md)' "$INDEX_TEMPLATE"
+	! grep -qF '[behavior](behaviors/{area}/{feature}.md)' "$INDEX_TEMPLATE" || false
 }
 
 @test "external gist is inspiration rather than copied material" {
@@ -102,6 +102,6 @@ TRIAGE_TEMPLATE="skills/product:describe-behavior/assets/triage-template.md"
 	grep -qF "url: https://gist.githubusercontent.com/steveruizok/83ae5c53f2784ebf8f5fe0a3fb94480f/raw/SKILL.md" "$SOURCES"
 	grep -qF "usage: inspiration" "$SOURCES"
 	grep -qi "no upstream source files are copied" "$SKILL"
-	! grep -qF "usage: copied" "$SOURCES"
+	! grep -qF "usage: copied" "$SOURCES" || false
 	grep -Eq 'baseline_hash: "sha256:[0-9a-f]{64}"' "$SOURCES"
 }

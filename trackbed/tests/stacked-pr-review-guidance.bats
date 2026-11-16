@@ -25,7 +25,7 @@ setup() {
 @test "consumers that do not request stack context say the field stays empty" {
   local skill
   for skill in skills/code:copy-review/SKILL.md skills/debug:find-sibling-bugs/SKILL.md; do
-    ! grep -qF -- '--stack-context)' "$skill"
+    ! grep -qF -- '--stack-context)' "$skill" || false
     grep -qF '`STACK_CONTEXT` stays empty because this skill does not pass `--stack-context`' "$skill"
   done
 }

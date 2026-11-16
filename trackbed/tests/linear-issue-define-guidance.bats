@@ -13,8 +13,8 @@
 		grep -qF "mcp__linear__save_issue" "$skill"
 		grep -qF "mcp__linear__save_issue" "$auto"
 		grep -qF "mcp__linear__save_issue" "$flow"
-		! grep -rqF "mcp__linear__create_issue" "$dir"
-		! grep -rqF "mcp__linear__update_issue" "$dir"
+		! grep -rqF "mcp__linear__create_issue" "$dir" || false
+		! grep -rqF "mcp__linear__update_issue" "$dir" || false
 
 		grep -qF "omit \`id\` to create, pass \`id\` to update" "$skill"
 		grep -qF "Relation fields are append-only" "$skill"

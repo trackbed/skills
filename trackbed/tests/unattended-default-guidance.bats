@@ -13,7 +13,7 @@ setup() {
 @test "shipping skills take --manual instead of --auto" {
 	for skill in "${SHIPPING_SKILLS[@]}"; do
 		grep -qE '^argument-hint: .*\[--manual\]' "$skill"
-		! grep -qE '^argument-hint: .*--auto' "$skill"
+		! grep -qE '^argument-hint: .*--auto' "$skill" || false
 		grep -qF 'Ignore a leftover `--auto`: auto mode is already the default.' "$skill"
 		grep -qE '^Auto mode is the default|`AUTO_MODE=true`, `DRAFT_MODE=false`' "$skill"
 	done
@@ -70,7 +70,7 @@ PY
 	grep -qF 'Counting only typed commands as direct stays rejected' "$adr"
 	grep -qF 'Keeping session-wide consent was rejected' "$adr"
 	grep -qF -- "- The default covers only the message being answered" "$REPO_ROOT/docs/shipping.md"
-	! grep -qF 'requests that name the skill, and the parent delegations' "$REPO_ROOT/docs/shipping.md"
+	! grep -qF 'requests that name the skill, and the parent delegations' "$REPO_ROOT/docs/shipping.md" || false
 }
 
 @test "no component passes --auto to the shipping skills" {
@@ -97,7 +97,7 @@ PY
 	grep -qF 'set `FORCE_PUSH_MODE=true` and `AUTO_MODE=false`' "$REBASE"
 	grep -qF 'Never omit `--force-push`' "$REBASE"
 	grep -qF 'If both `--manual` and `--force-push` are present, stop with a usage error' "$REBASE"
-	! grep -qF 'wins because it is the broader dangerous mode' "$REBASE"
+	! grep -qF 'wins because it is the broader dangerous mode' "$REBASE" || false
 
 	grep -qF 'Invoke `$trackbed:pr:rebase --force-push --base <BASE>` through the platform skill mechanism' "$FIX_CI"
 	grep -qF 'invoke `trackbed:pr:rebase` with `--force-push --base {base-branch}`' "$CREATE"
@@ -105,7 +105,7 @@ PY
 
 @test "rebase recovery guidance never points at the dangerous default" {
 	grep -qF 'rerun with --manual after addressing the concern.' "$REBASE"
-	! grep -qF 'rerun without --force-push' "$REBASE"
+	! grep -qF 'rerun without --force-push' "$REBASE" || false
 	grep -qF 'needs a single-branch `/trackbed:pr:rebase --manual` in its own workspace.' \
 		"$REPO_ROOT/skills/pr:rebase/references/batch-mode.md"
 }

@@ -135,7 +135,7 @@ load_assignments() {
 	[ "$STACK_CLI_AVAILABLE" = "1" ]
 	[ "$STACK_PR_NUMBER" = "" ]
 	[ "$STACK_NUMBER" = "" ]
-	! grep -q 'command \[pr\] \[list\]' "$GH_LOG"
+	! grep -q 'command \[pr\] \[list\]' "$GH_LOG" || false
 }
 
 @test "treats a zero-exit stack view without stack JSON as untracked" {
@@ -150,7 +150,7 @@ load_assignments() {
 	load_assignments
 	[ "$STACK_MEMBERSHIP" = "none" ]
 	[ "$STACK_PR_NUMBER" = "17" ]
-	[[ "$output" != *"is not part of a stack"* ]]
+	[[ "$output" != *"is not part of a stack"* ]] || false
 	grep -q 'command \[api\] \[graphql\]' "$GH_LOG"
 }
 
@@ -178,7 +178,7 @@ load_assignments() {
 	[ "$status" -eq 0 ]
 	load_assignments
 	[ "$STACK_MEMBERSHIP" = "local" ]
-	! grep -q 'command \[pr\] \[list\]' "$GH_LOG"
+	! grep -q 'command \[pr\] \[list\]' "$GH_LOG" || false
 }
 
 @test "fails closed when a zero-exit stack view prints malformed JSON" {
@@ -188,8 +188,8 @@ load_assignments() {
 	run "$SCRIPT"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"gh stack view returned invalid stack JSON"* ]]
-	! grep -q 'command \[pr\] \[list\]' "$GH_LOG"
+	[[ "$output" == *"gh stack view returned invalid stack JSON"* ]] || false
+	! grep -q 'command \[pr\] \[list\]' "$GH_LOG" || false
 }
 
 @test "fails closed when a zero-exit stack view prints the wrong JSON shape" {
@@ -199,8 +199,8 @@ load_assignments() {
 	run "$SCRIPT"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"gh stack view returned invalid stack JSON"* ]]
-	! grep -q 'command \[pr\] \[list\]' "$GH_LOG"
+	[[ "$output" == *"gh stack view returned invalid stack JSON"* ]] || false
+	! grep -q 'command \[pr\] \[list\]' "$GH_LOG" || false
 }
 
 @test "reports no membership only after a definitive remote lookup" {
@@ -240,8 +240,8 @@ load_assignments() {
 		run "$SCRIPT"
 
 		[ "$status" -eq 0 ]
-		[[ "$output" == *"Warning: gh-stack v$version is older than v0.3.0"* ]]
-		[[ "$output" == *"upgrade to v0.3.0 or newer with 'gh extension upgrade stack'."* ]]
+		[[ "$output" == *"Warning: gh-stack v$version is older than v0.3.0"* ]] || false
+		[[ "$output" == *"upgrade to v0.3.0 or newer with 'gh extension upgrade stack'."* ]] || false
 		load_assignments
 		[ "$STACK_MEMBERSHIP" = "none" ]
 		[ "$STACK_CLI_AVAILABLE" = "1" ]
@@ -272,9 +272,9 @@ load_assignments() {
 	run "$SCRIPT"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Branch 'feature' is in a local gh-stack stack, and stack commands are unsafe on this gh-stack version; upgrade to v0.3.0 or newer with 'gh extension upgrade stack', then retry."* ]]
-	[[ "$output" != *"STACK_MEMBERSHIP="* ]]
-	! grep -q 'command \[pr\] \[list\]' "$GH_LOG"
+	[[ "$output" == *"Branch 'feature' is in a local gh-stack stack, and stack commands are unsafe on this gh-stack version; upgrade to v0.3.0 or newer with 'gh extension upgrade stack', then retry."* ]] || false
+	[[ "$output" != *"STACK_MEMBERSHIP="* ]] || false
+	! grep -q 'command \[pr\] \[list\]' "$GH_LOG" || false
 }
 
 @test "accepts gh-stack versions at or above the v0.3.0 floor" {
@@ -285,7 +285,7 @@ load_assignments() {
 		run "$SCRIPT"
 
 		[ "$status" -eq 0 ]
-		[[ "$output" != *"Warning:"* ]]
+		[[ "$output" != *"Warning:"* ]] || false
 		load_assignments
 		[ "$STACK_MEMBERSHIP" = "local" ]
 		[ "$STACK_CLI_AVAILABLE" = "1" ]
@@ -299,7 +299,7 @@ load_assignments() {
 	run "$SCRIPT"
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"Warning: could not parse the installed gh-stack version"* ]]
+	[[ "$output" == *"Warning: could not parse the installed gh-stack version"* ]] || false
 	load_assignments
 	[ "$STACK_MEMBERSHIP" = "none" ]
 	[ "$STACK_CLI_SUPPORTED" = "0" ]
@@ -311,9 +311,9 @@ load_assignments() {
 	run "$SCRIPT"
 
 	[ "$status" -eq 4 ]
-	[[ "$output" == *"mock stack view failure"* ]]
-	[[ "$output" == *"stack membership is unknown"* ]]
-	! grep -q 'command \[pr\] \[list\]' "$GH_LOG"
+	[[ "$output" == *"mock stack view failure"* ]] || false
+	[[ "$output" == *"stack membership is unknown"* ]] || false
+	! grep -q 'command \[pr\] \[list\]' "$GH_LOG" || false
 }
 
 @test "fails closed when the GraphQL stack query fails" {
@@ -323,7 +323,7 @@ load_assignments() {
 	run "$SCRIPT"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Could not query GitHub stack metadata for PR #17"* ]]
+	[[ "$output" == *"Could not query GitHub stack metadata for PR #17"* ]] || false
 }
 
 @test "fails closed when GitHub returns an invalid stack number" {
@@ -333,8 +333,8 @@ load_assignments() {
 		export MOCK_STACK_NUMBER="$number"
 		run "$SCRIPT"
 		[ "$status" -eq 1 ]
-		[[ "$output" == *"invalid stack number for PR #17"* ]]
-		[[ "$output" != *"STACK_MEMBERSHIP="* ]]
+		[[ "$output" == *"invalid stack number for PR #17"* ]] || false
+		[[ "$output" != *"STACK_MEMBERSHIP="* ]] || false
 	done
 }
 
@@ -357,7 +357,7 @@ run_documented_stack_merge() {
 
 	[ "$status" -eq 0 ]
 	grep -F 'command [stack] [merge] [41] [--yes] [--squash]' "$GH_LOG"
-	! grep -q 'command \[stack\] \[merge\] \[18\]' "$GH_LOG"
+	! grep -q 'command \[stack\] \[merge\] \[18\]' "$GH_LOG" || false
 }
 
 @test "partial merge checks every page for a colliding stack before merging" {
@@ -366,9 +366,9 @@ run_documented_stack_merge() {
 	run_documented_stack_merge 17
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"stop and ask the user"* ]]
+	[[ "$output" == *"stop and ask the user"* ]] || false
 	grep -F 'command [api] [--paginate] [--slurp] [repos/{owner}/{repo}/stacks?per_page=100]' "$GH_LOG"
-	! grep -q 'command \[stack\] \[merge\]' "$GH_LOG"
+	! grep -q 'command \[stack\] \[merge\]' "$GH_LOG" || false
 }
 
 @test "partial merge uses the PR boundary only after proving no stack collision" {
@@ -385,8 +385,8 @@ run_documented_stack_merge() {
 		export MOCK_TARGET_STACK_JSON="$response"
 		run_documented_stack_merge 17
 		[ "$status" -eq 1 ]
-		[[ "$output" == *"no identifiable stack"* ]]
-		! grep -q 'command \[stack\] \[merge\]' "$GH_LOG"
+		[[ "$output" == *"no identifiable stack"* ]] || false
+		! grep -q 'command \[stack\] \[merge\]' "$GH_LOG" || false
 	done
 }
 
@@ -396,8 +396,8 @@ run_documented_stack_merge() {
 	run_documented_stack_merge 18
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Could not determine the selected PR's stack"* ]]
-	! grep -q 'command \[stack\] \[merge\]' "$GH_LOG"
+	[[ "$output" == *"Could not determine the selected PR's stack"* ]] || false
+	! grep -q 'command \[stack\] \[merge\]' "$GH_LOG" || false
 }
 
 @test "partial merge stops on a failed collision lookup" {
@@ -406,8 +406,8 @@ run_documented_stack_merge() {
 	run_documented_stack_merge 17
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Could not check stack-number collisions"* ]]
-	! grep -q 'command \[stack\] \[merge\]' "$GH_LOG"
+	[[ "$output" == *"Could not check stack-number collisions"* ]] || false
+	! grep -q 'command \[stack\] \[merge\]' "$GH_LOG" || false
 }
 
 @test "partial merge stops on a malformed or incomplete stack list" {
@@ -416,8 +416,8 @@ run_documented_stack_merge() {
 		export MOCK_ALL_STACKS_JSON="$response"
 		run_documented_stack_merge 17
 		[ "$status" -eq 1 ]
-		[[ "$output" == *"Invalid repository stack list"* ]]
-		! grep -q 'command \[stack\] \[merge\]' "$GH_LOG"
+		[[ "$output" == *"Invalid repository stack list"* ]] || false
+		! grep -q 'command \[stack\] \[merge\]' "$GH_LOG" || false
 	done
 }
 
@@ -435,8 +435,8 @@ run_documented_stack_link() {
 	for item in 17 +17 00017; do
 		run_documented_stack_link "$item" 18
 		[ "$status" -eq 1 ]
-		[[ "$output" == *"stop and ask the user"* || "$output" == *"Link requires a valid branch or PR identifier"* ]]
-		! grep -q 'command \[stack\] \[link\]' "$GH_LOG"
+		[[ "$output" == *"stop and ask the user"* || "$output" == *"Link requires a valid branch or PR identifier"* ]] || false
+		! grep -q 'command \[stack\] \[link\]' "$GH_LOG" || false
 	done
 }
 
@@ -452,8 +452,8 @@ run_documented_stack_link() {
 
 	[ "$status" -eq 0 ]
 	grep -F 'command [stack] [link] [17] [18]' "$GH_LOG"
-	! grep -q 'command \[pr\] \[view\]' "$GH_LOG"
-	! grep -q 'command \[stack\] \[link\] \[feature\]' "$GH_LOG"
+	! grep -q 'command \[pr\] \[view\]' "$GH_LOG" || false
+	! grep -q 'command \[stack\] \[link\] \[feature\]' "$GH_LOG" || false
 	[ "$(git rev-parse refs/remotes/origin/feature)" = "$remote_head" ]
 }
 
@@ -462,7 +462,7 @@ run_documented_stack_link() {
 
 	[ "$status" -eq 0 ]
 	grep -F 'command [stack] [link] [18] [19]' "$GH_LOG"
-	! grep -q 'command \[pr\] \[view\]' "$GH_LOG"
+	! grep -q 'command \[pr\] \[view\]' "$GH_LOG" || false
 }
 
 @test "PR-led link rejects a same-number local branch with unpublished commits" {
@@ -476,7 +476,7 @@ run_documented_stack_link() {
 	run_documented_stack_link 17 18
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"stop and ask for its explicit PR URL"* ]]
+	[[ "$output" == *"stop and ask for its explicit PR URL"* ]] || false
 	[ ! -e "$GH_LOG" ]
 }
 
@@ -493,7 +493,7 @@ GIT
 	run_documented_stack_link 17 18
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Could not inspect local branch names"* ]]
+	[[ "$output" == *"Could not inspect local branch names"* ]] || false
 	[ ! -e "$GH_LOG" ]
 }
 
@@ -503,7 +503,7 @@ GIT
 	run_documented_stack_link https://github.com/acme/demo/pull/17 18
 
 	[ "$status" -eq 0 ]
-	! grep -q 'command \[api\]' "$GH_LOG"
+	! grep -q 'command \[api\]' "$GH_LOG" || false
 	grep -F 'command [stack] [link] [https://github.com/acme/demo/pull/17] [18]' "$GH_LOG"
 }
 
@@ -511,20 +511,20 @@ GIT
 	export MOCK_ALL_STACKS_JSON='[[{"number":41}],[{"number":17}]]'
 	run_documented_stack_link 17 18
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"stop and ask the user"* ]]
-	! grep -q 'command \[stack\] \[link\]' "$GH_LOG"
+	[[ "$output" == *"stop and ask the user"* ]] || false
+	! grep -q 'command \[stack\] \[link\]' "$GH_LOG" || false
 	export MOCK_ALL_STACKS_JSON='[[{"number":41}]]'
 	export MOCK_STACK_LIST_STATUS=4
 	run_documented_stack_link 17 18
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Could not check stack-number collisions"* ]]
-	! grep -q 'command \[stack\] \[link\]' "$GH_LOG"
+	[[ "$output" == *"Could not check stack-number collisions"* ]] || false
+	! grep -q 'command \[stack\] \[link\]' "$GH_LOG" || false
 	export MOCK_STACK_LIST_STATUS=0
 	export MOCK_ALL_STACKS_JSON='[{}]'
 	run_documented_stack_link 17 18
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Invalid repository stack list"* ]]
-	! grep -q 'command \[stack\] \[link\]' "$GH_LOG"
+	[[ "$output" == *"Invalid repository stack list"* ]] || false
+	! grep -q 'command \[stack\] \[link\]' "$GH_LOG" || false
 }
 
 @test "link preserves a leading branch and remaining PR operands as inert arguments" {
@@ -564,19 +564,19 @@ run_documented_stack_checkout() {
 
 	[ "$status" -eq 0 ]
 	[ "$(git branch --show-current)" = 17 ]
-	! grep -q 'command \[stack\] \[checkout\] \[17\]' "$GH_LOG"
+	! grep -q 'command \[stack\] \[checkout\] \[17\]' "$GH_LOG" || false
 }
 
 @test "stack checkout refuses an undetermined stack number or a dirty tree" {
 	run_documented_stack_checkout ''
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"stack number could not be determined"* ]]
-	! grep -q 'command \[stack\] \[checkout\]' "$GH_LOG"
+	[[ "$output" == *"stack number could not be determined"* ]] || false
+	! grep -q 'command \[stack\] \[checkout\]' "$GH_LOG" || false
 	printf 'uncommitted work\n' >>tracked.txt
 	run_documented_stack_checkout 41
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"clean working tree is required"* ]]
-	! grep -q 'command \[stack\] \[checkout\]' "$GH_LOG"
+	[[ "$output" == *"clean working tree is required"* ]] || false
+	! grep -q 'command \[stack\] \[checkout\]' "$GH_LOG" || false
 }
 
 @test "stack checkout stops when importing fails" {
@@ -637,7 +637,7 @@ run_documented_stack_checkout() {
 		"$REPO_ROOT/skills/pr:stack/SKILL.md"; do
 		grep -F 'resolve-stack-membership.sh' "$consumer"
 		grep -F '${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-checkout.md' "$consumer"
-		! grep -F 'gh stack checkout "$STACK_PR_NUMBER"' "$consumer"
+		! grep -F 'gh stack checkout "$STACK_PR_NUMBER"' "$consumer" || false
 	done
 	grep -F 'gh stack checkout "$STACK_NUMBER"' "$REPO_ROOT/shared/git/references/stack-checkout.md"
 	grep -F 'git switch -- "$STACK_RESTORE_BRANCH"' "$REPO_ROOT/shared/git/references/stack-checkout.md"
@@ -647,7 +647,7 @@ run_documented_stack_checkout() {
 		"$REPO_ROOT/skills/git:fixup" \
 		"$REPO_ROOT/skills/git:recreate-commits" \
 		"$REPO_ROOT/skills/pr:fix-ci" \
-		"$REPO_ROOT/skills/pr:rebase"
+		"$REPO_ROOT/skills/pr:rebase" || false
 }
 
 @test "stack command examples preserve operand and placeholder boundaries" {
@@ -659,7 +659,7 @@ run_documented_stack_checkout() {
 	grep -F 'gh stack link "${STACK_ITEMS[@]}"' "$stack_skill"
 	grep -F 'gh stack init --base "$BASE_BRANCH" stack-1-schema' "$strategies"
 	grep -F 'git checkout "$REFERENCE_BRANCH" -- db/migrations/' "$strategies"
-	! grep -E '< (base|reference)-branch >' "$strategies"
+	! grep -E '< (base|reference)-branch >' "$strategies" || false
 }
 
 @test "breakdown stack recipe matches current gh-stack behavior" {
@@ -704,7 +704,7 @@ run_documented_stack_checkout() {
 	grep -F 'Do not invoke `trackbed:pr:generate-description` from inside this skill' "$stack_skill"
 	grep -F 'every model-initiated call to that child must use output-only `--no-update`' "$stack_skill"
 	grep -F 'ask the user to invoke `/trackbed:pr:generate-description` directly' "$stack_skill"
-	! grep -F 'run `trackbed:pr:generate-description` per PR' "$stack_skill"
+	! grep -F 'run `trackbed:pr:generate-description` per PR' "$stack_skill" || false
 }
 
 @test "history rewrite flows restack before their stack-wide push" {
@@ -729,7 +729,7 @@ run_documented_stack_checkout() {
 	report_step=$(sed -n '/### Step 7: Report Results/,/## Error Handling/p' "$fixup")
 
 	grep -F 'gh stack rebase --upstack --no-trunk' <<<"$report_step"
-	! grep -E '^[[:space:]]*python3 .*stack-publication.py.* publish' <<<"$report_step"
+	! grep -E '^[[:space:]]*python3 .*stack-publication.py.* publish' <<<"$report_step" || false
 	grep -F 'Do not run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py" publish --state "$STACK_PUBLICATION_STATE"` automatically' <<<"$report_step"
 }
 
@@ -755,8 +755,8 @@ run_documented_stack_checkout() {
 	grep -F 'gh stack merge "$MERGE_TARGET" "${MERGE_ARGS[@]}"' "$stack_skill"
 	grep -F 'Read `references/merge-target.md`' "$stack_skill"
 	grep -F 'On a partial-target collision, stop and ask the user how to proceed' "$stack_skill"
-	! grep -E 'gh stack (checkout|merge) <(branch-or-pr-number|pr-number|stack-number \\)' "$stack_skill" "$rules"
-	! grep -F 'Merging from the CLI is not supported' "$stack_skill" "$rules"
+	! grep -E 'gh stack (checkout|merge) <(branch-or-pr-number|pr-number|stack-number \\)' "$stack_skill" "$rules" || false
+	! grep -F 'Merging from the CLI is not supported' "$stack_skill" "$rules" || false
 	grep -F 'Never use the combined `gh stack sync` command' "$stack_skill"
 	grep -F 'After `gh stack rebase`, a rebase session remains active' "$stack_skill"
 	grep -F '`gh stack sync` restores every branch before it returns exit 3' "$REPO_ROOT/shared/git/references/stack-operations.md"
@@ -766,7 +766,7 @@ run_documented_stack_checkout() {
 	local rebase_skill="$REPO_ROOT/skills/pr:rebase/SKILL.md"
 
 	grep -F 'git log --oneline "origin/$BASE_BRANCH..HEAD"' "$rebase_skill"
-	! grep -F 'git log --oneline origin/ < base-branch > ..HEAD' "$rebase_skill"
+	! grep -F 'git log --oneline origin/ < base-branch > ..HEAD' "$rebase_skill" || false
 }
 
 @test "rebase fix-ci mode is opt-in and delegates only after a successful push" {
@@ -823,7 +823,7 @@ run_documented_stack_checkout() {
 	grep -F '[ "$CURRENT_BRANCH" = "$LEASE_BRANCH" ] ||' "$rebase_skill"
 	grep -F '[[ "$PRE_REBASE_REMOTE_OID" =~ ^([0-9a-f]{40}|[0-9a-f]{64})?$ ]] ||' "$rebase_skill"
 	grep -F 'git push --no-follow-tags --force-with-lease="refs/heads/$CURRENT_BRANCH:$PRE_REBASE_REMOTE_OID" origin "refs/heads/$CURRENT_BRANCH:refs/heads/$CURRENT_BRANCH"' "$rebase_skill"
-	! grep -F 'git push --force-with-lease origin "$CURRENT_BRANCH"' "$rebase_skill"
+	! grep -F 'git push --force-with-lease origin "$CURRENT_BRANCH"' "$rebase_skill" || false
 
 	capture_line=$(grep -nF 'PRE_REBASE_REMOTE_OID=$(printf' "$rebase_skill" | cut -d: -f1)
 	ancestry_stop_line=$(grep -nF 'origin/$LEASE_BRANCH has commits the local branch lacks; integrate them before rebasing.' "$rebase_skill" | cut -d: -f1)
@@ -895,7 +895,7 @@ run_documented_stack_checkout() {
 		--force-with-lease=refs/heads/feature:"$observed" \
 		origin refs/heads/feature:refs/heads/feature
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"stale info"* ]]
+	[[ "$output" == *"stale info"* ]] || false
 
 	remote_head=$(git -C "$publisher" ls-remote --heads origin refs/heads/feature | awk '{print $1}')
 	[ "$remote_head" = "$contender_head" ]
@@ -989,7 +989,7 @@ advance_stack_remote() {
 	run bash "$PREFLIGHT"
 
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"origin/layer has commits the local branch lacks; integrate them before rebasing."* ]]
+	[[ "$output" == *"origin/layer has commits the local branch lacks; integrate them before rebasing."* ]] || false
 	[ "$(git rev-parse HEAD)" = "$before" ]
 	[ -z "$(git status --porcelain)" ]
 }
@@ -1002,7 +1002,7 @@ advance_stack_remote() {
 	run bash "$PREFLIGHT"
 
 	[ "$status" -eq 0 ]
-	[[ "$output" != *"integrate them"* ]]
+	[[ "$output" != *"integrate them"* ]] || false
 	# A behind-only layer is not fast-forwarded by the read-only guard.
 	[ "$(git rev-list --count layer..FETCH_HEAD)" -eq 1 ]
 }
@@ -1016,7 +1016,7 @@ advance_stack_remote() {
 	STACK_STOP_ON_BEHIND=1 run bash "$PREFLIGHT"
 
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"origin/layer has commits the local branch lacks; sync them before restructuring."* ]]
+	[[ "$output" == *"origin/layer has commits the local branch lacks; sync them before restructuring."* ]] || false
 	[ "$(git rev-parse layer)" = "$before" ]
 
 	local stack_skill="$REPO_ROOT/skills/pr:stack/SKILL.md"
@@ -1064,10 +1064,10 @@ advance_stack_remote() {
 		"$REPO_ROOT/skills/git:fixup/SKILL.md" \
 		"$REPO_ROOT/skills/git:recreate-commits/SKILL.md"; do
 		while IFS= read -r line; do
-			[[ "$line" == *'env -u GH_STACK_NO_ATOMIC gh stack push'* ]]
+			[[ "$line" == *'env -u GH_STACK_NO_ATOMIC gh stack push'* ]] || false
 		done < <(grep -F 'gh stack push' "$consumer")
 	done
-	! grep -E '^[[:space:]]*gh stack sync' "$REPO_ROOT/skills/pr:stack/SKILL.md"
+	! grep -E '^[[:space:]]*gh stack sync' "$REPO_ROOT/skills/pr:stack/SKILL.md" || false
 }
 
 @test "atomic push command clears even a false-looking nonempty opt-out" {

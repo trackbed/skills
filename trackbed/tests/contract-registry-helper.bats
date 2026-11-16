@@ -18,8 +18,8 @@ setup() {
 		zz-first-absent-contract
 
 	[ "$status" -ne 0 ]
-	[[ "$output" == *"missing required_file_contracts: zz-first-absent-contract, zz-second-absent-contract"* ]]
-	[[ "$output" != *"$REGISTERED_CONTRACT"* ]]
+	[[ "$output" == *"missing required_file_contracts: zz-first-absent-contract, zz-second-absent-contract"* ]] || false
+	[[ "$output" != *"$REGISTERED_CONTRACT"* ]] || false
 }
 
 # Guidance suites call the helper between a `run` and its `[ "$status" -eq 0 ]` assertion,

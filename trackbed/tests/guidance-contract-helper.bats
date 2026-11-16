@@ -21,7 +21,7 @@ assert_contract_fails_with() {
 
 	run python3 "$CHECKER" "$check" "$fixture"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"$diagnostic"* ]]
+	[[ "$output" == *"$diagnostic"* ]] || false
 }
 
 @test "result schema accepts paraphrased fields and rejects relocated vocabulary" {

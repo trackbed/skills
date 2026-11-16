@@ -12,7 +12,7 @@ setup() {
 }
 
 absent() {
-  ! grep -qF -e "$1" "$2"
+  ! grep -qF -e "$1" "$2" || false
 }
 
 @test "confidence rises on evidence, not reviewer agreement" {

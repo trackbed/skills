@@ -58,7 +58,7 @@ teardown() {
       --require-local-artifact OVERENGINEERING_REVIEW_OVERVIEW.md
   ' _ "$SCOPE_HELPER" "$BASE_COMMIT"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"refusing branch-controlled review state"* ]]
+  [[ "$output" == *"refusing branch-controlled review state"* ]] || false
 }
 
 @test "scope helper propagates collection and incomplete-field failures and removes temporary files" {
@@ -77,9 +77,9 @@ SH
     ' _ "$TMP_DIR/plugin/scripts/lib/review-scope.sh"
     [ "$status" -ne 0 ]
     if [ "$collector_exit" -eq 0 ]; then
-      [[ "$output" == *"Decoded review-diff fields were incomplete"* ]]
+      [[ "$output" == *"Decoded review-diff fields were incomplete"* ]] || false
     else
-      [[ "$output" == *"Base/diff collection failed"* ]]
+      [[ "$output" == *"Base/diff collection failed"* ]] || false
     fi
     [ -z "$(find "$TMP_DIR/fields" -type f -print)" ]
   done
@@ -131,7 +131,7 @@ SH
     review_untracked_paths tracked.txt
   ' _ "$SCOPE_HELPER"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"listing failed"* ]]
+  [[ "$output" == *"listing failed"* ]] || false
 }
 
 @test "standard and team review handoffs use the raw untracked scope helper" {

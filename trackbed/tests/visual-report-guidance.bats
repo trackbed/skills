@@ -285,7 +285,7 @@ PY
 			echo "report-$shape.html: $output"
 			return 1
 		}
-		[[ "$output" == *"is valid but not finalized; rerun without --check"* ]]
+		[[ "$output" == *"is valid but not finalized; rerun without --check"* ]] || false
 		grep -qF "data-shape=\"$shape\"" "shared/visual/assets/report-$shape.html"
 		grep -qF "shape \"$shape\"" "shared/visual/assets/report-$shape.html"
 	done
@@ -369,7 +369,7 @@ PY
 @test "the shipped template follows the contract and stays unfinalized" {
 	run python3 "$SCRIPT" --check "$TEMPLATE"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"is valid but not finalized; rerun without --check"* ]]
+	[[ "$output" == *"is valid but not finalized; rerun without --check"* ]] || false
 	grep -qF '<style data-trackbed-runtime></style>' "$TEMPLATE"
 	grep -qF '<script data-trackbed-runtime></script>' "$TEMPLATE"
 	! grep -qF 'Content-Security-Policy' "$TEMPLATE" || false
@@ -381,7 +381,7 @@ PY
 
 	run python3 "$SCRIPT" "$page"
 	[ "$status" -eq 0 ]
-	[[ "$output" == "Visual report ready: "*"/REVIEW_OVERVIEW.html (4 entries, 5 sections)" ]]
+	[[ "$output" == "Visual report ready: "*"/REVIEW_OVERVIEW.html (4 entries, 5 sections)" ]] || false
 
 	grep -qF "default-src 'none'; script-src 'sha256-" "$page"
 	grep -qF "base-uri 'none'; form-action 'none'" "$page"
@@ -406,8 +406,8 @@ PY
 
 	run python3 "$SCRIPT" "$page"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"only <script data-trackbed-runtime></script> may appear; remove this <script>"* ]]
-	[[ "$output" == *"the page was not changed"* ]]
+	[[ "$output" == *"only <script data-trackbed-runtime></script> may appear; remove this <script>"* ]] || false
+	[[ "$output" == *"the page was not changed"* ]] || false
 	cmp "$page" "$BATS_TEST_TMPDIR/before.html"
 }
 

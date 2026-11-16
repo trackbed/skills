@@ -181,7 +181,7 @@ SH
     cd "$test_repo"
     env -u BASE_REF -u SKILLSPECTOR_BASE make --no-print-directory -j4 skillopt-candidate-check
 
-    ! grep -q "^overlap:" "$GATE_LOG"
+    ! grep -q "^overlap:" "$GATE_LOG" || false
     grep -F "start:python3 scripts/lint-skill-contracts.py" "$GATE_LOG"
     grep -F "start:run-skillspector.sh --changed --base origin/main --format json --fail-on high" "$GATE_LOG"
     grep -F "start:node --test tests/node/*.test.js" "$GATE_LOG"

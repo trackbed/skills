@@ -30,7 +30,7 @@ boundary_dir() {
   run bash "$(script_path)" --run-dir
 
   [ "$status" -eq 2 ]
-  [[ "$output" == *"--run-dir requires a value"* ]]
+  [[ "$output" == *"--run-dir requires a value"* ]] || false
 }
 
 @test "skillopt candidate review rejects missing best skill" {
@@ -43,7 +43,7 @@ boundary_dir() {
 
   rm -r "$scratch_dir"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"missing best_skill.md"* ]]
+  [[ "$output" == *"missing best_skill.md"* ]] || false
 }
 
 @test "skillopt candidate review rejects run directories outside context boundary" {
@@ -54,7 +54,7 @@ boundary_dir() {
   run bash "$(script_path)" "$run_dir"
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"run directory path must stay under"* ]]
+  [[ "$output" == *"run directory path must stay under"* ]] || false
 }
 
 @test "skillopt candidate review rejects a run directory that merely resembles the context boundary" {
@@ -65,7 +65,7 @@ boundary_dir() {
   run bash "$(script_path)" "$run_dir"
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"run directory path must stay under"* ]]
+  [[ "$output" == *"run directory path must stay under"* ]] || false
 }
 
 @test "skillopt candidate review rejects a run directory sitting beside the boundary directory" {
@@ -79,7 +79,7 @@ boundary_dir() {
 
   rm -r "$fixture_dir"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"run directory path must stay under"* ]]
+  [[ "$output" == *"run directory path must stay under"* ]] || false
 }
 
 @test "skillopt candidate review rejects a run directory that escapes the boundary via traversal" {
@@ -93,7 +93,7 @@ boundary_dir() {
 
   rm -r "$outside_dir"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"run directory path must stay under"* ]]
+  [[ "$output" == *"run directory path must stay under"* ]] || false
 }
 
 @test "skillopt candidate review rejects a run directory reached through a symlink that escapes the repository" {
@@ -110,7 +110,7 @@ boundary_dir() {
 
   rm -r "$symlink_fixture"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"run directory path must stay under"* ]]
+  [[ "$output" == *"run directory path must stay under"* ]] || false
 }
 
 @test "skillopt candidate review writes review packet and source-applicable patch" {

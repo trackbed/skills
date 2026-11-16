@@ -35,8 +35,8 @@ setup() {
 	test -f "$CLARIFY/references/WIKIPEDIA-CONTENT-LICENSE.md"
 	local entry
 	entry="$(awk '/^  - id: /{inside = ($3 == "wikipedia-signs-of-ai-writing")} inside' "$CLARIFY/references/sources.yaml")"
-	[[ "$entry" == *"usage: copied"* ]]
-	[[ "$entry" == *"notice: references/WIKIPEDIA-CONTENT-LICENSE.md"* ]]
+	[[ "$entry" == *"usage: copied"* ]] || false
+	[[ "$entry" == *"notice: references/WIKIPEDIA-CONTENT-LICENSE.md"* ]] || false
 	grep -qF '`text:clarify/references/ai-writing-patterns.md` is an adapted work based on Wikipedia' ../THIRD_PARTY_NOTICES.md
 }
 
@@ -44,11 +44,11 @@ setup() {
 	local commit="3e1da8bfce43ecbe43a56f3cb00b62fbdf1cbd56"
 	local entry
 	entry="$(awk '/^  - id: /{inside = ($3 == "blader-humanizer")} inside' "$CLARIFY/references/sources.yaml")"
-	[[ "$entry" == *"usage: copied"* ]]
-	[[ "$entry" == *'license: "MIT"'* ]]
-	[[ "$entry" == *"notice: references/blader-humanizer-LICENSE"* ]]
-	[[ "$entry" == *"upstream_path: SKILL.md"* ]]
-	[[ "$entry" == *"upstream_commit: $commit"* ]]
+	[[ "$entry" == *"usage: copied"* ]] || false
+	[[ "$entry" == *'license: "MIT"'* ]] || false
+	[[ "$entry" == *"notice: references/blader-humanizer-LICENSE"* ]] || false
+	[[ "$entry" == *"upstream_path: SKILL.md"* ]] || false
+	[[ "$entry" == *"upstream_commit: $commit"* ]] || false
 	grep -qF "MIT License" "$CLARIFY/references/blader-humanizer-LICENSE"
 	grep -qF "Copyright (c) 2025 Siqi Chen" "$CLARIFY/references/blader-humanizer-LICENSE"
 	grep -qF "Permission is hereby granted, free of charge" "$CLARIFY/references/blader-humanizer-LICENSE"
@@ -58,9 +58,9 @@ setup() {
 	grep -qF "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM" "$CLARIFY/references/blader-humanizer-LICENSE"
 	local header
 	header="$(sed -n '1,10p' "$CLARIFY/references/ai-writing-patterns.md")"
-	[[ "$header" == *"WikiProject AI Cleanup, at revision 1383697236, under CC BY-SA 4.0"* ]]
-	[[ "$header" == *"[blader/humanizer](https://github.com/blader/humanizer) at commit \`$commit\`, under the MIT License"* ]]
-	[[ "$header" == *"blader-humanizer-LICENSE"* ]]
+	[[ "$header" == *"WikiProject AI Cleanup, at revision 1383697236, under CC BY-SA 4.0"* ]] || false
+	[[ "$header" == *"[blader/humanizer](https://github.com/blader/humanizer) at commit \`$commit\`, under the MIT License"* ]] || false
+	[[ "$header" == *"blader-humanizer-LICENSE"* ]] || false
 	grep -qF '`text:clarify/references/ai-writing-patterns.md` adapts text from `SKILL.md` in [`blader/humanizer`]' ../THIRD_PARTY_NOTICES.md
 	grep -qF "trackbed/skills/text:clarify/references/blader-humanizer-LICENSE" ../THIRD_PARTY_NOTICES.md
 }
@@ -133,8 +133,8 @@ setup() {
 @test "the Wikipedia catalog copy points at the re-synced revision everywhere" {
 	local revision="1383697236" entry
 	entry="$(awk '/^  - id: /{inside = ($3 == "wikipedia-signs-of-ai-writing")} inside' "$CLARIFY/references/sources.yaml")"
-	[[ "$entry" == *"upstream_revision: \"$revision\""* ]]
-	[[ "$entry" == *'baseline_hash: "sha256:3be6c7024505738d2f032caa73891116074362dffcbd35f02df8f4ccdb059b52"'* ]]
+	[[ "$entry" == *"upstream_revision: \"$revision\""* ]] || false
+	[[ "$entry" == *'baseline_hash: "sha256:3be6c7024505738d2f032caa73891116074362dffcbd35f02df8f4ccdb059b52"'* ]] || false
 	grep -qF "oldid=$revision" "$CLARIFY/references/WIKIPEDIA-CONTENT-LICENSE.md"
 	grep -qF "re-synced from revision 1366684471 to revision $revision" "$CLARIFY/references/WIKIPEDIA-CONTENT-LICENSE.md"
 	! grep -rqF "1366684471" "$CLARIFY/references/ai-writing-patterns.md" "$CLARIFY/references/sources.yaml" || false

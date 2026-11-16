@@ -124,8 +124,8 @@ TEST
   bash regression-test.sh
   run source "$blocks_dir/2.bash"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"$RG_TAG"* ]]
-  [[ "$output" == *"$RG_SHA"* ]]
+  [[ "$output" == *"$RG_TAG"* ]] || false
+  [[ "$output" == *"$RG_SHA"* ]] || false
   [ "$(cat fix.txt)" = fixed ]
   [ -f regression-test.sh ]
   [ "$(cat unrelated.txt)" = 'unrelated base' ]

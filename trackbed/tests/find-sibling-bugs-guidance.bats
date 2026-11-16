@@ -20,7 +20,7 @@ setup() {
   grep -qF 'argument-hint: "[--base <branch>] [--intent <text>]"' "$skill"
   grep -qF 'COLLECT_ARGS=(--strict --format nul --exclude-review-artifacts)' "$skill"
   grep -qF 'collect_review_scope "${COLLECT_ARGS[@]}" || exit 1' "$skill"
-  ! grep -qF '"${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh" --decode-json' "$skill"
+  ! grep -qF '"${CLAUDE_PLUGIN_ROOT}/scripts/collect-review-diff.sh" --decode-json' "$skill" || false
   grep -qF 'No changes detected against $BASE_REF. If this is wrong, re-run with --base <branch>.' "$skill"
 }
 

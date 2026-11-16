@@ -13,7 +13,9 @@ setup() {
 stop_walkthrough_chrome() {
   local pid="${WALKTHROUGH_CHROME_PID:-}"
   local attempt
-  [[ -n "$pid" ]] || return 0
+  if [[ -z "$pid" ]]; then
+    return 0
+  fi
 
   kill "$pid" 2>/dev/null || true
   for attempt in $(seq 1 20); do
@@ -293,10 +295,10 @@ JSON
   run python3 "$VALIDATOR" --html "$html"
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"meta.prUrl uses an unsafe URL"* ]]
-  [[ "$output" == *"file 0 uses an unsafe URL"* ]]
-  [[ "$output" == *"link 0 uses an unsafe URL"* ]]
-  [[ "$output" == *"media 0 uses an unsafe source URL"* ]]
+  [[ "$output" == *"meta.prUrl uses an unsafe URL"* ]] || false
+  [[ "$output" == *"file 0 uses an unsafe URL"* ]] || false
+  [[ "$output" == *"link 0 uses an unsafe URL"* ]] || false
+  [[ "$output" == *"media 0 uses an unsafe source URL"* ]] || false
 }
 
 @test "PR walkthrough renderer inlines vendored D3 and accepts local media assets" {
@@ -366,7 +368,7 @@ JSON
 
   run python3 "$VALIDATOR" --html "$html"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"OK: $html"* ]]
+  [[ "$output" == *"OK: $html"* ]] || false
   grep -qF 'id="d3-vendor" data-vendor="d3"' "$html"
   run grep -qF "cdn.jsdelivr.net" "$html"
   [ "$status" -eq 1 ]
@@ -432,7 +434,7 @@ JSON
   run python3 "$VALIDATOR" --html "$html"
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"data-flow: duplicate node id duplicate"* ]]
+  [[ "$output" == *"data-flow: duplicate node id duplicate"* ]] || false
 }
 
 @test "PR walkthrough validator rejects malformed identifiers without an internal exception" {
@@ -471,15 +473,15 @@ PY
   run python3 "$VALIDATOR" --html "$html"
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"graph 0 id must be a non-empty string"* ]]
-  [[ "$output" == *"data-flow: node 0 id must be a non-empty string"* ]]
-  [[ "$output" == *"data-flow: node 1 id must be a non-empty string"* ]]
-  [[ "$output" == *"data-flow: edge 0 source must be a non-empty string"* ]]
-  [[ "$output" == *"data-flow: edge 0 target must be a non-empty string"* ]]
-  [[ "$output" == *"data-flow: tour step 0 nodeId must be a non-empty string"* ]]
-  [[ "$output" == *"code-dependency: node 0 id must be a non-empty string"* ]]
-  [[ "$output" != *"Traceback"* ]]
-  [[ "$output" != *"TypeError"* ]]
+  [[ "$output" == *"graph 0 id must be a non-empty string"* ]] || false
+  [[ "$output" == *"data-flow: node 0 id must be a non-empty string"* ]] || false
+  [[ "$output" == *"data-flow: node 1 id must be a non-empty string"* ]] || false
+  [[ "$output" == *"data-flow: edge 0 source must be a non-empty string"* ]] || false
+  [[ "$output" == *"data-flow: edge 0 target must be a non-empty string"* ]] || false
+  [[ "$output" == *"data-flow: tour step 0 nodeId must be a non-empty string"* ]] || false
+  [[ "$output" == *"code-dependency: node 0 id must be a non-empty string"* ]] || false
+  [[ "$output" != *"Traceback"* ]] || false
+  [[ "$output" != *"TypeError"* ]] || false
 }
 
 @test "PR walkthrough validator rejects malformed collection fields" {
@@ -511,14 +513,14 @@ PY
   run python3 "$VALIDATOR" --html "$html"
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"data-flow: tour must be a non-empty array"* ]]
-  [[ "$output" == *"data-flow/input: details must be an array"* ]]
-  [[ "$output" == *"data-flow/input: files must be an array"* ]]
-  [[ "$output" == *"data-flow/input: comments must be an array"* ]]
-  [[ "$output" == *"data-flow/input: links must be an array"* ]]
-  [[ "$output" == *"data-flow/input: media must be an array"* ]]
-  [[ "$output" != *"Traceback"* ]]
-  [[ "$output" != *"TypeError"* ]]
+  [[ "$output" == *"data-flow: tour must be a non-empty array"* ]] || false
+  [[ "$output" == *"data-flow/input: details must be an array"* ]] || false
+  [[ "$output" == *"data-flow/input: files must be an array"* ]] || false
+  [[ "$output" == *"data-flow/input: comments must be an array"* ]] || false
+  [[ "$output" == *"data-flow/input: links must be an array"* ]] || false
+  [[ "$output" == *"data-flow/input: media must be an array"* ]] || false
+  [[ "$output" != *"Traceback"* ]] || false
+  [[ "$output" != *"TypeError"* ]] || false
 }
 
 @test "PR walkthrough validator rejects invalid embedded runtime JavaScript" {
@@ -547,7 +549,7 @@ PY
   run python3 "$VALIDATOR" --html "$html"
 
   [ "$status" -eq 1 ]
-  [[ "$output" == *"runtime JavaScript syntax check failed"* ]]
+  [[ "$output" == *"runtime JavaScript syntax check failed"* ]] || false
 }
 
 @test "PR walkthrough runtime asset parses as JavaScript" {
@@ -607,15 +609,15 @@ JS
   run make -C "$ROOT" lint-js "JAVASCRIPT_BROWSER_ASSETS=$TMP_DIR/invalid.js"
 
   [ "$status" -ne 0 ]
-  [[ "$output" == *"getElementByID"* ]]
-  [[ "$output" == *"Object is possibly 'null'"* ]]
-  [[ "$output" == *"Parameter 'value' implicitly has an 'any' type"* ]]
-  [[ "$output" == *"'this' implicitly has type 'any'"* ]]
-  [[ "$output" == *"getBoundingClientRectangle"* ]]
-  [[ "$output" == *"missingField"* ]]
-  [[ "$output" == *"missingTransform"* ]]
-  [[ "$output" == *"Type 'string' is not assignable to type 'number'"* ]]
-  [[ "$output" == *"FrameRequestCallback"* ]]
+  [[ "$output" == *"getElementByID"* ]] || false
+  [[ "$output" == *"Object is possibly 'null'"* ]] || false
+  [[ "$output" == *"Parameter 'value' implicitly has an 'any' type"* ]] || false
+  [[ "$output" == *"'this' implicitly has type 'any'"* ]] || false
+  [[ "$output" == *"getBoundingClientRectangle"* ]] || false
+  [[ "$output" == *"missingField"* ]] || false
+  [[ "$output" == *"missingTransform"* ]] || false
+  [[ "$output" == *"Type 'string' is not assignable to type 'number'"* ]] || false
+  [[ "$output" == *"FrameRequestCallback"* ]] || false
 }
 
 @test "PR walkthrough renderer preserves runtime placeholder text in graph data" {
@@ -658,7 +660,7 @@ print("runtime placeholder preserved")
 PY
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *"runtime placeholder preserved"* ]]
+  [[ "$output" == *"runtime placeholder preserved"* ]] || false
 }
 
 @test "PR walkthrough tests do not kill an inherited CHROME_PID" {
@@ -713,14 +715,14 @@ BATS
   for missing in python3 node WebSocket Chrome; do
     run env MISSING_PREREQUISITE="$missing" TRACKBED_REQUIRE_BROWSER_SMOKE=1 bats "$fixture"
     [ "$status" -ne 0 ]
-    [[ "$output" == *"Required browser smoke:"* ]]
-    [[ "$output" == *"$missing"* ]]
-    [[ "$output" != *"# skip"* ]]
+    [[ "$output" == *"Required browser smoke:"* ]] || false
+    [[ "$output" == *"$missing"* ]] || false
+    [[ "$output" != *"# skip"* ]] || false
 
     run env MISSING_PREREQUISITE="$missing" TRACKBED_REQUIRE_BROWSER_SMOKE=0 bats "$fixture"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"# skip"* ]]
-    [[ "$output" == *"$missing"* ]]
+    [[ "$output" == *"# skip"* ]] || false
+    [[ "$output" == *"$missing"* ]] || false
   done
 }
 
@@ -982,5 +984,5 @@ NODE
     printf '%s\n' "$output" >&2
     return 1
   fi
-  [[ "$output" == *"browser smoke passed"* ]]
+  [[ "$output" == *"browser smoke passed"* ]] || false
 }

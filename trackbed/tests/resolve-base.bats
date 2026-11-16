@@ -257,11 +257,11 @@ delete_origin_head() {
 @test "pinned base commit rejects non-full and missing OIDs" {
 	run "$SCRIPT_DIR/resolve-base.sh" --base main --base-commit HEAD
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"--base-commit must be a full 40-character lowercase commit OID"* ]]
+	[[ "$output" == *"--base-commit must be a full 40-character lowercase commit OID"* ]] || false
 
 	run "$SCRIPT_DIR/resolve-base.sh" --base main --base-commit 0000000000000000000000000000000000000000
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Pinned base commit '0000000000000000000000000000000000000000' does not resolve locally"* ]]
+	[[ "$output" == *"Pinned base commit '0000000000000000000000000000000000000000' does not resolve locally"* ]] || false
 }
 
 @test "explicit commit OID base resolves locally without fetching a branch" {
@@ -285,14 +285,14 @@ delete_origin_head() {
 @test "explicit commit OID base rejects missing commits and a branch pin" {
 	run "$SCRIPT_DIR/resolve-base.sh" --base 0000000000000000000000000000000000000000
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Explicit base commit '0000000000000000000000000000000000000000' does not resolve locally"* ]]
-	[[ "$output" != *"Failed to fetch"* ]]
+	[[ "$output" == *"Explicit base commit '0000000000000000000000000000000000000000' does not resolve locally"* ]] || false
+	[[ "$output" != *"Failed to fetch"* ]] || false
 
 	local head_commit
 	head_commit="$(git rev-parse HEAD)"
 	run "$SCRIPT_DIR/resolve-base.sh" --base "$head_commit" --base-commit "$head_commit"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"--base-commit pins a branch base; it cannot be combined with a commit OID --base"* ]]
+	[[ "$output" == *"--base-commit pins a branch base; it cannot be combined with a commit OID --base"* ]] || false
 }
 
 @test "uses GitHub PR base metadata before origin HEAD" {
@@ -315,9 +315,9 @@ delete_origin_head() {
 	run "$SCRIPT_DIR/resolve-base.sh" --strict
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"failed to connect to api.github.com"* ]]
-	[[ "$output" == *"Could not determine whether the current branch has a Pull Request"* ]]
-	[[ "$output" != *"BASE_BRANCH=development"* ]]
+	[[ "$output" == *"failed to connect to api.github.com"* ]] || false
+	[[ "$output" == *"Could not determine whether the current branch has a Pull Request"* ]] || false
+	[[ "$output" != *"BASE_BRANCH=development"* ]] || false
 }
 
 @test "a no-PR result for another branch cannot select the configured workbench" {
@@ -332,7 +332,7 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --strict
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Could not determine whether the current branch has a Pull Request"* ]]
+	[[ "$output" == *"Could not determine whether the current branch has a Pull Request"* ]] || false
 }
 
 @test "backup mode does not create a recovery branch after GitHub lookup failure" {
@@ -343,8 +343,8 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --backup
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Could not determine whether the current branch has a Pull Request"* ]]
-	! git show-ref --verify --quiet refs/heads/feature-recreate-backup
+	[[ "$output" == *"Could not determine whether the current branch has a Pull Request"* ]] || false
+	! git show-ref --verify --quiet refs/heads/feature-recreate-backup || false
 }
 
 @test "GitHub PR base metadata wins over CONDUCTOR_DEFAULT_BRANCH" {
@@ -396,7 +396,7 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Configured kramme.baseBranch is empty"* ]]
+	[[ "$output" == *"Configured kramme.baseBranch is empty"* ]] || false
 }
 
 @test "repository base setting keeps main as workbench when Conductor names development" {
@@ -457,7 +457,7 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Configured trackbed.baseBranch 'bad name' is not a valid branch name"* ]]
+	[[ "$output" == *"Configured trackbed.baseBranch 'bad name' is not a valid branch name"* ]] || false
 }
 
 @test "empty repository base setting stops instead of falling through to main" {
@@ -466,7 +466,7 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Configured trackbed.baseBranch is empty"* ]]
+	[[ "$output" == *"Configured trackbed.baseBranch is empty"* ]] || false
 }
 
 @test "uses CONDUCTOR_DEFAULT_BRANCH when PR metadata is absent and origin HEAD is missing" {
@@ -552,7 +552,7 @@ GH
 	run env -u CONDUCTOR_DEFAULT_BRANCH "$SCRIPT_DIR/resolve-base.sh"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Could not determine base branch; expected PR metadata, trackbed.baseBranch, CONDUCTOR_DEFAULT_BRANCH, origin/HEAD, origin/main, or origin/master"* ]]
+	[[ "$output" == *"Could not determine base branch; expected PR metadata, trackbed.baseBranch, CONDUCTOR_DEFAULT_BRANCH, origin/HEAD, origin/main, or origin/master"* ]] || false
 }
 
 @test "explicit base branch wins over GitHub metadata and origin HEAD" {
@@ -623,14 +623,14 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --base main
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Explicit base ref 'main' names unknown remote 'origin'"* ]]
+	[[ "$output" == *"Explicit base ref 'main' names unknown remote 'origin'"* ]] || false
 }
 
 @test "invalid explicit base branch fails before fetch" {
 	run "$SCRIPT_DIR/resolve-base.sh" --base "bad..name"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Explicit base branch 'bad..name' is not a valid branch name"* ]]
+	[[ "$output" == *"Explicit base branch 'bad..name' is not a valid branch name"* ]] || false
 }
 
 @test "strict mode fails when fetching the resolved base fails" {
@@ -640,7 +640,7 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --strict
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Failed to fetch origin/main"* ]]
+	[[ "$output" == *"Failed to fetch origin/main"* ]] || false
 }
 
 @test "default fetch mode is strict" {
@@ -650,7 +650,7 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Failed to fetch origin/main"* ]]
+	[[ "$output" == *"Failed to fetch origin/main"* ]] || false
 }
 
 @test "strict mode fails when fetching the resolved base times out" {
@@ -663,7 +663,7 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --strict
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Timed out fetching origin/main after 0.05s"* ]]
+	[[ "$output" == *"Timed out fetching origin/main after 0.05s"* ]] || false
 	sleep 0.3
 	[ ! -e "$MOCK_GIT_FETCH_CHILD_MARKER" ]
 }
@@ -675,7 +675,7 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --tolerate-fetch-failure
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"Warning: failed to fetch origin/main; using existing refs/remotes/origin/main"* ]]
+	[[ "$output" == *"Warning: failed to fetch origin/main; using existing refs/remotes/origin/main"* ]] || false
 	load_assignments
 	[ "$BASE_REF" = "refs/remotes/origin/main" ]
 	[ "$BASE_BRANCH" = "main" ]
@@ -689,7 +689,7 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --tolerate-fetch-failure
 
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"Warning: timed out fetching origin/main; using existing refs/remotes/origin/main"* ]]
+	[[ "$output" == *"Warning: timed out fetching origin/main; using existing refs/remotes/origin/main"* ]] || false
 	load_assignments
 	[ "$BASE_REF" = "refs/remotes/origin/main" ]
 	[ "$BASE_BRANCH" = "main" ]
@@ -711,7 +711,7 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --backup
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"HEAD is detached; switch to the feature branch first"* ]]
+	[[ "$output" == *"HEAD is detached; switch to the feature branch first"* ]] || false
 }
 
 @test "normal mode allows running on the base branch itself" {
@@ -730,7 +730,7 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --backup
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Current branch is the base branch 'main'; switch to a feature branch first"* ]]
+	[[ "$output" == *"Current branch is the base branch 'main'; switch to a feature branch first"* ]] || false
 }
 
 @test "backup mode rejects production main even when configured workbench is development" {
@@ -741,7 +741,7 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --backup --base development
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"protected workbench or production branch"* ]]
+	[[ "$output" == *"protected workbench or production branch"* ]] || false
 }
 
 @test "backup mode protects configured development when the explicit base is main" {
@@ -752,8 +752,8 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --backup --base main
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"protected workbench or production branch"* ]]
-	! git show-ref --verify --quiet refs/heads/development-recreate-backup
+	[[ "$output" == *"protected workbench or production branch"* ]] || false
+	! git show-ref --verify --quiet refs/heads/development-recreate-backup || false
 }
 
 @test "fails when histories are unrelated" {
@@ -765,7 +765,7 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --base main
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"No merge base between 'refs/remotes/origin/main' and HEAD; histories are unrelated"* ]]
+	[[ "$output" == *"No merge base between 'refs/remotes/origin/main' and HEAD; histories are unrelated"* ]] || false
 }
 
 @test "base-only mode resolves a workbench across unrelated histories" {
@@ -786,8 +786,8 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --base-only --backup
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"--base-only cannot be combined with --backup or --after"* ]]
-	! git show-ref --verify --quiet refs/heads/feature-recreate-backup
+	[[ "$output" == *"--base-only cannot be combined with --backup or --after"* ]] || false
+	! git show-ref --verify --quiet refs/heads/feature-recreate-backup || false
 }
 
 @test "after commit is resolved and exported when it is an ancestor of HEAD" {
@@ -808,7 +808,7 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --after missing-commit
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"--after commit 'missing-commit' does not resolve"* ]]
+	[[ "$output" == *"--after commit 'missing-commit' does not resolve"* ]] || false
 }
 
 @test "after commit fails when it is not an ancestor of HEAD" {
@@ -821,7 +821,7 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --after "$sibling_commit"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"--after commit '$sibling_commit' is not an ancestor of HEAD"* ]]
+	[[ "$output" == *"--after commit '$sibling_commit' is not an ancestor of HEAD"* ]] || false
 }
 
 @test "backup mode exports reset point original tip and creates recovery branch" {
@@ -877,7 +877,7 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --backup --backup-ref feature
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"--backup-ref must not name the current branch being rewritten"* ]]
+	[[ "$output" == *"--backup-ref must not name the current branch being rewritten"* ]] || false
 	[ "$(git rev-parse feature)" = "$feature_tip" ]
 }
 
@@ -904,7 +904,7 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --backup
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Working tree has uncommitted or untracked changes; commit them or use 'git stash --include-untracked' first"* ]]
+	[[ "$output" == *"Working tree has uncommitted or untracked changes; commit them or use 'git stash --include-untracked' first"* ]] || false
 }
 
 @test "backup mode rejects untracked work that reset hard would overwrite" {
@@ -915,8 +915,8 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --backup
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Working tree has uncommitted or untracked changes; commit them or use 'git stash --include-untracked' first"* ]]
-	! git show-ref --verify --quiet refs/heads/feature-recreate-backup
+	[[ "$output" == *"Working tree has uncommitted or untracked changes; commit them or use 'git stash --include-untracked' first"* ]] || false
+	! git show-ref --verify --quiet refs/heads/feature-recreate-backup || false
 }
 
 @test "backup mode rejects ignored work that overlaps the reset point" {
@@ -929,8 +929,8 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --backup
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Ignored path 'tracked.txt' overlaps content restored by the reset"* ]]
-	! git show-ref --verify --quiet refs/heads/feature-recreate-backup
+	[[ "$output" == *"Ignored path 'tracked.txt' overlaps content restored by the reset"* ]] || false
+	! git show-ref --verify --quiet refs/heads/feature-recreate-backup || false
 }
 
 @test "backup mode rejects modified assume-unchanged tracked content" {
@@ -940,9 +940,9 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --backup
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Assume-unchanged tracked content differs from the index"* ]]
+	[[ "$output" == *"Assume-unchanged tracked content differs from the index"* ]] || false
 	[ "$(cat tracked.txt)" = "hidden modification" ]
-	! git show-ref --verify --quiet refs/heads/feature-recreate-backup
+	! git show-ref --verify --quiet refs/heads/feature-recreate-backup || false
 }
 
 @test "backup mode permits clean assume-unchanged tracked content" {
@@ -953,7 +953,7 @@ GH
 	[ "$status" -eq 0 ]
 	load_assignments
 	[ "$ORIGINAL_BRANCH" = "feature" ]
-	[[ "$(git ls-files -v tracked.txt)" == h* ]]
+	[[ "$(git ls-files -v tracked.txt)" == h* ]] || false
 }
 
 @test "backup mode fails closed when direct reset-tree inspection fails" {
@@ -968,8 +968,8 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --backup
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Could not inspect reset point path 'tracked.txt'"* ]]
-	! git show-ref --verify --quiet refs/heads/feature-recreate-backup
+	[[ "$output" == *"Could not inspect reset point path 'tracked.txt'"* ]] || false
+	! git show-ref --verify --quiet refs/heads/feature-recreate-backup || false
 }
 
 @test "backup mode fails closed when parent reset-tree inspection fails" {
@@ -990,8 +990,8 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --backup
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Could not inspect reset point path 'blocked'"* ]]
-	! git show-ref --verify --quiet refs/heads/feature-recreate-backup
+	[[ "$output" == *"Could not inspect reset point path 'blocked'"* ]] || false
+	! git show-ref --verify --quiet refs/heads/feature-recreate-backup || false
 }
 
 @test "backup mode fails closed when git status cannot inspect the worktree" {
@@ -1000,8 +1000,8 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --backup
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Could not inspect the working tree; stop before creating a recovery backup"* ]]
-	! git show-ref --verify --quiet refs/heads/feature-recreate-backup
+	[[ "$output" == *"Could not inspect the working tree; stop before creating a recovery backup"* ]] || false
+	! git show-ref --verify --quiet refs/heads/feature-recreate-backup || false
 }
 
 @test "rewrite-state verification rejects commits created after backup" {
@@ -1019,7 +1019,7 @@ GH
 		--reset-point "$reset_point"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"current tip no longer matches the captured original tip"* ]]
+	[[ "$output" == *"current tip no longer matches the captured original tip"* ]] || false
 }
 
 @test "rewrite-state verification rejects a branch change after backup" {
@@ -1037,7 +1037,7 @@ GH
 		--reset-point "$reset_point"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"current branch changed from 'feature' to 'main'"* ]]
+	[[ "$output" == *"current branch changed from 'feature' to 'main'"* ]] || false
 }
 
 @test "backup mode fast-forwards matching local base branch to origin" {
@@ -1063,7 +1063,7 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --backup
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Local base branch 'main' has diverged from origin/main; resolve manually before retrying"* ]]
+	[[ "$output" == *"Local base branch 'main' has diverged from origin/main; resolve manually before retrying"* ]] || false
 }
 
 @test "backup mode refuses to replace existing backup branch without force" {
@@ -1076,7 +1076,7 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --backup
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Backup branch 'feature-recreate-backup' already exists at $old_tip; refusing to move it."* ]]
+	[[ "$output" == *"Backup branch 'feature-recreate-backup' already exists at $old_tip; refusing to move it."* ]] || false
 }
 
 @test "force backup moves existing backup branch to current tip" {
@@ -1096,14 +1096,14 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --force-backup
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"--force-backup requires --backup"* ]]
+	[[ "$output" == *"--force-backup requires --backup"* ]] || false
 }
 
 @test "custom backup ref without backup mode is rejected" {
 	run "$SCRIPT_DIR/resolve-base.sh" --backup-ref feature-recovery
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"--backup-ref requires --backup"* ]]
+	[[ "$output" == *"--backup-ref requires --backup"* ]] || false
 }
 
 @test "backup mode refuses to run from the plugin repository itself" {
@@ -1112,7 +1112,7 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh" --backup
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Refusing to run backup mode against the repository that contains this plugin script."* ]]
+	[[ "$output" == *"Refusing to run backup mode against the repository that contains this plugin script."* ]] || false
 }
 
 @test "fails outside a git repository" {
@@ -1121,35 +1121,35 @@ GH
 	run "$SCRIPT_DIR/resolve-base.sh"
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Not inside a git repository"* ]]
+	[[ "$output" == *"Not inside a git repository"* ]] || false
 }
 
 @test "argument parser rejects missing values and unknown arguments" {
 	run "$SCRIPT_DIR/resolve-base.sh" --base
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"--base requires a value"* ]]
+	[[ "$output" == *"--base requires a value"* ]] || false
 
 	run "$SCRIPT_DIR/resolve-base.sh" --base-commit
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"--base-commit requires a value"* ]]
+	[[ "$output" == *"--base-commit requires a value"* ]] || false
 
 	run "$SCRIPT_DIR/resolve-base.sh" --backup-ref
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"--backup-ref requires a value"* ]]
+	[[ "$output" == *"--backup-ref requires a value"* ]] || false
 
 	run "$SCRIPT_DIR/resolve-base.sh" --after --strict
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"--after requires a value"* ]]
+	[[ "$output" == *"--after requires a value"* ]] || false
 
 	run "$SCRIPT_DIR/resolve-base.sh" --format
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"--format requires a value"* ]]
+	[[ "$output" == *"--format requires a value"* ]] || false
 
 	run "$SCRIPT_DIR/resolve-base.sh" --format yaml
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"--format must be 'shell' or 'json'"* ]]
+	[[ "$output" == *"--format must be 'shell' or 'json'"* ]] || false
 
 	run "$SCRIPT_DIR/resolve-base.sh" --bogus
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Unknown argument: --bogus"* ]]
+	[[ "$output" == *"Unknown argument: --bogus"* ]] || false
 }

@@ -14,7 +14,7 @@ PLAN_TEMPLATE="skills/code:migrate/assets/migration-plan.md"
   test -f "$GROUNDING"
   grep -qF 'Read and follow `references/source-grounding.md` now.' "$SKILL"
   grep -qF 'local source-grounding contract' "$SKILL"
-  ! grep -qF 'kramme:code:source-driven' "$SKILL"
+  ! grep -qF 'kramme:code:source-driven' "$SKILL" || false
 }
 
 @test "migration grounding binds official authority to detected versions" {
@@ -50,7 +50,7 @@ PLAN_TEMPLATE="skills/code:migrate/assets/migration-plan.md"
 
 @test "migration codemod guidance avoids unreviewed remote script execution" {
   grep -qF 'npm install --location=global @getgrit/cli' "$CODEMODS"
-  ! grep -qF 'curl -fsSL https://docs.grit.io/install | bash' "$CODEMODS"
+  ! grep -qF 'curl -fsSL https://docs.grit.io/install | bash' "$CODEMODS" || false
 }
 
 @test "migration records a read-only dependency snapshot and leaves the audit skill to the user" {

@@ -61,8 +61,8 @@ load 'test_helper/common'
 	run bash -c '
     cd "'"$BATS_TEST_DIRNAME"'/.."
     helper="skills/code:optimize/scripts/experiment-worktree.sh"
-    ! grep -Eq "rm[[:space:]]+-[^[:space:]]*f" "$helper"
-    ! grep -Fq "rmdir \"\$worktree_dir\"" "$helper"
+    ! grep -Eq "rm[[:space:]]+-[^[:space:]]*f" "$helper" || false
+    ! grep -Fq "rmdir \"\$worktree_dir\"" "$helper" || false
   '
 
 	[ "$status" -eq 0 ]
@@ -183,7 +183,7 @@ load 'test_helper/common'
     "$helper" cleanup safe-spec 1
 
     test ! -e "$worktree_path"
-    ! git show-ref --verify --quiet refs/heads/optimize-exp/safe-spec/exp-001
+    ! git show-ref --verify --quiet refs/heads/optimize-exp/safe-spec/exp-001 || false
   '
 
 	[ "$status" -eq 0 ]
@@ -211,8 +211,8 @@ load 'test_helper/common'
     test ! -e "$second_path"
     test -d "$other_path"
     test -d "$unregistered_path"
-    ! git show-ref --verify --quiet refs/heads/optimize-exp/safe-spec/exp-001
-    ! git show-ref --verify --quiet refs/heads/optimize-exp/safe-spec/exp-002
+    ! git show-ref --verify --quiet refs/heads/optimize-exp/safe-spec/exp-001 || false
+    ! git show-ref --verify --quiet refs/heads/optimize-exp/safe-spec/exp-002 || false
     git show-ref --verify --quiet refs/heads/optimize-exp/other-spec/exp-001
   '
 

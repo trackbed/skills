@@ -17,6 +17,7 @@ Paths passed through file variables are relative to `trackbed/`.
 
 | Area | Source files | Closest tests or checks |
 | --- | --- | --- |
+| Portable Bats assertions | `tests/test_helper/check_bats_assertions.py`, `tests/*.bats`, `Makefile` | `make -C trackbed check-bats-assertions`, `python3 -m unittest discover -s trackbed/tests/python -p test_bats_assertions.py`, `bats trackbed/tests/portable-assertions.bats`; CI runs Linux Bash, macOS Bash 3.2, and modern macOS Bash |
 | Public docs and conventions | `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `CLAUDE.md`, `trackbed/docs/` | `make -C trackbed test-bats-file BATS_TEST_FILE=tests/repository-instructions.bats`, then `git diff --check -- README.md CONTRIBUTING.md AGENTS.md CLAUDE.md trackbed/docs` |
 | Documentation site | `site/scripts/`, `site/astro.config.mjs`, `site/vercel.json`, and the sources it renders: `README.md`, the guides placed in `site/scripts/lib/config.mjs`, the usage guides in `trackbed/docs/usage/`, `trackbed/docs/component-catalog.json`, component frontmatter, and every file or heading those sources link to | `npm --prefix site test`, then `npm --prefix site run build` to validate rendering and internal links |
 | Documentation site deployment | `.github/workflows/deploy-docs-site.yml`, the `deploy-docs` job in `.github/workflows/release-tag.yml`, `site/vercel.json` | `make -C trackbed test-bats-file BATS_TEST_FILE=tests/release.bats`, `actionlint .github/workflows/deploy-docs-site.yml .github/workflows/release-tag.yml` |

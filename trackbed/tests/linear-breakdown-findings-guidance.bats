@@ -45,7 +45,7 @@
 		grep -qF "**Sibling worktree reports** discovery drive no-argument auto-detection" "$intake"
 		grep -qF "A sibling worktree report the user selects is also explicitly authorized input" "$intake"
 		grep -qF "resolution state (\`unresolved\`" "$intake"
-		! grep -qE "^[[:space:]]*[0-9]+\.[[:space:]]+\`" "$intake"
+		! grep -qE "^[[:space:]]*[0-9]+\.[[:space:]]+\`" "$intake" || false
 		grep -qF "The Linear breakdown'"'"'s \`--auto\` does not bypass it either." "shared/findings/references/findings-intake.md"
 		grep -qF "W##L" "$clustering"
 		grep -qF "require the canonical target to remain beneath the repository root" "$clustering"
@@ -100,9 +100,9 @@
 		grep -qF "result or summary is malformed or missing, ask the sub-skill once" "$publication"
 		grep -qF "without rerunning issue creation" "$publication"
 		grep -qF "Send all remaining \`needs-issue-define\` rows as one new batch" "$publication"
-		! grep -qF "user-only" "$skill" "$publication"
+		! grep -qF "user-only" "$skill" "$publication" || false
 		grep -qF "mark it \`unapplied\`" "$publication"
-		! grep -qF "at most two material clarifications" "$publication"
+		! grep -qF "at most two material clarifications" "$publication" || false
 		grep -qF "LINEAR BREAKDOWN HANDOFF" "$handoff"
 		grep -qF "HANDOFF_JSON_BEGIN" "$handoff"
 		grep -qF "ONE_COMPACT_JSON_OBJECT" "$handoff"
@@ -117,10 +117,10 @@
 		grep -qF "\"orchestration\"" "$handoff"
 		grep -qF "\"issue\"" "$handoff"
 		grep -qF "Only verified Linear identifiers may appear in \`issue.dependencies.blockedBy\`" "$handoff"
-		! grep -qF "\"anchor\"" "$handoff"
-		! grep -qF "\"batchIndex\"" "$handoff"
-		! grep -qF "\"exclusions\"" "$handoff"
-		! grep -qF "\"provenance\"" "$handoff"
+		! grep -qF "\"anchor\"" "$handoff" || false
+		! grep -qF "\"batchIndex\"" "$handoff" || false
+		! grep -qF "\"exclusions\"" "$handoff" || false
+		! grep -qF "\"provenance\"" "$handoff" || false
 		grep -qF "Source set: {SOURCE_SET_KEY}" "$clustering"
 		grep -qF "If \`breakdown_handoff = true\`, set mode to \`create\` immediately" "$issue_define"
 		grep -qF "argument-hint: \"[--auto [--ask]] [--] [issue-id or description and/or file paths for context]\"" "$issue_define"
@@ -160,11 +160,11 @@
 		grep -qF "every proposed native relation with its direction plus the target Linear identifier and title" "$auto_create"
 		grep -qF "show the entire updated draft again before asking for approval again" "$auto_create"
 		grep -qF "pass exactly the displayed title, full description, metadata, and relations to \`save_issue\`" "$auto_create"
-		! grep -qF "anchor/exclusion context" "$auto_create"
+		! grep -qF "anchor/exclusion context" "$auto_create" || false
 		grep -qF "never write it to Linear" "$intake"
-		! grep -qF '"marker"' "$handoff"
-		! grep -qF "resume-existing" "$publication" "$auto_create"
-		! grep -qF "Marker verified:" "$publication" "$auto_create"
+		! grep -qF '"marker"' "$handoff" || false
+		! grep -qF "resume-existing" "$publication" "$auto_create" || false
+		! grep -qF "Marker verified:" "$publication" "$auto_create" || false
 		grep -qF "Never put agent workflow names, skill identifiers, slash commands" "$auto_create"
 		grep -qF "ask no questions in light mode" "$auto_create"
 		grep -qF "/trackbed:linear:breakdown-findings" "$readme"
@@ -180,7 +180,7 @@
 		set -e
 		cd "'"$BATS_TEST_DIRNAME"'/.."
 		dir="skills/linear:breakdown-findings"
-		! grep -R -F "../" "$dir/references" "$dir/assets"
+		! grep -R -F "../" "$dir/references" "$dir/assets" || false
 		test "$(find "$dir" -mindepth 3 -type f | wc -l | tr -d " ")" -eq 0
 	'
 

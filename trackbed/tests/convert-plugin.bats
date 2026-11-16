@@ -174,14 +174,14 @@ MD
 	require_node
 	run node "$SCRIPT" --help
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"build <plugin-name|path> --out <dir>"* ]]
-	[[ "$output" == *"install <plugin-name|path> [options]"* ]]
-	[[ "$output" == *"uninstall <plugin-name|path> [options]"* ]]
-	[[ "$output" == *"stats <plugin-name|path> [--json]"* ]]
-	[[ "$output" == *"codex plugin marketplace add"* ]]
-	[[ "$output" == *"codex_skills"* ]]
-	[[ "$output" == *"agent_skills"* ]]
-	[[ "$output" != *"doctor"* ]]
+	[[ "$output" == *"build <plugin-name|path> --out <dir>"* ]] || false
+	[[ "$output" == *"install <plugin-name|path> [options]"* ]] || false
+	[[ "$output" == *"uninstall <plugin-name|path> [options]"* ]] || false
+	[[ "$output" == *"stats <plugin-name|path> [--json]"* ]] || false
+	[[ "$output" == *"codex plugin marketplace add"* ]] || false
+	[[ "$output" == *"codex_skills"* ]] || false
+	[[ "$output" == *"agent_skills"* ]] || false
+	[[ "$output" != *"doctor"* ]] || false
 }
 
 @test "help and unknown commands work without converter modules" {
@@ -191,11 +191,11 @@ MD
 
 	run node "$isolated/scripts/convert-plugin.js" --help
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"Usage:"* ]]
+	[[ "$output" == *"Usage:"* ]] || false
 
 	run node "$isolated/scripts/convert-plugin.js" bogus
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Unknown command: bogus"* ]]
+	[[ "$output" == *"Unknown command: bogus"* ]] || false
 }
 
 @test "missing converter modules render single-line command errors" {
@@ -233,7 +233,7 @@ MD
 
 	run env FIXTURE_FAILURE=plain-object node "$isolated/scripts/convert-plugin.js" stats fixture
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"plain object failure"* ]]
+	[[ "$output" == *"plain object failure"* ]] || false
 }
 
 @test "stats reports skill counts as text and JSON without loading install modules" {
@@ -264,7 +264,7 @@ MD
 	local out="$TMP_DIR/marketplace"
 	run node "$SCRIPT" build "$REPO_ROOT" --out "$out"
 	[ "$status" -eq 0 ]
-	[[ "$output" == "Built trackbed $PLUGIN_VERSION ("*" skills) to $out" ]]
+	[[ "$output" == "Built trackbed $PLUGIN_VERSION ("*" skills) to $out" ]] || false
 
 	local plugin_root="$out/plugins/trackbed"
 	[ "$(jq -r '.name' "$out/.agents/plugins/marketplace.json")" = "trackbed" ]
@@ -301,7 +301,7 @@ MD
 	printf 'mine\n' >"$TMP_DIR/occupied/keep.txt"
 	run node "$SCRIPT" build "$REPO_ROOT" --out "$TMP_DIR/occupied"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"is not empty"* ]]
+	[[ "$output" == *"is not empty"* ]] || false
 	[ "$(cat "$TMP_DIR/occupied/keep.txt")" = "mine" ]
 	[ ! -e "$TMP_DIR/occupied/plugins" ]
 }
@@ -310,7 +310,7 @@ MD
 	require_node
 	install_repo_plugin
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"Installed trackbed $PLUGIN_VERSION to $CACHE_ROOT"* ]]
+	[[ "$output" == *"Installed trackbed $PLUGIN_VERSION to $CACHE_ROOT"* ]] || false
 
 	[ -f "$MARKETPLACE_ROOT/.agents/plugins/marketplace.json" ]
 	[ -f "$MARKETPLACE_ROOT/plugins/trackbed/.codex-plugin/plugin.json" ]
@@ -352,13 +352,13 @@ plugin add trackbed@trackbed --json" ]
 	create_legacy_install
 	run_with_fake_codex node "$SCRIPT" install "$REPO_ROOT" --codex-home "$CODEX_HOME_DIR" --agents-home "$AGENTS_HOME_DIR" --non-interactive
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"defaulting to No"* ]]
+	[[ "$output" == *"defaulting to No"* ]] || false
 	[ -f "$CODEX_HOME_DIR/skills/kramme:legacy:skill/SKILL.md" ]
 	[ -f "$CODEX_HOME_DIR/.kramme-install-state.json" ]
 
 	install_repo_plugin
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"Removed "*" legacy Codex install paths."* ]]
+	[[ "$output" == *"Removed "*" legacy Codex install paths."* ]] || false
 	[ ! -e "$CODEX_HOME_DIR/skills/kramme:legacy:skill" ]
 	[ ! -e "$AGENTS_HOME_DIR/skills/kramme:legacy-agent" ]
 	[ ! -e "$CODEX_HOME_DIR/.kramme-install-state.json" ]
@@ -372,7 +372,7 @@ plugin add trackbed@trackbed --json" ]
 	printf 'mine\n' >"$TMP_DIR/foreign/notes.txt"
 	install_repo_plugin --marketplace-dir "$TMP_DIR/foreign"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Refusing to replace $TMP_DIR/foreign"* ]]
+	[[ "$output" == *"Refusing to replace $TMP_DIR/foreign"* ]] || false
 	[ "$(cat "$TMP_DIR/foreign/notes.txt")" = "mine" ]
 	[ ! -e "$FAKE_LOG" ]
 }
@@ -386,7 +386,7 @@ JSON
 	printf 'mine\n' >"$TMP_DIR/foreign/notes.txt"
 	install_repo_plugin --marketplace-dir "$TMP_DIR/foreign"
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"ownership could not be verified"* ]]
+	[[ "$output" == *"ownership could not be verified"* ]] || false
 	[ "$(cat "$TMP_DIR/foreign/notes.txt")" = "mine" ]
 	[ ! -e "$FAKE_LOG" ]
 }
@@ -407,7 +407,7 @@ JSON
 	ln -s "$(command -v node)" "$TMP_DIR/node-only-bin/node"
 	run env PATH="$TMP_DIR/node-only-bin:/usr/bin:/bin" node "$SCRIPT" install "$REPO_ROOT" --codex-home "$CODEX_HOME_DIR" --yes
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"codex CLI was not found on PATH"* ]]
+	[[ "$output" == *"codex CLI was not found on PATH"* ]] || false
 	[ -f "$MARKETPLACE_ROOT/.agents/plugins/marketplace.json" ]
 }
 
@@ -420,7 +420,7 @@ JSON
 
 	run_with_fake_codex node "$SCRIPT" uninstall "$REPO_ROOT" --codex-home "$CODEX_HOME_DIR" --agents-home "$AGENTS_HOME_DIR" --yes
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"Uninstalled trackbed from $CODEX_HOME_DIR"* ]]
+	[[ "$output" == *"Uninstalled trackbed from $CODEX_HOME_DIR"* ]] || false
 	[ "$(cat "$FAKE_LOG")" = "plugin marketplace list --json
 plugin remove trackbed@trackbed
 plugin marketplace remove trackbed" ]
@@ -486,7 +486,7 @@ SH
 	[ "$(cat "$TMP_DIR/npm-called")" = "install --omit=dev --no-audit --no-fund" ]
 	[ -f "$MARKETPLACE_ROOT/.agents/plugins/marketplace.json" ]
 	[ -f "$CODEX_HOME_DIR/plugins/cache/trackbed/trackbed/1.0.0/.codex-plugin/plugin.json" ]
-	[[ "$output" == *"Installed trackbed 1.0.0 to"* ]]
+	[[ "$output" == *"Installed trackbed 1.0.0 to"* ]] || false
 }
 
 @test "every command rejects malformed or unsupported options before loading converter modules" {
