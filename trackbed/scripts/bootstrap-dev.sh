@@ -287,7 +287,7 @@ require_supported_linux_python() {
     printf 'Python %d.%d+ is required before --install on Linux.\n' \
       "$MIN_PYTHON_MAJOR" \
       "$MIN_PYTHON_MINOR" >&2
-    printf 'Use Debian 12+, Ubuntu 22.04+, or provide a compatible Python interpreter and rerun this command.\n' >&2
+    printf 'Debian 12+ and Ubuntu 24.04+ provide compatible defaults; on Ubuntu 22.04, install Python 3.11+ separately and select it as python3 before rerunning.\n' >&2
     exit 1
   fi
 }

@@ -280,6 +280,7 @@ SH
 
 	[ "$status" -eq 1 ]
 	[[ "$output" == *"Python 3.11+ is required before --install on Linux."* ]] || false
+	[[ "$output" == *"Debian 12+ and Ubuntu 24.04+ provide compatible defaults; on Ubuntu 22.04, install Python 3.11+ separately and select it as python3 before rerunning."* ]] || false
 	[ ! -s "$BOOTSTRAP_COMMAND_LOG" ]
 }
 
