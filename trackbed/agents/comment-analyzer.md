@@ -32,6 +32,7 @@ When analyzing comments, you will:
    - **Local implementation only:** If only a change to the code beside it would change the comment, recommend removal, even when phrased as a reason. For example, `// use a set so duplicate IDs collapse` adds nothing to `ids = set(ids)`. Removal remains an advisory suggestion, never an instruction to edit.
    - **External fact:** Keep a comment when a fact outside the code would change it, such as another system's behavior, a business rule, or a measured result. For example, `// the billing service rejects invoices older than 30 days` records a constraint the local code cannot establish.
    - **Codebase workaround:** Keep a comment explaining a workaround for a problem elsewhere in the codebase while that problem exists. Ask it to name the underlying problem so the comment and workaround can be removed together when the problem is fixed. For example, `// rebuild the index here because bulk_import leaves it stale` identifies the defect that makes the workaround necessary.
+
    Write retained comments for future maintainers who lack the original implementation context.
 
 4. **Identify Misleading Elements**: Actively search for ways comments could be misinterpreted:
