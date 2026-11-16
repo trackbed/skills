@@ -1,0 +1,39 @@
+/*
+ * Shared palette and type tokens for pages the plugin builds: the visual report
+ * runtime (report-runtime.css, written in by scripts/visual-report.py) and the
+ * decision document (skills/visual:decisions). Each color is defined once as a
+ * light and dark pair, so a page follows the reader's color scheme without a
+ * second block. tests/python/test_shared_visual_accessibility.py holds every
+ * pair to the contrast floor; change a value here and both kinds of page follow.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --font-body: "Avenir Next", "Segoe UI", "Helvetica Neue", Helvetica, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+
+  --bg: light-dark(#f5f4ef, #131518);
+  --surface: light-dark(#ffffff, #1b1e22);
+  --surface2: light-dark(#eeece5, #22262b);
+  --surface-elevated: light-dark(#fbfaf7, #272b31);
+  --border: light-dark(rgba(20, 24, 28, 0.12), rgba(235, 238, 242, 0.12));
+  --border-bright: light-dark(rgba(20, 24, 28, 0.26), rgba(235, 238, 242, 0.26));
+  --text: light-dark(#1a1d21, #e9e7e1);
+  --text-dim: light-dark(#565c64, #aab1bb);
+  --accent: light-dark(#0b6259, #63cdbd);
+  --accent-dim: light-dark(rgba(11, 98, 89, 0.1), rgba(99, 205, 189, 0.14));
+  --green: light-dark(#17663a, #7dd69b);
+  --green-dim: light-dark(rgba(23, 102, 58, 0.1), rgba(125, 214, 155, 0.14));
+  --red: light-dark(#a8261d, #ff9a8f);
+  --red-dim: light-dark(rgba(168, 38, 29, 0.1), rgba(255, 154, 143, 0.14));
+  --orange: light-dark(#8f4a05, #f5b26b);
+  --orange-dim: light-dark(rgba(143, 74, 5, 0.1), rgba(245, 178, 107, 0.14));
+  --yellow: light-dark(#6f5800, #e2c563);
+  --yellow-dim: light-dark(rgba(111, 88, 0, 0.1), rgba(226, 197, 99, 0.14));
+  --blue: light-dark(#3a5a78, #9cc2e3);
+  --blue-dim: light-dark(rgba(58, 90, 120, 0.1), rgba(156, 194, 227, 0.14));
+  --violet: light-dark(#5d5475, #c5b9ea);
+  --violet-dim: light-dark(rgba(93, 84, 117, 0.1), rgba(197, 185, 234, 0.14));
+}

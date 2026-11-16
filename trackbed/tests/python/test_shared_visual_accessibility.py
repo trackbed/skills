@@ -121,7 +121,8 @@ class PaletteContrastTests(unittest.TestCase):
         self.assertIn("sample scheme 0: --red-dim missing or not rgba", failures)
 
 
-REPORT_RUNTIME = VISUAL / "assets" / "report-runtime.css"
+# The visual report runtime and the decision document both read their palette from this file.
+REPORT_TOKENS = VISUAL / "assets" / "report-tokens.css"
 PAIRED_HEX = re.compile(r"--([a-z0-9-]+):\s*light-dark\(\s*#([0-9a-fA-F]{6}),\s*#([0-9a-fA-F]{6})\s*\);")
 PAIRED_DIM = re.compile(
     r"--([a-z0-9-]+)-dim:\s*light-dark\(\s*rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\),"
@@ -140,10 +141,10 @@ def paired_scheme(text: str, scheme: int) -> str:
 
 
 class ReportRuntimePaletteTests(unittest.TestCase):
-    """The visual report runtime defines each token once, as a light and dark pair."""
+    """The shared report tokens define each color once, as a light and dark pair."""
 
     def setUp(self) -> None:
-        self.text = REPORT_RUNTIME.read_text(encoding="utf-8")
+        self.text = REPORT_TOKENS.read_text(encoding="utf-8")
 
     def test_every_token_a_report_page_may_use_has_both_schemes(self) -> None:
         tokens = {match.group(1) for match in PAIRED_HEX.finditer(self.text)}
@@ -155,7 +156,7 @@ class ReportRuntimePaletteTests(unittest.TestCase):
     def test_report_text_and_colors_meet_the_contrast_floor_in_both_schemes(self) -> None:
         failures = []
         for scheme, name in enumerate(("light", "dark")):
-            failures += palette_failures(paired_scheme(self.text, scheme), f"report-runtime.css {name}")
+            failures += palette_failures(paired_scheme(self.text, scheme), f"report-tokens.css {name}")
         self.assertEqual(failures, [])
 
     def test_the_paired_checker_reads_each_side(self) -> None:
