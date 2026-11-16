@@ -26,3 +26,7 @@ Use it after you install the plugin, when a skill fails because a tool may be mi
 - `manual-check` for integrations it cannot inspect from the shell, such as the Linear and Figma connectors.
 - A closing status: `Ready`, `Ready with optional gaps`, or `Blocked` when a required tool is missing, too old, or not working.
 - Cleanup notes after the status, such as a `.context/` folder that Git does not ignore, leftovers from earlier Codex installs, or an available plugin update with the commands to install it. The skill does not act on them.
+
+Cache discovery checks the populated `trackbed/trackbed` namespace first, then the supported `kramme-cc-workflow/kramme-cc-workflow` namespace. An empty current namespace does not hide a populated legacy cache. Claude registrations are matched against the selected namespace; a cached or registered version does not establish which version is active in the session.
+
+Codex uses `CODEX_HOME`, then `$HOME/.codex`. Claude uses `CLAUDE_CODE_PLUGIN_CACHE_DIR`, then `$CLAUDE_CONFIG_DIR/plugins`, then `$HOME/.claude/plugins`. With no applicable directory environment, discovery reports `not checked`. Update-state discovery honors the current override, the old `KRAMME_` override, and `XDG_STATE_HOME` before the home default; without any of those it also reports `not checked`.
