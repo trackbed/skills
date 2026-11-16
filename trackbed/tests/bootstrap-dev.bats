@@ -79,7 +79,7 @@ write_fake_python() {
 #!/bin/sh
 case "$1" in
 -c)
-	printf '%s\n' "${MOCK_PYTHON_VERSION:-3.10.0}"
+	printf '%s\n' "${MOCK_PYTHON_VERSION:-3.11.0}"
 	;;
 -m)
 	module="$2"
@@ -165,23 +165,23 @@ SH
 	[ "$status" -eq 1 ]
 	[[ "$output" == *"missing: Node.js 20+"* ]] || false
 	[[ "$output" == *"Install Node.js 20+ with npm"* ]] || false
-	[[ "$output" == *"Use Python 3.10+"* ]] || false
+	[[ "$output" == *"Use Python 3.11+"* ]] || false
 	[[ "$output" == *"apt-get install -y make bats jq python3 python3-venv"* ]] || false
 	[[ "$output" != *"apt-get install -y make bats jq nodejs npm"* ]] || false
 	[ ! -s "$BOOTSTRAP_COMMAND_LOG" ]
 }
 
-@test "check mode rejects Python versions below 3.10" {
+@test "check mode rejects Python versions below 3.11" {
 	write_check_tools
 
 	run env \
 		BOOTSTRAP_DEV_OS=Linux \
-		MOCK_PYTHON_VERSION=3.9.18 \
+		MOCK_PYTHON_VERSION=3.10.16 \
 		PATH="$TEST_BIN" \
 		/bin/bash "$BOOTSTRAP_SCRIPT" --check
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"missing: Python 3.10+ (found v3.9.18"* ]] || false
+	[[ "$output" == *"missing: Python 3.11+ (found v3.10.16"* ]] || false
 }
 
 @test "check mode rejects Node versions below 20" {
@@ -273,12 +273,12 @@ SH
 		BOOTSTRAP_COMMAND_LOG="$BOOTSTRAP_COMMAND_LOG" \
 		BOOTSTRAP_DEV_OS=Linux \
 		MOCK_NODE_VERSION=20.0.0 \
-		MOCK_PYTHON_VERSION=3.9.18 \
+		MOCK_PYTHON_VERSION=3.10.16 \
 		PATH="$TEST_BIN" \
 		/bin/bash "$BOOTSTRAP_SCRIPT" --install
 
 	[ "$status" -eq 1 ]
-	[[ "$output" == *"Python 3.10+ is required before --install on Linux."* ]] || false
+	[[ "$output" == *"Python 3.11+ is required before --install on Linux."* ]] || false
 	[ ! -s "$BOOTSTRAP_COMMAND_LOG" ]
 }
 
@@ -306,7 +306,7 @@ SH
 		BOOTSTRAP_DEV_OS=Linux \
 		MOCK_APT_INSTALL_STATUS=0 \
 		MOCK_NODE_VERSION=20.0.0 \
-		MOCK_PYTHON_VERSION=3.10.0 \
+		MOCK_PYTHON_VERSION=3.11.0 \
 		PATH="$TEST_BIN" \
 		/bin/bash "$BOOTSTRAP_SCRIPT" --install
 
@@ -329,7 +329,7 @@ SH
 		MOCK_APT_INSTALL_STATUS=0 \
 		MOCK_NODE_VERSION=20.0.0 \
 		MOCK_PIP_STATUS=42 \
-		MOCK_PYTHON_VERSION=3.10.0 \
+		MOCK_PYTHON_VERSION=3.11.0 \
 		PATH="$TEST_BIN" \
 		/bin/bash "$BOOTSTRAP_SCRIPT" --install
 

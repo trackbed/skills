@@ -12,7 +12,7 @@ The hooks are tested using [BATS](https://github.com/bats-core/bats-core) (Bash 
 # Read-only prerequisite check
 bash trackbed/scripts/bootstrap-dev.sh --check
 
-# Explicit setup (Node.js 20+, npm, and Python 3.10+ must already be available on Linux)
+# Explicit setup (Node.js 20+, npm, and Python 3.11+ must already be available on Linux)
 bash trackbed/scripts/bootstrap-dev.sh --install
 ```
 
@@ -90,6 +90,36 @@ For Node changes, `test-node-watch` uses the [built-in test runner's dependency 
 
 The `NODE_TEST_FILE`, `PYTHON_TEST_FILE`, and `BATS_TEST_FILE` values are paths relative to `trackbed/`, because `make -C trackbed` enters that directory before running the target. Each single-file target exits with a usage error when its variable is omitted.
 
+Single-case selection uses the runners directly from the repository root. Keep Node flags before the file path; Python uses a dotted module/class/method selector:
+
+```bash
+node --test --test-name-pattern='^formatFrontmatter omits undefined fields without dropping false values$' trackbed/tests/node/frontmatter.test.js
+(cd trackbed && python3 -m unittest tests.python.test_session_search_python38.SessionSearchPython38Tests.test_extractors_start_with_empty_input)
+bats --filter '^allows apostrophes and substitution text inside shell comments$' trackbed/tests/block-rm-rf.bats
+```
+
+Install dependencies for the selected suite; a focused target's prerequisite check is only a baseline:
+
+- Node files need Node.js 20+ and root `npm ci` (including the YAML parser). Some fixtures invoke Git, Bash, or Python.
+- Python files need Python 3.11+; the unit runner uses the standard library. Tests that invoke external tools also need those tools installed.
+- Bats files need Bash, Bats, and `jq`. Guidance suites commonly invoke Python; converter and installer suites also invoke Node, Git, and Make and need root `npm ci`. Read the selected suite's setup and subprocess commands for additional prerequisites.
+- Browser smoke needs Bats, Node.js 22+ with built-in WebSocket support, Python, and Chrome/Chromium. Set `TRACKBED_BROWSER_SMOKE_CHROME` to its executable if autodetection fails. This target requires the browser and fails when unavailable.
+
+The contributor floor is Python 3.11+, matching Ruff, mypy, and the normal CI jobs, with Node.js 20+ and the pinned tools in `requirements-dev.txt` and `package-lock.json`. The parser safe-path regression uses Python 3.11’s `-P` flag. Python 3.8 is supported only for the isolated session-search extractors; it is not the contributor toolchain floor.
+
+The additional checks in the Hook Tests workflow have local entry points:
+
+```bash
+# Same static and formatting commands as CI
+make -C trackbed lint format-check
+# Same required browser interactions as CI
+make -C trackbed test-walkthrough-browser
+# Requires an actual Python 3.8 interpreter; override its executable path if needed
+make -C trackbed test-python38-compatibility PYTHON38=python3.8
+```
+
+The `Run hook tests` aggregate requires successful hook-matrix, browser-smoke, static-check, and Python 3.8 compatibility jobs. Failure, cancellation, or skipping any of them fails the aggregate. Other workflows, including the documentation site and isolated installer checks, retain their separate CI jobs.
+
 ### Pre-PR Verification
 
 Run the closest focused target first when iterating on a change. `make -C trackbed test-smoke` provides representative cross-language feedback; `make -C trackbed test` is the complete default suite. It runs the Node unit tests, Python unit tests, and Bats integration tests. For ordinary Pull Request verification, run:
@@ -111,7 +141,7 @@ Historical runtimes measured locally on an Apple silicon laptop, for choosing th
 | `coverage` | 51s | Includes its own `test-python` run |
 | `pr-verify` | 28m | Dominated by `test-bats`; coverage adds roughly 36s on top of `test` |
 
-In that historical sample, the coverage gates were cheap relative to the suite they joined: `coverage-python` reuses the `test-python` run that `pr-verify` already performs, so folding `coverage` into `pr-verify` costs about 36 seconds. Run `make -C trackbed coverage` on its own when only the inventory or floors are in question.
+In that historical sample, the coverage gates were cheap relative to the suite they joined: `coverage-python` reuses the `test-python` run that `pr-verify` already performs, so adding `coverage` was estimated to cost about 36 seconds in that sample. Current gate duration and any speedup have not been measured. Run `make -C trackbed coverage` on its own when only the inventory or floors are in question.
 
 #### Measuring Bats suite cost
 
@@ -220,7 +250,7 @@ Before a release candidate or before marking a larger Pull Request ready, run th
 make -C trackbed verify
 ```
 
-The `verify` target runs `pr-verify` plus the standalone full skill-review eval split. These verification targets expect the existing local tools used by those checks to be installed: `shellcheck`, `ruff`, `skillspector`, `bats`, `jq`, Python 3.10+, and Node.js.
+The `verify` target runs `pr-verify` plus the standalone full skill-review eval split. These verification targets expect the existing local tools used by those checks to be installed: `shellcheck`, `ruff`, `skillspector`, `bats`, `jq`, Python 3.11+, and Node.js.
 
 Python development tool pins used by CI live in `requirements-dev.txt`. First party `actions/*` workflow actions are pinned to commit SHAs with a trailing comment naming the major tag used for lookup. Refresh them with `git ls-remote` against the upstream action repository before updating the SHA.
 
