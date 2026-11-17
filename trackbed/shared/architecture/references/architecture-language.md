@@ -40,6 +40,7 @@ A controlled vocabulary for module depth, interfaces, seams, and locality. Use t
 - **One concept, many files.** Understanding or changing a single concept means visiting many small modules, and the same files keep changing together across commits.
 - **Leaks across a seam.** Callers use internal imports, or must know a module's implementation details, call-order rules, or intermediate data to use it correctly.
 - **Helpers extracted only for testability.** Pure functions were split out so they could be unit-tested, while the bugs live in how callers combine them and nothing tests the behavior at the module's interface.
+- **Special cases serving one requirement.** Two or more exceptions compensate for the same requirement with no clear owner. Gather that behavior behind one interface and list the exceptions it would eliminate. A single exception is only a lead; trace the requirement before proposing a candidate.
 
 ## Worked example: shallow wrapper
 
@@ -98,5 +99,6 @@ A **deepening candidate** proposes a module that does not exist yet, so it carri
 - **What moves behind it**: the files, helpers, or caller logic that become implementation.
 - **Tests**: which tests move to the new interface, and which old tests on the shallow pieces get deleted under principle 7.
 - **Benefit**: the locality or leverage gained, stated concretely.
+- **Special cases removed** (for a special-case candidate): the shared requirement and each exception the proposed interface makes unnecessary, with its location.
 
 A finding that does not satisfy these tests is not yet a finding — read more, or drop it.
