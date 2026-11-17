@@ -247,3 +247,24 @@ setup() {
 		grep -qF 'history-backed dependency direction' "skills/$consumer/references/sources.yaml"
 	done
 }
+
+@test "refactor scans run the outline helper outside PR scope and treat its output as leads" {
+	local skill="skills/code:refactor-opportunities/SKILL.md"
+	local ranked="skills/code:refactor-opportunities/references/ranked-mode.md"
+	local outline
+	outline="$(sed -n '/^\*\*Code outline\.\*\*/,/^### Phase 2/p' "$skill")"
+	[ -f scripts/code-outline.py ]
+	grep -qF 'python3 "${CLAUDE_PLUGIN_ROOT}/scripts/code-outline.py" --files "$FILE_LIST" --out "$OUTLINE_DIR" --history-ref "${HISTORY_BASE_REF:-HEAD}"' <<<"$outline"
+	grep -qF 'skip it in PR scope' <<<"$outline"
+	grep -qF '`OUTLINE_DIR` to `<run directory>/outline/`, or to a new `mktemp -d` directory when the run keeps no run directory' <<<"$outline"
+	grep -qF 'Everything it reports is a lead, and a finding still needs evidence from the code.' <<<"$outline"
+	grep -qF 'read `outline.md` one folder at a time by its line range' <<<"$outline"
+	grep -qF 'set `CODE_OUTLINE` to none, say so once, and continue without it' <<<"$outline"
+	# The helper's ranked leads replace Agent 1's own importer search.
+	grep -qF 'It investigates the dependency-direction leads in their ranked order' "$skill"
+	! grep -qF 'For each hot-spot file, trace its direct importers' "$skill" || false
+	grep -qF 'read `folders.tsv` for the folders where findings cluster' "$skill"
+	grep -qF 'to the Architecture & boundaries reviewer as dependency signals' "$ranked"
+	grep -qF 'scripted skeleton without function bodies and a scripted import map' "skills/code:refactor-opportunities/references/sources.yaml"
+	grep -qF 'sourceFile: path.join(plugin.root, "scripts", "code-outline.py")' scripts/convert-plugin/codex-transformer.js
+}

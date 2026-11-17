@@ -79,3 +79,24 @@ Reports and traces stay local under
 A preliminary fixture's unused duplicate wrappers were replaced with eight
 distinct, tested consumers before measuring the baseline. No skill instructions
 were changed.
+
+## Outline helper comparison
+
+On 2026-11-17, Claude Code 2.1.325 compared the stable-import case three times
+on each version: the importer search at `origin/main` (`cee7aee6`) against the
+outline and import-graph helper (`scripts/code-outline.py`) at `0351af98`:
+
+```bash
+make -C trackbed skill-eval-compare SUITE=refactor-opportunities BASE=origin/main ARGS='--case refactor-stable-import --concurrency 3'
+```
+
+Both versions passed all 12 checks, so the runner reported no detectable
+difference: the importer search already fixed the gap the baseline recorded.
+The candidate cost $1.43 per run against $0.69, and took 140 seconds against 84.
+That gap most likely comes from fan-out rather than from the helper. A candidate-only rerun with
+`--keep-temp` ($2.96) kept the traces: the helper ran in every run and reported
+the quote-to-tariff lead. Runs that launched the four prescribed scan agents
+cost $1.73 to $1.84; runs that scanned the ten files in the main thread cost
+$0.61 to $0.63. Two of three candidate runs in the comparison launched agents.
+The base traces were not kept; their 10 to 12 turns and $0.66 to $0.74 match
+the main-thread runs. The comparison and rerun together cost $9.30.

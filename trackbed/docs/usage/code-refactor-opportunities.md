@@ -48,4 +48,6 @@ Use it to find what is worth refactoring in the whole codebase, the current Pull
 
 When history is available, coupling findings also check whether a stable, widely imported production module imports a frequently changed detail. Each dependency-direction finding includes both modules' commit counts for the same history window and the stable module's direct importer count. Tests and test helpers are excluded as the stable side. With `--for`, imports involving the planned change's files come first.
 
+Outside `pr` scope, the scan first runs a helper that outlines the scanned files and maps their imports. It keeps each file's declarations without bodies, summarizes each folder's files, lines, importers, imports, and commits, and lists import cycles and ranked dependency-direction leads for the scan agents to confirm in the code. It reads TypeScript, JavaScript, and Python and skips other files; when it reads no file or fails, the scan continues without it. In path and feature scopes, importer counts cover only the scanned files.
+
 The run then asks which single item you want to take forward. It offers `trackbed:code:refactor-pass` for a narrow fix, and `trackbed:code:breakdown-findings` or `trackbed:linear:breakdown-findings` to schedule the item.

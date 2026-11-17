@@ -122,6 +122,7 @@
       "trackbed/hooks/lib/command_safety/vocabulary.py",
       "trackbed/hooks/lib/git_command_parser.py",
       "trackbed/scripts/changelog.py",
+      "trackbed/scripts/code-outline.py",
       "trackbed/scripts/check-doc-citations.py",
       "trackbed/scripts/json_object.py",
       "trackbed/scripts/git-rewrite/stack-publication.py",
