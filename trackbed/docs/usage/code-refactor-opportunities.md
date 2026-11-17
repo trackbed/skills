@@ -22,7 +22,7 @@ Use it to find what is worth refactoring in the whole codebase, the current Pull
 | `--output <path>` | With `--ranked`, write the report to this path instead of `CODEBASE_WEAKNESS_REPORT.md` in the project root. |
 | `--max-findings N` | With `--ranked`, cap the ranked findings in the report. The default is 20. |
 | `--base <ref>` | With `pr`, compare against `<ref>` instead of the detected base branch. With `--ranked`, read change history from this commit; the scanned files stay the same. |
-| `--visual` | Also write `REFACTOR_OPPORTUNITIES_OVERVIEW.html`, an interactive page of the same report; with `--ranked`, `CODEBASE_WEAKNESS_REPORT.html`. See [Visual Reports](../visual-reports.md). |
+| `--visual` | Also write `REFACTOR_OPPORTUNITIES_OVERVIEW.html`, an interactive page of the same report; with `--ranked`, `CODEBASE_WEAKNESS_REPORT.html`. Without `--ranked`, the page leads with the fixes in recommended order, and you accept or dismiss whole fixes. See [Visual Reports](../visual-reports.md). |
 
 ## Examples
 
@@ -42,7 +42,7 @@ Use it to find what is worth refactoring in the whole codebase, the current Pull
 
 ## What you get
 
-- `REFACTOR_OPPORTUNITIES_OVERVIEW.md` in the project root, replacing any earlier one. After the Executive Summary, one Fixes section lists the fixes in recommended order. Each entry names the fix, the findings (`RO-001`, `RO-002`, and so on) it removes, its edit size including call sites, and whether it is an automation candidate. Ungrouped findings get their own fix entry. Severity tables follow as reference, with locations and individual suggested fixes.
+- `REFACTOR_OPPORTUNITIES_OVERVIEW.md` in the project root, replacing any earlier one. After the Executive Summary, one Fixes section lists the fixes in recommended order. Each entry has an ID (`FIX-1`, `FIX-2`, and so on) and names the fix, the findings (`RO-001`, `RO-002`, and so on) it removes, its edit size including call sites, and whether it is an automation candidate. Ungrouped findings get their own fix entry. Severity tables follow as reference, with locations and individual suggested fixes.
 - With `--ranked`, `CODEBASE_WEAKNESS_REPORT.md` instead, with findings `WA-001`, `WA-002`, and so on in rank order.
 - A summary with the findings by severity, the top three fixes, and the refactor to start with, plus an `Agents launched: N` line.
 
