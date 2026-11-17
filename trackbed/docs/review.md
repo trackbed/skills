@@ -219,7 +219,7 @@ A caller-only validation mode instead reruns the applicable gates once when auth
 - **Your part** covers an unsubmitted pending review, which its author cannot see yet, your unresolved threads, a re-request after your earlier review, and an approval that a later push made stale.
 - **CI** ignores checks from runs that a newer run of the same workflow and event replaced, so a cancelled duplicate run does not make a passing Pull Request read as failing. A skipped run replaces nothing, so it cannot hide an earlier failure.
 - **Rechecks** pass the previous snapshot time as `--since` and the earlier Pull Requests as refs. GitHub drops you from the requested reviewers once you review, and a Pull Request merged without your review keeps the request, so `--since` searches for both and the report names each change.
-- **Scope:** only requests made to you personally are listed, not requests to a team you belong to. `--repo OWNER/NAME` limits the searches to one repository.
+- **Scope:** only the repository you run it in, and only requests made to you personally, not requests to a team you belong to. `--repo OWNER/NAME` searches another repository, and `--all-repos` searches every repository you can read.
 
 To review one of them, run `/trackbed:pr:github-review` with its URL.
 

@@ -2,22 +2,27 @@
 #
 # Print a JSON snapshot of the pull requests waiting on your review.
 #
-# Usage: review-queue.sh [--repo OWNER/NAME] [--since ISO-8601] [OWNER/NAME#NUMBER ...]
-#   --repo   limit every search to one repository
-#   --since  also include PRs you reviewed that changed since then, and PRs that
-#            requested you and closed since then (merged without your review)
-#   refs     PRs to re-query by number, such as every PR in the previous report
+# Usage: review-queue.sh [--repo OWNER/NAME | --all-repos] [--since ISO-8601] [OWNER/NAME#NUMBER ...]
+#   --repo       limit every search to this repository
+#   --all-repos  search every repository the token can read
+#   (neither)    limit every search to the current directory's GitHub repository
+#   --since      also include PRs you reviewed that changed since then, and PRs
+#                that requested you and closed since then (merged without your
+#                review)
+#   refs         PRs to re-query by number, such as every PR in the previous
+#                report, whatever their repository
 #
 # Prints {checkedAt, me, prs: [...]} with one summarised object per PR, and
-# warnings on stderr. Exits 2 on a usage error and nonzero when a search fails;
-# an unreadable ref or an unlistable set of workflow runs only warns. Needs an
+# warnings on stderr. Exits 2 on a usage error, including no --repo or
+# --all-repos outside a GitHub repository, and nonzero when a search fails; an
+# unreadable ref or an unlistable set of workflow runs only warns. Needs an
 # authenticated gh and jq. Runs under the Bash 3.2 that macOS ships, so guard
 # empty-array expansions under set -u and do not use mapfile.
 
 set -euo pipefail
 
 usage() {
-  echo "Usage: review-queue.sh [--repo OWNER/NAME] [--since ISO-8601] [OWNER/NAME#NUMBER ...]"
+  echo "Usage: review-queue.sh [--repo OWNER/NAME | --all-repos] [--since ISO-8601] [OWNER/NAME#NUMBER ...]"
 }
 
 usage_error() {
@@ -27,6 +32,7 @@ usage_error() {
 }
 
 repo=""
+all_repos=false
 since=""
 refs=()
 while [ $# -gt 0 ]; do
@@ -35,6 +41,10 @@ while [ $# -gt 0 ]; do
       [ $# -ge 2 ] || usage_error "--repo requires OWNER/NAME"
       repo=$2
       shift 2
+      ;;
+    --all-repos)
+      all_repos=true
+      shift
       ;;
     --since)
       [ $# -ge 2 ] || usage_error "--since requires an ISO-8601 date or time"
@@ -58,6 +68,9 @@ slug_re='[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+'
 repo_re="^$slug_re\$"
 ref_re="^$slug_re#[0-9]+\$"
 since_re='^[0-9]{4}-[0-9]{2}-[0-9]{2}(T[0-9]{2}:[0-9]{2}(:[0-9]{2})?(Z|[+-][0-9]{2}:[0-9]{2})?)?$'
+if [ -n "$repo" ] && [ "$all_repos" = true ]; then
+  usage_error "--repo and --all-repos cannot be combined"
+fi
 if [ -n "$repo" ] && ! [[ $repo =~ $repo_re ]]; then
   usage_error "--repo must be OWNER/NAME, got: $repo"
 fi
@@ -162,6 +175,13 @@ collect_prs() {
     read_ref "$ref"
   done
 }
+
+# Without --repo or --all-repos, search only the repository the current
+# directory belongs to, as gh resolves it from the git remotes.
+if [ -z "$repo" ] && [ "$all_repos" = false ]; then
+  repo=$(gh repo view --json nameWithOwner --jq .nameWithOwner) && [[ $repo =~ $repo_re ]] \
+    || usage_error "cannot find the current directory's GitHub repository; run it inside one, or pass --repo OWNER/NAME or --all-repos"
+fi
 
 # Take the time first, so passing it as the next --since misses nothing.
 checked_at=$(date -u +%FT%TZ)

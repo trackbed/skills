@@ -1,10 +1,11 @@
 # pr:review-queue
 
-Use it to see which Pull Requests are waiting on your review and where each one stands: your part, CI, merge state, and the linked issue. It reads live GitHub state and reports; it never reviews, comments, re-runs jobs, or merges. Only requests made to you personally are listed, not requests to a team you belong to. To review one of the Pull Requests, use `trackbed:pr:github-review`.
+Use it to see which Pull Requests are waiting on your review and where each one stands: your part, CI, merge state, and the linked issue. It reads live GitHub state and reports; it never reviews, comments, re-runs jobs, or merges. It covers the repository you run it in unless you pass `--all-repos`. Only requests made to you personally are listed, not requests to a team you belong to. To review one of the Pull Requests, use `trackbed:pr:github-review`.
 
 ## Before you run it
 
 - `gh` is installed and authenticated, and `jq` is installed.
+- Run it inside a clone of a GitHub repository, or pass `--repo` or `--all-repos`.
 
 ## Arguments
 
@@ -16,17 +17,21 @@ Use it to see which Pull Requests are waiting on your review and where each one 
 
 | Option | Effect |
 | --- | --- |
-| `--repo OWNER/NAME` | Limit the searches to one repository. Without it, the queue spans every repository your GitHub login can read. |
+| `--repo OWNER/NAME` | Search this repository instead of the one you run it in. |
+| `--all-repos` | Search every repository your GitHub login can read, grouped by repository. Cannot be combined with `--repo`. |
 | `--since ISO-8601` | Also include Pull Requests you reviewed that changed since this time, and ones that requested you and closed since then. On a recheck, pass the snapshot time of the previous report. |
 
 ## Examples
 
 ```text
-# Show every open Pull Request that requests your review
+# Show the open Pull Requests in this repository that request your review
 /trackbed:pr:review-queue
 
-# Limit the queue to one repository
+# Show the queue for another repository
 /trackbed:pr:review-queue --repo acme/web
+
+# Show the queue across every repository you can read
+/trackbed:pr:review-queue --all-repos
 
 # Recheck since the last report, including two Pull Requests it listed
 /trackbed:pr:review-queue --since 2026-11-12T09:30:00Z acme/web#412 acme/api#87
