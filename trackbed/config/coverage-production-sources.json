@@ -1054,6 +1054,9 @@
       "trackbed/skills/pr:github-review-reply/scripts/check-fix-on-head.sh": [
         "trackbed/tests/github-review-guidance.bats"
       ],
+      "trackbed/skills/pr:github-review-reply/scripts/commit-and-push-fixes.sh": [
+        "trackbed/tests/github-review-guidance.bats"
+      ],
       "trackbed/skills/pr:create/scripts/validate-branch-name.sh": [
         "trackbed/tests/pr-create-guidance.bats"
       ],
