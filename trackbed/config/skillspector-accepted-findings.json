@@ -143,6 +143,14 @@
       "owner": "kramme",
       "accepted_at": "2026-10-02",
       "review_after": "2026-12-03"
+    },
+    {
+      "path": "trackbed/skills/pr:github-review-reply/scripts/commit-and-push-fixes.sh",
+      "rule_id": "EA2",
+      "reason": "Reviewed intentional EA2 finding: the script commits and pushes only when the user's own --auto request runs it from Step 8; a model caller never adds --auto, and the trackbed:pr:shape-up delegation passes --no-implement. It commits only the given fix paths, refuses when the checkout is not the PR branch at the captured PR head, when anything is already staged, or when a tracked file outside the paths changed, and pushes one fast-forward refspec without force, so a concurrent push is rejected rather than overwritten. The caller additionally skips publishing for fork Pull Requests, a dirty starting tree, or new paths outside the recorded fixes.",
+      "owner": "kramme",
+      "accepted_at": "2026-11-17",
+      "review_after": "2026-12-17"
     }
   ]
 }

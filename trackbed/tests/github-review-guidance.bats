@@ -1819,6 +1819,103 @@ PY
 	[ "$status" -eq 0 ] && [ -z "$output" ] || { echo "$output"; false; }
 }
 
+@test "github review reply --auto publishes only the fixes, as one fast-forward commit" {
+	script="$PLUGIN_ROOT/skills/pr:github-review-reply/scripts/commit-and-push-fixes.sh"
+	reference="$PLUGIN_ROOT/skills/pr:github-review-reply/references/publish-fixes.md"
+	[ -x "$script" ]
+	for phrase in '`PUBLISH_FIXES=true`' '`PR_CROSS_REPO=false`' 'Step 5 ended without stopping' \
+		'or when a new file outside them appeared that is not one of this skill'"'"'s own artifacts' \
+		'"$PUBLISH_SCRIPT" "$(git rev-parse --show-toplevel)" "$PR_HEAD" "$PR_FETCH_REMOTE" "$PR_HEAD_BRANCH"' \
+		'It never force-pushes, rewrites history, or commits a file outside the fixes.' \
+		'Record it as `PUSHED_COMMIT`, then wait until GitHub reports it as the PR head' \
+		'**Exit 1**: the commit exists locally but was not pushed.' '**Exit 2**: nothing was committed.'; do
+		grep -qF -- "$phrase" "$reference" || { echo "publish-fixes.md lost: $phrase"; false; }
+	done
+
+	remote="$BATS_TEST_TMPDIR/remote.git"
+	repo="$BATS_TEST_TMPDIR/publish"
+	git init -q --bare "$remote"
+	git init -q -b feature "$repo"
+	git -C "$repo" config user.email "test@example.com"
+	git -C "$repo" config user.name "Test User"
+	mkdir -p "$repo/src"
+	printf 'one\n' >"$repo/src/a.ts"
+	printf 'two\n' >"$repo/src/b.ts"
+	printf 'gone\n' >"$repo/src/old.ts"
+	git -C "$repo" add -A
+	git -C "$repo" commit -qm head
+	git -C "$repo" remote add origin "$remote"
+	git -C "$repo" push -q origin feature
+	pr_head=$(git -C "$repo" rev-parse HEAD)
+	message="$BATS_TEST_TMPDIR/message.txt"
+	printf 'Address review feedback\n' >"$message"
+	publish() { run "$script" "$repo" "$pr_head" origin feature "$message" src/a.ts src/new.ts src/old.ts; }
+
+	# The fix: an edit, a new file, and a deletion, beside an untracked artifact.
+	printf 'fixed\n' >"$repo/src/a.ts"
+	printf 'new\n' >"$repo/src/new.ts"
+	rm "$repo/src/old.ts"
+	printf 'plan\n' >"$repo/GITHUB_REVIEW_REPLY_PLAN.md"
+
+	# A tracked change outside the fix paths refuses before committing.
+	printf 'stray\n' >"$repo/src/b.ts"
+	publish
+	[ "$status" -eq 2 ] || { echo "$output"; false; }
+	[[ "$output" == *"outside src/b.ts"* ]] || false
+	[ "$(git -C "$repo" rev-parse HEAD)" = "$pr_head" ]
+	git -C "$repo" diff --cached --quiet
+	[ "$(cat "$repo/src/a.ts")" = "fixed" ]
+	git -C "$repo" checkout -q -- src/b.ts
+
+	# A new file outside the fix paths came from the fixes, so leaving it out refuses too.
+	printf 'helper\n' >"$repo/src/helper.ts"
+	publish
+	[ "$status" -eq 2 ] || { echo "$output"; false; }
+	[[ "$output" == *"untracked src/helper.ts"* ]] || false
+	[ "$(git -C "$repo" rev-parse HEAD)" = "$pr_head" ]
+	git -C "$repo" diff --cached --quiet
+	rm "$repo/src/helper.ts"
+
+	# Changes already staged would be swept into the commit, so they refuse too.
+	git -C "$repo" add src/a.ts
+	publish
+	[ "$status" -eq 2 ] || { echo "$output"; false; }
+	[[ "$output" == *"already has staged changes"* ]] || false
+	git -C "$repo" reset -q
+
+	# The wrong branch or a stale PR head refuses.
+	run "$script" "$repo" "$pr_head" origin other "$message" src/a.ts
+	[ "$status" -eq 2 ] && [[ "$output" == *"not the PR branch 'other'"* ]] || { echo "$output"; false; }
+	run "$script" "$repo" "$(printf '0%.0s' {1..40})" origin feature "$message" src/a.ts
+	[ "$status" -eq 2 ] && [[ "$output" == *"is not the PR head"* ]] || { echo "$output"; false; }
+
+	# The happy path commits exactly the fix paths and fast-forwards the remote.
+	publish
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+	commit=$output
+	[ "$(git -C "$remote" rev-parse refs/heads/feature)" = "$commit" ]
+	[ "$(git -C "$repo" rev-parse "$commit^")" = "$pr_head" ]
+	[ "$(git -C "$repo" diff --name-only "$pr_head" "$commit" | sort | tr '\n' ' ')" = "src/a.ts src/new.ts src/old.ts " ]
+	[ "$(git -C "$repo" status --porcelain)" = "?? GITHUB_REVIEW_REPLY_PLAN.md" ]
+
+	# Nothing left to commit refuses rather than pushing an empty commit.
+	run "$script" "$repo" "$commit" origin feature "$message" src/a.ts
+	[ "$status" -eq 2 ] && [[ "$output" == *"no changes to commit"* ]] || { echo "$output"; false; }
+
+	# Someone else pushed since the run started: the commit stays local and the
+	# remote keeps their work.
+	other="$BATS_TEST_TMPDIR/other"
+	git clone -q -b feature "$remote" "$other"
+	git -C "$other" -c user.email=o@example.com -c user.name=Other commit -q --allow-empty -m theirs
+	git -C "$other" push -q origin feature
+	theirs=$(git -C "$other" rev-parse HEAD)
+	printf 'again\n' >"$repo/src/a.ts"
+	run "$script" "$repo" "$commit" origin feature "$message" src/a.ts
+	[ "$status" -eq 1 ] && [[ "$output" == *"was rejected; the commit stays local"* ]] || { echo "$output"; false; }
+	[ "$(git -C "$remote" rev-parse refs/heads/feature)" = "$theirs" ]
+	[ "$(git -C "$repo" rev-parse HEAD^)" = "$commit" ]
+}
+
 @test "github review reply guards every post: pushed fix, no pending review, re-check, one at a time" {
 	run python3 - "$PLUGIN_ROOT/skills/pr:github-review-reply/SKILL.md" "$PLUGIN_ROOT/skills/pr:github-review-reply/references/posting-guards.md" <<'PY'
 import pathlib
