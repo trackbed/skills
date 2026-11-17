@@ -2062,7 +2062,7 @@
         "baseline": {
           "trackbed/tests/block-rm-rf.bats": 1042,
           "trackbed/tests/confirm-review-responses.bats": 1563,
-          "trackbed/tests/lint-skill-contracts.bats": 3508,
+          "trackbed/tests/lint-skill-contracts.bats": 3286,
           "trackbed/tests/node/converter-core.test.js": 1334,
           "trackbed/tests/python/test_git_command_parser.py": 1187,
           "trackbed/tests/siw-issue-reservation.bats": 1195

@@ -705,6 +705,11 @@
     },
     {
       "kind": "guidance",
+      "suite": "trackbed/tests/pr-fix-ci-guidance.bats",
+      "skills": ["trackbed/skills/pr:fix-ci/SKILL.md"]
+    },
+    {
+      "kind": "guidance",
       "suite": "trackbed/tests/pr-generate-description-guidance.bats",
       "skills": [
         "trackbed/skills/code:breakdown-findings/SKILL.md",
