@@ -11,6 +11,8 @@ Write resolutions to the appropriate file in the project root:
 - If the source review came from Conductor diff comments → create or update `REVIEW_OVERVIEW.md` as an external review
 - Otherwise → create or update `REVIEW_OVERVIEW.md`
 
+Every `Resolution status:` value is one of the five statuses in `${CLAUDE_PLUGIN_ROOT}/shared/findings/references/finding-lifecycle.md`, used with the meaning defined there.
+
 Updates are **in place**: for each processed finding, replace or add its `Resolution status:` and `Action taken:` fields inside the existing entry. When a reopened manual finding is completed, apply the completed-decision replacement required by Step 2d. Findings present in the source but not addressed in this run (severity-filtered, out-of-scope, already processed, or unrelated) stay verbatim — never delete entries. If the source did not exist, create the producer-specific file named above when a recognized marker is present; otherwise create `REVIEW_OVERVIEW.md`.
 
 ## External review template
