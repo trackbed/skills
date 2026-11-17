@@ -48,92 +48,64 @@ file_mode() {
 }
 
 @test "pr-create owns lease-protected remote publication" {
-	run bash -c '
-    set -e
-    cd "'"$BATS_TEST_DIRNAME"'/.."
+    cd "$BATS_TEST_DIRNAME/.."
     create="skills/pr:create/SKILL.md"
     branch="skills/pr:create/references/branch-and-platform-handling.md"
     confirmation="skills/pr:create/references/confirmation-and-creation.md"
     recreate="skills/git:recreate-commits/SKILL.md"
     description="skills/pr:generate-description/SKILL.md"
 
-    grep -qF "disable-model-invocation: false" "$create"
-    grep -qF "disable-model-invocation: false" "$recreate"
-    grep -qF "disable-model-invocation: false" "$description"
-    grep -qF "### Model Invocation Contract" "$recreate"
-    grep -qF "### Model Invocation Contract" "$create"
-    grep -qF "No other parent workflow is authorized by this model-invocation exception" "$create"
-    grep -qF "No other parent workflow is authorized by the model-invocation exception" "$recreate"
-    grep -qF "Outside that exact \`trackbed:pr:create\` delegation, never invent \`--authorize-history-rewrite\`" "$recreate"
-    grep -qF "The model must never invent \`--force-backup\`" "$recreate"
-    grep -qF "only with the exact retry-safe value supplied by \`trackbed:pr:create\`" "$recreate"
-    grep -qF "Every model-initiated invocation must include \`--no-update\`" "$description"
-    grep -qF "[--authorize-history-rewrite]" "$create"
-    grep -qF "AUTHORIZE_HISTORY_REWRITE=true" "$create"
-    grep -qF "Auto mode does not set this variable" "$create"
-    grep -qF -- "args: \"--manual --base {base-source-ref} --base-commit {base-ref} --backup-ref {recreate-backup-ref} --require-unstacked --no-push\"" "$create"
-    grep -qF -- "args: \"--base {base-source-ref} --base-commit {base-ref} --backup-ref {recreate-backup-ref} --require-unstacked --no-push\"" "$create"
-    [ "$(grep -cF "skill: \"trackbed:git:recreate-commits\", args:" "$create")" -eq 5 ]
-    while IFS= read -r invocation; do
-      [[ "$invocation" == *"--base {base-source-ref} --base-commit {base-ref}"* ]] || false
-      [[ "$invocation" == *"--backup-ref {recreate-backup-ref}"* ]] || false
-      [[ "$invocation" == *"--require-unstacked --no-push"* ]] || false
-    done < <(grep -F "skill: \"trackbed:git:recreate-commits\", args:" "$create")
-    [ "$(grep -F "skill: \"trackbed:git:recreate-commits\", args:" "$create" | grep -cF -- "--manual ")" -eq 2 ]
-    [ "$(grep -F "skill: \"trackbed:git:recreate-commits\", args:" "$create" | grep -cF -- "--authorize-history-rewrite")" -eq 2 ]
-    [ "$(grep -F "skill: \"trackbed:git:recreate-commits\", args:" "$create" | grep -cF -- "--after {observed-origin-oid}")" -eq 1 ]
-    grep -qF "pass \`--authorize-history-rewrite\` only when the user supplied that flag" "$create"
-    ! grep -qF "args: \"--no-push\"" "$create" || false
-    grep -qF "Always pass \`--base {base-source-ref} --base-commit {base-ref} --backup-ref {recreate-backup-ref} --require-unstacked --no-push\`" "$create"
-    grep -qF "Always pass \`--no-update --base {base-source-ref} --base-commit {base-ref}\`, and never \`--manual\`" "$create"
-    grep -qF "Do not push or change upstream configuration" "$branch"
-    ! grep -qF "git push -u origin \$(git branch --show-current)" "$branch" || false
-    grep -qF "Step 5 proved that \`{rollback-origin-ref}\` was absent" "$confirmation"
-    grep -qF "If any actor creates the remote branch after Step 5, the lease fails" "$confirmation"
-    grep -qF "no Pull Request could have existed for that branch at the moment this workflow created it" "$confirmation"
-    grep -qF "Immediately before any push, repeat the fail-closed open-Pull-Request check" "$confirmation"
-    [ "$(grep -cF "FINAL_STACK_RESOLVED=" "$confirmation")" -eq 3 ]
-    fast_guard_line=$(grep -nF "FINAL_STACK_RESOLVED=" "$confirmation" | sed -n 1p | cut -d: -f1)
-    fresh_guard_line=$(grep -nF "FINAL_STACK_RESOLVED=" "$confirmation" | sed -n 2p | cut -d: -f1)
-    create_guard_line=$(grep -nF "FINAL_STACK_RESOLVED=" "$confirmation" | sed -n 3p | cut -d: -f1)
-    fast_push_line=$(grep -nF "git push --no-follow-tags" "$confirmation" | head -1 | cut -d: -f1)
-    fresh_push_line=$(grep -nF "git push --force-with-lease=\"{rollback-origin-ref}:\"" "$confirmation" | head -1 | cut -d: -f1)
-    create_line=$(grep -nF "env GH_PROMPT_DISABLED=1 gh pr create" "$confirmation" | head -1 | cut -d: -f1)
-    [ "$fast_guard_line" -lt "$fast_push_line" ]
-    [ "$fresh_guard_line" -lt "$fresh_push_line" ]
-    [ "$create_guard_line" -lt "$create_line" ]
-    grep -qF "[ \"\$STACK_MEMBERSHIP\" = none ]" "$confirmation"
-    grep -qF "The branch joined a local or server-side stack before the fast-forward push" "$confirmation"
-    grep -qF "The branch joined a local or server-side stack before the fresh push" "$confirmation"
-    grep -qF "The branch joined a local or server-side stack before Pull Request creation" "$confirmation"
-    grep -qF "If an open Pull Request appeared after Step 3.5" "$confirmation"
-    grep -qF "does not prove that this invocation owns the Pull Request" "$confirmation"
-    grep -qF -- "--force-with-lease=\"{rollback-origin-ref}:\"" "$confirmation"
-    grep -qF -- "--force-with-lease=\"refs/heads/{feature-branch}:{observed-origin-oid}\"" "$confirmation"
-    grep -qF -- "--no-follow-tags" "$confirmation"
-    grep -qF -- "-- \"\$ORIGIN_PUSH_URL\" \"{publication-commit}:refs/heads/{feature-branch}\"" "$confirmation"
-    grep -qF "{origin-push-url-assignment}" "$confirmation"
-    ! grep -qF "\"{origin-push-url}\"" "$confirmation" || false
-    ! grep -qF -- "-u origin \"HEAD:refs/heads/{feature-branch}\"" "$confirmation" || false
-    grep -qF "GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=Never" "$confirmation"
-    grep -qF "authentication failure is a hard blocker, never a reason to wait for terminal input" "$confirmation"
-    ! grep -qF -- "--force-with-lease=\"{rollback-origin-ref}:{rollback-origin-oid}\"" "$confirmation" || false
-    grep -qF "The exact lease rejects every remote change after classification" "$confirmation"
-    grep -qF "The immediately preceding strict-ancestor proof ensures this invocation cannot use the force capability to replace remote-only work" "$confirmation"
-    grep -qF "Do not use plain \`--force\`, an absence lease for a pre-existing remote ref" "$confirmation"
-    grep -qF "fresh mode'\''s sole remote update before Pull Request creation" "$confirmation"
-    grep -qF "[--require-unstacked] [--no-push] [--authorize-history-rewrite]" "$recreate"
-    grep -qF "If \`--no-push\` was passed, do not run any push command" "$recreate"
-    grep -qF "Automatic stack-wide rewriting additionally requires \`--authorize-history-rewrite\`" docs/shipping.md
-    grep -qF "A \`--manual\` stacked invocation may instead use separate interactive confirmations" docs/shipping.md
-    grep -qF "## Step 4.5: Reject Stacked Branches" "$create"
-    grep -qF "\${CLAUDE_PLUGIN_ROOT}/scripts/resolve-stack-membership.sh" "$create"
-    grep -qF "trackbed:pr:create does not publish stacked branches; use trackbed:pr:stack instead." "$create"
-    grep -qF "Both locally tracked and server-side stacks stop here" "$create"
-    grep -qF "any later stack detection is state drift" "$create"
-    ! grep -qF "leaves any stacked rewrite to the nested skill" "$create" || false
-    ! grep -qF "\`--auto\` alone is not authorization" "$recreate" || false
-  '
+    assert_required_text "$create" "disable-model-invocation: false"
+    assert_required_text "$recreate" "disable-model-invocation: false"
+    assert_required_text "$description" "disable-model-invocation: false"
+    assert_required_text "$recreate" "### Model Invocation Contract"
+    assert_required_text "$create" "### Model Invocation Contract"
+    assert_required_text "$create" "No other parent workflow is authorized by this model-invocation exception"
+    assert_required_text "$recreate" "No other parent workflow is authorized by the model-invocation exception"
+    assert_required_text "$recreate" "Outside that exact \`trackbed:pr:create\` delegation, never invent \`--authorize-history-rewrite\`"
+    assert_required_text "$recreate" "The model must never invent \`--force-backup\`"
+    assert_required_text "$recreate" "only with the exact retry-safe value supplied by \`trackbed:pr:create\`"
+    assert_required_text "$description" "Every model-initiated invocation must include \`--no-update\`"
+    assert_required_text "$create" "args: \"--base {base-source-ref} --base-commit {base-ref} --backup-ref {recreate-backup-ref} --require-unstacked --no-push\""
+    invocation='skill: "trackbed:git:recreate-commits", args:'
+    assert_text_count "$create" "$invocation" 5
+    assert_text_count "$create" '--base {base-source-ref} --base-commit {base-ref}' 5 "$invocation"
+    assert_text_count "$create" '--backup-ref {recreate-backup-ref}' 5 "$invocation"
+    assert_text_count "$create" '--require-unstacked --no-push' 5 "$invocation"
+    assert_text_count "$create" '--manual ' 2 "$invocation"
+    assert_text_count "$create" '--authorize-history-rewrite' 2 "$invocation"
+    assert_text_count "$create" '--after {observed-origin-oid}' 1 "$invocation"
+    assert_absent_text "$create" "args: \"--no-push\""
+    assert_required_text "$create" "Always pass \`--no-update --base {base-source-ref} --base-commit {base-ref}\`, and never \`--manual\`"
+    assert_required_text "$branch" "Do not push or change upstream configuration"
+    assert_absent_text "$branch" "git push -u origin \$(git branch --show-current)"
+    assert_text_count "$confirmation" 'FINAL_STACK_RESOLVED=' 3
+    assert_text_order "$confirmation" 'FINAL_STACK_RESOLVED=' 'git push --no-follow-tags'
+    assert_text_order "$confirmation" 'FINAL_STACK_RESOLVED=' 'git push --force-with-lease="{rollback-origin-ref}:"' 2
+    assert_text_order "$confirmation" 'FINAL_STACK_RESOLVED=' 'env GH_PROMPT_DISABLED=1 gh pr create' 3
+    assert_required_text "$confirmation" "[ \"\$STACK_MEMBERSHIP\" = none ]"
+    assert_required_text "$confirmation" "The branch joined a local or server-side stack before the fast-forward push"
+    assert_required_text "$confirmation" "The branch joined a local or server-side stack before the fresh push"
+    assert_required_text "$confirmation" "The branch joined a local or server-side stack before Pull Request creation"
+    assert_required_text "$confirmation" "If an open Pull Request appeared after Step 3.5"
+    assert_required_text "$confirmation" "--force-with-lease=\"refs/heads/{feature-branch}:{observed-origin-oid}\""
+    assert_required_text "$confirmation" "--no-follow-tags"
+    assert_required_text "$confirmation" "-- \"\$ORIGIN_PUSH_URL\" \"{publication-commit}:refs/heads/{feature-branch}\""
+    assert_required_text "$confirmation" "{origin-push-url-assignment}"
+    assert_absent_text "$confirmation" "\"{origin-push-url}\""
+    assert_absent_text "$confirmation" "-u origin \"HEAD:refs/heads/{feature-branch}\""
+    assert_required_text "$confirmation" "authentication failure is a hard blocker, never a reason to wait for terminal input"
+    assert_absent_text "$confirmation" "--force-with-lease=\"{rollback-origin-ref}:{rollback-origin-oid}\""
+    assert_required_text "$confirmation" "The exact lease rejects every remote change after classification"
+    assert_required_text "$confirmation" "The immediately preceding strict-ancestor proof ensures this invocation cannot use the force capability to replace remote-only work"
+    assert_required_text "$recreate" "[--require-unstacked] [--no-push] [--authorize-history-rewrite]"
+    assert_required_text "$recreate" "If \`--no-push\` was passed, do not run any push command"
+    assert_required_text docs/shipping.md "Automatic stack-wide rewriting additionally requires \`--authorize-history-rewrite\`"
+    assert_required_text docs/shipping.md "A \`--manual\` stacked invocation may instead use separate interactive confirmations"
+    assert_required_text "$create" "\${CLAUDE_PLUGIN_ROOT}/scripts/resolve-stack-membership.sh"
+    assert_required_text "$create" "trackbed:pr:create does not publish stacked branches; use trackbed:pr:stack instead."
+    assert_absent_text "$create" "leaves any stacked rewrite to the nested skill"
+    assert_absent_text "$recreate" "\`--auto\` alone is not authorization"
 
 	assert_required_contracts_registered \
 		pr-create-description-generation-contract \
@@ -152,7 +124,6 @@ file_mode() {
 		resolve-base-pinned-commit-contract \
 		verify-rewrite-state-helper
 
-	[ "$status" -eq 0 ]
 }
 
 @test "recreate-commits auto mode stays within the protected unstacked boundary" {
@@ -684,51 +655,43 @@ file_mode() {
 }
 
 @test "existing remote branch recovers at exact tip or safely fast-forwards from an ancestor" {
-	run bash -c '
-    set -e
-    cd "'"$BATS_TEST_DIRNAME"'/.."
+    cd "$BATS_TEST_DIRNAME/.."
     create="skills/pr:create/SKILL.md"
     branch="skills/pr:create/references/branch-and-platform-handling.md"
     state="skills/pr:create/references/state-and-rollback.md"
     confirmation="skills/pr:create/references/confirmation-and-creation.md"
 
-    grep -qF "REMOTE_RECOVERY_MODE=true" "$create"
-    grep -qF "REMOTE_FAST_FORWARD_MODE=true" "$create"
-    grep -qF "REMOTE_APPEND_MODE=true" "$create"
-    grep -qF "skip Steps 5 and 6" "$create"
-    grep -qF "preserve the existing local commit history" "$create"
-    grep -qF "capture its exact full OID as \`{observed-origin-oid}\`" "$branch"
-    grep -qF "scripts/resolve-origin-push-url.sh" "$branch"
-    grep -qF "{origin-push-url-assignment}" "$branch"
-    grep -qF "git ls-remote --heads -- \"\$ORIGIN_PUSH_URL\"" "$branch"
-    grep -qF "git fetch --no-tags --no-write-fetch-head -- \"\$ORIGIN_PUSH_URL\"" "$branch"
-    grep -qF "git merge-base --is-ancestor \"{observed-origin-oid}\" \"{entry-commit}\"" "$branch"
-    grep -qF "record \`{branch-action}=fast-forward-existing-remote\`" "$branch"
-    grep -qF "report that the remote contains commits absent locally" "$branch"
-    grep -qF "report genuine divergence" "$branch"
-    grep -qF "Never merge, reset, rebase, or invoke history rewriting" "$branch"
-    grep -qF "When \`AUTO_MODE=true\`, route dirty existing-remote work to \`REMOTE_APPEND_MODE\`" "$create"
-    grep -qF -- "--after {observed-origin-oid}" "$create"
-    grep -qF "rewrites only the unpublished tail after the observed remote tip" "$create"
-    grep -qF "Never adopt a remote branch selected from a different entry checkout" "$branch"
-    grep -qF "continue only when it returns no matching ref" "$state"
-    grep -qF "stop before branch creation or \`trackbed:git:recreate-commits\`" "$state"
-    grep -qF "cannot atomically prevent another actor from opening a Pull Request" "$state"
-    grep -qF "REMOTE_RECOVERY_MODE=true" "$confirmation"
-    grep -qF "REMOTE_FAST_FORWARD_MODE=true" "$confirmation"
-    grep -qF "REMOTE_APPEND_MODE=true" "$confirmation"
-    grep -qF "Do not run \`git push\` in this mode" "$confirmation"
-    grep -qF "Require the authoritative remote OID to remain exactly \`{observed-origin-oid}\`" "$confirmation"
-    grep -qF "Require \`HEAD\` to remain exactly \`{entry-commit}\`" "$confirmation"
-    grep -qF "require its OID to remain exactly \`{observed-origin-oid}\`" "$confirmation"
-    grep -qF "The exact lease rejects every remote change after classification" "$confirmation"
-    grep -qF "\"{publication-commit}:refs/heads/{feature-branch}\"" "$confirmation"
-    grep -qF "execute Step 10 before stopping" "$confirmation"
-    grep -qF -- "--head \"{feature-branch}\"" "$confirmation"
-    grep -qF "prevents \`gh pr create\` from offering to push or fork" "$confirmation"
-    grep -qF "Do not use plain \`--force\`, an absence lease for a pre-existing remote ref" "$confirmation"
-    ! grep -qF "git fetch --no-tags origin \"{rollback-origin-ref}\"" "$state" || false
-  '
+    assert_required_text "$create" "REMOTE_RECOVERY_MODE=true"
+    assert_required_text "$create" "REMOTE_FAST_FORWARD_MODE=true"
+    assert_required_text "$create" "REMOTE_APPEND_MODE=true"
+    assert_required_text "$create" "skip Steps 5 and 6"
+    assert_required_text "$create" "preserve the existing local commit history"
+    assert_required_text "$branch" "capture its exact full OID as \`{observed-origin-oid}\`"
+    assert_required_text "$branch" "scripts/resolve-origin-push-url.sh"
+    assert_required_text "$branch" "{origin-push-url-assignment}"
+    assert_required_text "$branch" "git ls-remote --heads -- \"\$ORIGIN_PUSH_URL\""
+    assert_required_text "$branch" "git fetch --no-tags --no-write-fetch-head -- \"\$ORIGIN_PUSH_URL\""
+    assert_required_text "$branch" "git merge-base --is-ancestor \"{observed-origin-oid}\" \"{entry-commit}\""
+    assert_required_text "$branch" "record \`{branch-action}=fast-forward-existing-remote\`"
+    assert_required_text "$branch" "report that the remote contains commits absent locally"
+    assert_required_text "$branch" "report genuine divergence"
+    assert_required_text "$branch" "Never merge, reset, rebase, or invoke history rewriting"
+    assert_required_text "$branch" "Never adopt a remote branch selected from a different entry checkout"
+    assert_required_text "$state" "continue only when it returns no matching ref"
+    assert_required_text "$state" "stop before branch creation or \`trackbed:git:recreate-commits\`"
+    assert_required_text "$state" "cannot atomically prevent another actor from opening a Pull Request"
+    assert_required_text "$confirmation" "REMOTE_RECOVERY_MODE=true"
+    assert_required_text "$confirmation" "REMOTE_FAST_FORWARD_MODE=true"
+    assert_required_text "$confirmation" "REMOTE_APPEND_MODE=true"
+    assert_required_text "$confirmation" "Do not run \`git push\` in this mode"
+    assert_required_text "$confirmation" "Require the authoritative remote OID to remain exactly \`{observed-origin-oid}\`"
+    assert_required_text "$confirmation" "Require \`HEAD\` to remain exactly \`{entry-commit}\`"
+    assert_required_text "$confirmation" "require its OID to remain exactly \`{observed-origin-oid}\`"
+    assert_required_text "$confirmation" "The exact lease rejects every remote change after classification"
+    assert_required_text "$confirmation" "execute Step 10 before stopping"
+    assert_required_text "$confirmation" "--head \"{feature-branch}\""
+    assert_required_text "$confirmation" "prevents \`gh pr create\` from offering to push or fork"
+    assert_absent_text "$state" "git fetch --no-tags origin \"{rollback-origin-ref}\""
 
 	assert_required_contracts_registered \
 		pr-create-existing-remote-orchestration \
@@ -736,51 +699,36 @@ file_mode() {
 		pr-create-existing-remote-classification \
 		pr-create-existing-remote-publication
 
-	[ "$status" -eq 0 ]
 }
 
 @test "pr-create auto mode appends dirty work to a safely reusable existing remote" {
-	run bash -c '
-    set -e
-    cd "'"$BATS_TEST_DIRNAME"'/.."
+    cd "$BATS_TEST_DIRNAME/.."
     create="skills/pr:create/SKILL.md"
     state="skills/pr:create/references/state-and-rollback.md"
     abort="skills/pr:create/references/abort-and-rollback.md"
     confirmation="skills/pr:create/references/confirmation-and-creation.md"
 
-    grep -qF "REMOTE_APPEND_MODE=true" "$create"
-    grep -qF "require \`AUTO_MODE=true\`" "$create"
-    grep -qF "Resolve and freeze \`{origin-push-url-assignment}\`" "$create"
-    grep -qF "Require the frozen endpoint to remain at \`{observed-origin-oid}\`" "$create"
-    grep -qF "execute Step 5" "$create"
-    grep -qF -- "--after {observed-origin-oid}" "$create"
-    grep -qF "capture the rewritten local \`HEAD\` as \`{publication-commit}\`" "$create"
+    assert_required_text "$create" "REMOTE_APPEND_MODE=true"
+    assert_required_text "$create" "require \`AUTO_MODE=true\`"
+    assert_required_text "$create" "execute Step 5"
 
-    grep -qF "When \`REMOTE_APPEND_MODE=true\`" "$state"
-    grep -qF "set \`{rollback-origin-oid}\` to \`{observed-origin-oid}\`" "$state"
-	    grep -qF "Commit and include" "$state"
-	    grep -qF "verify-clean-worktree.sh\" --allow-visible" "$state"
-	    grep -qF "origin-push-url-assignment" "$state"
+    assert_required_text "$state" "When \`REMOTE_APPEND_MODE=true\`"
+    assert_required_text "$state" "set \`{rollback-origin-oid}\` to \`{observed-origin-oid}\`"
+    assert_required_text "$state" "Commit and include"
+    assert_required_text "$state" "verify-clean-worktree.sh\" --allow-visible"
+    assert_required_text "$state" "origin-push-url-assignment"
 
-    grep -qF "Publication: Existing remote branch; append local work with an OID lease" "$confirmation"
-    grep -qF "When \`REMOTE_FAST_FORWARD_MODE=true\` or \`REMOTE_APPEND_MODE=true\`" "$confirmation"
-    grep -qF "HEAD\` to remain exactly \`{publication-commit}\`" "$confirmation"
-    grep -qF -- "--force-with-lease=\"refs/heads/{feature-branch}:{observed-origin-oid}\"" "$confirmation"
-    grep -qF "\"{publication-commit}:refs/heads/{feature-branch}\"" "$confirmation"
-    grep -qF "still at \`{observed-origin-oid}\` — the update has not been observed" "$confirmation"
-	    grep -qF "Preserve the prepared append branch and recovery refs in every outcome" "$confirmation"
-	    grep -qF "now at \`{publication-commit}\`" "$confirmation"
-	    grep -qF "### 10.0 Refuse Rollback After Local Drift" "$abort"
-	    grep -qF "derive \`{rollback-expected-tip}\`" "$abort"
-	    grep -qF "Otherwise require \`{recreate-input-tip}\`" "$abort"
-	    grep -qF "final guard and reset in one bounded shell invocation" "$abort"
-	    grep -qF "git reset --keep \"{original-commit}\"" "$abort"
-	    grep -qF "Never substitute \`git reset --hard\` in remote-append mode" "$abort"
-	    grep -qF "shell tool'\''s bounded timeout" "$abort"
-	    grep -qF "git ls-remote --heads -- \"\$ORIGIN_PUSH_URL\"" "$abort"
-	    grep -qF "Remote append is auto-only and cannot reach this confirmation" "$confirmation"
-	    grep -qF "reject inline credentials, other credential-bearing URL syntax, executable remote-helper forms, and unsupported transports" "$create"
-  '
+    assert_required_text "$confirmation" "--force-with-lease=\"refs/heads/{feature-branch}:{observed-origin-oid}\""
+    assert_required_text "$abort" "### 10.0 Refuse Rollback After Local Drift"
+    assert_required_text "$abort" "derive \`{rollback-expected-tip}\`"
+    assert_required_text "$abort" "Otherwise require \`{recreate-input-tip}\`"
+    assert_required_text "$abort" "final guard and reset in one bounded shell invocation"
+    assert_required_text "$abort" "git reset --keep \"{original-commit}\""
+    assert_required_text "$abort" "Never substitute \`git reset --hard\` in remote-append mode"
+    assert_required_text "$abort" "shell tool's bounded timeout"
+    assert_required_text "$abort" "git ls-remote --heads -- \"\$ORIGIN_PUSH_URL\""
+    assert_required_text "$confirmation" "Remote append is auto-only and cannot reach this confirmation"
+    assert_required_text "$create" "reject inline credentials, other credential-bearing URL syntax, executable remote-helper forms, and unsupported transports"
 
 	assert_required_contracts_registered \
 		pr-create-existing-remote-append-orchestration \
@@ -788,7 +736,6 @@ file_mode() {
 		pr-create-existing-remote-append-publication \
 		pr-create-abort-and-rollback
 
-	[ "$status" -eq 0 ]
 }
 
 @test "pr-create clean-worktree verifier overrides hidden-untracked configuration" {
@@ -1073,65 +1020,51 @@ file_mode() {
 }
 
 @test "pr-create auto mode includes uncommitted work and authorizes the protected reset without prompting" {
-	run bash -c '
-    set -e
-    cd "'"$BATS_TEST_DIRNAME"'/.."
+    cd "$BATS_TEST_DIRNAME/.."
     create="skills/pr:create/SKILL.md"
     state="skills/pr:create/references/state-and-rollback.md"
 
-    grep -qF "include all uncommitted changes by selecting **Commit and include**" "$create"
-    grep -qF "\`--manual\` -> set \`AUTO_MODE=false\`" "$create"
-    grep -qF "Auto mode authorizes the nested unstacked rewrite but does not synthesize the separate stack-wide authorization capability" "$create"
-    grep -qF "Auto mode is fully non-interactive" "$create"
-    grep -qF "Step 5 uncommitted-work decision when \`AUTO_MODE=false\`" "$create"
-    grep -qF "If uncommitted changes are present and \`AUTO_MODE=true\`, do not prompt." "$state"
-    grep -qF "Select **Commit and include** and execute that path below." "$state"
-    grep -qF "If uncommitted changes are present and \`AUTO_MODE=false\`" "$state"
-  '
+    assert_required_text "$create" "include all uncommitted changes by selecting **Commit and include**"
+    assert_required_text "$create" "\`--manual\` -> set \`AUTO_MODE=false\`"
+    assert_required_text "$create" "Auto mode authorizes the nested unstacked rewrite but does not synthesize the separate stack-wide authorization capability"
+    assert_required_text "$create" "Step 5 uncommitted-work decision when \`AUTO_MODE=false\`"
+    assert_required_text "$state" "If uncommitted changes are present and \`AUTO_MODE=true\`, do not prompt."
+    assert_required_text "$state" "Select **Commit and include** and execute that path below."
+    assert_required_text "$state" "If uncommitted changes are present and \`AUTO_MODE=false\`"
 
-	[ "$status" -eq 0 ]
 }
 
 @test "pr-create auto mode is fail-closed and fully non-interactive" {
-	run bash -c '
-    set -e
-    cd "'"$BATS_TEST_DIRNAME"'/.."
+    cd "$BATS_TEST_DIRNAME/.."
     create="skills/pr:create/SKILL.md"
     branch="skills/pr:create/references/branch-and-platform-handling.md"
     state="skills/pr:create/references/state-and-rollback.md"
     confirmation="skills/pr:create/references/confirmation-and-creation.md"
 
-    grep -qF "Auto mode is fully non-interactive" "$create"
-    grep -qF "never ask the user a question, wait for free-form user input, or allow Git/GitHub credential prompts" "$create"
-    grep -qF "MISSING REQUIREMENT: generated PR title/body unavailable; placeholder publication is forbidden" "$create"
-    grep -qF "Never create a Pull Request containing placeholder fallback text." "$create"
-    grep -qF "Every other \`MISSING REQUIREMENT:\` marker is blocking" "$create"
-    grep -qF "any future requirement the generator marks as missing" "$create"
-    ! grep -qF "**Fallback description**" "$create" || false
-    ! grep -qF "**Fallback title**" "$create" || false
+    assert_required_text "$create" "MISSING REQUIREMENT: generated PR title/body unavailable; placeholder publication is forbidden"
+    assert_required_text "$create" "Never create a Pull Request containing placeholder fallback text."
+    assert_required_text "$create" "Every other \`MISSING REQUIREMENT:\` marker is blocking"
+    assert_required_text "$create" "any future requirement the generator marks as missing"
+    assert_absent_text "$create" "**Fallback description**"
+    assert_absent_text "$create" "**Fallback title**"
 
-    grep -qF "Do not ask for initials" "$branch"
-    grep -qF "feature/{issue-id-lowercase}-{sanitized-title}" "$branch"
-    grep -qF "If \`AUTO_MODE=true\`, select the first non-empty candidate" "$branch"
-    grep -qF "report a hard blocker without prompting" "$branch"
-    grep -qF "If \`AUTO_MODE=false\`, ask the user to choose from the generated candidates or provide a branch name" "$branch"
-    grep -qF "env GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=Never" "$branch"
-    grep -qF "NONINTERACTIVE_GIT_SSH_COMMAND=\"\${GIT_SSH_COMMAND:-\${GIT_SSH:-ssh}} -oBatchMode=yes\"" "$branch"
-    grep -qF "GIT_SSH_COMMAND=\"\$NONINTERACTIVE_GIT_SSH_COMMAND\"" "$branch"
-    grep -qF "env GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=Never" "$state"
+    assert_required_text "$branch" "Do not ask for initials"
+    assert_required_text "$branch" "feature/{issue-id-lowercase}-{sanitized-title}"
+    assert_required_text "$branch" "If \`AUTO_MODE=true\`, select the first non-empty candidate"
+    assert_required_text "$branch" "report a hard blocker without prompting"
+    assert_required_text "$branch" "If \`AUTO_MODE=false\`, ask the user to choose from the generated candidates or provide a branch name"
+    assert_required_text "$branch" "env GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=Never"
+    assert_required_text "$branch" "NONINTERACTIVE_GIT_SSH_COMMAND=\"\${GIT_SSH_COMMAND:-\${GIT_SSH:-ssh}} -oBatchMode=yes\""
+    assert_required_text "$branch" "GIT_SSH_COMMAND=\"\$NONINTERACTIVE_GIT_SSH_COMMAND\""
+    assert_required_text "$state" "env GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=Never"
 
-    grep -qF "env GH_PROMPT_DISABLED=1 gh pr list" "$confirmation"
-    grep -qF "env GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=Never" "$confirmation"
-    grep -qF "NONINTERACTIVE_GIT_SSH_COMMAND=\"\${GIT_SSH_COMMAND:-\${GIT_SSH:-ssh}} -oBatchMode=yes\"" "$confirmation"
-    grep -qF "GIT_SSH_COMMAND=\"\$NONINTERACTIVE_GIT_SSH_COMMAND\"" "$confirmation"
-    grep -qF "env GH_PROMPT_DISABLED=1 gh pr create" "$confirmation"
-    grep -qF "shell tool'\''s bounded timeout" "$confirmation"
-    grep -qF "If the push command exits non-zero, its remote outcome is ambiguous" "$confirmation"
-    grep -qF "never continue to \`gh pr create\` after a non-zero push status" "$confirmation"
-    ! grep -qF "The generated description is saved." "$confirmation" || false
-  '
+    assert_required_text "$confirmation" "env GH_PROMPT_DISABLED=1 gh pr list"
+    assert_required_text "$confirmation" "env GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=Never"
+    assert_required_text "$confirmation" "shell tool's bounded timeout"
+    assert_required_text "$confirmation" "If the push command exits non-zero, its remote outcome is ambiguous"
+    assert_required_text "$confirmation" "never continue to \`gh pr create\` after a non-zero push status"
+    assert_absent_text "$confirmation" "The generated description is saved."
 
-	[ "$status" -eq 0 ]
 }
 
 @test "branch validator rejects shell-active names that Git itself accepts" {

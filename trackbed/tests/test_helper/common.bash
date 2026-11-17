@@ -34,6 +34,55 @@ if missing:
 PY
 }
 
+# Guidance assertions name both the inspected file and the literal text on failure.
+# Order selects one-based occurrences, optionally after the first following marker.
+assert_guidance_text() {
+  python3 - "$@" <<'PYTHON'
+import pathlib
+import sys
+
+mode, filename, phrase, *args = sys.argv[1:]
+try:
+    lines = pathlib.Path(filename).read_text().splitlines()
+except OSError as error:
+    raise SystemExit(f"{filename}: could not inspect {phrase!r}: {error}")
+
+if mode == "required":
+    if not any(phrase in line for line in lines):
+        raise SystemExit(f"{filename}: missing required phrase {phrase!r}")
+elif mode == "absent":
+    if any(phrase in line for line in lines):
+        raise SystemExit(f"{filename}: forbidden phrase present {phrase!r}")
+elif mode == "count":
+    expected, *within = args
+    count = sum(phrase in line and (not within or within[0] in line) for line in lines)
+    if count != int(expected):
+        raise SystemExit(f"{filename}: expected {expected} lines containing {phrase!r}, found {count}; filter={within!r}")
+elif mode == "order":
+    later, *options = args
+    first_occurrence, later_occurrence = (int(value) for value in (options + ["1", "1"])[:2])
+    following = options[2] if len(options) > 2 else None
+    start = 0
+    if following is not None:
+        markers = [index + 1 for index, line in enumerate(lines) if following in line]
+        if not markers:
+            raise SystemExit(f"{filename}: missing order boundary {following!r} for {phrase!r} before {later!r}")
+        start = markers[0]
+    positions = [[index for index, line in enumerate(lines[start:], start) if item in line] for item in (phrase, later)]
+    if len(positions[0]) < first_occurrence or len(positions[1]) < later_occurrence:
+        raise SystemExit(f"{filename}: missing occurrence in order check {phrase!r} ({first_occurrence}) before {later!r} ({later_occurrence})")
+    if positions[0][first_occurrence - 1] >= positions[1][later_occurrence - 1]:
+        raise SystemExit(f"{filename}: expected {phrase!r} ({first_occurrence}) before {later!r} ({later_occurrence})")
+else:
+    raise SystemExit(f"Unknown guidance assertion: {mode}")
+PYTHON
+}
+
+assert_required_text() { assert_guidance_text required "$@"; }
+assert_absent_text() { assert_guidance_text absent "$@"; }
+assert_text_count() { assert_guidance_text count "$@"; }
+assert_text_order() { assert_guidance_text order "$@"; }
+
 # Helper: Create a deterministic local Git repository for fixtures.
 #
 # Usage: init_test_git_repo <work-dir> [--origin <bare-path>] [--file <name>]

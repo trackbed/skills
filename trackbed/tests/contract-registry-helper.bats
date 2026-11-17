@@ -33,3 +33,75 @@ setup() {
 	[ "$status" -eq 1 ]
 	[ "$PWD" = "$before_pwd" ]
 }
+
+@test "required text reports the inspected path and missing phrase" {
+	local fixture="$BATS_TEST_TMPDIR/required.txt"
+	printf 'existing phrase\n' >"$fixture"
+
+	run assert_required_text "$fixture" 'missing phrase'
+
+	[ "$status" -ne 0 ]
+	[[ "$output" == *"$fixture"* ]] || false
+	[[ "$output" == *"missing phrase"* ]] || false
+}
+
+@test "absent text reports the inspected path and forbidden phrase" {
+	local fixture="$BATS_TEST_TMPDIR/absent.txt"
+	printf 'forbidden phrase\n' >"$fixture"
+
+	run assert_absent_text "$fixture" 'forbidden phrase'
+
+	[ "$status" -ne 0 ]
+	[[ "$output" == *"$fixture"* ]] || false
+	[[ "$output" == *"forbidden phrase"* ]] || false
+}
+
+@test "order reports the inspected path and both out-of-order phrases" {
+	local fixture="$BATS_TEST_TMPDIR/order.txt"
+	printf 'later phrase\nearlier phrase\n' >"$fixture"
+
+	run assert_text_order "$fixture" 'earlier phrase' 'later phrase'
+
+	[ "$status" -ne 0 ]
+	[[ "$output" == *"$fixture"* ]] || false
+	[[ "$output" == *"earlier phrase"* ]] || false
+	[[ "$output" == *"later phrase"* ]] || false
+}
+
+@test "guidance assertions preserve literal text, filtered line counts, and occurrence order" {
+	local fixture="$BATS_TEST_TMPDIR/literals.txt"
+	printf '%s\n' 'guard' 'push' 'boundary' 'guard --flag $value' 'push' 'push' >"$fixture"
+
+	assert_required_text "$fixture" '--flag $value'
+	assert_absent_text "$fixture" 'missing [pattern]'
+	assert_text_count "$fixture" 'push' 3
+	assert_text_count "$fixture" 'guard' 1 '--flag'
+	assert_text_order "$fixture" 'guard' 'push' 2 2
+	assert_text_order "$fixture" 'guard' 'push' 1 1 'boundary'
+}
+
+@test "count and missing order occurrences fail with file and text diagnostics" {
+	local fixture="$BATS_TEST_TMPDIR/count.txt"
+	printf 'first\nsecond\n' >"$fixture"
+
+	run assert_text_count "$fixture" 'first' 2
+	[ "$status" -ne 0 ]
+	[[ "$output" == *"$fixture"*"first"*"found 1"* ]] || false
+
+	run assert_text_order "$fixture" 'first' 'second' 2
+	[ "$status" -ne 0 ]
+	[[ "$output" == *"$fixture"*"first"*"second"* ]] || false
+
+	run assert_text_order "$fixture" 'first' 'second' 1 1 'missing boundary'
+	[ "$status" -ne 0 ]
+	[[ "$output" == *"$fixture"*"missing boundary"* ]] || false
+}
+
+@test "missing guidance files fail absent-text checks instead of passing silently" {
+	local fixture="$BATS_TEST_TMPDIR/missing.txt"
+
+	run assert_absent_text "$fixture" 'forbidden phrase'
+
+	[ "$status" -ne 0 ]
+	[[ "$output" == *"$fixture"*"forbidden phrase"* ]] || false
+}
