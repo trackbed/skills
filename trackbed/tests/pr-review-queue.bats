@@ -53,6 +53,7 @@ setup() {
 	write_gh_stub
 	export PATH="$BIN_DIR:$PATH" GH_FIXTURES GH_LOG
 	printf '{"login":"%s"}\n' "$ME" >"$GH_FIXTURES/user.json"
+	echo acme/widgets >"$GH_FIXTURES/repo.txt"
 }
 
 teardown() {
@@ -61,13 +62,24 @@ teardown() {
 	fi
 }
 
-# Serves fixtures from $GH_FIXTURES and logs one line per call to $GH_LOG. Like
+# Serves fixtures from $GH_FIXTURES and logs one line per call to $GH_LOG.
+# `gh repo view` prints the current repository from repo.txt and fails without
+# it, as gh does outside a GitHub repository. Like
 # gh, it applies --jq only on success and prints strings raw; on an error it
 # prints the raw error body to stdout and exits 1.
 write_gh_stub() {
 	cat >"$BIN_DIR/gh" <<'GH'
 #!/bin/sh
 set -eu
+if [ "${1-}" = repo ] && [ "${2-}" = view ]; then
+  echo "repo view" >>"$GH_LOG"
+  [ -f "$GH_FIXTURES/repo.txt" ] || {
+    echo "failed to run git: fatal: not a git repository" >&2
+    exit 1
+  }
+  cat "$GH_FIXTURES/repo.txt"
+  exit 0
+fi
 [ "${1-}" = api ] || {
   echo "unexpected gh call: $*" >&2
   exit 97
@@ -208,15 +220,16 @@ assert_json() {
 	fi
 }
 
-@test "searches only for PRs that request you personally" {
+@test "searches the current repository for PRs that request you personally" {
 	serve_search open "$(pr_node 101)"
 
 	run_queue
 
 	[ "$status" -eq 0 ]
 	diff -u - "$GH_LOG" <<'EOF'
+repo view
 user
-search is:pr is:open archived:false user-review-requested:@me
+search is:pr is:open archived:false user-review-requested:@me repo:acme/widgets
 EOF
 	assert_json '.me' "$ME"
 	assert_json '.checkedAt | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")' true
@@ -225,6 +238,31 @@ EOF
 		'["acme/widgets#101","WID-42","ana-author","+120/-8 in 5 files","main","main"]'
 	assert_json '.prs[0] | [.requestedOfMe, .requestedTeams, .myLastReview, .myPendingComments, .ci]' \
 		'[true,["platform"],null,0,"green"]'
+}
+
+@test "--all-repos searches every repository without looking up the current one" {
+	rm "$GH_FIXTURES/repo.txt"
+	serve_search open "$(pr_node 101)" "$(pr_node 7 '.repository.nameWithOwner = "acme/gadgets"')"
+
+	run_queue --all-repos
+
+	[ "$status" -eq 0 ]
+	diff -u - "$GH_LOG" <<'EOF'
+user
+search is:pr is:open archived:false user-review-requested:@me
+EOF
+	assert_json '[.prs[].pr]' '["acme/gadgets#7","acme/widgets#101"]'
+}
+
+@test "outside a GitHub repository, asks for --repo or --all-repos instead of searching" {
+	rm "$GH_FIXTURES/repo.txt"
+
+	run_queue
+
+	[ "$status" -eq 2 ]
+	assert_stderr_contains "pass --repo OWNER/NAME or --all-repos"
+	[ -z "$output" ]
+	diff -u - "$GH_LOG" <<<'repo view'
 }
 
 @test "--since adds searches for PRs you reviewed and PRs closed since then" {
@@ -269,9 +307,10 @@ EOF
 
 	[ "$status" -eq 0 ]
 	diff -u - "$GH_LOG" <<'EOF'
+repo view
 user
-search is:pr is:open archived:false user-review-requested:@me
-search is:pr is:open archived:false user-review-requested:@me after=c1
+search is:pr is:open archived:false user-review-requested:@me repo:acme/widgets
+search is:pr is:open archived:false user-review-requested:@me repo:acme/widgets after=c1
 EOF
 	assert_json '[.prs[].pr]' '["acme/widgets#101","acme/widgets#102"]'
 	[ -z "$stderr" ]
@@ -288,7 +327,7 @@ EOF
 	[ "$status" -eq 0 ]
 	[ "$(grep -c '^search ' "$GH_LOG")" -eq 4 ]
 	[ -z "$(grep 'after=c4' "$GH_LOG")" ]
-	assert_stderr_contains "warning: only the first 100 of 130 results for: is:pr is:open archived:false user-review-requested:@me"
+	assert_stderr_contains "warning: only the first 100 of 130 results for: is:pr is:open archived:false user-review-requested:@me repo:acme/widgets"
 	assert_json '.prs | length' 4
 }
 
@@ -465,6 +504,10 @@ EOF
 	run_queue --teams
 	[ "$status" -eq 2 ]
 
+	run_queue --repo acme/widgets --all-repos
+	[ "$status" -eq 2 ]
+	assert_stderr_contains "--repo and --all-repos cannot be combined"
+
 	[ ! -s "$GH_LOG" ]
 }
 
@@ -473,6 +516,7 @@ EOF
 	grep -Fq 'Never submit, approve, or dismiss a review, comment, resolve a thread, re-run a job, update a branch, or merge.' "$SKILL"
 	grep -Fq -- '--since <previous checkedAt>' "$SKILL"
 	grep -Fq '"Asked to review" means `user-review-requested:@me`.' "$SKILL"
+	grep -Fq 'Search every repository only when the user passes `--all-repos`.' "$SKILL"
 }
 
 @test "SKILL.md covers a re-request after any earlier review" {
