@@ -184,6 +184,7 @@ test("canonical plugin build preserves runtime path dependency closure", async (
     for (const sharedFile of [
       ["scripts", "siw-issue-reservation.sh"],
       ["scripts", "list-stack-worktrees.sh"],
+      ["scripts", "review-artifact-patterns.sh"],
       ["scripts", "git-rewrite", "stack-publication.py"],
       ["scripts", "git-rewrite", "sources.yaml"],
       ["shared", "visual", "assets", "mermaid-flowchart.html"],
