@@ -5,7 +5,7 @@ Use it when the current branch has an open Pull Request that you want ready to m
 ## Before you run it
 
 - The current branch has an open Pull Request.
-- Your checkout matches the Pull Request head. Push your local commits, or update the checkout, first.
+- Your checkout matches the Pull Request branch on GitHub: push your local commits, and pull any pushed from elsewhere, such as a merge from GitHub's **Update branch** button. If the branch was force-pushed, for example by **Update with rebase**, reset to it instead of pulling. The Pull Request may be behind its target branch; the skill rebases it.
 - `gh` is installed and authenticated, and `python3` is available.
 
 ## Examples

@@ -61,6 +61,18 @@ PY
   ! grep -qE 'mutation|"-X"|--method' "$SNAPSHOT" || false
 }
 
+@test "the checkout stop is about the Pull Request branch, not the target" {
+  grep -qF 'name the Pull Request branch from `pr.head`, and say what to do:' "$SKILL"
+  grep -qF -- '- `behind`: the Pull Request branch has commits this checkout lacks, such as a merge from GitHub'"'"'s **Update branch** button. Pull them first.' "$SKILL"
+  grep -qF -- '- `unknown`: this checkout does not have the Pull Request branch'"'"'s head commit. Fetch the branch, then pull it, or reset to it if the branch was force-pushed' "$SKILL"
+  ! grep -qF '`behind` or `unknown`: the Pull Request branch has commits' "$SKILL" || false
+  grep -qF 'never with the target branch, so never describe one of these stops as being behind the target' "$SKILL"
+  grep -qF 'add that the Pull Request does not need updating from its target branch first, because the branch pass rebases it' "$SKILL"
+
+  grep -qF 'The Pull Request may be behind its target branch; the skill rebases it.' docs/usage/pr-shape-up.md
+  grep -qF 'If the branch was force-pushed, for example by **Update with rebase**, reset to it instead of pulling.' docs/usage/pr-shape-up.md
+}
+
 @test "snapshot mutation check catches multiline arguments without matching metadata keys" {
   local code
   for code in 'git("push")' 'run(["git", "stash"])' $'git(\n "push"\n)' $'run([\n "git",\n "rebase"\n], LOCAL_TIMEOUT)'; do
