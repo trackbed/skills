@@ -1,11 +1,12 @@
 # pr:github-review-reply
 
-Use it on your own Pull Request to work through what reviewers, bots, and apps wrote. It checks each comment against the code, decides what it needs, such as a code change, an explanation, or a question back, and drafts a reply. By default it only writes a plan. It edits code only with `--implement` or when you ask it to address the feedback, and it posts replies or resolves threads only with `--post` and `--resolve`. It never commits or pushes. To review someone else's Pull Request, use `trackbed:pr:github-review`; to fix failing checks, use `trackbed:pr:fix-ci`.
+Use it on your own Pull Request to work through what reviewers, bots, and apps wrote. It checks each comment against the code, decides what it needs, such as a code change, an explanation, or a question back, and drafts a reply. By default it only writes a plan. It edits code only with `--implement` or when you ask it to address the feedback, and it posts replies or resolves threads only with `--post` and `--resolve`. Only `--auto` commits and pushes, and only the fixes it made. To review someone else's Pull Request, use `trackbed:pr:github-review`; to fix failing checks, use `trackbed:pr:fix-ci`.
 
 ## Before you run it
 
 - `gh` and `jq` are installed, and `gh` is authenticated.
 - For `--implement`, you are on the Pull Request's branch.
+- For `--auto` to push its fixes, the branch has no local changes and no unpushed commits, and the Pull Request is not from a fork. Otherwise the fixes stay uncommitted.
 - To post, you have no unsubmitted pending review of your own on the Pull Request. Submit or discard it in GitHub first.
 
 ## Arguments
@@ -18,7 +19,7 @@ Use it on your own Pull Request to work through what reviewers, bots, and apps w
 
 | Option | Effect |
 | --- | --- |
-| `--auto` | The same as `--implement`, `--post`, and `--resolve` together. It still asks before posting a reply to a person. |
+| `--auto` | The same as `--implement`, `--post`, and `--resolve` together, and it also commits the fixes and pushes them to the Pull Request branch, without force, before posting. It still asks before posting a reply to a person. |
 | `--implement` | Make the code changes that valid comments ask for before drafting replies. This edits files and leaves them uncommitted. |
 | `--no-implement` | Do not edit code; only plan and draft. This is the default. |
 | `--post` | Post the drafted replies to GitHub. A reply to a person is shown to you for approval first. |
@@ -41,6 +42,9 @@ Use it on your own Pull Request to work through what reviewers, bots, and apps w
 # Make the requested code changes, then draft replies that describe them
 /trackbed:pr:github-review-reply --implement
 
+# Fix, commit and push, then post the replies and resolve the threads in one run
+/trackbed:pr:github-review-reply --auto
+
 # Answer only bot and app reviewers, post the replies, and resolve what they settle
 /trackbed:pr:github-review-reply --bot-only --post --resolve
 
@@ -52,5 +56,6 @@ Use it on your own Pull Request to work through what reviewers, bots, and apps w
 
 - `GITHUB_REVIEW_REPLY_PLAN.md` in the project root: one entry per comment with its classification, the evidence checked, and the draft reply.
 - With `--implement`, the code changes in your working tree, uncommitted. A reply that says a fix was made is held until you commit and push the fix; then run again with the same flags.
+- With `--auto`, the same changes in one new commit pushed to the Pull Request branch, so their replies post in the same run. If it cannot push, it says why, and the replies are held as with `--implement`.
 - With `--post` and `--resolve`, replies posted and threads resolved on GitHub, one at a time, after it shows you what it will do. The posted reply bodies are kept under `.context/github-review-replies/`.
 - A closing summary: what was posted, resolved, and implemented, what still needs a code change or an answer, and what is held.

@@ -1931,7 +1931,10 @@ for term in [
     "references/posting-guards.md",
     "If you have a pending review on the PR, stop before the first write",
     "If the check itself fails, stop before the first write and report the error.",
-    "Hold every item implemented in this run (`Implementation status: implemented`)",
+    "Hold every item implemented in this run (`Implementation status: implemented`) unless publishing pushed its fix",
+    'PUBLISH_SCRIPT="${CLAUDE_PLUGIN_ROOT}/skills/pr:github-review-reply/scripts/commit-and-push-fixes.sh"',
+    "references/publish-fixes.md",
+    "When `AUTO=true` and Step 5 recorded `Changed paths` for any item, publish those fixes first",
     "Never submit or discard it for them.",
     "confirm with `FIX_CHECK` that the change is in a commit on the PR's remote head",
     "`Post status: held — fix not on PR head`, do not post or resolve that item, and tell the user which paths to commit and push",
@@ -1948,10 +1951,13 @@ assert "`resolutionReason: ADDRESSED`" in step10
 step6 = skill[skill.index("## Step 6:"):skill.index("## Step 7:")]
 assert "Start it with a link to the comment it answers" in step6
 assert "every item held because its fix is not on the PR head" in step11
-# Implemented fixes stay local, so --auto must hold their replies.
+# Only --auto publishes fixes; every other mode holds their replies.
 step5 = skill[skill.index("## Step 5:"):skill.index("## Step 6:")]
-assert "the Step 8 fix-on-head guard holds their replies until the user commits and pushes them" in step5
-assert "this skill never pushes" in skill
+assert "Under `--auto`, Step 8 commits and pushes them; otherwise the Step 8 fix-on-head guard holds their replies until the user commits and pushes them." in step5
+assert "Set `PUBLISH_FIXES=true` only when it lists nothing outside this skill's own artifacts" in step5
+assert "Only `--auto` commits and pushes, and only the fixes this run made (Step 8)" in skill
+assert "isCrossRepository" in skill and "PR_HEAD_BRANCH=" in skill and "PR_CROSS_REPO=" in skill
+assert "under `--auto`, the commit pushed with the fixes, or why publishing pushed nothing" in step11
 for term in [
     'select(.user.login == $self and .state == "PENDING")',
     "no write happens without a clean check",

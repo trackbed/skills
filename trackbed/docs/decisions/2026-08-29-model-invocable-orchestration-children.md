@@ -68,7 +68,7 @@ Amended 2026-11-10. `trackbed:pr:shape-up` is a user-only parent that gets an op
 - Outside that delegation, a model caller of `trackbed:pr:github-review-reply` never adds `--auto`, `--implement`, `--post`, or `--resolve` on its own initiative, so a model-initiated run maps feedback and drafts replies only. Those flags need the user's own request, typed on the command or asked for in the message being answered.
 - `trackbed:pr:shape-up` invokes both children from its own session, never from a subagent, and never invokes `trackbed:pr:rebase` directly.
 
-Shape-up delegates instead of answering comments itself for the reason given under Alternatives Considered: a second copy of the reply workflow would drift. Letting the reply pass implement fixes was rejected because the reply skill never commits or pushes, so the parent would need its own stack-aware publish step; the branch pass already validates review feedback and pushes its fixes. This makes one more skill visible to the model, so its description stays short and names its parent. Focused tests pin both hand-offs and both child contracts.
+Shape-up delegates instead of answering comments itself for the reason given under Alternatives Considered: a second copy of the reply workflow would drift. Letting the reply pass implement fixes was rejected because the reply skill commits and pushes only under `--auto`, with a plain push that does not restack, so the parent would need its own stack-aware publish step; the branch pass already validates review feedback and pushes its fixes. This makes one more skill visible to the model, so its description stays short and names its parent. Focused tests pin both hand-offs and both child contracts.
 
 ### Linear issue base-drift flags
 
