@@ -10,6 +10,7 @@ from ..frontmatter import (
 )
 from ..io import read_text, rel, skill_paths
 from ..schema import DEFAULT_CONTRACT_SCHEMA, skill_frontmatter_required_fields
+from .suite_references import check_suite_references
 from .types import CheckResult, LintContext
 
 SKILL_CONTRACT_KINDS = {"executable", "evaluation", "guidance", "registry"}
@@ -229,6 +230,9 @@ def check_skill_contract_coverage(context: LintContext, *, required: bool = Fals
             mapped.add(skill)
             if skill not in discovered:
                 result.failures.append(f"{label} skill does not exist: {skill}")
+
+    reference_result = check_suite_references(context.root, inventory, discovered)
+    result.failures.extend(reference_result.failures)
 
     baseline = set(mechanical_only)
     if len(baseline) != len(mechanical_only):

@@ -1415,5 +1415,167 @@ class CompatibilityEntryPointTest(unittest.TestCase):
         self.assertIsNotNone(compat.main)
 
 
+class SuiteReferenceCoverageTest(unittest.TestCase):
+    def check_inventory(self, text, contracts=None, exceptions=None):
+        from lint_skill_contracts.checks.suite_references import check_suite_references
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            suite = root / "trackbed/tests/example.bats"
+            suite.parent.mkdir(parents=True)
+            suite.write_text(text)
+            inventory = {"skill_contracts": contracts or [], "skill_contract_exceptions": exceptions or []}
+            return check_suite_references(root, inventory, {"trackbed/skills/test:example/SKILL.md"})
+
+    def test_missing_mapping_names_suite_and_skill(self):
+        result = self.check_inventory('cat "$ROOT/skills/test:example/references/contract.md"')
+        self.assertEqual(
+            result.failures,
+            [
+                "mechanical: missing skill contract mapping: trackbed/tests/example.bats -> "
+                "trackbed/skills/test:example/SKILL.md"
+            ],
+        )
+
+    def test_stale_guidance_and_executable_mappings_fail(self):
+        for kind in ["guidance", "executable"]:
+            with self.subTest(kind=kind):
+                result = self.check_inventory(
+                    "assert True",
+                    [
+                        {
+                            "kind": kind,
+                            "suite": "trackbed/tests/example.bats",
+                            "skills": ["trackbed/skills/test:example/SKILL.md"],
+                        }
+                    ],
+                )
+                self.assertIn("stale skill contract mapping", result.failures[0])
+                self.assertIn(
+                    "trackbed/tests/example.bats -> trackbed/skills/test:example/SKILL.md", result.failures[0]
+                )
+
+    def test_reasoned_exception_accepts_incidental_and_indirect_references(self):
+        exception = {
+            "suite": "trackbed/tests/example.bats",
+            "skill": "trackbed/skills/test:example/SKILL.md",
+            "kind": "incidental",
+        }
+        self.assertIn("non-empty reason", self.check_inventory("", exceptions=[exception]).failures[0])
+        for reason in ["", "   ", None, 42]:
+            self.assertTrue(self.check_inventory("", exceptions=[dict(exception, reason=reason)]).failures)
+        exception["reason"] = "Only checks an emitted path; does not read the skill."
+        self.assertFalse(self.check_inventory("skills/test:example/SKILL.md", exceptions=[exception]).failures)
+        exception["kind"] = "indirect"
+        mapping = dict(kind="guidance", suite=exception["suite"], skills=[exception["skill"]])
+        self.assertFalse(self.check_inventory("dynamic_path.read_text()", [mapping], [exception]).failures)
+        missing = self.check_inventory("dynamic_path.read_text()", exceptions=[exception]).failures
+        self.assertTrue(any("missing skill contract mapping" in failure for failure in missing))
+
+    def test_python_path_joins_singletons_and_directory_boundaries(self):
+        from lint_skill_contracts.checks.suite_references import referenced_skills
+
+        discovered = {"trackbed/skills/setup/SKILL.md", "trackbed/skills/test:example/SKILL.md"}
+        text = "\n".join(
+            [
+                'root / "skills" / "test:example" / "SKILL.md"',
+                "skills/setup/scripts/check.sh",
+                "skills/test:example-extra/SKILL.md",
+            ]
+        )
+        self.assertEqual(referenced_skills(text, discovered), discovered)
+        self.assertFalse(referenced_skills("skills/test:example-extra/SKILL.md", discovered))
+
+    def test_registry_and_evaluation_are_not_checked_for_staleness(self):
+        for kind in ["registry", "evaluation"]:
+            self.assertFalse(
+                self.check_inventory(
+                    "",
+                    [
+                        {
+                            "kind": kind,
+                            "suite": "trackbed/tests/example.bats",
+                            "skills": ["trackbed/skills/test:example/SKILL.md"],
+                        }
+                    ],
+                ).failures
+            )
+
+
+class SuiteReferenceLinterIntegrationTest(unittest.TestCase):
+    def run_linter(self, *, suite="trackbed/tests/fixture.bats", text="", mapped=False, exception=None):
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            skill = "trackbed/skills/test:coverage/SKILL.md"
+            skill_path = root / skill
+            skill_path.parent.mkdir(parents=True)
+            skill_path.write_text(
+                "---\nname: test:coverage\ndescription: Fixture\n"
+                "disable-model-invocation: false\nuser-invocable: true\n---\n# Fixture\n"
+            )
+            path = root / suite
+            path.parent.mkdir(parents=True)
+            path.write_text(text)
+            inventory = {"skill_contracts": [{"kind": "guidance", "suite": suite, "skills": [skill]}] if mapped else []}
+            if exception is not None:
+                inventory["skill_contract_exceptions"] = [dict(suite=suite, skill=skill, **exception)]
+            (root / "inventory.json").write_text(json.dumps(inventory))
+            (root / "registry.json").write_text(
+                json.dumps(
+                    {
+                        "skill_contract_coverage": {
+                            "inventory": "inventory.json",
+                            "mechanical_only": [] if mapped else [skill],
+                        }
+                    }
+                )
+            )
+            return subprocess.run(
+                [sys.executable, str(SCRIPT_PATH), "--repo-root", str(root), "--registry", str(root / "registry.json")],
+                capture_output=True,
+                text=True,
+            )
+
+    def test_missing_reference_fails_configured_linter_for_bats_and_python(self):
+        for suite in ["trackbed/tests/fixture.bats", "trackbed/tests/python/test_fixture.py"]:
+            with self.subTest(suite=suite):
+                result = self.run_linter(suite=suite, text='cat "skills/test:coverage/references/check.md"')
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn(
+                    f"missing skill contract mapping: {suite} -> trackbed/skills/test:coverage/SKILL.md", result.stdout
+                )
+
+    def test_stale_mapping_fails_configured_linter(self):
+        result = self.run_linter(mapped=True)
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn(
+            "stale skill contract mapping: trackbed/tests/fixture.bats -> trackbed/skills/test:coverage/SKILL.md",
+            result.stdout,
+        )
+
+    def test_exception_reason_is_required_by_configured_linter(self):
+        for reason in [None, " ", "Only asserts an emitted path"]:
+            with self.subTest(reason=reason):
+                exception = {"kind": "incidental"}
+                if reason is not None:
+                    exception["reason"] = reason
+                result = self.run_linter(text="skills/test:coverage/SKILL.md", exception=exception)
+                self.assertEqual(
+                    result.returncode, 0 if reason and reason.strip() else 1, result.stdout + result.stderr
+                )
+                if result.returncode:
+                    self.assertIn("non-empty reason", result.stdout)
+
+    def test_indirect_exception_requires_actual_lookup_entry(self):
+        exception = {"kind": "indirect", "reason": "Reads an enumerated dynamically built skill path"}
+        missing = self.run_linter(exception=exception)
+        self.assertEqual(missing.returncode, 1, missing.stdout + missing.stderr)
+        self.assertIn("missing skill contract mapping", missing.stdout)
+        present = self.run_linter(mapped=True, exception=exception)
+        self.assertEqual(present.returncode, 0, present.stdout + present.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

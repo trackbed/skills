@@ -173,7 +173,8 @@
       "trackbed/skills/visual:decisions/scripts/decisions_images.py",
       "trackbed/skills/visual:decisions/scripts/decisions_item.py",
       "trackbed/skills/visual:decisions/scripts/decisions_model.py",
-      "trackbed/skills/visual:decisions/scripts/decisions_page.py"
+      "trackbed/skills/visual:decisions/scripts/decisions_page.py",
+      "trackbed/scripts/lint_skill_contracts/checks/suite_references.py"
     ],
     "contract_only": {
       "trackbed/scripts/generate-component-reference.py": [
@@ -289,6 +290,8 @@
       "kind": "guidance",
       "suite": "trackbed/tests/adversarial-review-guidance.bats",
       "skills": [
+        "trackbed/skills/code:plan-to-pr/SKILL.md",
+        "trackbed/skills/linear:issue-to-pr/SKILL.md",
         "trackbed/skills/pr:adversarial-review/SKILL.md",
         "trackbed/skills/pr:review-convergence/SKILL.md"
       ]
@@ -310,7 +313,12 @@
     {
       "kind": "guidance",
       "suite": "trackbed/tests/feature-spec-guidance.bats",
-      "skills": ["trackbed/skills/docs:feature-spec/SKILL.md"]
+      "skills": [
+        "trackbed/skills/code:work-from-plan/SKILL.md",
+        "trackbed/skills/docs:adr/SKILL.md",
+        "trackbed/skills/docs:feature-spec/SKILL.md",
+        "trackbed/skills/docs:update-agents-md/SKILL.md"
+      ]
     },
     {
       "kind": "guidance",
@@ -422,7 +430,10 @@
     {
       "kind": "guidance",
       "suite": "trackbed/tests/solution-note-guidance.bats",
-      "skills": ["trackbed/skills/docs:solution-note/SKILL.md"]
+      "skills": [
+        "trackbed/skills/docs:solution-note/SKILL.md",
+        "trackbed/skills/docs:sync-release/SKILL.md"
+      ]
     },
     {
       "kind": "guidance",
@@ -437,13 +448,15 @@
         "trackbed/skills/pr:github-review-reply/SKILL.md",
         "trackbed/skills/pr:github-review/SKILL.md",
         "trackbed/skills/pr:product-review/SKILL.md",
-        "trackbed/skills/pr:resolve-review/SKILL.md"
+        "trackbed/skills/pr:resolve-review/SKILL.md",
+        "trackbed/skills/workflow:cleanup-artifacts/SKILL.md"
       ]
     },
     {
       "kind": "guidance",
       "suite": "trackbed/tests/text-clarify-guidance.bats",
       "skills": [
+        "trackbed/skills/linear:issue-to-pr/SKILL.md",
         "trackbed/skills/pr:github-review-reply/SKILL.md",
         "trackbed/skills/pr:github-review/SKILL.md",
         "trackbed/skills/text:clarify/SKILL.md"
@@ -473,7 +486,10 @@
     {
       "kind": "guidance",
       "suite": "trackbed/tests/pr-triage-risk-guidance.bats",
-      "skills": ["trackbed/skills/pr:triage-risk/SKILL.md"]
+      "skills": [
+        "trackbed/skills/pr:code-review/SKILL.md",
+        "trackbed/skills/pr:triage-risk/SKILL.md"
+      ]
     },
     {
       "kind": "guidance",
@@ -507,8 +523,9 @@
         "trackbed/skills/code:plan-to-pr/SKILL.md",
         "trackbed/skills/code:work-from-plan/SKILL.md",
         "trackbed/skills/debug:triage-to-issue/SKILL.md",
-        "trackbed/skills/pr:review-convergence/SKILL.md",
+        "trackbed/skills/linear:breakdown-findings/SKILL.md",
         "trackbed/skills/pr:fix-ci/SKILL.md",
+        "trackbed/skills/pr:review-convergence/SKILL.md",
         "trackbed/skills/siw:init/SKILL.md",
         "trackbed/skills/siw:resolve-audit/SKILL.md",
         "trackbed/skills/workflow:cleanup-artifacts/SKILL.md"
@@ -530,7 +547,10 @@
     {
       "kind": "guidance",
       "suite": "trackbed/tests/product-prd-guidance.bats",
-      "skills": ["trackbed/skills/product:prd/SKILL.md"]
+      "skills": [
+        "trackbed/skills/docs:feature-spec/SKILL.md",
+        "trackbed/skills/product:prd/SKILL.md"
+      ]
     },
     {
       "kind": "guidance",
@@ -548,7 +568,10 @@
     {
       "kind": "guidance",
       "suite": "trackbed/tests/linear-issue-implement-guidance.bats",
-      "skills": ["trackbed/skills/linear:issue-implement/SKILL.md"]
+      "skills": [
+        "trackbed/skills/linear:issue-implement/SKILL.md",
+        "trackbed/skills/linear:issue-to-pr/SKILL.md"
+      ]
     },
     {
       "kind": "guidance",
@@ -563,14 +586,22 @@
     {
       "kind": "executable",
       "suite": "trackbed/tests/python/test_linear_next_cloud_launch.py",
-      "skills": ["trackbed/skills/linear:next/SKILL.md"]
+      "skills": [
+        "trackbed/skills/linear:issue-to-pr/SKILL.md",
+        "trackbed/skills/linear:next/SKILL.md"
+      ]
     },
     {
       "kind": "guidance",
       "suite": "trackbed/tests/linear-issue-to-pr-guidance.bats",
       "skills": [
+        "trackbed/skills/linear:issue-implement/SKILL.md",
+        "trackbed/skills/linear:issue-to-pr/SKILL.md",
+        "trackbed/skills/pr:create/SKILL.md",
+        "trackbed/skills/pr:fix-ci/SKILL.md",
+        "trackbed/skills/pr:generate-description/SKILL.md",
         "trackbed/skills/pr:review-convergence/SKILL.md",
-        "trackbed/skills/linear:issue-to-pr/SKILL.md"
+        "trackbed/skills/workflow:cleanup-artifacts/SKILL.md"
       ]
     },
     {
@@ -581,7 +612,10 @@
     {
       "kind": "executable",
       "suite": "trackbed/tests/python/test_suggest_next_inventory.py",
-      "skills": ["trackbed/skills/workflow:suggest-next/SKILL.md"]
+      "skills": [
+        "trackbed/skills/workflow:cleanup-artifacts/SKILL.md",
+        "trackbed/skills/workflow:suggest-next/SKILL.md"
+      ]
     },
     {
       "kind": "executable",
@@ -601,7 +635,14 @@
     {
       "kind": "guidance",
       "suite": "trackbed/tests/lint-skill-contracts.bats",
-      "skills": ["trackbed/skills/learn:verify-understanding/SKILL.md"]
+      "skills": [
+        "trackbed/skills/debug:find-sibling-bugs/SKILL.md",
+        "trackbed/skills/deps:audit/SKILL.md",
+        "trackbed/skills/discovery:interview/SKILL.md",
+        "trackbed/skills/learn:verify-understanding/SKILL.md",
+        "trackbed/skills/pr:gut-check/SKILL.md",
+        "trackbed/skills/pr:triage-risk/SKILL.md"
+      ]
     },
     {
       "kind": "guidance",
@@ -616,14 +657,26 @@
     {
       "kind": "guidance",
       "suite": "trackbed/tests/codebase-audit-guidance.bats",
-      "skills": ["trackbed/skills/code:refactor-opportunities/SKILL.md"]
+      "skills": [
+        "trackbed/skills/code:agent-readiness/SKILL.md",
+        "trackbed/skills/code:outside-view/SKILL.md",
+        "trackbed/skills/code:refactor-opportunities/SKILL.md",
+        "trackbed/skills/discovery:strategic-inquiry/SKILL.md",
+        "trackbed/skills/pr:review-convergence/SKILL.md",
+        "trackbed/skills/workflow:cleanup-artifacts/SKILL.md"
+      ]
     },
     {
       "kind": "guidance",
       "suite": "trackbed/tests/commit-conventions-guidance.bats",
       "skills": [
+        "trackbed/skills/code:plan-to-pr/SKILL.md",
         "trackbed/skills/git:commit-message/SKILL.md",
-        "trackbed/skills/git:recreate-commits/SKILL.md"
+        "trackbed/skills/git:recreate-commits/SKILL.md",
+        "trackbed/skills/linear:issue-implement/SKILL.md",
+        "trackbed/skills/linear:issue-to-pr/SKILL.md",
+        "trackbed/skills/pr:create/SKILL.md",
+        "trackbed/skills/pr:review-convergence/SKILL.md"
       ]
     },
     {
@@ -638,14 +691,23 @@
       "kind": "guidance",
       "suite": "trackbed/tests/pr-create-guidance.bats",
       "skills": [
+        "trackbed/skills/code:plan-to-pr/SKILL.md",
         "trackbed/skills/git:recreate-commits/SKILL.md",
-        "trackbed/skills/pr:create/SKILL.md"
+        "trackbed/skills/linear:issue-to-pr/SKILL.md",
+        "trackbed/skills/pr:create/SKILL.md",
+        "trackbed/skills/pr:generate-description/SKILL.md"
       ]
     },
     {
       "kind": "guidance",
       "suite": "trackbed/tests/pr-generate-description-guidance.bats",
-      "skills": ["trackbed/skills/pr:generate-description/SKILL.md"]
+      "skills": [
+        "trackbed/skills/code:breakdown-findings/SKILL.md",
+        "trackbed/skills/pr:create/SKILL.md",
+        "trackbed/skills/pr:generate-description/SKILL.md",
+        "trackbed/skills/pr:stack/SKILL.md",
+        "trackbed/skills/text:clarify/SKILL.md"
+      ]
     },
     {
       "kind": "executable",
@@ -660,7 +722,11 @@
     {
       "kind": "guidance",
       "suite": "trackbed/tests/pr-walkthrough.bats",
-      "skills": ["trackbed/skills/pr:walkthrough/SKILL.md"]
+      "skills": [
+        "trackbed/skills/git:recreate-commits/SKILL.md",
+        "trackbed/skills/pr:walkthrough/SKILL.md",
+        "trackbed/skills/qa/SKILL.md"
+      ]
     },
     {
       "kind": "guidance",
@@ -680,7 +746,10 @@
     {
       "kind": "guidance",
       "suite": "trackbed/tests/refactor-pass-guidance.bats",
-      "skills": ["trackbed/skills/code:refactor-pass/SKILL.md"]
+      "skills": [
+        "trackbed/skills/code:refactor-pass/SKILL.md",
+        "trackbed/skills/workflow:cleanup-artifacts/SKILL.md"
+      ]
     },
     {
       "kind": "executable",
@@ -689,7 +758,6 @@
         "trackbed/skills/code:breakdown-findings/SKILL.md",
         "trackbed/skills/git:fixup/SKILL.md",
         "trackbed/skills/git:recreate-commits/SKILL.md",
-        "trackbed/skills/pr:create/SKILL.md",
         "trackbed/skills/pr:fix-ci/SKILL.md",
         "trackbed/skills/pr:rebase/SKILL.md",
         "trackbed/skills/pr:stack/SKILL.md"
@@ -735,11 +803,6 @@
       ]
     },
     {
-      "kind": "executable",
-      "suite": "trackbed/tests/siw-issue-reservation.bats",
-      "skills": ["trackbed/skills/siw:generate-phases/SKILL.md"]
-    },
-    {
       "kind": "guidance",
       "suite": "trackbed/tests/siw-transfer-to-linear-guidance.bats",
       "skills": ["trackbed/skills/siw:transfer-to-linear/SKILL.md"]
@@ -757,7 +820,11 @@
     {
       "kind": "guidance",
       "suite": "trackbed/tests/skill-resource-references.bats",
-      "skills": ["trackbed/skills/siw:spec-audit/SKILL.md"]
+      "skills": [
+        "trackbed/skills/siw:init/SKILL.md",
+        "trackbed/skills/siw:spec-audit/SKILL.md",
+        "trackbed/skills/workflow:cleanup-artifacts/SKILL.md"
+      ]
     },
     {
       "kind": "guidance",
@@ -767,7 +834,19 @@
     {
       "kind": "guidance",
       "suite": "trackbed/tests/visual-decisions-guidance.bats",
-      "skills": ["trackbed/skills/visual:decisions/SKILL.md"]
+      "skills": [
+        "trackbed/skills/code:audit-security/SKILL.md",
+        "trackbed/skills/code:breakdown-findings/SKILL.md",
+        "trackbed/skills/code:refactor-opportunities/SKILL.md",
+        "trackbed/skills/discovery:interview/SKILL.md",
+        "trackbed/skills/discovery:strategic-inquiry/SKILL.md",
+        "trackbed/skills/pr:code-review/SKILL.md",
+        "trackbed/skills/pr:product-review/SKILL.md",
+        "trackbed/skills/product:review/SKILL.md",
+        "trackbed/skills/qa/SKILL.md",
+        "trackbed/skills/visual:decisions/SKILL.md",
+        "trackbed/skills/visual:explain/SKILL.md"
+      ]
     },
     {
       "kind": "executable",
@@ -778,26 +857,33 @@
       "kind": "guidance",
       "suite": "trackbed/tests/visual-report-guidance.bats",
       "skills": [
-        "trackbed/skills/pr:code-review/SKILL.md",
-        "trackbed/skills/pr:product-review/SKILL.md",
-        "trackbed/skills/code:copy-review/SKILL.md",
-        "trackbed/skills/pr:convention-review/SKILL.md",
-        "trackbed/skills/pr:overengineering-review/SKILL.md",
-        "trackbed/skills/pr:github-review/SKILL.md",
-        "trackbed/skills/code:refactor-opportunities/SKILL.md",
         "trackbed/skills/code:agent-readiness/SKILL.md",
-        "trackbed/skills/code:outside-view/SKILL.md",
-        "trackbed/skills/deps:audit/SKILL.md",
         "trackbed/skills/code:audit-security/SKILL.md",
-        "trackbed/skills/qa/SKILL.md",
-        "trackbed/skills/product:review/SKILL.md",
-        "trackbed/skills/docs:review/SKILL.md",
-        "trackbed/skills/siw:spec-audit/SKILL.md",
-        "trackbed/skills/discovery:strategic-inquiry/SKILL.md",
         "trackbed/skills/code:breakdown-findings/SKILL.md",
-        "trackbed/skills/pr:github-review-reply/SKILL.md",
+        "trackbed/skills/code:copy-review/SKILL.md",
         "trackbed/skills/code:deprecate/SKILL.md",
-        "trackbed/skills/discovery:interview/SKILL.md"
+        "trackbed/skills/code:outside-view/SKILL.md",
+        "trackbed/skills/code:plan-to-pr/SKILL.md",
+        "trackbed/skills/code:refactor-opportunities/SKILL.md",
+        "trackbed/skills/deps:audit/SKILL.md",
+        "trackbed/skills/discovery:interview/SKILL.md",
+        "trackbed/skills/discovery:strategic-inquiry/SKILL.md",
+        "trackbed/skills/docs:review/SKILL.md",
+        "trackbed/skills/linear:breakdown-findings/SKILL.md",
+        "trackbed/skills/linear:issue-to-pr/SKILL.md",
+        "trackbed/skills/pr:code-review/SKILL.md",
+        "trackbed/skills/pr:convention-review/SKILL.md",
+        "trackbed/skills/pr:github-review-reply/SKILL.md",
+        "trackbed/skills/pr:github-review/SKILL.md",
+        "trackbed/skills/pr:overengineering-review/SKILL.md",
+        "trackbed/skills/pr:product-review/SKILL.md",
+        "trackbed/skills/pr:resolve-review/SKILL.md",
+        "trackbed/skills/pr:review-convergence/SKILL.md",
+        "trackbed/skills/pr:shape-up/SKILL.md",
+        "trackbed/skills/product:review/SKILL.md",
+        "trackbed/skills/qa/SKILL.md",
+        "trackbed/skills/siw:resolve-audit/SKILL.md",
+        "trackbed/skills/siw:spec-audit/SKILL.md"
       ]
     },
     {
@@ -805,6 +891,7 @@
       "suite": "trackbed/tests/workflow-artifacts-cleanup.bats",
       "skills": [
         "trackbed/skills/code:breakdown-findings/SKILL.md",
+        "trackbed/skills/linear:issue-to-pr/SKILL.md",
         "trackbed/skills/workflow:cleanup-artifacts/SKILL.md"
       ]
     },
@@ -882,11 +969,192 @@
       "kind": "guidance",
       "suite": "trackbed/tests/finding-disputes-guidance.bats",
       "skills": [
+        "trackbed/skills/discovery:interview/SKILL.md",
         "trackbed/skills/pr:github-review-reply/SKILL.md",
         "trackbed/skills/pr:resolve-review/SKILL.md",
+        "trackbed/skills/pr:review-convergence/SKILL.md",
         "trackbed/skills/siw:resolve-audit/SKILL.md",
         "trackbed/skills/siw:spec-audit/SKILL.md"
       ]
+    },
+    {
+      "suite": "trackbed/tests/convention-review-markers-guidance.bats",
+      "kind": "guidance",
+      "skills": ["trackbed/skills/pr:convention-review/SKILL.md"]
+    },
+    {
+      "suite": "trackbed/tests/finding-lifecycle-guidance.bats",
+      "kind": "guidance",
+      "skills": [
+        "trackbed/skills/pr:code-review/SKILL.md",
+        "trackbed/skills/pr:convention-review/SKILL.md",
+        "trackbed/skills/pr:overengineering-review/SKILL.md",
+        "trackbed/skills/pr:resolve-review/SKILL.md"
+      ]
+    },
+    {
+      "suite": "trackbed/tests/product-review-visual-mode-guidance.bats",
+      "kind": "guidance",
+      "skills": ["trackbed/skills/pr:product-review/SKILL.md"]
+    },
+    {
+      "suite": "trackbed/tests/python/test_convergence_state.py",
+      "kind": "executable",
+      "skills": ["trackbed/skills/pr:review-convergence/SKILL.md"]
+    },
+    {
+      "suite": "trackbed/tests/python/test_lint_skill_contracts.py",
+      "kind": "executable",
+      "skills": ["trackbed/skills/verify:run/SKILL.md"]
+    },
+    {
+      "suite": "trackbed/tests/python/test_packaged_shell_execution.py",
+      "kind": "executable",
+      "skills": [
+        "trackbed/skills/code:refactor-opportunities/SKILL.md",
+        "trackbed/skills/git:recreate-commits/SKILL.md",
+        "trackbed/skills/linear:review-pr/SKILL.md",
+        "trackbed/skills/pr:convention-review/SKILL.md",
+        "trackbed/skills/pr:rebase/SKILL.md",
+        "trackbed/skills/pr:resolve-review/SKILL.md"
+      ]
+    },
+    {
+      "suite": "trackbed/tests/python/test_review_delta.py",
+      "kind": "executable",
+      "skills": ["trackbed/skills/pr:github-review/SKILL.md"]
+    },
+    {
+      "suite": "trackbed/tests/python/test_review_rewrite_safety.py",
+      "kind": "executable",
+      "skills": [
+        "trackbed/skills/pr:fix-ci/SKILL.md",
+        "trackbed/skills/pr:resolve-review/SKILL.md"
+      ]
+    },
+    {
+      "suite": "trackbed/tests/python/test_risk_signals.py",
+      "kind": "executable",
+      "skills": ["trackbed/skills/pr:triage-risk/SKILL.md"]
+    },
+    {
+      "suite": "trackbed/tests/python/test_session_search_extractors.py",
+      "kind": "executable",
+      "skills": ["trackbed/skills/session:automate-repeats/SKILL.md"]
+    },
+    {
+      "suite": "trackbed/tests/python/test_session_search_python38.py",
+      "kind": "executable",
+      "skills": ["trackbed/skills/session:automate-repeats/SKILL.md"]
+    },
+    {
+      "suite": "trackbed/tests/python/test_session_search_skill_usage.py",
+      "kind": "executable",
+      "skills": ["trackbed/skills/session:automate-repeats/SKILL.md"]
+    },
+    {
+      "suite": "trackbed/tests/python/test_stack_overview.py",
+      "kind": "executable",
+      "skills": ["trackbed/skills/pr:github-review/SKILL.md"]
+    },
+    {
+      "suite": "trackbed/tests/python/test_stack_publication.py",
+      "kind": "executable",
+      "skills": ["trackbed/skills/pr:stack/SKILL.md"]
+    },
+    {
+      "suite": "trackbed/tests/review-closeout-loop-guidance.bats",
+      "kind": "guidance",
+      "skills": ["trackbed/skills/pr:code-review/SKILL.md"]
+    },
+    {
+      "suite": "trackbed/tests/review-convergence-cost-guidance.bats",
+      "kind": "guidance",
+      "skills": [
+        "trackbed/skills/code:plan-to-pr/SKILL.md",
+        "trackbed/skills/code:refactor-opportunities/SKILL.md",
+        "trackbed/skills/linear:issue-to-pr/SKILL.md",
+        "trackbed/skills/pr:code-review/SKILL.md",
+        "trackbed/skills/pr:convention-review/SKILL.md",
+        "trackbed/skills/pr:overengineering-review/SKILL.md",
+        "trackbed/skills/pr:review-convergence/SKILL.md",
+        "trackbed/skills/pr:triage-risk/SKILL.md"
+      ]
+    },
+    {
+      "suite": "trackbed/tests/review-diff-comments-guidance.bats",
+      "kind": "guidance",
+      "skills": [
+        "trackbed/skills/pr:code-review/SKILL.md",
+        "trackbed/skills/pr:convention-review/SKILL.md",
+        "trackbed/skills/pr:overengineering-review/SKILL.md",
+        "trackbed/skills/pr:product-review/SKILL.md"
+      ]
+    },
+    {
+      "suite": "trackbed/tests/review-diff-scripts.bats",
+      "kind": "executable",
+      "skills": ["trackbed/skills/code:breakdown-findings/SKILL.md"]
+    },
+    {
+      "suite": "trackbed/tests/review-evidence-guidance.bats",
+      "kind": "guidance",
+      "skills": ["trackbed/skills/pr:code-review/SKILL.md"]
+    },
+    {
+      "suite": "trackbed/tests/review-shared-tree.bats",
+      "kind": "guidance",
+      "skills": [
+        "trackbed/skills/pr:code-review/SKILL.md",
+        "trackbed/skills/pr:product-review/SKILL.md"
+      ]
+    },
+    {
+      "suite": "trackbed/tests/review-standards-guides-guidance.bats",
+      "kind": "guidance",
+      "skills": [
+        "trackbed/skills/pr:code-review/SKILL.md",
+        "trackbed/skills/pr:convention-review/SKILL.md"
+      ]
+    },
+    {
+      "suite": "trackbed/tests/skillopt-adapter.bats",
+      "kind": "guidance",
+      "skills": ["trackbed/skills/skill:review/SKILL.md"]
+    },
+    {
+      "suite": "trackbed/tests/unattended-default-guidance.bats",
+      "kind": "guidance",
+      "skills": [
+        "trackbed/skills/code:plan-to-pr/SKILL.md",
+        "trackbed/skills/git:recreate-commits/SKILL.md",
+        "trackbed/skills/linear:issue-to-pr/SKILL.md",
+        "trackbed/skills/pr:create/SKILL.md",
+        "trackbed/skills/pr:fix-ci/SKILL.md",
+        "trackbed/skills/pr:generate-description/SKILL.md",
+        "trackbed/skills/pr:rebase/SKILL.md"
+      ]
+    },
+    {
+      "suite": "trackbed/tests/verification-cadence-guidance.bats",
+      "kind": "guidance",
+      "skills": [
+        "trackbed/skills/code:work-from-plan/SKILL.md",
+        "trackbed/skills/linear:issue-implement/SKILL.md",
+        "trackbed/skills/pr:resolve-review/SKILL.md",
+        "trackbed/skills/pr:review-convergence/SKILL.md",
+        "trackbed/skills/verify:run/SKILL.md"
+      ]
+    },
+    {
+      "suite": "trackbed/tests/verify-run-discovery-cache.bats",
+      "kind": "executable",
+      "skills": ["trackbed/skills/verify:run/SKILL.md"]
+    },
+    {
+      "suite": "trackbed/tests/workflow-wizard-template.bats",
+      "kind": "executable",
+      "skills": ["trackbed/skills/workflow:wizard/SKILL.md"]
     }
   ],
   "shell": {
@@ -1099,5 +1367,265 @@
         "trackbed/tests/skill-eval-suites.bats"
       ]
     }
-  }
+  },
+  "skill_contract_exceptions": [
+    {
+      "suite": "trackbed/tests/conductor-slash-command.bats",
+      "skill": "trackbed/skills/pr:github-review/SKILL.md",
+      "reason": "Asserts the hook output contains the skill path; does not read or execute the skill.",
+      "kind": "incidental"
+    },
+    {
+      "suite": "trackbed/tests/review-model-selection-guidance.bats",
+      "skill": "trackbed/skills/pr:convention-review/SKILL.md",
+      "reason": "The producer loop constructs skills/pr:$skill and skills/pr:{name} paths from the enumerated review names, then asserts on each skill.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/review-model-selection-guidance.bats",
+      "skill": "trackbed/skills/pr:overengineering-review/SKILL.md",
+      "reason": "The producer loop constructs skills/pr:$skill and skills/pr:{name} paths from the enumerated review names, then asserts on each skill.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/review-model-selection-guidance.bats",
+      "skill": "trackbed/skills/pr:product-review/SKILL.md",
+      "reason": "The producer loop constructs skills/pr:$skill and skills/pr:{name} paths from the enumerated review names, then asserts on each skill.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/python/test_linear_next_cloud_launch.py",
+      "skill": "trackbed/skills/linear:issue-to-pr/SKILL.md",
+      "reason": "Loads the sibling issue-to-pr preflight via SKILL_DIR.parent / linear:issue-to-pr and tests its argument parsing.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/pr-generate-description-guidance.bats",
+      "skill": "trackbed/skills/code:breakdown-findings/SKILL.md",
+      "reason": "The consumer loop constructs the code:breakdown-findings references/split-strategies.md path and asserts its REST metadata-update guidance.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-decisions-guidance.bats",
+      "skill": "trackbed/skills/code:audit-security/SKILL.md",
+      "reason": "The consumers loop constructs skills/{skill}/SKILL.md from its explicit list and asserts decision-document handoff wording.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-decisions-guidance.bats",
+      "skill": "trackbed/skills/code:breakdown-findings/SKILL.md",
+      "reason": "The consumers loop constructs skills/{skill}/SKILL.md from its explicit list and asserts decision-document handoff wording.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-decisions-guidance.bats",
+      "skill": "trackbed/skills/code:refactor-opportunities/SKILL.md",
+      "reason": "The consumers loop constructs skills/{skill}/SKILL.md from its explicit list and asserts decision-document handoff wording.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-decisions-guidance.bats",
+      "skill": "trackbed/skills/discovery:interview/SKILL.md",
+      "reason": "The consumers loop constructs skills/{skill}/SKILL.md from its explicit list and asserts decision-document handoff wording.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-decisions-guidance.bats",
+      "skill": "trackbed/skills/discovery:strategic-inquiry/SKILL.md",
+      "reason": "The consumers loop constructs skills/{skill}/SKILL.md from its explicit list and asserts decision-document handoff wording.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-decisions-guidance.bats",
+      "skill": "trackbed/skills/pr:code-review/SKILL.md",
+      "reason": "The consumers loop constructs skills/{skill}/SKILL.md from its explicit list and asserts decision-document handoff wording.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-decisions-guidance.bats",
+      "skill": "trackbed/skills/pr:product-review/SKILL.md",
+      "reason": "The consumers loop constructs skills/{skill}/SKILL.md from its explicit list and asserts decision-document handoff wording.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-decisions-guidance.bats",
+      "skill": "trackbed/skills/product:review/SKILL.md",
+      "reason": "The consumers loop constructs skills/{skill}/SKILL.md from its explicit list and asserts decision-document handoff wording.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-decisions-guidance.bats",
+      "skill": "trackbed/skills/qa/SKILL.md",
+      "reason": "The consumers loop constructs skills/{skill}/SKILL.md from its explicit list and asserts decision-document handoff wording.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/code:agent-readiness/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/code:audit-security/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/code:breakdown-findings/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/code:copy-review/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/code:deprecate/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/code:outside-view/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/code:plan-to-pr/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/code:refactor-opportunities/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/deps:audit/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/discovery:interview/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/discovery:strategic-inquiry/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/docs:review/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/linear:breakdown-findings/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/linear:issue-to-pr/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/pr:convention-review/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/pr:github-review-reply/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/pr:github-review/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/pr:overengineering-review/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/pr:resolve-review/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/pr:review-convergence/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/pr:shape-up/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/product:review/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/qa/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/siw:resolve-audit/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/visual-report-guidance.bats",
+      "skill": "trackbed/skills/siw:spec-audit/SKILL.md",
+      "reason": "The PRODUCERS, SHAPES, and orchestrators loops construct skills/{skill}/SKILL.md from explicit lists and assert report-style contracts.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/module-design-guidance.bats",
+      "skill": "trackbed/skills/code:plan-to-pr/SKILL.md",
+      "reason": "The plan/work loops construct skills/$skill/SKILL.md from explicit lists and assert module-design planning instructions.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/module-design-guidance.bats",
+      "skill": "trackbed/skills/code:work-from-plan/SKILL.md",
+      "reason": "The plan/work loops construct skills/$skill/SKILL.md from explicit lists and assert module-design planning instructions.",
+      "kind": "indirect"
+    },
+    {
+      "suite": "trackbed/tests/python/test_lint_skill_contracts.py",
+      "skill": "trackbed/skills/setup/SKILL.md",
+      "reason": "Uses a setup path string as a synthetic reference-parser fixture; does not read the real skill.",
+      "kind": "incidental"
+    }
+  ]
 }
