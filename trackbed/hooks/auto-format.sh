@@ -526,13 +526,13 @@ format_file() {
         note_attempt "Black"
       fi
       # Fallback: check for global tools
-      if [ -n "$RUFF_CMD" ]; then
+      if [ "$HAS_RUFF" != "true" ] && [ -n "$RUFF_CMD" ]; then
         if run_formatter_attempt "$RUFF_CMD" format "$abs_path"; then
           output_msg "Formatted with global Ruff: $file_path"
         fi
         note_attempt "Ruff"
       fi
-      if [ -n "$BLACK_CMD" ]; then
+      if [ "$HAS_BLACK" != "true" ] && [ -n "$BLACK_CMD" ]; then
         if run_formatter_attempt "$BLACK_CMD" "$abs_path"; then
           output_msg "Formatted with global Black: $file_path"
         fi

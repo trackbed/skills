@@ -54,6 +54,8 @@ The repository-root `package.json` versions the npm installer entrypoint. `track
 
 ## Verification
 
+Run `npm run format` (or `make -C trackbed format` from the repository root) to format changed files. It uses the same file selection and configuration as `npm run format:check`, which checks without writing. Both include committed changes against `origin/main` (override with `FORMAT_BASE`), working-tree changes, and untracked files; deleted files are skipped.
+
 Choose the smallest meaningful focused check first. Use the smoke target for representative cross-language feedback, then broaden to the complete PR or release gate when the change warrants it.
 
 ```bash

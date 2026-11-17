@@ -358,6 +358,48 @@ SH
   [ "$status" -ne 0 ]
 }
 
+@test "format and format-check share changed files and settings with write or check modes" {
+  setup_check_deps_repo
+  CHECK_DEPS_REPO=$(cd "$CHECK_DEPS_REPO" && pwd -P)
+  mkdir -p "$CHECK_DEPS_REPO/trackbed/scripts"
+  printf 'base\n' >"$CHECK_DEPS_REPO/trackbed/scripts/modified.py"
+  printf 'base\n' >"$CHECK_DEPS_REPO/modified.js"
+  printf 'base\n' >"$CHECK_DEPS_REPO/deleted.py"
+  git -C "$CHECK_DEPS_REPO" add .
+  git -C "$CHECK_DEPS_REPO" commit -m "base sources" >/dev/null
+  git -C "$CHECK_DEPS_REPO" branch -f main HEAD
+  printf 'committed\n' >"$CHECK_DEPS_REPO/committed.py"
+  printf 'committed\n' >"$CHECK_DEPS_REPO/committed.js"
+  git -C "$CHECK_DEPS_REPO" add .
+  git -C "$CHECK_DEPS_REPO" commit -m "committed sources" >/dev/null
+  printf 'dirty\n' >"$CHECK_DEPS_REPO/trackbed/scripts/modified.py"
+  printf 'dirty\n' >"$CHECK_DEPS_REPO/modified.js"
+  printf 'untracked\n' >"$CHECK_DEPS_REPO/untracked.py"
+  printf 'untracked\n' >"$CHECK_DEPS_REPO/untracked.md"
+  rm "$CHECK_DEPS_REPO/deleted.py"
+  for tool in ruff prettier; do
+    cat >"$CHECK_DEPS_BIN/$tool" <<'SH'
+#!/bin/sh
+printf '%s:%s:%s\n' "${0##*/}" "$PWD" "$*"
+exit "${FORMATTER_EXIT_STATUS:-0}"
+SH
+    chmod +x "$CHECK_DEPS_BIN/$tool"
+  done
+
+  run env PATH="$CHECK_DEPS_BIN:/usr/bin:/bin" make -C "$CHECK_DEPS_REPO/trackbed" --no-print-directory format FORMAT_BASE=main RUFF=ruff PRETTIER=prettier
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"prettier:$CHECK_DEPS_REPO:--write --ignore-unknown committed.js modified.js untracked.md"* ]] || false
+  [[ "$output" == *"ruff:$CHECK_DEPS_REPO:format --config $CHECK_DEPS_REPO/trackbed/.ruff.toml committed.py trackbed/scripts/modified.py untracked.py"* ]] || false
+  write_output="$output"
+
+  run env PATH="$CHECK_DEPS_BIN:/usr/bin:/bin" make -C "$CHECK_DEPS_REPO/trackbed" --no-print-directory format-check FORMAT_BASE=main RUFF=ruff PRETTIER=prettier
+  [ "$status" -eq 0 ]
+  [ "$(printf '%s' "$write_output" | sed 's/--write/--check/; s/format --config/format --check --config/')" = "$output" ]
+
+  run env PATH="$CHECK_DEPS_BIN:/usr/bin:/bin" FORMATTER_EXIT_STATUS=7 make -C "$CHECK_DEPS_REPO/trackbed" --no-print-directory format FORMAT_BASE=main RUFF=ruff PRETTIER=prettier
+  [ "$status" -ne 0 ]
+}
+
 @test "check-deps does not require skillspector without changed skill directories" {
   setup_check_deps_repo
 

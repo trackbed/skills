@@ -761,6 +761,86 @@ EOF
 	has_system_message
 }
 
+@test "Python configured formatters fail once each without global retries" {
+	export FORMATTER_LOG="$TEST_DIR/formatter.log"
+	create_fake_command ruff 7
+	create_fake_command black 9
+	printf '[tool.ruff]\n[tool.black]\n' >pyproject.toml
+	touch app.py
+
+	run run_format_hook "$TEST_DIR/app.py"
+
+	[ "$status" -eq 0 ]
+	assert_valid_json
+	has_formatter_failure
+	[[ "$output" == *'tried: Ruff, Black'* ]] || false
+	[ "$(wc -l <"$FORMATTER_LOG")" -eq 2 ]
+	[ "$(sed -n '1p' "$FORMATTER_LOG")" = "ruff format $TEST_DIR/app.py" ]
+	[ "$(sed -n '2p' "$FORMATTER_LOG")" = "black $TEST_DIR/app.py" ]
+}
+
+@test "Python global formatters fail once each" {
+	export FORMATTER_LOG="$TEST_DIR/formatter.log"
+	create_fake_command ruff 7
+	create_fake_command black 9
+	echo '[project]' >pyproject.toml
+	touch app.py
+
+	run run_format_hook "$TEST_DIR/app.py"
+
+	[ "$status" -eq 0 ]
+	has_formatter_failure
+	[[ "$output" == *'tried: Ruff, Black'* ]] || false
+	[ "$(wc -l <"$FORMATTER_LOG")" -eq 2 ]
+}
+
+@test "Python falls back to Black when Ruff is missing" {
+	export FORMATTER_LOG="$TEST_DIR/formatter.log"
+	create_fake_command black
+	printf '[tool.ruff]\n[tool.black]\n' >pyproject.toml
+	touch app.py
+	command() {
+		if [ "$*" = '-v ruff' ]; then return 1; fi
+		builtin command "$@"
+	}
+	export -f command
+
+	run run_format_hook "$TEST_DIR/app.py"
+
+	[ "$status" -eq 0 ]
+	[[ "$output" == *'Formatted with Black:'* ]] || false
+	[ "$(wc -l <"$FORMATTER_LOG")" -eq 1 ]
+}
+
+@test "Python reports no formatter when both tools are missing" {
+	printf '[tool.ruff]\n[tool.black]\n' >pyproject.toml
+	touch app.py
+	command() {
+		case "$*" in '-v ruff' | '-v black') return 1 ;; esac
+		builtin command "$@"
+	}
+	export -f command
+
+	run run_format_hook "$TEST_DIR/app.py"
+
+	[ "$status" -eq 0 ]
+	has_no_formatter
+}
+
+@test "Python Ruff success stops before Black" {
+	export FORMATTER_LOG="$TEST_DIR/formatter.log"
+	create_fake_command ruff
+	create_fake_command black
+	printf '[tool.ruff]\n[tool.black]\n' >pyproject.toml
+	touch app.py
+
+	run run_format_hook "$TEST_DIR/app.py"
+
+	[ "$status" -eq 0 ]
+	[[ "$output" == *'Formatted with Ruff:'* ]] || false
+	[ "$(wc -l <"$FORMATTER_LOG")" -eq 1 ]
+}
+
 # ============================================================================
 # FILE EXTENSION HANDLING
 # ============================================================================

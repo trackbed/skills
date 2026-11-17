@@ -807,6 +807,10 @@ bash trackbed/scripts/bootstrap-dev.sh --install
 # Closest focused test for a documentation change
 make -C trackbed test-bats-file BATS_TEST_FILE=tests/repository-instructions.bats
 
+# Format changed files; format:check checks the same files without writing
+npm run format
+npm run format:check
+
 # Representative cross-language feedback
 make -C trackbed test-smoke
 

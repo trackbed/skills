@@ -10,6 +10,7 @@
   "scripts": {
     "check:deps": "make check-deps",
     "coverage": "make coverage",
+    "format": "make format",
     "format:check": "make format-check",
     "lint-js": "make lint-js",
     "test": "make test",

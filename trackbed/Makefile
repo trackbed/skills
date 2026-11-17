@@ -1,4 +1,4 @@
-.PHONY: test-walkthrough-browser test-python38-compatibility lint lint-shell lint-python lint-js typecheck-python format-check pre-commit pr-verify verify test test-smoke installed-resources test-bootstrap test-bats test-bats-file test-node test-node-watch test-node-file test-python test-python-file test-verbose test-convert test-block test-format test-skill-usage test-skill-contracts test-skill-review-eval test-skill-review-live-eval coverage unit-coverage coverage-node coverage-python coverage-bats-contract check-python-static-inventory skill-contracts skill-security skill-security-changed skill-security-semantic skill-security-semantic-changed skill-eval-skill-review skill-eval-compare skillopt-candidate-check bootstrap-check bootstrap-install install-test-deps check-deps check-bats-deps check-node-deps check-python-deps check-coverage-inventory-deps check-shell-deps check-ruff-deps check-mypy-deps check-js-deps check-static-deps check-test-deps check-format-deps check-security-deps check-security-changed-deps
+.PHONY: test-walkthrough-browser test-python38-compatibility lint lint-shell lint-python lint-js typecheck-python format format-check pre-commit pr-verify verify test test-smoke installed-resources test-bootstrap test-bats test-bats-file test-node test-node-watch test-node-file test-python test-python-file test-verbose test-convert test-block test-format test-skill-usage test-skill-contracts test-skill-review-eval test-skill-review-live-eval coverage unit-coverage coverage-node coverage-python coverage-bats-contract check-python-static-inventory skill-contracts skill-security skill-security-changed skill-security-semantic skill-security-semantic-changed skill-eval-skill-review skill-eval-compare skillopt-candidate-check bootstrap-check bootstrap-install install-test-deps check-deps check-bats-deps check-node-deps check-python-deps check-coverage-inventory-deps check-shell-deps check-ruff-deps check-mypy-deps check-js-deps check-static-deps check-test-deps check-format-deps check-security-deps check-security-changed-deps
 
 ROOT_DIR := $(abspath ..)
 PLUGIN_REL := $(shell basename "$(CURDIR)")
@@ -121,7 +121,11 @@ lint-js: check-js-deps
 			--lib ES2022,DOM --types node \
 			skills/pr:walkthrough/assets/walkthrough-types.d.ts $(JAVASCRIPT_BROWSER_ASSETS)
 
-format-check: check-format-deps check-ruff-deps
+format: FORMAT_PRETTIER_MODE = --write
+format: FORMAT_RUFF_MODE =
+format-check: FORMAT_PRETTIER_MODE = --check
+format-check: FORMAT_RUFF_MODE = --check
+format format-check: check-format-deps check-ruff-deps
 	@cd "$(ROOT_DIR)" && \
 		prettier_files=$$( \
 			if git rev-parse --verify --quiet "$(FORMAT_BASE)^{commit}" >/dev/null; then \
@@ -138,14 +142,14 @@ format-check: check-format-deps check-ruff-deps
 			git ls-files --others --exclude-standard -- $(PYTHON_FORMAT_FILE_PATTERNS); \
 		) && python_files=$$(printf '%s\n' "$$python_files" | sed '/^$$/d' | sort -u | while IFS= read -r path; do test ! -e "$$path" || printf '%s\n' "$$path"; done) && \
 		if [ -n "$$prettier_files" ]; then \
-			"$(PRETTIER)" --check --ignore-unknown $$prettier_files; \
+			"$(PRETTIER)" $(FORMAT_PRETTIER_MODE) --ignore-unknown $$prettier_files; \
 		else \
-			echo "No changed Prettier-maintained files to format-check."; \
+			echo "No changed Prettier-maintained files to format."; \
 		fi && \
 		if [ -n "$$python_files" ]; then \
-			"$(RUFF)" format --check --config "$(CURDIR)/$(PYTHON_RUFF_CONFIG)" $$python_files; \
+			"$(RUFF)" format $(FORMAT_RUFF_MODE) --config "$(CURDIR)/$(PYTHON_RUFF_CONFIG)" $$python_files; \
 		else \
-			echo "No changed Python files to format-check."; \
+			echo "No changed Python files to format."; \
 		fi
 
 # Optional contributor gate; this does not install or modify repository Git hooks.
