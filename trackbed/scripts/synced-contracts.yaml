@@ -553,7 +553,7 @@
         "Default mode includes AI-slop review without a separate flag.",
         "Rewrite mode skips this discovery step",
         "Run initial read-only discovery before creating any checkpoint commit.",
-        "references/protected-workflow-artifacts.txt",
+        "${CLAUDE_PLUGIN_ROOT}/scripts/review-artifact-patterns.sh",
         "must never enter the checkpoint path set",
         "Launch `trackbed:deslop-reviewer` in code review mode against `REFACTOR_SCOPE_PATHS`.",
         "Do not treat a failed reviewer call as an empty finding set or report the scope clean.",

@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-PROTECTED_REGISTRY="skills/code:refactor-pass/references/protected-workflow-artifacts.txt"
+PROTECTED_REGISTRY="hooks/confirm-review-artifacts.txt"
 
 setup() {
   cd "$BATS_TEST_DIRNAME/.."
@@ -103,7 +103,8 @@ setup() {
   local checkpoint_line
 
   grep -qF 'Run `trackbed:verify:run` on the unchanged starting tree.' "$skill"
-  grep -qF 'references/protected-workflow-artifacts.txt' "$skill"
+  grep -qF '"${CLAUDE_PLUGIN_ROOT}/scripts/review-artifact-patterns.sh"' "$skill"
+  grep -qF 'instead of recording an unfiltered scope' "$skill"
   grep -qF "must never enter the checkpoint path set" "$skill"
   grep -qF 'Create one clearly labeled recovery checkpoint commit containing the exact pre-existing changes in `REFACTOR_SCOPE_PATHS` and no cleanup.' "$skill"
   grep -qF 'CHECKPOINT_INDEX_PATH=$(git rev-parse --git-path index)' "$skill"
@@ -176,8 +177,9 @@ assert "Ship this command removal only in the next major release." not in change
 PYTEST
 }
 
-@test "protected workflow artifacts stay synchronized with the commit guard" {
-  cmp "$PROTECTED_REGISTRY" "hooks/confirm-review-artifacts.txt"
+@test "refactor pass reads the commit guard's protected list without keeping a copy" {
+  [ ! -e "skills/code:refactor-pass/references/protected-workflow-artifacts.txt" ]
+  diff <(scripts/review-artifact-patterns.sh) <(grep -v '^#' "$PROTECTED_REGISTRY" | grep -v '^[[:space:]]*$')
 }
 
 @test "protected workflow artifacts include the workflow output names the commit guard must block" {

@@ -496,5 +496,4 @@ PY
 		echo "$output"
 		false
 	}
-	cmp hooks/confirm-review-artifacts.txt skills/code:refactor-pass/references/protected-workflow-artifacts.txt
 }
