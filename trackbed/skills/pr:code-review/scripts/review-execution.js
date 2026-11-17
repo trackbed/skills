@@ -57,8 +57,18 @@ const SKIPPABLE = {
   relevance: "Relevance validation: skipped (no findings)",
   "slop-meta": "Slop meta-review: skipped (no findings)",
 };
-// The untracked root report and its `--visual` page are review output, not review scope.
-const ROOT_REPORT_FILES = ["REVIEW_OVERVIEW.md", "REVIEW_OVERVIEW.html"];
+// This review's untracked root report is its output, not its scope. So are the untracked root visual pages in
+// the plugin's protected-report list, which collect-review-diff.sh drops from the reviewed scope by default.
+// Other untracked reports stay in that scope, so they stay in the snapshot too.
+const OWN_REPORT = "REVIEW_OVERVIEW.md";
+const REVIEW_ARTIFACT_PATTERNS = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "scripts",
+  "review-artifact-patterns.sh",
+);
 const COMPLETE = ["succeeded", "skipped"];
 /** @param {import("node:crypto").BinaryLike} value */
 const hash = (value) => crypto.createHash("sha256").update(value).digest("hex");
@@ -74,8 +84,26 @@ function git(root, ...args) {
     maxBuffer: 64 * 1024 * 1024,
   });
 }
+/** Shell-style `*` and `?` glob as an anchored pattern. @param {string} glob */
+function globPattern(glob) {
+  const escaped = glob.replace(/[\\^$.|+()[\]{}]/g, "\\$&");
+  return new RegExp(`^${escaped.replace(/\*/g, ".*").replace(/\?/g, ".")}$`);
+}
+/** @returns {RegExp[]} */
+function visualPagePatterns() {
+  return execFileSync("bash", [REVIEW_ARTIFACT_PATTERNS])
+    .toString()
+    .split("\n")
+    .filter((entry) => entry.endsWith(".html"))
+    .map(globPattern);
+}
 /** @param {string} root @param {string} base */
 function snapshot(root, base) {
+  const visualPages = visualPagePatterns();
+  /** @param {string} name */
+  const isRootReport = (name) =>
+    !name.includes("/") &&
+    (name === OWN_REPORT || visualPages.some((match) => match.test(name)));
   const head = git(root, "rev-parse", "HEAD").toString().trim();
   const baseOid = git(root, "rev-parse", "--verify", `${base}^{commit}`)
     .toString()
@@ -93,7 +121,7 @@ function snapshot(root, base) {
   )
     .toString()
     .split("\0")
-    .filter((name) => name && !ROOT_REPORT_FILES.includes(name));
+    .filter((name) => name && !isRootReport(name));
   const files = [...new Set([...tracked, ...untracked])].sort().map((name) => {
     const file = path.join(root, name);
     let state;

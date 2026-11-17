@@ -767,6 +767,56 @@ test("the untracked visual page beside the root report does not stale evidence",
   );
 });
 
+test("other untracked root visual pages do not stale evidence", (t) => {
+  const f = fixture(t);
+  f.complete();
+  f.draft();
+  f.ok("seal", "--report", f.report);
+  fs.copyFileSync(f.report, path.join(f.root, "REVIEW_OVERVIEW.md"));
+  const check = () =>
+    f.command(
+      "check",
+      "--report",
+      path.join(f.root, "REVIEW_OVERVIEW.md"),
+      "--aspects",
+      "all",
+    ).status;
+  fs.writeFileSync(path.join(f.root, "QA_REPORT.html"), "<!doctype html>");
+  fs.writeFileSync(
+    path.join(f.root, "DEPRECATION_PLAN_old-api.html"),
+    "<!doctype html>",
+  );
+  assert.equal(check(), 0);
+  fs.mkdirSync(path.join(f.root, "nested"));
+  fs.writeFileSync(
+    path.join(f.root, "nested", "QA_REPORT.html"),
+    "<!doctype html>",
+  );
+  assert.notEqual(check(), 0);
+});
+
+test("other untracked root Markdown reports stay in the reviewed scope and stale evidence", (t) => {
+  for (const name of ["CONVENTION_REVIEW_OVERVIEW.md", "PR_PLAN_01_first.md"]) {
+    const f = fixture(t);
+    f.complete();
+    f.draft();
+    f.ok("seal", "--report", f.report);
+    fs.copyFileSync(f.report, path.join(f.root, "REVIEW_OVERVIEW.md"));
+    fs.writeFileSync(path.join(f.root, name), "# x");
+    assert.notEqual(
+      f.command(
+        "check",
+        "--report",
+        path.join(f.root, "REVIEW_OVERVIEW.md"),
+        "--aspects",
+        "all",
+      ).status,
+      0,
+      name,
+    );
+  }
+});
+
 test("report fields, required sections and consumer repository must match", (t) => {
   const f = fixture(t, ["code"]);
   f.complete();
