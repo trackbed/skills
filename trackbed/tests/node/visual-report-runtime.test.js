@@ -307,6 +307,55 @@ test("the triage prompt says so when nothing was accepted", () => {
   );
 });
 
+test("the prompt lists the findings each decided fix removes", () => {
+  const fixes = {
+    ...META,
+    producer: "trackbed:code:refactor-opportunities full",
+    source: "REFACTOR_OPPORTUNITIES_OVERVIEW.md",
+    nounOne: "fix",
+    nounMany: "fixes",
+  };
+  const prompt = runtime.buildPrompt(
+    fixes,
+    [
+      entry({
+        id: "FIX-1",
+        title: "Model packet readiness in the stock ledger",
+        facets: { severity: "high" },
+        location: "loans/checkout.ts:24",
+        removes: ["RO-001", "RO-002", "RO-003"],
+      }),
+      entry({
+        id: "FIX-2",
+        title: "Inline the label forwarding function",
+        facets: { severity: "low" },
+        location: "catalog/label.ts:12",
+        removes: ["RO-004"],
+      }),
+    ],
+    {
+      "FIX-1": { decision: "accept", note: "start here" },
+      "FIX-2": { decision: "dismiss", note: "" },
+    },
+    "/trackbed:code:breakdown-findings",
+  );
+  assert.ok(
+    prompt.includes(
+      [
+        "Act only on the 1 accepted fix:",
+        "- FIX-1 [high] Model packet readiness in the stock ledger (loans/checkout.ts:24)",
+        "  Removes: RO-001, RO-002, RO-003",
+        "  Note: start here",
+        "",
+        "Leave the 1 dismissed fix alone:",
+        "- FIX-2 Inline the label forwarding function",
+        "  Removes: RO-004",
+      ].join("\n"),
+    ),
+    prompt,
+  );
+});
+
 test("the prompt calls entries what the page calls them", () => {
   const plans = {
     ...META,
