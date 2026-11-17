@@ -20,6 +20,8 @@ Bring the current branch's open Pull Request into mergeable shape, doing only th
 
 **Requires:** GitHub CLI (`gh`) authenticated, `python3`, and the Pull Request's branch checked out.
 
+The subprocess helpers use `${CLAUDE_PLUGIN_ROOT}/scripts/lib/review_process.py` for bounded execution and noninteractive environments; each caller retains its deadline and error contract.
+
 ## Boundaries
 
 - **No arguments.** The snapshot decides what runs. If `$ARGUMENTS` is not empty, stop and say that this skill takes none.

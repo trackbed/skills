@@ -1,6 +1,6 @@
 # Script Helper Library
 
-This directory contains shared shell and Node helpers used by standalone
+This directory contains shared shell, Python, and Node helpers used by standalone
 scripts in `trackbed/scripts/`. Keep script-specific policy in the calling
 script; keep behavior shared by multiple scripts here.
 
@@ -8,8 +8,9 @@ script; keep behavior shared by multiple scripts here.
 
 | File | Responsibility |
 | --- | --- |
+| `review_process.py` | Runs bounded Python review commands with noninteractive environments and process-group cleanup; callers own exception mapping and deadlines. |
 | `review-scope.sh` | Provides `collect_review_scope` to load repository scope and normalize the caller directory, and `review_untracked_paths` to emit the raw NUL-delimited untracked subset for content handoffs. |
-| `shell-helpers.sh` | Provides required-argument validation, shell assignment quoting, JSON object emit/decode with a single Python guard, and timeout-wrapped command execution. |
+| `shell-helpers.sh` | Provides required-argument validation, shell assignment quoting, JSON object emit/decode with a single Python guard, bounded command execution, signal cleanup, and a noninteractive review command environment. |
 | `trackbed-paths.sh` | Resolves trackbed state and configuration paths: override, former `KRAMME_` override, XDG or home `trackbed/` file, then pre-1.0.0 and plugin-local legacy files. Shared by every hook through `hooks/lib/check-enabled.sh` and by the setup checker. |
 | `skill-usage-cost.js` | Transcript indexing for `scripts/skill-usage.js cost` and `decisions`, and per-session cost and token summaries and rendering for `cost`. |
 | `skill-usage-decision-requests.js` | Run selection, per-run counts of where a workflow stopped for the user, and rendering for `scripts/skill-usage.js decisions`. |

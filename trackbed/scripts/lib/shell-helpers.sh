@@ -191,30 +191,56 @@ run_with_timeout() {
   shift
 
   perl -MTime::HiRes=alarm -e '
-		my $timeout = shift @ARGV;
-		my $pid = fork();
-		die "failed to fork command: $!\n" unless defined $pid;
+    my $timeout = shift @ARGV;
+    my $pid = fork();
+    die "failed to fork command: $!\n" unless defined $pid;
 
-		if ($pid == 0) {
-			setpgrp(0, 0) or die "failed to create command process group: $!\n";
-			exec @ARGV;
-			die "failed to exec command: $!\n";
-		}
+    if ($pid == 0) {
+      setpgrp(0, 0) or die "failed to create command process group: $!\n";
+      exec @ARGV;
+      die "failed to exec command: $!\n";
+    }
 
-		my $timed_out = 0;
-		local $SIG{ALRM} = sub {
-			$timed_out = 1;
-			kill "KILL", -$pid;
-		};
+    my $terminate_child_group = sub {
+      my ($exit_code) = @_;
+      kill "KILL", -$pid;
+      kill "KILL", $pid;
+      waitpid($pid, 0);
+      exit $exit_code;
+    };
+    local $SIG{ALRM} = sub { $terminate_child_group->(124) };
+    local $SIG{HUP} = sub { $terminate_child_group->(129) };
+    local $SIG{INT} = sub { $terminate_child_group->(130) };
+    local $SIG{TERM} = sub { $terminate_child_group->(143) };
 
-		alarm($timeout);
-		my $waited = waitpid($pid, 0);
-		my $status = $?;
-		alarm(0);
+    alarm($timeout);
+    my $waited = waitpid($pid, 0);
+    my $status = $?;
+    alarm(0);
 
-		exit 124 if $timed_out;
-		die "failed to wait for command: $!\n" if $waited == -1;
-		exit(128 + ($status & 127)) if $status & 127;
-		exit(($status >> 8) & 255);
-	' "$timeout_seconds" "$@"
+    die "failed to wait for command: $!\n" if $waited == -1;
+    exit(128 + ($status & 127)) if $status & 127;
+    exit(($status >> 8) & 255);
+  ' "$timeout_seconds" "$@"
 }
+
+# Apply prompt suppression only to the bounded child command, preserving stdin.
+run_review_command() (
+  local deadline="$1"
+  shift
+  export GH_PROMPT_DISABLED=1 GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=Never
+  local ssh_command ssh_path_quote="'\\''"
+  # Git's order is GIT_SSH_COMMAND, then core.sshCommand, then GIT_SSH, then ssh.
+  # GIT_SSH is an executable path; the other two contain shell syntax.
+  if [ -n "${GIT_SSH_COMMAND:-}" ]; then
+    ssh_command=$GIT_SSH_COMMAND
+  elif ssh_command=$(GIT_OPTIONAL_LOCKS=0 git config --get core.sshCommand 2> /dev/null < /dev/null) && [ -n "$ssh_command" ]; then
+    :
+  elif [ -n "${GIT_SSH:-}" ]; then
+    ssh_command="'${GIT_SSH//\'/$ssh_path_quote}'"
+  else
+    ssh_command=ssh
+  fi
+  export GIT_SSH_COMMAND="$ssh_command -oBatchMode=yes"
+  run_with_timeout "$deadline" "$@"
+)

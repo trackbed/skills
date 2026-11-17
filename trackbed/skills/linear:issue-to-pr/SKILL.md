@@ -14,6 +14,8 @@ permissions:
 
 Orchestrate the established Linear implementation, shared review-convergence, and Pull Request skills as one resumable workflow. Keep each delegated skill's safety and rollback contract intact; this skill owns Linear intent, sequencing, and shipping handoffs.
 
+The subprocess helpers use `${CLAUDE_PLUGIN_ROOT}/scripts/lib/review_process.py` for bounded execution and noninteractive environments; each caller retains its deadline and error contract.
+
 ## Workflow Contract
 
 - Invoke every delegated skill through the platform's skill mechanism. If direct invocation is unavailable, locate and read that skill's installed `SKILL.md` and follow it with the same arguments. This rule covers every delegation below and in the shipping reference; they name the skill and its arguments without repeating it.

@@ -34,6 +34,9 @@ if TYPE_CHECKING:
 JsonDict = Dict[str, Any]
 Codes = Tuple[int, ...]
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts" / "lib"))
+from review_process import noninteractive_environment, run_bounded  # noqa: E402
+
 SCHEMA_VERSION = 1
 STATE_TOOL = "trackbed:linear:issue-to-pr/preflight"
 SUPPORTED_FLAGS = [
@@ -152,9 +155,9 @@ def parse_arguments(raw: str) -> JsonDict:
 
 
 def run(argv: Sequence[str], root: Path | None, reason: str, timeout: int) -> Proc:
-    env = dict(os.environ, GIT_OPTIONAL_LOCKS="0", GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1")
+    env = noninteractive_environment(root)
     try:
-        return subprocess.run(list(argv), cwd=root, env=env, input=b"", capture_output=True, timeout=timeout)
+        return run_bounded(list(argv), cwd=root, env=env, input=b"", timeout=timeout)
     except (OSError, subprocess.SubprocessError) as error:
         raise Stop(reason, f"`{' '.join(argv[:3])}` could not run: {error}", {"command": list(argv)}) from error
 

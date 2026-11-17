@@ -22,6 +22,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+# shellcheck source=lib/shell-helpers.sh
+source "$SCRIPT_DIR/lib/shell-helpers.sh"
+
 die() {
   printf '%s\n' "$*" >&2
   exit 1
@@ -37,7 +41,7 @@ case "$#" in
   *) die "Usage: ${0##*/} [--no-trunk]" ;;
 esac
 
-STACK_VIEW=$(gh stack view --json) || die "Could not read the stack with gh stack view --json."
+STACK_VIEW=$(run_review_command 30 gh stack view --json) || die "Could not read the stack with gh stack view --json."
 STACK_TARGETS=$(printf '%s' "$STACK_VIEW" | jq -er --argjson trunk "$INCLUDE_TRUNK" '
   if (.branches | type) != "array" or (.trunk | type) != "string" or (.trunk | length) == 0
   then error("Invalid stack inventory")

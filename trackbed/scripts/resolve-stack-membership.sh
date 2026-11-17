@@ -129,7 +129,7 @@ if GH_STACK_VERSION_OUTPUT=$(gh stack --version 2>&1); then
     exit 1
   }
   set +e
-  STACK_VIEW_OUTPUT=$(gh stack view --json 2> "$STACK_VIEW_STDERR_FILE")
+  STACK_VIEW_OUTPUT=$(run_review_command 30 gh stack view --json 2> "$STACK_VIEW_STDERR_FILE")
   STACK_VIEW_STATUS=$?
   set -e
   STACK_VIEW_STDERR=$(cat "$STACK_VIEW_STDERR_FILE")
@@ -169,7 +169,7 @@ if GH_STACK_VERSION_OUTPUT=$(gh stack --version 2>&1); then
   esac
 fi
 
-STACK_PR_NUMBER=$(gh pr list \
+STACK_PR_NUMBER=$(run_review_command 30 gh pr list \
   --head "$CURRENT_BRANCH" \
   --state open \
   --limit 1 \
@@ -185,7 +185,7 @@ if [ -z "$STACK_PR_NUMBER" ]; then
   exit 0
 fi
 
-REPO_WITH_OWNER=$(gh repo view --json nameWithOwner --jq '.nameWithOwner') || {
+REPO_WITH_OWNER=$(run_review_command 30 gh repo view --json nameWithOwner --jq '.nameWithOwner') || {
   echo "Could not resolve the current GitHub repository; stack membership is unknown." >&2
   exit 1
 }
@@ -200,7 +200,7 @@ case "$REPO_WITH_OWNER" in
     ;;
 esac
 
-STACK_NUMBER=$(gh api graphql \
+STACK_NUMBER=$(run_review_command 30 gh api graphql \
   -f query='query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){stack{number}}}}' \
   -f owner="$REPO_OWNER" \
   -f name="$REPO_NAME" \

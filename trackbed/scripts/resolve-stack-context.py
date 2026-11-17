@@ -42,7 +42,11 @@ import shutil
 import subprocess
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
+from review_process import noninteractive_environment, run_bounded  # noqa: E402
 
 SCHEMA_VERSION = 1
 LOCAL_TIMEOUT = 30
@@ -65,15 +69,13 @@ class Ambiguous(Unknown):
 
 
 def environment() -> dict[str, str]:
-    return dict(os.environ, GH_PROMPT_DISABLED="1", GIT_TERMINAL_PROMPT="0", GIT_OPTIONAL_LOCKS="0", NO_COLOR="1")
+    return dict(noninteractive_environment(), NO_COLOR="1")
 
 
 def run(argv: Sequence[str], timeout: int) -> subprocess.CompletedProcess[str]:
     """Run without a shell; a timeout or launch failure becomes exit 124 or 127 with the reason on stderr."""
     try:
-        return subprocess.run(
-            list(argv), env=environment(), stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=timeout
-        )
+        return run_bounded(list(argv), env=environment(), text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         return subprocess.CompletedProcess(list(argv), 124, "", f"timed out after {timeout}s")
     except OSError as error:
