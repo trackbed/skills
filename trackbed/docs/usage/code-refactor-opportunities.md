@@ -42,8 +42,8 @@ Use it to find what is worth refactoring in the whole codebase, the current Pull
 
 ## What you get
 
-- `REFACTOR_OPPORTUNITIES_OVERVIEW.md` in the project root, replacing any earlier one. It lists findings `RO-001`, `RO-002`, and so on by severity, each with its location and a suggested fix, groups them into themes, and recommends an order. A theme whose fix would edit more than 500 lines is marked as an automation candidate.
+- `REFACTOR_OPPORTUNITIES_OVERVIEW.md` in the project root, replacing any earlier one. After the Executive Summary, one Fixes section lists the fixes in recommended order. Each entry names the fix, the findings (`RO-001`, `RO-002`, and so on) it removes, its edit size including call sites, and whether it is an automation candidate. Ungrouped findings get their own fix entry. Severity tables follow as reference, with locations and individual suggested fixes.
 - With `--ranked`, `CODEBASE_WEAKNESS_REPORT.md` instead, with findings `WA-001`, `WA-002`, and so on in rank order.
-- A summary with the findings by severity, the top three themes, and the refactor to start with, plus an `Agents launched: N` line.
+- A summary with the findings by severity, the top three fixes, and the refactor to start with, plus an `Agents launched: N` line.
 
 The run then asks which single item you want to take forward. It offers `trackbed:code:refactor-pass` for a narrow fix, and `trackbed:code:breakdown-findings` or `trackbed:linear:breakdown-findings` to schedule the item.
