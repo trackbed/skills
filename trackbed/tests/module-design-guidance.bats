@@ -203,3 +203,27 @@ setup() {
 	grep -qF "id: compound-ce-bakeoff-verification" "$sources"
 	[ "$(grep -A4 -E 'id: compound-ce-bakeoff(-verification)?$' "$sources" | grep -c 'usage: inspiration')" -eq 2 ]
 }
+
+@test "special cases deepen one requirement without duplicate findings or PR scan cost" {
+	local skill="skills/code:refactor-opportunities/SKILL.md"
+	local checklist="skills/code:refactor-opportunities/references/checklist.md"
+	grep -qF '## 12. Special Cases' "$checklist"
+	grep -qF '**Serves**' "$checklist"
+	grep -qF 'add `Serves` to that record rather than recording a second item' "$checklist"
+	grep -qF 'Agent 2 — Logic & Complexity' "$skill"
+	grep -qF '12 (Special Cases) in full, path, and feature scopes, including `--for` runs. Skip category 12 in PR scope.' "$skill"
+	local synthesis
+	synthesis=$(sed -n '/^### Phase 3 — Synthesis/,/^### Phase 4 — Report/p' "$skill")
+	[[ "$synthesis" == *'2. Deduplicate'*'A lone special case is a lead, not a finding'*'Group two or more special cases'*'carry the candidate through steps 3-5.'* ]] || false
+	[[ "$synthesis" == *'do not group unknown requirements'*'Count removals only from surviving proposed fixes, once per distinct special case'* ]] || false
+	grep -qF 'Special cases: N found; M removed by proposed fixes.' 'skills/code:refactor-opportunities/assets/report-template.md'
+	grep -qF '**Special cases removed:**' 'skills/code:refactor-opportunities/assets/report-template.md'
+	grep -qF '**Special cases serving one requirement.**' "$GLOSSARY"
+	grep -qF 'special cases serving the same requirement' 'shared/codebase-audit/references/audit-workflow.md'
+	local reader
+	for reader in code:refactor-opportunities code:agent-readiness code:api-design pr:code-review; do
+		grep -qF 'id: caldo-untangle-codebase' "skills/$reader/references/sources.yaml"
+	done
+	[ "$(printf '%s\n' "$synthesis" | grep -cE '^[0-9]+\. ')" -eq 10 ]
+	[ "$(sed -n '/^### Phase 4 — Report/,/^## Guidelines/p' "$skill" | grep -cE '^[0-9]+\. ')" -eq 10 ]
+}

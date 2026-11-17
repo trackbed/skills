@@ -54,3 +54,10 @@ sources:
     usage: inspiration
     last_reviewed_at: 2026-11-16
     baseline_hash: "sha256:294f6cf69458514a354bc751323ba2069aee22092942793fbc7b644c98551f8a"
+  - id: caldo-untangle-codebase
+    url: https://raw.githubusercontent.com/caldoai/skills/main/skills/untangle-codebase/SKILL.md
+    title: "Caldo skills - untangle-codebase"
+    rationale: "The shared architecture glossary's special-case deepening pattern follows this source's method of tracing exceptions to a missing requirement and proposing one design that removes them. Local scan, synthesis, and counting guidance uses original wording."
+    usage: inspiration
+    last_reviewed_at: 2026-11-17
+    baseline_hash: "sha256:b4eb6b5130c38ca04532601e99d2d174cf4faa4df520b5b7ba609e8707e55761"

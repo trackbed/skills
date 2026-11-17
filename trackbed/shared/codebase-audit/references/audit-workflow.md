@@ -39,7 +39,7 @@ Select the active research reviewer set before launching. Default to all nine re
 Spawn these teammates:
 
 - **Architecture & boundaries reviewer**: module boundaries, dependency direction, ownership clarity, public entry points, coupling, framework boundaries, and accepted-ADR fit.
-- **Complexity & abstraction reviewer**: large files/functions, branch complexity, state-management complexity, shallow wrappers, speculative indirection, and change blast radius.
+- **Complexity & abstraction reviewer**: large files/functions, branch complexity, state-management complexity, shallow wrappers, speculative indirection, special cases serving the same requirement, and change blast radius.
 - **Duplication & consistency reviewer**: repeated validation, duplicated algorithms, parallel type shapes, scattered constants/configuration, and inconsistent patterns across similar modules.
 - **Correctness & invariants reviewer**: concrete failure paths, boundary validation, invariant enforcement, state transitions, data integrity, and behavior-relevant test gaps.
 - **Runtime, async & error-handling reviewer**: async/concurrency risks, I/O failure paths, swallowed or under-contextualized errors, retries/timeouts, resource cleanup, and operational failure modes.

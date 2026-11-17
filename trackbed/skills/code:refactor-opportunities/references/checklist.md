@@ -1,6 +1,6 @@
 # Refactor Opportunity Checklist
 
-Scan every category below. For each finding, record:
+Scan the categories assigned for the resolved scope; skip category 12 in PR scope. For each finding, record:
 
 - **Location** — file path and line range
 - **Category** — from the list below
@@ -139,3 +139,17 @@ A machine with no concrete risk is not a finding.
 - adds a flag that combines with existing flags into a hidden mode (shape 6).
 
 **Recording:** in addition to the standard fields, record Kind, States, Writers, Owner today, Risks, Proposed owner, and Tests, as the shared method defines them.
+
+## 12. Special Cases
+
+In full, path, and feature scopes, including `--for`, look for code that compensates for a requirement with no clear owner:
+
+- A branch that singles out one value
+- A parameter used by only one caller or workflow
+- A swallowed error that lets a particular flow continue
+- A retry or sleep that waits for another part of the system
+- A skipped or disabled test that works around a design limitation
+
+**Recording:** record location, description, and **Serves** — the requirement this exception exists to satisfy, supported by callers, tests, or history. When the requirement cannot be established, record it as unknown rather than inventing one. Boolean flags already covered by category 3 and swallowed errors covered by category 7 stay there: add `Serves` to that record rather than recording a second item. Count each distinct special case once, including these overlaps.
+
+A lone special case is a lead, not a finding: count it without reporting it. Two or more serving the same evidenced requirement can become one deepening candidate when one interface would remove them. Ordinary domain branches, bounded resilience policies, and deliberately skipped tests are not proof of a missing concept; trace their purpose before grouping them.
