@@ -100,6 +100,10 @@ make -C trackbed test-bats-file BATS_TEST_FILE=tests/pr-create-guidance.bats
 
 Run a returned `tests/python/` suite through the focused Python entry point instead, for example `make -C trackbed test-python-file PYTHON_TEST_FILE=tests/python/test_issue_to_pr_preflight.py`.
 
+The linter compares Bats and Python suite path references against this lookup. A reference to any file inside a skill directory is a coverage candidate; read the suite to confirm that it asserts on the skill before adding a mapping. Missing mappings and stale `guidance` or `executable` entries fail lint. `registry`, `evaluation`, Node suites, and paths outside skill directories are excluded from stale checks.
+
+The static scan recognizes literal `skills/<name>` paths and Python quoted path joins. For incidental path mentions or coverage through constructed paths that the scan cannot resolve, record `{suite, skill, kind, reason}` in `skill_contract_exceptions` beside `skill_contracts` in the same JSON file. Keep real coverage mapped even when it needs an exception; incidental mentions belong only in the exception list. Use `kind: incidental` for a path mention and `kind: indirect` for a constructed file read. Indirect exceptions suppress stale-reference diagnostics but still require the mapping; incidental exceptions suppress missing-reference diagnostics. Every exception requires a non-empty reason. Broad wildcard inventory checks do not imply a per-skill mapping.
+
 No lookup result means the skill is still listed under `skill_contract_coverage.mechanical_only` in `trackbed/scripts/synced-contracts.yaml`. The linter warns for that reviewed debt and fails when a skill is in neither the behavioral registry nor the explicit burndown.
 
 ## Common Investigation Paths

@@ -3197,6 +3197,7 @@ EOF
   write_minimal_skill "$TMP_ROOT/trackbed/skills/b/SKILL.md" "# B"
   write_file "$TMP_ROOT/trackbed/tests/shared-guidance.bats" <<'EOF'
 #!/usr/bin/env bats
+cat "$ROOT/skills/a/SKILL.md" "$ROOT/skills/b/SKILL.md"
 EOF
   write_file "$TMP_ROOT/config/coverage.json" <<'EOF'
 {
