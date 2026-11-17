@@ -56,9 +56,7 @@ PY
 }
 
 @test "generate-description prose guidance is covered by contracts" {
-	run bash -c '
-	    set -e
-    cd "'"$BATS_TEST_DIRNAME"'/.."
+    cd "$BATS_TEST_DIRNAME/.."
     skill="skills/pr:generate-description"
     direct="$skill/references/direct-update.md"
     checklist="$skill/references/verification-checklist.md"
@@ -72,44 +70,42 @@ PY
     test ! -e "$skill/references/red-flags.md"
     test -f "$skill/references/direct-update.md"
 
-    if grep -qF "find . .github docs -maxdepth 2" "$skill/references/context-gathering.md"; then exit 1; fi
-    grep -qF "github-pr-template-docs" "$skill/references/sources.yaml"
-    grep -qF "The \"no Linear ID\" condition is the only non-blocking \`MISSING REQUIREMENT:\` marker." "$skill/SKILL.md"
-    grep -qF "Treat every other \`MISSING REQUIREMENT:\` marker" "$skill/SKILL.md"
-    grep -qF "including future marker types not yet listed here" "$skill/SKILL.md"
-    grep -qF "almost ELI10" "$skill/SKILL.md"
-    grep -qF "intelligent ten-year-old who does not know the codebase" "$skill/assets/section-templates.md"
-    grep -qF "env GH_PROMPT_DISABLED=1 gh repo view" "$skill/references/context-gathering.md"
-    grep -qF "GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=Never" "$skill/references/context-gathering.md"
-    grep -qF "NONINTERACTIVE_GIT_SSH_COMMAND=\"\${GIT_SSH_COMMAND:-\${GIT_SSH:-ssh}} -oBatchMode=yes\"" "$skill/references/context-gathering.md"
-    grep -qF "GIT_SSH_COMMAND=\"\$NONINTERACTIVE_GIT_SSH_COMMAND\"" "$skill/references/context-gathering.md"
-    grep -qF "credential or timeout failures must return control without asking for terminal input" "$skill/references/context-gathering.md"
-    grep -qF "[--base-commit <oid>]" "$skill/SKILL.md"
-    grep -qF "BASE_COMMIT_OVERRIDE=<oid>" "$skill/SKILL.md"
-    grep -qF -- "--base-commit \"\$BASE_COMMIT_OVERRIDE\"" "$skill/references/base-branch-resolution.md"
-    if grep -qF "DEFAULT_TEMPLATE_REF=\"\$BASE_REF\"" "$skill/references/context-gathering.md"; then exit 1; fi
-    if grep -qF "### Automated verification" "$skill/assets/section-templates.md"; then exit 1; fi
-    if grep -qF "add PR-specific signal beyond CI" "$skill/assets/section-templates.md"; then exit 1; fi
-    if grep -rqF "red-flags.md" "$skill"; then exit 1; fi
-    if grep -qF "Regeneration Triggers" "$skill/SKILL.md"; then exit 1; fi
-    grep -qF "regenerate when an item labeled **Regenerate** fails" "$skill/SKILL.md"
-    [ "$(grep -cF -- "- [ ] **Regenerate:**" "$checklist")" -eq 5 ]
-    if grep -qF "use proper heading hierarchy" "$skill/SKILL.md"; then exit 1; fi
-    if grep -qF "using tables for structured data" "$skill/SKILL.md"; then exit 1; fi
-    grep -qF "mktemp -d \"/tmp/trackbed-pr-description.XXXXXX\"" "$direct"
-    grep -qF "Capture the single printed line as agent-tracked \`{update-dir}\`" "$direct"
-    grep -qF "UPDATE_DIR=\"{update-dir}\"" "$direct"
-    grep -qF "gh pr view \"\$PR_NUMBER\" --json number,url,title,body > \"\$PR_BACKUP\"" "$direct"
-    grep -qF "Generated PR payload files are missing or indirect" "$direct"
-    grep -qF "mandatory title/body JSON backup" "$checklist"
-    grep -qF "same shell invocation as validation and cleanup" "$checklist"
-    grep -qF "self-contained local-exclude and symlink-rejection procedure" "$checklist"
-    if grep -qF "repo-root anchored backup, local git exclude update" "$checklist"; then exit 1; fi
-    grep -qF "SAVE_NAMESPACE=\"\$REPO_ROOT/.trackbed\"" "$skill/SKILL.md"
-    grep -qF "Could not update Git'\''s local exclude file; the description was not saved." "$skill/SKILL.md"
-    if grep -qF "same idempotent check as step 1" "$skill/SKILL.md"; then exit 1; fi
-    if grep -qF "\$REPO_ROOT/.trackbed/pr-description" "$direct"; then exit 1; fi
-  '
+    assert_absent_text "$skill/references/context-gathering.md" "find . .github docs -maxdepth 2"
+    assert_required_text "$skill/references/sources.yaml" "github-pr-template-docs"
+    assert_required_text "$skill/SKILL.md" "The \"no Linear ID\" condition is the only non-blocking \`MISSING REQUIREMENT:\` marker."
+    assert_required_text "$skill/SKILL.md" "Treat every other \`MISSING REQUIREMENT:\` marker"
+    assert_required_text "$skill/SKILL.md" "including future marker types not yet listed here"
+    assert_required_text "$skill/SKILL.md" "almost ELI10"
+    assert_required_text "$skill/assets/section-templates.md" "intelligent ten-year-old who does not know the codebase"
+    assert_required_text "$skill/references/context-gathering.md" "env GH_PROMPT_DISABLED=1 gh repo view"
+    assert_required_text "$skill/references/context-gathering.md" "GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=Never"
+    assert_required_text "$skill/references/context-gathering.md" "NONINTERACTIVE_GIT_SSH_COMMAND=\"\${GIT_SSH_COMMAND:-\${GIT_SSH:-ssh}} -oBatchMode=yes\""
+    assert_required_text "$skill/references/context-gathering.md" "GIT_SSH_COMMAND=\"\$NONINTERACTIVE_GIT_SSH_COMMAND\""
+    assert_required_text "$skill/references/context-gathering.md" "credential or timeout failures must return control without asking for terminal input"
+    assert_required_text "$skill/SKILL.md" "[--base-commit <oid>]"
+    assert_required_text "$skill/SKILL.md" "BASE_COMMIT_OVERRIDE=<oid>"
+    assert_required_text "$skill/references/base-branch-resolution.md" "--base-commit \"\$BASE_COMMIT_OVERRIDE\""
+    assert_absent_text "$skill/references/context-gathering.md" "DEFAULT_TEMPLATE_REF=\"\$BASE_REF\""
+    assert_absent_text "$skill/assets/section-templates.md" "### Automated verification"
+    assert_absent_text "$skill/assets/section-templates.md" "add PR-specific signal beyond CI"
+    while IFS= read -r -d '' file; do
+      assert_absent_text "$file" "red-flags.md"
+    done < <(find "$skill" -type f -print0)
+    assert_absent_text "$skill/SKILL.md" "Regeneration Triggers"
+    assert_required_text "$skill/SKILL.md" "regenerate when an item labeled **Regenerate** fails"
+    assert_text_count "$checklist" "- [ ] **Regenerate:**" 5
+    assert_absent_text "$skill/SKILL.md" "use proper heading hierarchy"
+    assert_absent_text "$skill/SKILL.md" "using tables for structured data"
+    assert_required_text "$direct" "gh pr view \"\$PR_NUMBER\" --json number,url,title,body > \"\$PR_BACKUP\""
+    assert_required_text "$direct" "Generated PR payload files are missing or indirect"
+    assert_required_text "$checklist" "mandatory title/body JSON backup"
+    assert_required_text "$checklist" "same shell invocation as validation and cleanup"
+    assert_required_text "$checklist" "self-contained local-exclude and symlink-rejection procedure"
+    assert_absent_text "$checklist" "repo-root anchored backup, local git exclude update"
+    assert_required_text "$skill/SKILL.md" "SAVE_NAMESPACE=\"\$REPO_ROOT/.trackbed\""
+    assert_required_text "$skill/SKILL.md" "Could not update Git's local exclude file; the description was not saved."
+    assert_absent_text "$skill/SKILL.md" "same idempotent check as step 1"
+    assert_absent_text "$direct" "\$REPO_ROOT/.trackbed/pr-description"
 
 	assert_required_contracts_registered \
 		pr-generate-description-main-guidance \
@@ -123,124 +119,95 @@ PY
 		pr-generate-description-save-and-checklist-contract \
 		pr-generate-description-direct-update-checklist
 
-	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
 @test "check mode is read-only for model callers and gates updates behind direct confirmation" {
-	run bash -c '
-	    set -euo pipefail
-    cd "'"$BATS_TEST_DIRNAME"'/.."
+    cd "$BATS_TEST_DIRNAME/.."
     skill="skills/pr:generate-description/SKILL.md"
     check="skills/pr:generate-description/references/check-mode.md"
     update="skills/pr:generate-description/references/direct-update.md"
 
     test -f "$check"
     test ! -e "skills/kramme:pr:verify-description"
-    grep -qF "disable-model-invocation: false" "$skill"
-    grep -qF "argument-hint: \"[--manual] [--no-update] [--check [--strict]] [--base <ref>] [--base-commit <oid>] [--linear-issue <ISSUE-ID>] [--independent-review-line <line>]\"" "$skill"
-    grep -qF "Check mode accepts only \`--base <ref>\`, \`--strict\`, and \`--no-update\`." "$skill"
-    grep -qF "reject \`--check\` combined with \`--manual\` (check mode owns its own confirmation), \`--base-commit\`, or \`--linear-issue\`, and reject \`--strict\` without \`--check\`" "$skill"
-    grep -qF "Every model-initiated invocation must include \`--no-update\`" "$skill"
-    grep -qF "A model caller that needs a drift report passes \`--check --no-update\`" "$skill"
-    grep -qF "Only a direct user invocation of \`--check\` may reach the confirmation prompt" "$skill"
-    grep -qF "read \`references/check-mode.md\` and follow it instead of Phases 1 through 4" "$skill"
-    if grep -qF -e "--fix" -e "FIX_MODE" "$skill" "$check" "$update"; then exit 1; fi
+    assert_required_text "$skill" "disable-model-invocation: false"
+    assert_required_text "$skill" "argument-hint: \"[--manual] [--no-update] [--check [--strict]] [--base <ref>] [--base-commit <oid>] [--linear-issue <ISSUE-ID>] [--independent-review-line <line>]\""
+    assert_required_text "$skill" "Check mode accepts only \`--base <ref>\`, \`--strict\`, and \`--no-update\`."
+    assert_required_text "$skill" "reject \`--check\` combined with \`--manual\` (check mode owns its own confirmation), \`--base-commit\`, or \`--linear-issue\`, and reject \`--strict\` without \`--check\`"
+    assert_required_text "$skill" "Every model-initiated invocation must include \`--no-update\`"
+    assert_required_text "$skill" "A model caller that needs a drift report passes \`--check --no-update\`"
+    assert_required_text "$skill" "Only a direct user invocation of \`--check\` may reach the confirmation prompt"
+    assert_required_text "$skill" "read \`references/check-mode.md\` and follow it instead of Phases 1 through 4"
+    for file in "$skill" "$check" "$update"; do
+      assert_absent_text "$file" '--fix'
+      assert_absent_text "$file" 'FIX_MODE'
+    done
 
-    grep -qF "A model caller always passes \`--check --no-update\`, so for model callers check mode stops after the report." "$check"
-    grep -qF "**Skip this phase if \`OUTPUT_ONLY=true\`.**" "$check"
-    grep -qF "never prompt, generate, or update" "$check"
-    grep -qF -- "exactly as \`--no-update --base {base-branch} --base-commit {base-commit}\` would" "$check"
-    grep -qF "Run \`/trackbed:pr:generate-description --check\` yourself" "$check"
-    grep -qF "Reuse only the accuracy-adjacent items of the generator" "$check"
-    grep -qF "the first sentence of item 1 (from the first paragraph alone, a newcomer can say what changes and for whom) and item 7" "$check"
-    grep -qF "Do not apply the style items (item 1" "$check"
-    grep -qF "do not run the Part 2 cold read in check mode" "$check"
-    grep -qF "(accuracy-adjacent clarity check, see Phase C3) | Suggestion | Strict only |" "$check"
-    grep -qF "| Not flagged | Never; the accuracy-adjacent clarity check above is the only clarity finding check mode reports |" "$check"
-    if grep -qF "items 1 through 8" "$check"; then exit 1; fi
-    grep -qF "The diff is the source of truth; the description is the suspect." "$check"
-    grep -qF "**CONFUSION** — diff evidence that contradicts the existing PR body or the commit log." "$check"
-    grep -qF "**UNVERIFIED** — a claim in the existing PR body that the diff can neither confirm nor refute." "$check"
-    grep -qF "A reviewer said the PR description is unclear or wrong" "$skill"
-    grep -qF "On \`n\` or no response, stop after the report." "$check"
-    grep -qF "**NEVER** generate or publish a replacement without this \`y\`" "$check"
-    grep -qF "**Stop without editing the PR** if generation emits any blocking \`MISSING REQUIREMENT:\` marker" "$check"
-    grep -qF "Update unavailable: the confirmed update requires the generated base to match the Pull Request target" "$check"
-    grep -qF "Update unavailable: the confirmed update is unavailable for a <PR_STATE> Pull Request" "$check"
-    if grep -qF "MISSING REQUIREMENT: the confirmed update" "$check"; then exit 1; fi
-    if grep -qF "or \\\`/trackbed:pr:generate-description\\\` first" "$check"; then exit 1; fi
-    grep -qF "Run \\\`/trackbed:pr:create\\\` first." "$check"
-    grep -qF "**VERDICT_TAG:** ACCURATE | MINOR_DRIFT | MATERIAL_DRIFT | INACCURATE" "$check"
-    grep -qF "\`## Review notes\`" "$check"
-    grep -qF "legacy \`Potential concerns\`" "$check"
-    grep -qF "PR_SNAPSHOT=\$(env GH_PROMPT_DISABLED=1 gh pr view" "$check"
-    grep -qF "PR_MATCH_COUNT=\$(env GH_PROMPT_DISABLED=1 gh pr list" "$check"
-    grep -qF "if [ \"\$PR_MATCH_COUNT\" = 0 ]; then" "$check"
-    grep -qF "MISSING REQUIREMENT: no PR found for the current branch." "$check"
-    grep -qF "[[ ! \"\$CURRENT_BRANCH\" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*\$ ]]" "$check"
-    grep -qF "[[ ! \"\$BASE_REF\" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*\$ ]]" "$check"
-    grep -qF "Current branch is not safe for later shell substitution." "$check"
-    grep -qF "Resolved base ref is not safe for later shell substitution." "$check"
-    grep -qF "Could not inspect a Pull Request for the current branch; preserve the gh diagnostic above." "$check"
-    grep -qF "PR_SNAPSHOT_FINGERPRINT=" "$check"
-    grep -qF "git hash-object --stdin" "$check"
-    grep -qF "WORKTREE_MANIFEST=\$(\"\${CLAUDE_PLUGIN_ROOT}/scripts/review-tree-fingerprint.sh\")" "$check"
-    grep -qF "Step 3 for a check-mode confirmed update" "$check"
+    assert_required_text "$check" "A model caller always passes \`--check --no-update\`, so for model callers check mode stops after the report."
+    assert_required_text "$check" "never prompt, generate, or update"
+    assert_required_text "$check" "Run \`/trackbed:pr:generate-description --check\` yourself"
+    assert_required_text "$check" "Reuse only the accuracy-adjacent items of the generator"
+    assert_required_text "$check" "the first sentence of item 1 (from the first paragraph alone, a newcomer can say what changes and for whom) and item 7"
+    assert_required_text "$check" "Do not apply the style items (item 1"
+    assert_required_text "$check" "do not run the Part 2 cold read in check mode"
+    assert_required_text "$check" "(accuracy-adjacent clarity check, see Phase C3) | Suggestion | Strict only |"
+    assert_required_text "$check" "| Not flagged | Never; the accuracy-adjacent clarity check above is the only clarity finding check mode reports |"
+    assert_absent_text "$check" "items 1 through 8"
+    assert_required_text "$check" "The diff is the source of truth; the description is the suspect."
+    assert_required_text "$check" "**CONFUSION** — diff evidence that contradicts the existing PR body or the commit log."
+    assert_required_text "$check" "**UNVERIFIED** — a claim in the existing PR body that the diff can neither confirm nor refute."
+    assert_required_text "$skill" "A reviewer said the PR description is unclear or wrong"
+    assert_required_text "$check" "Update unavailable: the confirmed update requires the generated base to match the Pull Request target"
+    assert_required_text "$check" "Update unavailable: the confirmed update is unavailable for a <PR_STATE> Pull Request"
+    assert_absent_text "$check" "MISSING REQUIREMENT: the confirmed update"
+    assert_absent_text "$check" "or \\\`/trackbed:pr:generate-description\\\` first"
+    assert_required_text "$check" "Run \\\`/trackbed:pr:create\\\` first."
+    assert_required_text "$check" "**VERDICT_TAG:** ACCURATE | MINOR_DRIFT | MATERIAL_DRIFT | INACCURATE"
+    assert_required_text "$check" "\`## Review notes\`"
+    assert_required_text "$check" "legacy \`Potential concerns\`"
+    assert_required_text "$check" "if [ \"\$PR_MATCH_COUNT\" = 0 ]; then"
+    assert_required_text "$check" "[[ ! \"\$CURRENT_BRANCH\" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*\$ ]]"
+    assert_required_text "$check" "[[ ! \"\$BASE_REF\" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*\$ ]]"
+    assert_required_text "$check" "PR_SNAPSHOT_FINGERPRINT="
+    assert_required_text "$check" "git hash-object --stdin"
+    assert_required_text "$check" "Step 3 for a check-mode confirmed update"
 
-    grep -qF "### Step 3 for a check-mode confirmed update" "$update"
-    grep -qF "mktemp -d \"/tmp/trackbed-pr-description.XXXXXX\"" "$update"
-    grep -qF "Could not back up and revalidate PR #\$PR_NUMBER; no update was made." "$update"
-    grep -qF "LATEST_PR_SNAPSHOT_FINGERPRINT\" != \"\$PR_SNAPSHOT_FINGERPRINT" "$update"
-    grep -qF "PR_STATE\" != \"OPEN" "$update"
-    grep -qF "LATEST_HEAD\" != \"\$CURRENT_HEAD" "$update"
-    grep -qF "LATEST_BASE_COMMIT\" != \"\$BASE_COMMIT" "$update"
-    grep -qF "LATEST_WORKTREE_FINGERPRINT\" != \"\$WORKTREE_FINGERPRINT" "$update"
-    grep -qF "Generated PR payload storage is missing or indirect" "$update"
-    grep -qF "gh api --method PATCH \"repos/{owner}/{repo}/pulls/\$PR_NUMBER\"" "$update"
-    if grep -qF "\$REPO_ROOT/.trackbed/pr-description" "$update"; then exit 1; fi
+    assert_absent_text "$update" "\$REPO_ROOT/.trackbed/pr-description"
 
-    output_only_line=$(grep -nF "**Skip this phase if \`OUTPUT_ONLY=true\`.**" "$check" | cut -d: -f1)
-    base_match_line=$(grep -nF "the confirmed update requires the generated base to match the Pull Request target" "$check" | cut -d: -f1)
-    non_open_line=$(grep -nF "the confirmed update is unavailable for a <PR_STATE> Pull Request" "$check" | cut -d: -f1)
-    confirmation_line=$(grep -nF "Found <N> finding(s). Generate a replacement title and body" "$check" | cut -d: -f1)
-    decline_line=$(grep -nF "On \`n\` or no response, stop after the report." "$check" | cut -d: -f1)
-    blocking_stop_line=$(grep -nF "**Stop without editing the PR** if generation emits any blocking" "$check" | cut -d: -f1)
-    generation_line=$(grep -nF -- "exactly as \`--no-update --base {base-branch} --base-commit {base-commit}\` would" "$check" | cut -d: -f1)
-    publish_line=$(grep -nF "run its \`Step 3 for a check-mode confirmed update\` block" "$check" | cut -d: -f1)
-    no_pr_line=$(grep -nF "MISSING REQUIREMENT: no PR found for the current branch." "$check" | head -1 | cut -d: -f1)
-    generic_pr_failure_line=$(grep -nF "Could not inspect a Pull Request for the current branch" "$check" | cut -d: -f1)
-    [ "$output_only_line" -lt "$base_match_line" ]
-    [ "$base_match_line" -lt "$confirmation_line" ]
-    [ "$non_open_line" -lt "$confirmation_line" ]
-    [ "$confirmation_line" -lt "$generation_line" ]
-    [ "$confirmation_line" -lt "$decline_line" ]
-    [ "$decline_line" -lt "$generation_line" ]
-    [ "$generation_line" -lt "$blocking_stop_line" ]
-    [ "$blocking_stop_line" -lt "$publish_line" ]
-    [ "$generation_line" -lt "$publish_line" ]
-    [ "$no_pr_line" -lt "$generic_pr_failure_line" ]
-
-    check_step_line=$(grep -nF "### Step 3 for a check-mode confirmed update" "$update" | cut -d: -f1)
-    storage_line=$(grep -nF "UPDATE_DIR=\$(mktemp -d" "$update" | cut -d: -f1)
-    payload_line=$(grep -nF "Generated PR payload storage is missing or indirect" "$update" | cut -d: -f1)
-    cleanup_line=$(awk -v s="$check_step_line" "NR > s && index(\$0, \"trap cleanup_pr_payload EXIT\") { print NR; exit }" "$update")
-    backup_line=$(awk -v s="$check_step_line" "NR > s && index(\$0, \"if ! env GH_PROMPT_DISABLED=1 gh pr view\") { print NR; exit }" "$update")
-    snapshot_line=$(grep -nF "LATEST_PR_SNAPSHOT_FINGERPRINT\" != \"\$PR_SNAPSHOT_FINGERPRINT" "$update" | cut -d: -f1)
-    edit_line=$(awk -v s="$check_step_line" "NR > s && index(\$0, \"gh api --method PATCH\") { print NR; exit }" "$update")
-    [ "$storage_line" -lt "$check_step_line" ]
-    [ "$check_step_line" -lt "$payload_line" ]
-    [ "$payload_line" -lt "$cleanup_line" ]
-    [ "$cleanup_line" -lt "$backup_line" ]
-    [ "$backup_line" -lt "$snapshot_line" ]
-    [ "$snapshot_line" -lt "$edit_line" ]
-  '
+    assert_text_count "$check" "**Skip this phase if \`OUTPUT_ONLY=true\`.**" 1
+    assert_text_count "$check" "the confirmed update requires the generated base to match the Pull Request target" 1
+    assert_text_count "$check" "the confirmed update is unavailable for a <PR_STATE> Pull Request" 1
+    assert_text_count "$check" "Found <N> finding(s). Generate a replacement title and body" 1
+    assert_text_count "$check" "On \`n\` or no response, stop after the report." 1
+    assert_text_count "$check" "**Stop without editing the PR** if generation emits any blocking" 1
+    assert_text_count "$check" "exactly as \`--no-update --base {base-branch} --base-commit {base-commit}\` would" 1
+    assert_text_count "$check" "run its \`Step 3 for a check-mode confirmed update\` block" 1
+    assert_text_count "$check" "Could not inspect a Pull Request for the current branch" 1
+    assert_text_count "$update" "### Step 3 for a check-mode confirmed update" 1
+    assert_text_count "$update" "UPDATE_DIR=\$(mktemp -d" 1
+    assert_text_count "$update" "Generated PR payload storage is missing or indirect" 1
+    assert_text_count "$update" "LATEST_PR_SNAPSHOT_FINGERPRINT\" != \"\$PR_SNAPSHOT_FINGERPRINT" 1
+    assert_text_order "$check" '**Skip this phase if `OUTPUT_ONLY=true`.**' 'the confirmed update requires the generated base to match the Pull Request target'
+    assert_text_order "$check" 'the confirmed update requires the generated base to match the Pull Request target' 'Found <N> finding(s). Generate a replacement title and body'
+    assert_text_order "$check" 'the confirmed update is unavailable for a <PR_STATE> Pull Request' 'Found <N> finding(s). Generate a replacement title and body'
+    assert_text_order "$check" 'Found <N> finding(s). Generate a replacement title and body' 'exactly as `--no-update --base {base-branch} --base-commit {base-commit}` would'
+    assert_text_order "$check" 'Found <N> finding(s). Generate a replacement title and body' 'On `n` or no response, stop after the report.'
+    assert_text_order "$check" 'On `n` or no response, stop after the report.' 'exactly as `--no-update --base {base-branch} --base-commit {base-commit}` would'
+    assert_text_order "$check" 'exactly as `--no-update --base {base-branch} --base-commit {base-commit}` would' '**Stop without editing the PR** if generation emits any blocking'
+    assert_text_order "$check" '**Stop without editing the PR** if generation emits any blocking' 'run its `Step 3 for a check-mode confirmed update` block'
+    assert_text_order "$check" 'exactly as `--no-update --base {base-branch} --base-commit {base-commit}` would' 'run its `Step 3 for a check-mode confirmed update` block'
+    assert_text_order "$check" 'MISSING REQUIREMENT: no PR found for the current branch.' 'Could not inspect a Pull Request for the current branch'
+    assert_text_order "$update" 'UPDATE_DIR=$(mktemp -d' '### Step 3 for a check-mode confirmed update'
+    assert_text_order "$update" '### Step 3 for a check-mode confirmed update' 'Generated PR payload storage is missing or indirect'
+    assert_text_order "$update" 'Generated PR payload storage is missing or indirect' 'trap cleanup_pr_payload EXIT' 1 1 '### Step 3 for a check-mode confirmed update'
+    assert_text_order "$update" 'trap cleanup_pr_payload EXIT' 'if ! env GH_PROMPT_DISABLED=1 gh pr view' 1 1 '### Step 3 for a check-mode confirmed update'
+    assert_text_order "$update" 'if ! env GH_PROMPT_DISABLED=1 gh pr view' 'LATEST_PR_SNAPSHOT_FINGERPRINT" != "$PR_SNAPSHOT_FINGERPRINT' 1 1 '### Step 3 for a check-mode confirmed update'
+    assert_text_order "$update" 'LATEST_PR_SNAPSHOT_FINGERPRINT" != "$PR_SNAPSHOT_FINGERPRINT' 'gh api --method PATCH' 1 1 '### Step 3 for a check-mode confirmed update'
 
 	assert_required_contracts_registered \
 		pr-generate-description-subskill-contract \
 		pr-generate-description-check-mode-update \
 		pr-generate-description-check-mode-snapshot
 
-	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
 @test "metadata update guidance uses REST across generation and stack workflows" {

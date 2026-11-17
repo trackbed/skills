@@ -142,31 +142,26 @@ PY
 }
 
 @test "both consumers load the resolver and preserve attribution and summary contracts" {
-  for skill in "$COMMIT_MESSAGE" "$RECREATE_COMMITS"; do
-    grep -qF '${CLAUDE_PLUGIN_ROOT}/shared/git/references/commit-conventions.md' "$skill"
-    grep -qF 'STACK DETECTED:' "$skill"
-    grep -qF 'UNVERIFIED' "$skill"
-    grep -qF 'CHANGES MADE / THINGS I DIDN' "$skill"
-    grep -qF 'Co-Authored-By:' "$skill"
-  done
-  grep -qF '## Repository conventions first' "$COMMIT_MESSAGE"
-  grep -qF 'CONFIGURED_BASE`, `CONDUCTOR_BASE`, and `REMOTE_DEFAULT`' "$COMMIT_MESSAGE"
-  grep -qF 'Resolve once per repository per session' "$COMMIT_MESSAGE"
-  grep -qF 'Subject follows the resolved convention' "$COMMIT_MESSAGE"
-  ! grep -qF 'Reject that here' "$COMMIT_MESSAGE" || false
-  ! grep -qF 'no Conventional Commit prefix' "$COMMIT_MESSAGE" || false
-  grep -qF 'the `BASE_REF` value Step 1 printed' "$RECREATE_COMMITS"
-  grep -qF 'Include a subject in the resolved convention' "$RECREATE_COMMITS"
-  grep -qF 'Conventional Commits title (`<type>(<scope>): <description>`' "$RECREATE_COMMITS"
-  grep -qF 'trackbed:pr:generate-description' "$RECREATE_COMMITS"
-  grep -qF 'origin/<resolved-base>' "$RECREATE_COMMITS"
-  ! grep -qF 'plain-English, imperative title' "$RECREATE_COMMITS" || false
-  ! grep -qF 'Include a clear, plain-English commit message' "$RECREATE_COMMITS" || false
-  grep -qF 'Never add AI attribution to any commit subject or body' "$REFERENCE"
-  grep -qF 'generated-with banners' "$REFERENCE"
-  grep -qF '## AI-Generated Changes' "$COMMIT_MESSAGE"
-  grep -qF 'Never include AI attribution markers in commits' "$COMMIT_MESSAGE"
-  grep -qF 'Never add AI attribution to any commit subject or body' "$RECREATE_COMMITS"
+  assert_required_text "$COMMIT_MESSAGE" 'STACK DETECTED:'
+  assert_required_text "$COMMIT_MESSAGE" 'UNVERIFIED'
+  assert_required_text "$COMMIT_MESSAGE" 'CHANGES MADE / THINGS I DIDN'
+  assert_required_text "$COMMIT_MESSAGE" 'Co-Authored-By:'
+  assert_required_text "$RECREATE_COMMITS" 'STACK DETECTED:'
+  assert_required_text "$RECREATE_COMMITS" 'UNVERIFIED'
+  assert_required_text "$RECREATE_COMMITS" 'CHANGES MADE / THINGS I DIDN'
+  assert_required_text "$RECREATE_COMMITS" 'Co-Authored-By:'
+  assert_required_text "$COMMIT_MESSAGE" 'CONFIGURED_BASE`, `CONDUCTOR_BASE`, and `REMOTE_DEFAULT`'
+  assert_absent_text "$COMMIT_MESSAGE" 'Reject that here'
+  assert_absent_text "$COMMIT_MESSAGE" 'no Conventional Commit prefix'
+  assert_required_text "$RECREATE_COMMITS" 'trackbed:pr:generate-description'
+  assert_required_text "$RECREATE_COMMITS" 'origin/<resolved-base>'
+  assert_absent_text "$RECREATE_COMMITS" 'plain-English, imperative title'
+  assert_absent_text "$RECREATE_COMMITS" 'Include a clear, plain-English commit message'
+  assert_required_text "$REFERENCE" 'Never add AI attribution to any commit subject or body'
+  assert_required_text "$REFERENCE" 'generated-with banners'
+  assert_required_text "$COMMIT_MESSAGE" '## AI-Generated Changes'
+  assert_required_text "$COMMIT_MESSAGE" 'Never include AI attribution markers in commits'
+  assert_required_text "$RECREATE_COMMITS" 'Never add AI attribution to any commit subject or body'
 }
 
 @test "committing orchestrators load the resolver and keep their work tokens and attribution ban" {
