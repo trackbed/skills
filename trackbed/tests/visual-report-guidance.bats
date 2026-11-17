@@ -431,9 +431,9 @@ PY
 }
 
 @test "the code review seal and the Codex bundle know the page" {
-	grep -qF 'const ROOT_REPORT_FILES = ["REVIEW_OVERVIEW.md", "REVIEW_OVERVIEW.html"];' \
-		skills/pr:code-review/scripts/review-execution.js
-	grep -qF "the untracked root report, and that report's untracked \`--visual\` page" \
+	grep -qF '"review-artifact-patterns.sh",' skills/pr:code-review/scripts/review-execution.js
+	grep -qxF 'REVIEW_OVERVIEW.html' hooks/confirm-review-artifacts.txt
+	grep -qF 'the untracked root visual pages named in the plugin'"'"'s protected-report list' \
 		skills/pr:code-review/references/execution-contract.md
 	grep -qF 'path.join(plugin.root, "scripts", "visual-report.py")' scripts/convert-plugin/codex-transformer.js
 	grep -qF '`scripts/visual-report.py`' docs/agent-portability.md
@@ -496,5 +496,4 @@ PY
 		echo "$output"
 		false
 	}
-	cmp hooks/confirm-review-artifacts.txt skills/code:refactor-pass/references/protected-workflow-artifacts.txt
 }

@@ -137,9 +137,9 @@ After identifying the changed files, build the documented-rule baseline:
 
 If `CONVENTION_REVIEW_OVERVIEW.md` exists in the project root:
 
-- Parse all findings, including finding ID, location, issue description, `Resolution status`, action taken, and evidence when available.
-- Normalize explicit resolution values to `open`, `addressed`, `deferred`, `acknowledged`, or `skipped`. When the status is missing, infer it conservatively from `Action taken`: an implemented fix is `addressed`; an explicit deferral, acknowledgement/no-action, or skip maps to that status; otherwise treat the finding as `open`.
-- Treat only `addressed` findings as candidates for previous-review filtering. Store `open`, `deferred`, `acknowledged`, and `skipped` findings for carry-forward revalidation in Step 8.
+- Read `${CLAUDE_PLUGIN_ROOT}/shared/findings/references/finding-lifecycle.md`, the shared finding fields, statuses, and previous-review rules.
+- Parse all findings, including finding ID, location, issue description, `Resolution status`, action taken, and evidence when available. Normalize and infer statuses as the shared Statuses section says.
+- Treat only `addressed` findings as candidates for previous-review filtering. Store `open`, `deferred`, `acknowledged`, and `skipped` findings for the settled check and carry-forward revalidation in Step 8.
 - Track parseable, addressed, non-addressed, and unparseable counts for the final Previous Review Context section.
 
 ### Step 5: Cluster Changed Files and Launch the Reviewer
@@ -195,24 +195,16 @@ If no separate agent runtime is available, perform the convention review, refuta
 
 If `CONVENTION_REVIEW_OVERVIEW.md` was found in Step 4:
 
-- Cross-reference validated findings against every parseable previous finding.
-- **Filter as previously addressed only** when the previous finding has `Resolution status: addressed` and is essentially the same issue:
-  - Same file
-  - Same enclosing function, component, or block (do not rely on raw line distance; refactors and formatters shift line numbers)
-  - Same underlying issue (semantic match on root cause)
-- **Carry forward as active** when a previous `open`, `deferred`, `acknowledged`, or `skipped` finding still applies:
+- Cross-reference validated findings against every parseable previous finding, and apply the Previous-review rules in `finding-lifecycle.md`. Match "the same issue" by the same file, the same enclosing function, component, or block (not raw line distance; refactors and formatters shift line numbers), and the same root cause.
+- **Filter as previously addressed only** when the previous finding has `Resolution status: addressed` and is the same issue.
+- **Treat as settled** a previous `acknowledged` or `skipped` finding under the shared settled rule: leave it out of the active sections and count it in Previous Review Context. New evidence raises it again with `Resolution status: open` and a note naming the earlier decision and what changed.
+- **Carry forward as active** a previous `open` or `deferred` finding, or an `acknowledged` or `skipped` finding raised again, that still applies:
   - Preserve its existing finding ID when the root cause is unchanged.
   - Refresh its location, severity, confidence, and evidence when the current review has better data.
   - Emit it with `Resolution status: open` and note that it was carried forward from the previous review.
-- For non-addressed previous findings with no current reviewer match, revalidate the old root cause against the immutable scope. Carry it forward when it is still present; omit it when the changed file or root cause is gone. If uncertain, record that uncertainty in Previous Review Context instead of treating the finding as resolved.
-- **Do NOT filter** when:
-  - The issue description is substantively different (different root cause)
-  - The severity escalated (was suggestion, now critical)
-  - The finding identifies a problem with the previous fix
-  - The previous status is `open`, `deferred`, `acknowledged`, or `skipped`
-- When uncertain, err on the side of keeping the finding active
+- For non-addressed previous findings with no current reviewer match, revalidate the old root cause against the immutable scope under the shared rules.
 - Add filtered findings to "Previously Addressed" section
-- Track addressed-filtered, non-addressed-carried-forward, and non-addressed-not-carried-forward counts.
+- Track addressed-filtered, non-addressed-carried-forward, non-addressed-not-carried-forward, and settled counts.
 
 ### Step 9: Aggregate and Write Results
 
@@ -225,7 +217,7 @@ Merge findings from all reviewer instances, dedupe findings that name the same l
 - **Noticed But Not Touching** — every `NOTICED BUT NOT TOUCHING` note from the reviewer instances' closing summaries, deduplicated by location, plus the downstack-owned items the stacked Pull Request reference routes to that marker. Give one line each with the location, what was seen, and why it was left alone, and no Finding ID, so `/trackbed:pr:resolve-review` and the diff-comment projection ignore them
 - **Filtered** (pre-existing, out-of-scope, or relevance-unconfirmed) — shown separately
 - **Previously Addressed** — shown separately
-- **Previous Review Context** — source path plus parse, carry-forward, not-carried-forward, and addressed-filter counts
+- **Previous Review Context** — source path plus parse, carry-forward, not-carried-forward, settled, and addressed-filter counts
 - **Refuted** — count and one-line summaries of findings the refutation pass dropped
 - **Conventions Followed** (what the change gets right, with the strongest exemplar evidence)
 
@@ -273,6 +265,7 @@ Organize the findings summary in the terminal output:
 - X findings filtered (pre-existing, out-of-scope, or relevance-unconfirmed)
 - X findings filtered (previously addressed)
 - X non-addressed findings carried forward, X not carried forward
+- X acknowledged or skipped findings settled, not raised again
 
 ## Results
 - Critical: X

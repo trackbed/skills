@@ -707,3 +707,33 @@ raise SystemExit("\n".join(errors) if errors else 0)
 PY
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
+
+@test "cleanup covers every protected report the commit hook names" {
+	run python3 - "$PLUGIN_ROOT" <<'PY'
+import json
+import pathlib
+import subprocess
+import sys
+
+root = pathlib.Path(sys.argv[1])
+registry = json.loads(
+    (root / "skills/workflow:cleanup-artifacts/references/disposable-artifacts.yaml").read_text()
+)["artifacts"]
+paths = [entry["path"] for entry in registry]
+patterns = subprocess.run(
+    [root / "scripts/review-artifact-patterns.sh"], check=True, capture_output=True, text=True
+).stdout.split()
+missing = []
+for pattern in patterns:
+    if "/" in pattern:
+        covered = any(path == pattern or path.endswith("/" + pattern) for path in paths)
+    else:
+        covered = any(path.rsplit("/", 1)[-1] == pattern for path in paths)
+    if not covered:
+        missing.append(pattern)
+if len(patterns) < 40:
+    missing.append(f"only {len(patterns)} protected patterns read; the helper is not returning the list")
+raise SystemExit("\n".join(f"not in the cleanup registry: {name}" for name in missing) if missing else 0)
+PY
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}

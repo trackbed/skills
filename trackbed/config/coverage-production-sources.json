@@ -966,6 +966,10 @@
       "trackbed/scripts/collect-review-diff.sh": [
         "trackbed/tests/review-diff-scripts.bats"
       ],
+      "trackbed/scripts/review-artifact-patterns.sh": [
+        "trackbed/tests/review-artifact-patterns.bats",
+        "trackbed/tests/refactor-pass-guidance.bats"
+      ],
       "trackbed/scripts/dev-server/framework-registry.sh": [
         "trackbed/tests/dev-server-scripts.bats"
       ],

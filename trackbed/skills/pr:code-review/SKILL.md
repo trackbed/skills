@@ -104,14 +104,7 @@ If `$ARGUMENTS` contains `--team`, remove that flag, read `references/review-dis
    If a previous-review source exists:
    - Parse the file to extract all parseable prior findings, not only addressed ones.
    - Extract for each finding: finding ID, location (`file:line`, `review-scope`, or `PR description`), issue description, resolution status, `Depends on` when present, action taken, and evidence when available.
-   - Accept the structured `- Location:` field, `**Location:**`, and legacy `**File:**` labels when parsing existing entries, and normalize any of them to the same `location` field.
-   - Accept `Resolution status:` and `**Resolution status:**` when present. Normalize values to one of: `open`, `addressed`, `deferred`, `acknowledged`, or `skipped`.
-   - If no explicit resolution status is present, infer it conservatively:
-     - `Action taken:` describing an implemented fix → `addressed`
-     - `Action taken: Deferred ...` or `Reason deferred:` → `deferred`
-     - `Action taken: Acknowledged ...` or `Action taken: No action ...` → `acknowledged`
-     - `Action taken: Skipped ...` → `skipped`
-     - No action/resolution field → `open`
+   - Read `${CLAUDE_PLUGIN_ROOT}/shared/findings/references/finding-lifecycle.md`. Parse field labels, normalize resolution statuses, and infer a missing status as its Finding fields and Statuses sections say.
    - Treat `deferred`, `acknowledged`, `skipped`, and `open` as not addressed. They may be carried forward if still relevant; they must not be filtered as previously addressed. Step 10 decides when an `acknowledged` or `skipped` finding is settled instead.
    - If the file exists but contains no parseable findings (stale draft, unrelated content, or missing expected sections), treat the previous-review set as empty and continue. Do not abort the review unless the user passed an explicit `--previous-review <path>` that is unreadable or invalid.
    - Store previous-review source path, parseable count, addressed count, open/deferred/acknowledged/skipped count, and unparseable count for the final `Previous Review Context` report section.
@@ -244,29 +237,14 @@ If `$ARGUMENTS` contains `--team`, remove that flag, read `references/review-dis
 
 If a previous-review source was found in Step 5:
 
-- Cross-reference the full validated finding set against previous findings.
-- **Filter as previously addressed** only when the previous finding has `Resolution status: addressed` and the current finding is essentially the same issue:
-  - Same file
-  - Same enclosing function, component, or block (do not rely on raw line distance; refactors and formatters shift line numbers)
-  - Same underlying issue (semantic match on root cause)
-  - For `review-scope` findings: both findings use location `review-scope`
-  - For PR description findings: both findings use location `PR description`
-- **Treat as settled** a previous finding with `Resolution status: acknowledged` or `skipped` when the current finding has the same root cause and adds no new evidence: no concrete failure path the earlier decision did not cover, no escalated severity, and no change to the code that decision was about. Do not re-raise a settled finding as active, even when a reviewer still prefers a different approach; count it in `Previous Review Context`. New evidence of a real defect, or evidence that the decided approach cannot meet its goal, re-raises it at normal severity as `manual` with the maintainer-decision blocker, because acting on it reverses a recorded decision.
-- **Carry forward as active** when a previous finding with `Resolution status: open` or `deferred`, or an `acknowledged` or `skipped` finding that is not settled, still applies to the current diff:
+- Cross-reference the full validated finding set against previous findings, and apply the Previous-review rules in `finding-lifecycle.md`: filter previously addressed findings, keep settled findings out of the active sections, raise a finding again on new evidence, carry forward, and revalidate unmatched findings.
+- Match "the same issue" by the same file, the same enclosing function, component, or block (not raw line distance; refactors and formatters shift line numbers), and the same root cause. A `review-scope` finding matches only another `review-scope` finding, and a PR description finding only another `PR description` finding.
+- **Treat as settled** a previous finding with `Resolution status: acknowledged` or `skipped` under the shared settled rule, and count it in `Previous Review Context`. New evidence of a real defect, or evidence that the decided approach cannot meet its goal, raises it again at normal severity as `manual` with the maintainer-decision blocker, because acting on it reverses a recorded decision.
+- **Carry forward as active** a previous `open` or `deferred` finding, or an `acknowledged` or `skipped` finding raised again, that still applies to the current diff:
   - Preserve the previous finding ID when the root cause is the same.
   - Refresh the location, severity, confidence, owner, `Depends on`, and evidence from the current review when the current run has better data.
-  - Keep the previous status visible by setting `Resolution status: open` in the active finding and adding evidence that it was carried forward from the previous-review source.
+  - Set `Resolution status: open` and add evidence that it was carried forward from the previous-review source.
   - Resolve a carried `Depends on` source ID to the retained current deletion finding with the same root cause, then replace it with that finding's final ID in Step 11. If the referenced deletion finding was dropped, remove the dependency and revalidate the cleanup against the surviving code before keeping it.
-- For previous non-addressed findings that do not match any current reviewer finding, perform a lightweight revalidation against the current review scope:
-  - If the finding's file or scope is no longer present or the old root cause cannot be found, do not carry it forward.
-  - If the root cause is still present in changed code, carry it forward as an active finding with the previous ID and evidence that it was revalidated from the previous-review source.
-  - If revalidation is uncertain, do not fabricate a finding; mention the uncertainty in `Previous Review Context` instead of treating it as resolved.
-- **Do NOT filter** (keep as active finding) if:
-  - The issue description is substantively different (different root cause)
-  - The severity escalated (was suggestion, now critical)
-  - The finding identifies a problem with the fix itself
-  - The previous action was "No action", a deferral, or is missing, or it was an acknowledgement or skip that is not settled under the rule above
-- When uncertain, err on the side of keeping the finding active.
 - Add filtered findings to `Filtered (Previously Addressed)`.
 - Add still-relevant non-addressed matches to active issue sections, not to `Filtered (Previously Addressed)`.
 - Track carried-forward, not-carried-forward, and settled counts for `Previous Review Context`.
