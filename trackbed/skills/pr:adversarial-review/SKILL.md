@@ -11,6 +11,8 @@ permissions:
 
 # Adversarial Pull Request Review
 
+The runner uses `${CLAUDE_PLUGIN_ROOT}/scripts/lib/shell-helpers.sh` for its timeout and process-group cleanup policy.
+
 ## Goal
 
 Run one independent review through a different model provider against the exact clean committed branch, then return only evidence-validated, PR-caused findings with the provider and reviewed tree recorded.

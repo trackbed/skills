@@ -17,6 +17,8 @@ Carry out a review of a GitHub pull request you have been asked to review. You a
 
 This skill is report-only by default. It always materializes the Markdown review report first and shows it before offering any GitHub write. After the report and draft comments are ready, it offers to create one pending GitHub review containing only the eligible proposed inline comments; that private draft is visible only to you until it is submitted. The explicit `--draft-review` flag supplies that one authorization up front and skips the offer, but the report still comes first. The local report keeps the recommended verdict, rationale, strengths, and other summary context, plus a short prepared review body. The skill submits a review only in Step 14, after you send a separate message naming the action, the PR, and the event; it never chooses a verdict on your behalf.
 
+The subprocess helpers use `${CLAUDE_PLUGIN_ROOT}/scripts/lib/review_process.py` for bounded execution and noninteractive environments; each caller retains its deadline and error contract.
+
 ## GitHub Write Gate
 
 Preparing findings, a verdict, draft comments, draft replies, or a review body never writes to GitHub. Inspecting the PR and running its tests never does either. Without a separate, explicit confirmation that names the exact action, never run a command that:

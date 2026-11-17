@@ -487,7 +487,7 @@ class InvocationTests(unittest.TestCase):
 
     def test_a_command_that_hangs_reports_exit_124(self) -> None:
         expired = subprocess.TimeoutExpired(["git"], 5)
-        with mock.patch.object(shape_snapshot.subprocess, "run", side_effect=expired):
+        with mock.patch.object(shape_snapshot, "run_bounded", side_effect=expired):
             result = shape_snapshot.run(["git", "status"], 5)
         self.assertEqual((result.returncode, result.stderr), (124, b"timed out after 5s"))
 

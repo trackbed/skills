@@ -1038,8 +1038,7 @@
         "if [ -z \"$BASE_COMMIT_FLAG\" ]; then",
         "Pinned base commit '$BASE_COMMIT_FLAG' does not resolve locally",
         "BASE_REF=\"$BASE_COMMIT_FLAG\"",
-        "RESOLVE_BASE_GIT_SSH_COMMAND=\"${GIT_SSH_COMMAND:-${GIT_SSH:-ssh}} -oBatchMode=yes\"",
-        "GIT_SSH_COMMAND=\"$RESOLVE_BASE_GIT_SSH_COMMAND\""
+        "run_review_command \"$RESOLVE_BASE_FETCH_TIMEOUT_SECONDS\" git fetch"
       ]
     },
     {

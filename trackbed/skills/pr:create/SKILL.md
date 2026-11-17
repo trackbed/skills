@@ -17,6 +17,8 @@ Orchestrate the creation of a clean, well-documented PR by validating git state,
 - Auto mode is reserved for a direct user invocation and for those two parent delegations, which always pass `--require-generated-description`. Every other invocation runs as `--manual`, whether or not it passes that flag, including one where the model picks this skill for a request that does not name it.
 - Synced direct-invocation contract (keep aligned across auto-default shipping skills): A direct user invocation is the user's current message asking for this skill, and it covers only the request that message makes. A saved prompt the host sends as that message, such as a host's PR-creation instructions, counts the same way. A slash command or `$` mention at the start of the message invokes this skill directly. The skill's name later in the message, written as its own word, permits a run for that message only, and only when the wording asks for one. A mention that only discusses the skill permits no run, and a request in an earlier message never authorizes a later run. A request that reaches this skill through another agent, including a subagent that preloads it, is not a direct request; only the guarded parent delegations this skill names are excepted, and each keeps only the authority this skill gives it.
 
+The subprocess helpers use `${CLAUDE_PLUGIN_ROOT}/scripts/lib/review_process.py` for bounded execution and noninteractive environments; each caller retains its deadline and error contract.
+
 ## When NOT to use this skill
 
 - Branch already has an open PR — update it directly (or use `trackbed:pr:generate-description` to refresh the description) instead of running the full creation flow.

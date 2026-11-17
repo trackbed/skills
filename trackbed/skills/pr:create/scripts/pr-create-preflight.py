@@ -32,6 +32,9 @@ if TYPE_CHECKING:
 JsonDict = Dict[str, Any]
 Codes = Tuple[int, ...]
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts" / "lib"))
+from review_process import noninteractive_environment, run_bounded  # noqa: E402
+
 SCHEMA_VERSION = 1
 SKILL_SCRIPTS = Path(__file__).resolve().parent
 PLUGIN_SCRIPTS = SKILL_SCRIPTS.parents[2] / "scripts"
@@ -92,21 +95,9 @@ class JsonArgumentParser(argparse.ArgumentParser):
         raise Stop("error", "usage", message)
 
 
-def environment() -> dict[str, str]:
-    ssh = os.environ.get("GIT_SSH_COMMAND") or os.environ.get("GIT_SSH") or "ssh"
-    return dict(
-        os.environ,
-        GH_PROMPT_DISABLED="1",
-        GIT_TERMINAL_PROMPT="0",
-        GCM_INTERACTIVE="Never",
-        GIT_SSH_COMMAND=f"{ssh} -oBatchMode=yes",
-        GIT_OPTIONAL_LOCKS="0",
-    )
-
-
 def run(argv: Sequence[str], root: Path | None, reason: str, timeout: int = LOCAL_TIMEOUT) -> Proc:
     try:
-        return subprocess.run(list(argv), cwd=root, env=environment(), input=b"", capture_output=True, timeout=timeout)
+        return run_bounded(list(argv), cwd=root, env=noninteractive_environment(root), input=b"", timeout=timeout)
     except subprocess.TimeoutExpired as error:
         raise blocked(reason, f"`{' '.join(argv[:3])}` timed out after {timeout}s.") from error
     except OSError as error:

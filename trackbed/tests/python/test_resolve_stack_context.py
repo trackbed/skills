@@ -639,7 +639,7 @@ class Preconditions(StackContextCase):
         self.assertEqual((code, stdout.getvalue()), (2, ""))
 
     def test_timeouts_become_a_reported_failure(self) -> None:
-        with mock.patch.object(stack_context.subprocess, "run", side_effect=subprocess.TimeoutExpired(["gh"], 1)):
+        with mock.patch.object(stack_context, "run_bounded", side_effect=subprocess.TimeoutExpired(["gh"], 1)):
             result = stack_context.run(["gh", "pr", "list"], 1)
 
         self.assertEqual((result.returncode, result.stderr), (124, "timed out after 1s"))

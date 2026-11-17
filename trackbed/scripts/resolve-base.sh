@@ -29,7 +29,6 @@ BASE_ONLY_MODE=0
 OUTPUT_FORMAT="shell"
 RESOLVE_BASE_FETCH_TIMEOUT_SECONDS="${RESOLVE_BASE_FETCH_TIMEOUT_SECONDS:-30}"
 RESOLVE_BASE_GH_LOOKUP_TIMEOUT_SECONDS="${RESOLVE_BASE_GH_LOOKUP_TIMEOUT_SECONDS:-10}"
-RESOLVE_BASE_GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-${GIT_SSH:-ssh}} -oBatchMode=yes"
 
 usage() {
   cat >&2 << 'USAGE'
@@ -247,7 +246,7 @@ fetch_remote_branch() {
   local fetch_stderr
 
   fetch_stderr=$(mktemp "${TMPDIR:-/tmp}/resolve-base-fetch-stderr.XXXXXX")
-  if run_with_timeout "$RESOLVE_BASE_FETCH_TIMEOUT_SECONDS" env GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=Never GIT_SSH_COMMAND="$RESOLVE_BASE_GIT_SSH_COMMAND" git fetch "$remote" "refs/heads/${branch}:${remote_ref}" 2> "$fetch_stderr"; then
+  if run_review_command "$RESOLVE_BASE_FETCH_TIMEOUT_SECONDS" git fetch "$remote" "refs/heads/${branch}:${remote_ref}" 2> "$fetch_stderr"; then
     if ! grep -q '^fatal:' "$fetch_stderr"; then
       cat "$fetch_stderr" >&2
       rm -f "$fetch_stderr"
@@ -340,7 +339,7 @@ elif [ -n "$BASE_FLAG" ]; then
 else
   if [ "$WORKBENCH_MODE" -ne 1 ] && [ -n "$CURRENT_BRANCH" ] && command -v gh > /dev/null 2>&1; then
     PR_LOOKUP_STDERR=$(mktemp "${TMPDIR:-/tmp}/resolve-base-pr-stderr.XXXXXX")
-    if BASE_BRANCH=$(run_with_timeout "$RESOLVE_BASE_GH_LOOKUP_TIMEOUT_SECONDS" env GH_PROMPT_DISABLED=1 gh pr view --json baseRefName --jq '.baseRefName' 2> "$PR_LOOKUP_STDERR"); then
+    if BASE_BRANCH=$(run_review_command "$RESOLVE_BASE_GH_LOOKUP_TIMEOUT_SECONDS" gh pr view --json baseRefName --jq '.baseRefName' 2> "$PR_LOOKUP_STDERR"); then
       if [ -z "$BASE_BRANCH" ]; then
         rm -f "$PR_LOOKUP_STDERR"
         echo "GitHub returned an empty Pull Request base; cannot safely select a fallback" >&2

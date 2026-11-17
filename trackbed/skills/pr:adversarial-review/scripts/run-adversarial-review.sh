@@ -239,43 +239,8 @@ CONDUCTOR_SESSION_ACTIVE=0
 INTEGRITY_ARMED=0
 INTEGRITY_ERROR=""
 
-run_with_timeout() {
-  local timeout_seconds="$1"
-  shift
-
-  perl -MTime::HiRes=alarm -e '
-    my $timeout = shift @ARGV;
-    my $pid = fork();
-    die "failed to fork command: $!\n" unless defined $pid;
-
-    if ($pid == 0) {
-      setpgrp(0, 0) or die "failed to create command process group: $!\n";
-      exec @ARGV;
-      die "failed to exec command: $!\n";
-    }
-
-    my $terminate_child_group = sub {
-      my ($exit_code) = @_;
-      kill "KILL", -$pid;
-      kill "KILL", $pid;
-      waitpid($pid, 0);
-      exit $exit_code;
-    };
-    local $SIG{ALRM} = sub { $terminate_child_group->(124) };
-    local $SIG{HUP} = sub { $terminate_child_group->(129) };
-    local $SIG{INT} = sub { $terminate_child_group->(130) };
-    local $SIG{TERM} = sub { $terminate_child_group->(143) };
-
-    alarm($timeout);
-    my $waited = waitpid($pid, 0);
-    my $status = $?;
-    alarm(0);
-
-    die "failed to wait for command: $!\n" if $waited == -1;
-    exit(128 + ($status & 127)) if $status & 127;
-    exit(($status >> 8) & 255);
-  ' "$timeout_seconds" "$@"
-}
+# shellcheck source=../../../scripts/lib/shell-helpers.sh
+source "$SCRIPT_DIR/../../../scripts/lib/shell-helpers.sh"
 
 cancel_active_conductor_session() {
   [ "$CONDUCTOR_SESSION_ACTIVE" -eq 1 ] || return 0
