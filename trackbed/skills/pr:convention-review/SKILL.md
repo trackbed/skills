@@ -73,9 +73,9 @@ PR_CONTEXT_JSON=$(gh pr view --json title,body 2> /dev/null || printf '{}')
 printf '%s\n' "$PR_CONTEXT_JSON" > "$REVIEW_SCOPE_DIR/pr-context.json"
 
 capture_untracked_scope() {
-  local output_file="$1"
-  local list_file="$2"
-  local file status
+  local output_file="${1}"
+  local list_file="${2}"
+  local file diff_status
 
   git ls-files --others --exclude-standard -z > "$list_file.all" || return 1
   : > "$list_file"
@@ -90,11 +90,11 @@ capture_untracked_scope() {
   : > "$output_file"
   while IFS= read -r -d '' file; do
     if git diff --no-index --binary -- /dev/null "$file" >> "$output_file"; then
-      status=0
+      diff_status=0
     else
-      status=$?
+      diff_status=$?
     fi
-    [ "$status" -eq 0 ] || [ "$status" -eq 1 ] || return "$status"
+    [ "$diff_status" -eq 0 ] || [ "$diff_status" -eq 1 ] || return "$diff_status"
   done < "$list_file"
 }
 

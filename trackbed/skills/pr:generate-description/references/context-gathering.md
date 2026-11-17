@@ -50,7 +50,7 @@
    if [ -n "$DEFAULT_BRANCH" ]; then
      NONINTERACTIVE_GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-${GIT_SSH:-ssh}} -oBatchMode=yes"
      env GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=Never GIT_SSH_COMMAND="$NONINTERACTIVE_GIT_SSH_COMMAND" \
-       git fetch origin "refs/heads/$DEFAULT_BRANCH:refs/remotes/origin/$DEFAULT_BRANCH" 2> /dev/null || true
+       git fetch origin "refs/heads/${DEFAULT_BRANCH}:refs/remotes/origin/$DEFAULT_BRANCH" 2> /dev/null || true
      DEFAULT_TEMPLATE_REF="origin/$DEFAULT_BRANCH"
    else
      DEFAULT_TEMPLATE_REF=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2> /dev/null || true)

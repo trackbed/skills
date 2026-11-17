@@ -1034,6 +1034,12 @@
       "trackbed/skills/git:recreate-commits/scripts/resolve-push-target.sh": [
         "trackbed/tests/recreate-commits-push-target.bats"
       ],
+      "trackbed/skills/git:recreate-commits/scripts/stack-branch-names.sh": [
+        "trackbed/tests/pr-create-guidance.bats"
+      ],
+      "trackbed/skills/linear:review-pr/scripts/cleanup-review-worktree.sh": [
+        "trackbed/tests/linear-review-pr-guidance.bats"
+      ],
       "trackbed/skills/pr:adversarial-review/scripts/run-adversarial-review.sh": [
         "trackbed/tests/adversarial-review-runner.bats"
       ],

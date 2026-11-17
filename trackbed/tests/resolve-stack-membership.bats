@@ -822,7 +822,7 @@ run_documented_stack_checkout() {
 	grep -F 'origin/$LEASE_BRANCH has commits the local branch lacks; integrate them before rebasing.' "$rebase_skill"
 	grep -F '[ "$CURRENT_BRANCH" = "$LEASE_BRANCH" ] ||' "$rebase_skill"
 	grep -F '[[ "$PRE_REBASE_REMOTE_OID" =~ ^([0-9a-f]{40}|[0-9a-f]{64})?$ ]] ||' "$rebase_skill"
-	grep -F 'git push --no-follow-tags --force-with-lease="refs/heads/$CURRENT_BRANCH:$PRE_REBASE_REMOTE_OID" origin "refs/heads/$CURRENT_BRANCH:refs/heads/$CURRENT_BRANCH"' "$rebase_skill"
+	grep -F 'git push --no-follow-tags --force-with-lease="refs/heads/${CURRENT_BRANCH}:$PRE_REBASE_REMOTE_OID" origin "refs/heads/${CURRENT_BRANCH}:refs/heads/$CURRENT_BRANCH"' "$rebase_skill"
 	! grep -F 'git push --force-with-lease origin "$CURRENT_BRANCH"' "$rebase_skill" || false
 
 	capture_line=$(grep -nF 'PRE_REBASE_REMOTE_OID=$(printf' "$rebase_skill" | cut -d: -f1)

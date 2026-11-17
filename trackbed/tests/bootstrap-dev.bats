@@ -23,7 +23,7 @@ SH
 write_check_tools() {
 	local tool
 
-	for tool in make bats jq shellcheck ruff mypy; do
+	for tool in make bats jq zsh shellcheck ruff mypy; do
 		write_success_tool "$tool"
 	done
 	write_fake_node
@@ -167,7 +167,7 @@ SH
 	[[ "$output" == *"Install Node.js 20+ with npm"* ]] || false
 	[[ "$output" == *"Use Python 3.11+ (Debian 12+ or Ubuntu 24.04+ provide compatible defaults)"* ]] || false
 	[[ "$output" == *"On Ubuntu 22.04, install Python 3.11+ separately and select it as python3 before --install."* ]] || false
-	[[ "$output" == *"apt-get install -y make bats jq python3 python3-venv"* ]] || false
+	[[ "$output" == *"apt-get install -y make bats jq zsh python3 python3-venv"* ]] || false
 	[[ "$output" != *"apt-get install -y make bats jq nodejs npm"* ]] || false
 	[ ! -s "$BOOTSTRAP_COMMAND_LOG" ]
 }
@@ -296,7 +296,7 @@ SH
 
 	[ "$status" -eq 73 ]
 	grep -Fx "apt-get update" "$BOOTSTRAP_COMMAND_LOG"
-	grep -Fx "apt-get install -y make bats jq python3 python3-venv" "$BOOTSTRAP_COMMAND_LOG"
+	grep -Fx "apt-get install -y make bats jq zsh python3 python3-venv" "$BOOTSTRAP_COMMAND_LOG"
 	! grep -Eq 'nodejs|(^| )npm( |$)' "$BOOTSTRAP_COMMAND_LOG" || false
 }
 
@@ -314,7 +314,7 @@ SH
 
 	[ "$status" -eq 0 ]
 	grep -Fx "apt-get update" "$BOOTSTRAP_COMMAND_LOG"
-	grep -Fx "apt-get install -y make bats jq python3 python3-venv" "$BOOTSTRAP_COMMAND_LOG"
+	grep -Fx "apt-get install -y make bats jq zsh python3 python3-venv" "$BOOTSTRAP_COMMAND_LOG"
 	grep -Fx "python3 -m venv .venv" "$BOOTSTRAP_COMMAND_LOG"
 	grep -Fx "python -m pip install --disable-pip-version-check --requirement requirements-dev.txt" "$BOOTSTRAP_COMMAND_LOG"
 	grep -Fx "npm ci --no-audit --no-fund" "$BOOTSTRAP_COMMAND_LOG"

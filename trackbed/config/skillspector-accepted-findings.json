@@ -9,6 +9,14 @@
       "review_after": "2026-11-19"
     },
     {
+      "path": "trackbed/skills/linear:review-pr/scripts/cleanup-review-worktree.sh",
+      "rule_id": "TM1",
+      "reason": "SKILLS-119 moves the already-reviewed cleanup procedure out of pr-inspection.md into a Bash entrypoint with explicit arguments. The reported rm removes only the exact .git administrative file in a partial worktree; rmdir removes only empty workflow-owned directories. Registered worktree removal still requires the find-based proof that no materialized content exists. Fresh-shell Bash/zsh fixtures and the registered-worktree Bats fixture verify that unexpected content is retained. No recursive deletion or publication command was added.",
+      "owner": "kramme",
+      "accepted_at": "2026-11-16",
+      "review_after": "2026-12-16"
+    },
+    {
       "path": "trackbed/skills/pr:stack/SKILL.md",
       "rule_id": "TM1",
       "reason": "Re-reviewed false-positive TM1 finding: the flagged force-with-lease text is a restack instruction in the maintenance section instructing the agent NOT to force-push individual stack branches. The skill's only push paths are gh stack push/submit/sync, which push all stack branches atomically with --force-with-lease and are the documented safe mechanism for stacked branches. Re-reviewed on 2026-10-28 after later edits: the only flagged line still forbids pushing a single stack branch with plain `git push --force-with-lease` and directs the atomic `gh stack push` instead.",

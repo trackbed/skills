@@ -61,7 +61,7 @@ jobs:
 
       - name: Install release verification dependencies
         run: |
-          sudo apt-get update && sudo apt-get install -y bats jq
+          sudo apt-get update && sudo apt-get install -y bats jq zsh
           python3 -m pip install --upgrade pip
           python3 -m pip install -r requirements-dev.txt
 

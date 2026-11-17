@@ -100,9 +100,9 @@ These rejections are pre-filters — apply them before recording a finding, not 
          n = 0
        }
        /^>>> / { flush(); next }
-       NF { f[++n] = $0 }
+       NF { f[++n] = $(0) }
        END { flush() }' |
-     sort | uniq -c | sort -rn | awk '$1 >= 3' | head -40
+     sort | uniq -c | sort -rn | awk '$(1) >= 3' | head -40
    ```
 
    Store the pairs whose files both still exist as `CO_CHANGE` (count and the two paths). With `--for`, list pairs that include a `CHANGE_TARGETS` file first, because they show where the planned change will ripple. If the history is too short or the command fails, proceed silently with `CO_CHANGE = []`.
