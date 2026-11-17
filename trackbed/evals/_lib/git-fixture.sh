@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-FIXTURE_DATE="2026-01-15T10:00:00+00:00"
+FIXTURE_DATE="${FIXTURE_DATE:-2026-01-15T10:00:00+00:00}"
 
 fixture_git() {
   GIT_AUTHOR_NAME="Fixture Author" \

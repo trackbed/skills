@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: refactor-clean-module
+expected_outcome: |
+  Contract: the skill's prerequisite excludes code that is already clean.
+  This control protects that no-noise contract while later work broadens
+  special-case detection. The weight conversion module needs no refactor.
+context:
+  scaffold_script: scaffold.sh
