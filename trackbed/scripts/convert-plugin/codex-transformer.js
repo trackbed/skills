@@ -349,6 +349,10 @@ function sharedRuntimeFor(plugin) {
         targetPath: path.join("scripts", "validate-archive-scope.py"),
       },
       {
+        sourceFile: path.join(plugin.root, "scripts", "code-outline.py"),
+        targetPath: path.join("scripts", "code-outline.py"),
+      },
+      {
         sourceFile: path.join(plugin.root, "scripts", "risk-signals.py"),
         targetPath: path.join("scripts", "risk-signals.py"),
       },

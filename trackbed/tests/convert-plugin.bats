@@ -275,6 +275,7 @@ MD
 	[ -f "$plugin_root/hooks/hooks.json" ]
 	[ ! -e "$plugin_root/hooks/hook-state.json" ]
 	[ -x "$plugin_root/scripts/collect-review-diff.sh" ]
+	[ -f "$plugin_root/scripts/code-outline.py" ]
 	[ -f "$plugin_root/skills/trackbed:pr:create/SKILL.md" ]
 	[ -x "$plugin_root/skills/trackbed:pr:adversarial-review/scripts/run-adversarial-review.sh" ]
 	[ -f "$plugin_root/skills/trackbed:a11y-auditor/SKILL.md" ]
