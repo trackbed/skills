@@ -77,6 +77,8 @@ Scan all in-scope tests for structural leads first, then inspect each lead seman
 - repeated test bodies, equivalent parameter cases, or overlapping unit and integration coverage
 - skipped, quarantined, focused-only, flaky, unusually slow, or non-isolated tests
 - regression tests whose referenced feature, failure path, API, or invariant may no longer exist
+- tests that only assert a removed file, module, command, flag, or export stays absent from its old location
+- production code that only tests call, such as reset helpers, private-state getters, test-only exports, or branches guarded by a test flag
 - tests that mirror the production algorithm or generate the expected value through the code path under test
 - comments, names, fixtures, and assertions that disagree about the behavior being protected
 

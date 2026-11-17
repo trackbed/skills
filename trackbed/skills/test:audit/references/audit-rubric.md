@@ -64,7 +64,9 @@ Require evidence about:
 
 Age is never evidence of obsolescence. A rewritten implementation can still violate the same invariant. Renamed tests and deleted issue links do not prove the protected behavior disappeared.
 
-Default verdict: REMOVE only with high confidence. Use INVESTIGATE when material maintenance cost remains plausible but evidence is incomplete; otherwise reject the lead when the test remains justified.
+A test that only asserts removed code is gone, such as a deleted file, module, command, flag, or export staying absent from its old location, belongs here. It fails only when someone restores that code on purpose, so it guards a past change rather than present behavior. Keep it when the absence is a live invariant that can break by accident: no shipped file still names a removed command, a retired API stays out of a public surface consumers were told it left, or a revoked secret or license-incompatible file never returns. Such a test should name the invariant and check every place it can break, not one old path.
+
+Default verdict: REMOVE only with high confidence. Use INVESTIGATE when material maintenance cost remains plausible but evidence is incomplete; otherwise reject the lead when the test remains justified. For an absence assertion, REPAIR when it guards a live invariant through a single path.
 
 ### Redundant Coverage
 
@@ -96,6 +98,22 @@ Strong evidence:
 Interaction assertions are valid when the interaction is itself a contract: durable events, writes, security boundaries, external calls, idempotency, or required non-calls.
 
 Default verdict: REPAIR.
+
+### Test-Only Production Hooks
+
+Production code exists only so tests can reach inside it: a reset helper, a getter for private state, a `_forTesting` export, or a branch that runs only under a test flag. The hook widens the production surface and keeps the tests that use it coupled to internals.
+
+Strong evidence:
+
+- a repository-wide reference search, including other packages, scripts, and string or reflective lookups, finds only test callers
+- the tests that call the hook assert state or calls that no public behavior exposes
+- the hook's name, comment, or guard says it exists for tests
+
+Hooks are legitimate when they are the seam rather than a peek inside it: an injected clock, randomness source, or dependency; a published test-support module for the package's consumers; or a reset for process-global state that has no public lifecycle and that test setup needs for isolation. A public export may have callers outside the repository, so treat it as a compatibility question, not proof of test-only use.
+
+Report the finding on the tests that depend on the hook, and name the hook in the recommendation so a later change removes it once no caller remains.
+
+Default verdict: REPAIR the tests toward the public behavior the hook stands in for. REMOVE the tests only when they also meet REMOVE on their own. INVESTIGATE when callers outside the repository are plausible.
 
 ### Provider Shape Coupling
 

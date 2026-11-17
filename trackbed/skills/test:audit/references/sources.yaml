@@ -7,3 +7,12 @@ sources:
     last_reviewed_at: 2026-11-06
     fetch_mode: curl-html
     baseline_hash: "sha256:5cef0c99088b7d110dcb3c211c10d00d6d8dd7bdd03add3d6b9a2249fad3f893"
+  - id: caldoai-prune-tests
+    url: https://raw.githubusercontent.com/caldoai/skills/main/skills/prune-tests/SKILL.md
+    title: "caldoai skills - prune-tests"
+    rationale: "The Test-Only Production Hooks category and the absence-assertion guidance under Obsolete Regression follow this skill's points that production code kept only for tests should go with them and that tests asserting removed code stays gone guard no present behavior; the live-invariant exception and the evidence rules are local."
+    usage: inspiration
+    last_reviewed_at: 2026-11-17
+    baseline_commit: "bd73b2ea5eb854ab8f0553fb41f77c8786f28f82"
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:9804589f17f9ee976ee1ebfa24ebc676c8e71724dfa0fb95d853e6e7377c222e"
