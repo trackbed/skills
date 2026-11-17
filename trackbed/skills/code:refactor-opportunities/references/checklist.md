@@ -82,6 +82,7 @@ Scan the categories assigned for the resolved scope; skip category 12 in PR scop
 - Tight coupling to concrete implementations where an interface/injection would help
 - Import chains that pull in far more than needed (barrel file bloat)
 - Shared mutable state across module boundaries
+- Dependency direction: a stable, widely imported production module imports a frequently changed module. Cite both module paths and commit counts over the same history window and anchor, the stable module's distinct direct importer count, the import location, and the volatile responsibility the stable module depends on. Prior caller edits or interface changes are not required evidence. Exclude tests, fixtures, and test helpers as the stable side. Move the volatile detail to the caller or split off the stable part; introduce an interface only under the glossary's adapter-count rule. Missing either commit count or the importer count means drop the finding.
 
 ## 9. Structural & Architectural
 

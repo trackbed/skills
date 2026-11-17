@@ -46,4 +46,6 @@ Use it to find what is worth refactoring in the whole codebase, the current Pull
 - With `--ranked`, `CODEBASE_WEAKNESS_REPORT.md` instead, with findings `WA-001`, `WA-002`, and so on in rank order.
 - A summary with the findings by severity, the top three fixes, and the refactor to start with, plus an `Agents launched: N` line.
 
+When history is available, coupling findings also check whether a stable, widely imported production module imports a frequently changed detail. Each dependency-direction finding includes both modules' commit counts for the same history window and the stable module's direct importer count. Tests and test helpers are excluded as the stable side. With `--for`, imports involving the planned change's files come first.
+
 The run then asks which single item you want to take forward. It offers `trackbed:code:refactor-pass` for a narrow fix, and `trackbed:code:breakdown-findings` or `trackbed:linear:breakdown-findings` to schedule the item.

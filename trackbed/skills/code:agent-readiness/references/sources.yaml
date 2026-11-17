@@ -34,7 +34,7 @@ sources:
   - id: caldo-untangle-codebase
     url: https://raw.githubusercontent.com/caldoai/skills/main/skills/untangle-codebase/SKILL.md
     title: "Caldo skills - untangle-codebase"
-    rationale: "The shared architecture glossary's special-case deepening pattern follows this source's method of tracing exceptions to a missing requirement and proposing one design that removes them. Local scan, synthesis, and counting guidance uses original wording."
+    rationale: "The shared glossary also informs history-backed dependency direction: depend toward what changes less, move volatile detail to callers or split off stable behavior, and apply the adapter-count rule before adding an interface. The shared architecture glossary's special-case deepening pattern follows this source's method of tracing exceptions to a missing requirement and proposing one design that removes them. Local scan, synthesis, and counting guidance uses original wording."
     usage: inspiration
     last_reviewed_at: 2026-11-17
     baseline_hash: "sha256:b4eb6b5130c38ca04532601e99d2d174cf4faa4df520b5b7ba609e8707e55761"

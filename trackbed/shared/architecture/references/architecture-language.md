@@ -28,6 +28,8 @@ A controlled vocabulary for module depth, interfaces, seams, and locality. Use t
 6. **Locality beats reuse.** When in doubt, keep the change-together code together. Premature extraction harms locality and rarely earns its leverage back.
 7. **Replace, don't layer, when migrating tests.** When a refactor moves logic to a new interface, delete the old shallow-module unit tests once interface-level tests cover the same behavior. Running both is duplication; if the old test has to change when the implementation changes, it was testing past the interface.
 
+8. **Depend toward what changes less.** Compare both modules' commit counts over the same history window. A stable module with many importers that imports a frequently changed detail can spread that detail's churn to its callers; confirm the import and describe the volatile responsibility it brings into the stable module. An unchanged interface or lack of prior caller edits does not remove that dependency exposure. Move the volatile detail out to the caller, or split off the stable part. Add an interface only when the adapter-count rule in principle 4 is met.
+
 ## Patterns
 
 ### Shallow modules — inline or remove

@@ -80,7 +80,7 @@ setup() {
 	grep -qF 'Remove `--for <value>` from `$ARGUMENTS` first so its value never feeds the scope rules.' "$REFACTOR_SKILL"
 	grep -qF '`--for prepares a full, path, or feature scan for a planned change; drop pr or --ranked, or drop --for.`' "$REFACTOR_SKILL"
 	grep -qF 'Only a single path-shaped token with no spaces that does not resolve triggers a clarification ask' "$REFACTOR_SKILL"
-	grep -qF 'set `HOT_SPOTS` to the `CHANGE_TARGETS` inside the scan scope instead of the commit-frequency ranking' "$REFACTOR_SKILL"
+	grep -qF 'prioritize the `CHANGE_TARGETS` inside the scan scope in `HOT_SPOTS`, keeping their commit counts' "$REFACTOR_SKILL"
 	grep -qF 'With `--for`, list pairs that include a `CHANGE_TARGETS` file first' "$REFACTOR_SKILL"
 	grep -qF 'the `PLANNED_CHANGE` text with `--for`' "$REFACTOR_SKILL"
 	grep -qF 'Why skipping: does not ease the planned change' "$REFACTOR_SKILL"
