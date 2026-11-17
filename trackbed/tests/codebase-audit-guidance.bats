@@ -341,3 +341,32 @@ PY
 	grep -qF 'with the model selected under **Subagent models**' "skills/code:refactor-opportunities/references/ranked-mode.md"
 	grep -qF 'keeps its own provider and isolation policy' "skills/code:outside-view/SKILL.md"
 }
+
+@test "refactor opportunities leads with ordered fixes covering grouped and standalone findings" {
+	local template="skills/code:refactor-opportunities/assets/report-template.md"
+	local example="skills/code:refactor-opportunities/references/synthesis-example.md"
+	local guide="docs/usage/code-refactor-opportunities.md"
+	run python3 - "$template" <<'PY'
+import sys
+from pathlib import Path
+text = Path(sys.argv[1]).read_text()
+headings = [line for line in text.splitlines() if line.startswith('## ')]
+assert headings[headings.index('## Executive Summary') + 1] == '## Fixes'
+assert headings.count('## Fixes') == 1
+assert '## Patterns & Themes' not in headings
+assert '## Recommended Refactor Order' not in headings
+assert headings.index('## Fixes') < headings.index('## High Severity')
+PY
+	[ "$status" -eq 0 ]
+	grep -qF '**Findings removed:**' "$template"
+	grep -qF '**Edit size (lines):**' "$template"
+	grep -qF '**Automation candidate:**' "$template"
+	grep -qF 'Fixes and the severity tables' "$template"
+	grep -qF 'retaining the special-case counts outside PR scope' "$template"
+	grep -qF 'Read `references/synthesis-example.md` before grouping findings' "$REFACTOR_SKILL"
+	grep -qF 'give every ungrouped finding its own entry' "$REFACTOR_SKILL"
+	grep -qF 'Top 3 fixes in recommended order' "$REFACTOR_SKILL"
+	grep -qF '## Problems collected' "$example"
+	grep -qF '## Fixes in recommended order' "$example"
+	grep -qF 'After the Executive Summary, one Fixes section' "$guide"
+}

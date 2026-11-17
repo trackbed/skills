@@ -16,11 +16,26 @@
 
 ## Executive Summary
 
+{{1-3 sentences: overall health, highest-value fixes, recommended starting point; with --for, the refactor that would make the planned change easiest, or that the change needs none}}
+
+{{Nothing worth changing, in every scope: when no finding or deepening candidate survived Phase 3 steps 3-5, or every surviving finding had LOW confidence and no deepening candidate survived, write `Nothing worth changing in <scope>.` in place of the summary above and name which trigger applied. Write "None." in the Fixes and the severity tables, and fill every other section as usual.}}
+
+---
+
+## Fixes
+
 {{Outside PR scope, include: `Special cases: N found; M removed by proposed fixes.` Count distinct cases before filtering and only removals from surviving proposed fixes, including zero counts. Omit this line in PR scope, where category 12 is skipped.}}
 
-{{1-3 sentences: overall health, biggest themes, recommended starting point; with --for, the refactor that would make the planned change easiest, or that the change needs none}}
+{{List fixes in recommended execution order from Phase 3 step 10. Each heading names the coordinated fix, not the problem category. Include every active finding exactly once, including a standalone entry for each ungrouped finding. A fix may differ from the individual suggested fixes when it removes their common cause. For each entry, give its edit size as defined by the Phase 3 Rule of 500 and an explicit automation-candidate mark. Keep dependencies and the reason for this position brief. When nothing is worth changing, write "None." here while retaining the special-case counts outside PR scope. The severity tables below are reference.}}
 
-{{Nothing worth changing, in every scope: when no finding or deepening candidate survived Phase 3 steps 3-5, or every surviving finding had LOW confidence and no deepening candidate survived, write `Nothing worth changing in <scope>.` in place of the summary above and name which trigger applied. Write "None." in the severity tables, Patterns & Themes, and Recommended Refactor Order, and fill every other section as usual.}}
+### 1. {{Fix to make}}
+
+{{Plain statement of what is wrong and how this fix removes the shared cause.}}
+
+- **Findings removed:** {{RO-001 — problem removed; RO-003 — problem removed; …}}
+- **Edit size (lines):** {{count, including call sites}}
+- **Automation candidate:** {{yes — codemod / AST transform / batch refactor; or no}}
+- **Order:** {{why this comes here; prerequisite fix, if any}}
 
 ---
 
@@ -45,14 +60,6 @@
 | RO-001 | {{cat}}  | {{file:line}} | {{desc}}    | {{fix}}       |
 
 ---
-
-## Patterns & Themes
-
-{{Group findings that share a root cause or would benefit from a single coordinated fix. For each theme, list the finding IDs it covers and its edit size as defined by the Phase 3 Rule of 500. Mark any theme whose edit size is over 500 lines as an **automation candidate** (codemod / AST transform / batch refactor).}}
-
-| Theme | Findings | Edit size (lines) | Automation candidate? |
-| --- | --- | --- | --- |
-| {{theme}} | {{RO-001, RO-002, …}} | {{count}} | {{yes / no}} |
 
 ## Deepening Candidates
 
@@ -82,10 +89,6 @@
 - **Proposed owner:** {{transition table, guard, or reducer}}, following {{exemplar path, or none in the repository}}
 - **Tests:** {{transition test; regression tests that fail today}}
 
-## Recommended Refactor Order
-
-{{Ordered list of refactors to tackle first, considering: risk, blast radius, dependency between findings, and quick wins. Separate automation-candidate themes (edit size over 500 lines) from manual fixes.}}
-
 ## Breakdown-Ready Finding Data
 
 {{One block per `RO-NNN` finding and deepening candidate, in ID order, following the shared breakdown-ready findings schema. Write "None." when there are no active findings. Never include Noticed But Not Touching entries or filtered PR-scope observations.}}
@@ -107,4 +110,4 @@
 
 ## Filtered PR-Scope Observations
 
-{{Only include this section when Scope is Current PR. List observations that were considered but filtered because they were pre-existing, outside the PR relevance gate, or required broad cleanup in untouched files. These are not findings and must not appear in severity totals, themes, or recommended order.}}
+{{Only include this section when Scope is Current PR. List observations that were considered but filtered because they were pre-existing, outside the PR relevance gate, or required broad cleanup in untouched files. These are not findings and must not appear in severity totals or Fixes.}}
