@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+load 'test_helper/common'
+
 setup() {
   cd "$BATS_TEST_DIRNAME/.."
   SKILL="skills/pr:code-review/SKILL.md"
@@ -21,7 +23,6 @@ setup() {
 @test "a failed verifier never certifies a clean stop" {
   grep -qF "**Failed verifier:**" "$LOOP"
   grep -qF "report loop termination as unverified, never as clean" "$LOOP"
-  grep -qF "state in the final output that loop termination was self-certified because independent verification was unavailable" "$LOOP"
   grep -qF "Ask it to state what it assessed and what it could not" "$LOOP"
 }
 
@@ -31,4 +32,24 @@ setup() {
   grep -qF "\`THINGS I DIDN'T TOUCH\`" "$LOOP"
   grep -qF '`POTENTIAL CONCERNS`' "$LOOP"
   grep -qF 'Keep it out of `REVIEW_OVERVIEW.md`, because the seal covers the exact report bytes.' "$LOOP"
+}
+
+@test "the closeout loop keeps its anti-recursion rule and registered verifier contract" {
+  local loop_text
+
+  loop_text="$(cat "$LOOP")"
+
+  # The registry contract owns the positive independent-verifier wording.
+  assert_required_contracts_registered pr-code-review-closeout-loop-independent-verification
+
+  # The loop keeps its anti-recursion rule and its advisory escape hatch.
+  [[ "$loop_text" == *"do not launch a separate wrapper skill"* ]] || false
+  [[ "$loop_text" == *"when remaining findings are clearly manual/advisory and reported as such"* ]] || false
+
+  # The loop is not an authorized model parent of the resolver.
+  [[ "$loop_text" == *'Do not invoke `trackbed:pr:resolve-review` from this loop'* ]] || false
+  [[ "$loop_text" != *'/trackbed:pr:resolve-review --severity'* ]] || false
+
+  # The skill must not advertise a model switch it cannot enforce.
+  [[ "$(cat "$SKILL")" != *"second-model"* ]] || false
 }
