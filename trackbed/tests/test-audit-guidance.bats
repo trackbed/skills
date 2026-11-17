@@ -126,3 +126,20 @@ RUBRIC="skills/test:audit/references/audit-rubric.md"
 	grep -qF "editing or pruning tests" "$SKILL"
 	! grep -qF "Use when asked to clean up, prune" "$SKILL" || false
 }
+
+@test "test audit flags absence-only tests unless the absence is a live invariant" {
+	grep -qF -- "- tests that only assert a removed file, module, command, flag, or export stays absent from its old location" "$SKILL"
+	grep -qF "It fails only when someone restores that code on purpose, so it guards a past change rather than present behavior." "$RUBRIC"
+	grep -qF "Keep it when the absence is a live invariant that can break by accident: no shipped file still names a removed command" "$RUBRIC"
+	grep -qF "For an absence assertion, REPAIR when it guards a live invariant through a single path." "$RUBRIC"
+}
+
+@test "test audit nominates test-only production hooks without condemning injection seams" {
+	grep -qF -- "- production code that only tests call, such as reset helpers, private-state getters, test-only exports, or branches guarded by a test flag" "$SKILL"
+	grep -qF "### Test-Only Production Hooks" "$RUBRIC"
+	grep -qF "a repository-wide reference search, including other packages, scripts, and string or reflective lookups, finds only test callers" "$RUBRIC"
+	grep -qF "Hooks are legitimate when they are the seam rather than a peek inside it" "$RUBRIC"
+	grep -qF "A public export may have callers outside the repository, so treat it as a compatibility question, not proof of test-only use." "$RUBRIC"
+	grep -qF "Report the finding on the tests that depend on the hook, and name the hook in the recommendation" "$RUBRIC"
+	grep -qF "Default verdict: REPAIR the tests toward the public behavior the hook stands in for." "$RUBRIC"
+}
