@@ -8,6 +8,60 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 
 ## Unreleased
 
+## [1.1.0] - 2026-11-17
+
+### Added
+
+- Add outline and import-graph helper (#1229)
+- Flag test-only hooks and absence tests (#1227)
+- Add a fixes-first visual page (#1226)
+- Check dependency direction (#1225)
+- Lead reports with ordered fixes (#1222)
+- Expand /trackbed commands in new Conductor chats (#1221)
+- Commit and push review-reply fixes under --auto (#1218)
+- Scope the queue to the current repository (#1216)
+- Group refactor special cases by the requirement they serve (#1217)
+- Add decision documents for recording choices (#1211)
+- Flag bolted-on features in cleanup review (#1194)
+- Lead issue-to-pr and plan-to-pr reports with what needs you (#1193)
+- Add an eval suite for decision requests (#1192)
+- Run one extra fix cycle before asking the user (#1191)
+- Count decision requests in workflow runs (#1190)
+- Hand back review stops as ready decision requests (#1189)
+- Add skill usage guides, concepts, and troubleshooting (#1188)
+- Ask about base drift only when it can affect the PR (#1187)
+- Ask implementation questions as one decision request (#1186)
+- Add --all to linear:next to check the full backlog (#1185)
+- Show workflow stops as decision requests (#1184)
+
+### Changed
+
+- Share one finding lifecycle and protected report list (#1219)
+- Share bounded subprocess policy (#1215)
+- Share one archive validator across plan consumers (#1214)
+
+### Fixed
+
+- Validate skill-to-suite coverage mappings (#1224)
+- Clarify shape-up's stop for a mismatched checkout (#1220)
+- Avoid duplicate formatter runs and add format command (#1205)
+- Preserve packaged shell execution across hosts (#1213)
+- Judge comments by what would make them change (#1207)
+- Repair converted prompts and ownership diagnostics (#1210)
+- Align component metadata and registry validation (#1212)
+- Align required checks and local verification (#1208)
+- Preserve complete branch issue identifiers (#1206)
+- Detect legacy installs and refresh maintainer maps (#1204)
+- Enforce portable Bats assertion failures (#1202)
+- Guard comments and compound commits (#1201)
+- Preserve work during review rewrites (#1203)
+- Enforce installed resource boundaries in the fast gate (#1199)
+- Preserve record and checkpoint errors (#1198)
+- Preserve repository scope from any directory (#1200)
+- Make ledger saves retryable (#1196)
+- Retain recovery causes and reconcile shipped history (#1197)
+- Correct static scan discovery, expiry and cleanup (#1195)
+
 ## [1.0.1] - 2026-11-12
 
 ### Added
@@ -1325,6 +1379,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 
 - Preserve skill resources in conversion (#222)
 
+[1.1.0]: https://github.com/trackbed/skills/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/trackbed/skills/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/trackbed/skills/compare/v0.91.0...v1.0.0
 [0.91.0]: https://github.com/Abildtoft/kramme-cc-workflow/compare/v0.90.0...v0.91.0
