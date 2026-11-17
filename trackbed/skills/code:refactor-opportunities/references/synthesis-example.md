@@ -4,7 +4,7 @@ Read this before Phase 3 step 8. This fictional seed-library scan shows how to r
 
 ## Problems collected
 
-- **RO-001 (high):** `loans/checkout.ts:24` rejects a seed packet when its stored quantity is zero, even though returned packets are awaiting inspection. Suggested fix: add a pending-return check.
+- **RO-001 (high):** `loans/checkout.ts:24` allows lending a returned seed packet because it checks total quantity without checking whether inspection passed. Suggested fix: add a pending-inspection check.
 - **RO-002 (medium):** `catalog/availability.ts:38` counts returned packets as available before inspection. Suggested fix: subtract the inspection queue.
 - **RO-003 (medium):** `returns/accept.ts:51` marks every returned packet available, with an exception for packets needing inspection. Suggested fix: add another status flag.
 - **RO-004 (low):** `catalog/label.ts:12` forwards its argument unchanged to the label formatter and has one caller. Suggested fix: inline it.
@@ -15,7 +15,7 @@ Read this before Phase 3 step 8. This fictional seed-library scan shows how to r
 
 Availability is calculated differently by checkout, the catalog, and returns. Give the stock ledger responsibility for packet readiness: returned packets enter inspection, and only inspected packets become available. Have checkout and the catalog read availability from that ledger. This removes the need for three separate checks; adding their suggested patches would preserve the disagreement.
 
-- **Findings removed:** RO-001 — checkout overlooks pending inspection; RO-002 — catalog advertises uninspected packets; RO-003 — returns needs an inspection exception.
+- **Findings removed:** RO-001 — checkout lends before inspection; RO-002 — catalog advertises uninspected packets; RO-003 — returns needs an inspection exception.
 - **Edit size (lines):** 240, including the ledger, all three callers, and their tests.
 - **Automation candidate:** no.
 - **Order:** first, because it corrects the shared readiness model and removes the highest-severity problem. Verify that a returned packet stays unavailable until inspection passes.
