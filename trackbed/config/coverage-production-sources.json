@@ -689,6 +689,11 @@
     },
     {
       "kind": "guidance",
+      "suite": "trackbed/tests/pr-code-review-guidance.bats",
+      "skills": ["trackbed/skills/pr:code-review/SKILL.md"]
+    },
+    {
+      "kind": "guidance",
       "suite": "trackbed/tests/pr-create-guidance.bats",
       "skills": [
         "trackbed/skills/code:plan-to-pr/SKILL.md",
@@ -697,6 +702,11 @@
         "trackbed/skills/pr:create/SKILL.md",
         "trackbed/skills/pr:generate-description/SKILL.md"
       ]
+    },
+    {
+      "kind": "guidance",
+      "suite": "trackbed/tests/pr-fix-ci-guidance.bats",
+      "skills": ["trackbed/skills/pr:fix-ci/SKILL.md"]
     },
     {
       "kind": "guidance",
@@ -710,9 +720,24 @@
       ]
     },
     {
+      "kind": "guidance",
+      "suite": "trackbed/tests/pr-overengineering-review-guidance.bats",
+      "skills": ["trackbed/skills/pr:overengineering-review/SKILL.md"]
+    },
+    {
+      "kind": "guidance",
+      "suite": "trackbed/tests/pr-product-review-guidance.bats",
+      "skills": ["trackbed/skills/pr:product-review/SKILL.md"]
+    },
+    {
       "kind": "executable",
       "suite": "trackbed/tests/pr-rebase-batch.bats",
       "skills": ["trackbed/skills/pr:rebase/SKILL.md"]
+    },
+    {
+      "kind": "guidance",
+      "suite": "trackbed/tests/pr-resolve-review-guidance.bats",
+      "skills": ["trackbed/skills/pr:resolve-review/SKILL.md"]
     },
     {
       "kind": "executable",
