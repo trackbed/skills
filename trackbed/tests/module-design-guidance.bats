@@ -227,3 +227,23 @@ setup() {
 	[ "$(printf '%s\n' "$synthesis" | grep -cE '^[0-9]+\. ')" -eq 10 ]
 	[ "$(sed -n '/^### Phase 4 — Report/,/^## Guidelines/p' "$skill" | grep -cE '^[0-9]+\. ')" -eq 10 ]
 }
+
+@test "dependency direction carries history from orientation through scan and report" {
+	local skill="skills/code:refactor-opportunities/SKILL.md"
+	local checklist="skills/code:refactor-opportunities/references/checklist.md"
+	grep -qF '8. **Depend toward what changes less.**' "$GLOSSARY"
+	grep -qF 'adapter-count rule in principle 4' "$GLOSSARY"
+	grep -qF 'as `CHANGE_COUNTS`' "$skill"
+	grep -qF 'For path and feature scopes, including `--for`, collect `CHANGE_COUNTS`' "$skill"
+	grep -qF 'plus `HOT_SPOTS`, `CHANGE_COUNTS`, and their history window, anchor, and counting convention' "$skill"
+	grep -qF 'imports involving `CHANGE_TARGETS` come first' "$skill"
+	grep -qF 'Do not require past edits to the stable interface or its callers' "$skill"
+	grep -qF 'A useful stable module can pass the deletion test and still depend in the wrong direction.' "$skill"
+	grep -qF 'Drop a dependency-direction finding without both commit counts and the importer count.' "$skill"
+	grep -qF 'Exclude tests, fixtures, and test helpers as the stable side.' "$skill"
+	grep -qF 'Missing either commit count or the importer count means drop the finding.' "$checklist"
+	local consumer
+	for consumer in code:refactor-opportunities code:agent-readiness code:api-design pr:code-review; do
+		grep -qF 'history-backed dependency direction' "skills/$consumer/references/sources.yaml"
+	done
+}
