@@ -25,6 +25,7 @@
       "trackbed/scripts/lib/skill-usage-cost.js",
       "trackbed/scripts/lib/skill-usage-decision-requests.js",
       "trackbed/scripts/lib/skill-usage-hosts.js",
+      "trackbed/hooks/lib/conductor-slash-command.js",
       "trackbed/scripts/probe-cold-reader-isolation.js",
       "trackbed/scripts/schemas/skill-contracts.js",
       "trackbed/scripts/skill-eval-compare.js"
@@ -952,6 +953,9 @@
       "trackbed/hooks/lib/safety-hook-parser.sh": [
         "trackbed/tests/block-rm-rf.bats",
         "trackbed/tests/confirm-review-responses.bats"
+      ],
+      "trackbed/hooks/conductor-slash-command.sh": [
+        "trackbed/tests/conductor-slash-command.bats"
       ],
       "trackbed/hooks/skill-usage-stats.sh": [
         "trackbed/tests/skill-usage-stats.bats"

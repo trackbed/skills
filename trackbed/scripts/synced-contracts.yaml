@@ -1910,6 +1910,7 @@
       "block-rm-rf": "Blocks destructive file deletion commands and recommends `trash` instead.",
       "confirm-review-responses": "Blocks commits that include protected review artifacts.",
       "skill-usage-stats": "Records local skill usage statistics.",
+      "conductor-slash-command": "Runs a `/trackbed:*` command typed at the start of a Conductor chat's first message, which Claude Code does not expand there.",
       "auto-format": "Auto-formats code after file modifications using detected project formatter.",
       "update-check": "Checks GitHub at most once a day and shows a notice when a newer plugin version is available, then names the new version once after an update."
     }

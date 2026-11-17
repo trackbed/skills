@@ -90,9 +90,9 @@ The plugin needs no other plugin and no MCP server for basic use. Use a current 
 | `git` | Version control | Pre-installed on most systems |
 | `jq` | Safety-hook JSON parsing | `brew install jq` (macOS) / `apt install jq` (Linux) |
 | `python3` | Safety-hook command parsing; finalizing `--visual` report pages | Install Python 3.10+ |
-| `node` | Local skill-usage recording | Install Node.js 18+ |
+| `node` | Local skill-usage recording; running a command typed at the start of a Conductor chat | Install Node.js 18+ |
 
-The enabled safety hooks fail closed when `jq` or Python is unavailable. Without Node.js, the usage-recording hook records a diagnostic and otherwise stays silent. The `update-check` hook uses `curl` and Python file locking, and stays silent when they are unavailable. If hooks cannot run in your environment, disable them with `/trackbed:hooks:toggle`.
+The enabled safety hooks fail closed when `jq` or Python is unavailable. Without Node.js, the usage-recording hook records a diagnostic and otherwise stays silent, and `conductor-slash-command` does nothing. The `update-check` hook uses `curl` and Python file locking, and stays silent when they are unavailable. If hooks cannot run in your environment, disable them with `/trackbed:hooks:toggle`.
 
 ### Optional Tools by Capability
 
@@ -651,6 +651,7 @@ Event handlers defined once in the plugin source and packaged for both hosts. Ea
 | `block-rm-rf` | PreToolUse (Bash) | Blocks destructive file deletion commands and recommends `trash` instead. |
 | `confirm-review-responses` | PreToolUse (Bash) | Blocks commits that include protected review artifacts. |
 | `skill-usage-stats` | PreToolUse (Skill), UserPromptSubmit | Records local skill usage statistics. |
+| `conductor-slash-command` | UserPromptSubmit | Runs a `/trackbed:*` command typed at the start of a Conductor chat's first message, which Claude Code does not expand there. |
 | `auto-format` | PostToolUse (Write\|Edit) | Auto-formats code after file modifications using detected project formatter. |
 | `update-check` | SessionStart (startup) | Checks GitHub at most once a day and shows a notice when a newer plugin version is available, then names the new version once after an update. |
 <!-- END SOURCE-SYNCED HOOK ROWS -->
