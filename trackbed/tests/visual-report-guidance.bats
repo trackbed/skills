@@ -236,7 +236,7 @@ SHAPES = {
     "pr:convention-review": ["findings"],
     "pr:overengineering-review": ["findings"],
     "pr:github-review": ["findings", "plan"],
-    "code:refactor-opportunities": ["findings", "assessment"],
+    "code:refactor-opportunities": ["fixes", "assessment"],
     "code:audit-security": ["findings"],
     "product:review": ["findings"],
     "docs:review": ["findings"],
@@ -259,7 +259,7 @@ for name, expected in SHAPES.items():
     text = pathlib.Path("skills", name, "SKILL.md").read_text()
     line = next((line for line in text.splitlines() if "Synced visual report contract" in line), "")
     tail = line.split("in the run's closing output.", 1)[-1]
-    named = re.findall(r"`(findings|plan|qa|inquiry|assessment)`, from the template `\$\{CLAUDE_PLUGIN_ROOT\}/shared/visual/assets/report-(\w+)\.html`", tail)
+    named = re.findall(r"`(findings|plan|qa|inquiry|assessment|fixes)`, from the template `\$\{CLAUDE_PLUGIN_ROOT\}/shared/visual/assets/report-(\w+)\.html`", tail)
     if [shape for shape, _ in named] != expected:
         problems.append(f"{name}: names {[shape for shape, _ in named]}, expected {expected}")
     for shape, template in named:
@@ -279,7 +279,7 @@ PY
 
 @test "each shape has a template that follows the contract and leads with what its reader came for" {
 	local shape
-	for shape in findings plan qa inquiry assessment; do
+	for shape in findings plan qa inquiry assessment fixes; do
 		run python3 "$SCRIPT" --check "shared/visual/assets/report-$shape.html"
 		[ "$status" -eq 1 ] || {
 			echo "report-$shape.html: $output"
@@ -336,7 +336,19 @@ if 'class="tr-kpis"' in assessment:
 if re.search(r'data-facets="(\S+)', assessment).group(1) != "dimension":
     problems.append("assessment: the first facet is not what was measured")
 
-for shape in ("findings", "plan", "qa", "inquiry", "assessment"):
+fixes = read("fixes")
+for mark in ('data-noun="fix fixes"', 'data-removes="RO-001 RO-002 RO-003"', "<h4>Findings removed</h4>", "<h4>Edit size</h4>", "<h4>Order</h4>"):
+    if mark not in fixes:
+        problems.append(f"fixes lacks {mark}")
+if re.search(r'data-facets="([^"\s]+)', fixes).group(1) != "severity":
+    problems.append("fixes: the first facet is not severity")
+if fixes.index('data-id="FIX-1"') > fixes.index('data-id="FIX-2"'):
+    problems.append("fixes: the fixes are not in recommended order")
+reference = re.search(r'<section data-section id="findings"[^>]*>', fixes)
+if not reference or "data-collapsed" not in reference.group(0) or 'data-triage="off"' not in reference.group(0):
+    problems.append("fixes: the findings by severity must be folded reference")
+
+for shape in ("findings", "plan", "qa", "inquiry", "assessment", "fixes"):
     text = read(shape)
     header = text[text.index("<header data-report-header>") : text.index("</header>")]
     if 'href="#' not in header:
@@ -358,6 +370,8 @@ PY
 		'Is it ready to ship, what was exercised, and what broke?' \
 		'Which questions matter most, and what is the cheapest way to settle each?' \
 		'How does it score, where is it weakest, and what would move the score?' \
+		'Which fix do I make first, and what does each fix remove?' \
+		'The script rejects a fix without the list and a finding listed under two fixes.' \
 		'Never invent content to fill a block.'; do
 		grep -qF -- "$phrase" "$CONTRACT" || {
 			echo "contract lacks: $phrase"

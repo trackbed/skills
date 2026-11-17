@@ -26,9 +26,9 @@
 
 {{Outside PR scope, include: `Special cases: N found; M removed by proposed fixes.` Count distinct cases before filtering and only removals from surviving proposed fixes, including zero counts. Omit this line in PR scope, where category 12 is skipped.}}
 
-{{List fixes in recommended execution order from Phase 3 step 10. Each heading names the coordinated fix, not the problem category. Include every active finding exactly once, including a standalone entry for each ungrouped finding. A fix may differ from the individual suggested fixes when it removes their common cause. For each entry, give its edit size as defined by the Phase 3 Rule of 500 and an explicit automation-candidate mark. Keep dependencies and the reason for this position brief. When nothing is worth changing, write "None." here while retaining the special-case counts outside PR scope. The severity tables below are reference.}}
+{{List fixes in recommended execution order from Phase 3 step 10. Each heading starts with `FIX-N`, numbered in that order, and names the coordinated fix, not the problem category. Include every active finding exactly once, including a standalone entry for each ungrouped finding. A fix may differ from the individual suggested fixes when it removes their common cause. For each entry, give its edit size as defined by the Phase 3 Rule of 500 and an explicit automation-candidate mark. Keep dependencies and the reason for this position brief. When nothing is worth changing, write "None." here while retaining the special-case counts outside PR scope. The severity tables below are reference.}}
 
-### 1. {{Fix to make}}
+### FIX-1: {{Fix to make}}
 
 {{Plain statement of what is wrong and how this fix removes the shared cause.}}
 

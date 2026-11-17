@@ -34,7 +34,7 @@ NOTICE = (
 )
 SEVERITIES = ("critical", "high", "medium", "low", "suggestion")
 # What a page is for decides how it is laid out. Each shape has its own template and its own required part.
-SHAPES = ("findings", "plan", "qa", "inquiry", "assessment")
+SHAPES = ("findings", "plan", "qa", "inquiry", "assessment", "fixes")
 SHAPE_PARTS = {
     "assessment": ("data-scorecard", "an assessment page needs its scores in an element marked data-scorecard"),
     "qa": ("data-tested", "a qa page needs what was tested in an element marked data-tested"),
@@ -74,6 +74,7 @@ RESERVED_FACETS = frozenset(
         "id",
         "loc",
         "producer",
+        "removes",
         "report",
         "report-header",
         "root",
@@ -145,6 +146,8 @@ class PageParser(HTMLParser):
         self._parts: set[str] = set()
         self._ids: set[str] = set()
         self._entry_ids: set[str] = set()
+        # On a fixes page: which fix entry already names each finding it removes.
+        self._removed_by: dict[str, str] = {}
 
     # ---------- source positions ----------
 
@@ -373,12 +376,41 @@ class PageParser(HTMLParser):
         elif entry_id in self._entry_ids:
             self._problem(f'entry id "{entry_id}" is used more than once')
         self._entry_ids.add(entry_id)
+        if self._shape == "fixes":
+            self._check_removes(entry_id or "?", attrs)
         severity = attrs.get("data-severity")
         if severity is not None and severity not in SEVERITIES:
             self._problem(
                 f'entry {entry_id or "?"} has data-severity="{severity}"; use one of {", ".join(SEVERITIES)} '
                 "and put the report's own label in data-severity-label"
             )
+
+    def _check_removes(self, entry_id: str, attrs: Attrs) -> None:
+        """A fix the reader decides on names the findings it removes, and each finding belongs to one fix."""
+        if attrs.get("data-triage") == "off" or any(node.attrs.get("data-triage") == "off" for node in self._stack):
+            return
+        findings = attrs.get("data-removes", "").split()
+        if not findings:
+            self._problem(
+                f"fix {entry_id} needs data-removes with the IDs of the findings it removes, such as "
+                'data-removes="RO-001 RO-002"'
+            )
+            return
+        for finding in findings:
+            if not ENTRY_ID_RE.match(finding):
+                self._problem(
+                    f'fix {entry_id} has "{finding}" in data-removes; separate finding IDs with spaces, such as '
+                    'data-removes="RO-001 RO-002"'
+                )
+            elif self._removed_by.get(finding) == entry_id:
+                self._problem(f"fix {entry_id} lists {finding} twice in data-removes")
+            elif finding in self._removed_by:
+                self._problem(
+                    f"fix {entry_id} removes {finding}, which fix {self._removed_by[finding]} already removes; "
+                    "a finding belongs to one fix"
+                )
+            else:
+                self._removed_by[finding] = entry_id
 
     def finish(self) -> Scan:
         self.close()

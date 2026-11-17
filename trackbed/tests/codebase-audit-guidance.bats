@@ -358,6 +358,8 @@ assert '## Recommended Refactor Order' not in headings
 assert headings.index('## Fixes') < headings.index('## High Severity')
 PY
 	[ "$status" -eq 0 ]
+	grep -qF '### FIX-1: {{Fix to make}}' "$template"
+	grep -qF '### FIX-2: Inline the label forwarding function' "$example"
 	grep -qF '**Findings removed:**' "$template"
 	grep -qF '**Edit size (lines):**' "$template"
 	grep -qF '**Automation candidate:**' "$template"

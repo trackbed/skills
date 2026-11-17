@@ -18,9 +18,9 @@ PLUGIN = Path(__file__).resolve().parents[2]
 SCRIPT_PATH = PLUGIN / "scripts" / "visual-report.py"
 ASSETS = PLUGIN / "shared" / "visual" / "assets"
 TEMPLATE = ASSETS / "report-findings.html"
-SHAPES = ("findings", "plan", "qa", "inquiry", "assessment")
+SHAPES = ("findings", "plan", "qa", "inquiry", "assessment", "fixes")
 NEEDS_SHAPE = (
-    "<main data-report> needs data-shape, one of findings, plan, qa, inquiry, assessment, as the skill names it"
+    "<main data-report> needs data-shape, one of findings, plan, qa, inquiry, assessment, fixes, as the skill names it"
 )
 
 sys.dont_write_bytecode = True
@@ -58,6 +58,10 @@ ENTRY = '<article data-entry data-id="E-01" data-severity="high"><h3>Title</h3><
 
 def page(body: str = ENTRY, head: str = "", main: str = "") -> str:
     return PAGE.format(body=body, head=head, main=main)
+
+
+def fixes_page(body: str) -> str:
+    return page(body).replace('data-shape="findings"', 'data-shape="fixes"')
 
 
 def problems(source: str) -> list[str]:
@@ -234,6 +238,46 @@ class ContractTests(unittest.TestCase):
         qa = page().replace('data-shape="findings"', 'data-shape="qa"')
         self.assertIn("a qa page needs what was tested in an element marked data-tested", problems(qa))
         self.assertEqual(problems(qa.replace("<h2>Findings</h2>", "<h2>Findings</h2><table data-tested></table>")), [])
+
+    def test_a_fix_names_the_findings_it_removes_and_each_finding_has_one_fix(self) -> None:
+        fix = '<article data-entry data-id="{id}" data-severity="high"{attrs}><h3>Fix</h3><p>Body</p></article>'
+        one = fix.format(id="FIX-1", attrs=' data-removes="RO-001 RO-002"')
+        self.assertEqual(problems(fixes_page(one + fix.format(id="FIX-2", attrs=' data-removes="RO-003"'))), [])
+        self.assertEqual(
+            problems(fixes_page(fix.format(id="FIX-1", attrs=""))),
+            [
+                "fix FIX-1 needs data-removes with the IDs of the findings it removes, such as "
+                'data-removes="RO-001 RO-002"'
+            ],
+        )
+        self.assertEqual(
+            problems(fixes_page(one + fix.format(id="FIX-2", attrs=' data-removes="RO-002 RO-004"'))),
+            ["fix FIX-2 removes RO-002, which fix FIX-1 already removes; a finding belongs to one fix"],
+        )
+        self.assertEqual(
+            problems(fixes_page(fix.format(id="FIX-1", attrs=' data-removes="RO-001 RO-001"'))),
+            ["fix FIX-1 lists RO-001 twice in data-removes"],
+        )
+        self.assertEqual(
+            problems(fixes_page(fix.format(id="FIX-1", attrs=' data-removes="RO-001, RO-002"'))),
+            [
+                'fix FIX-1 has "RO-001," in data-removes; separate finding IDs with spaces, such as '
+                'data-removes="RO-001 RO-002"'
+            ],
+        )
+        # Reference entries are not fixes, whether marked themselves or by their section, and other shapes never
+        # need the list.
+        reference = fix.format(id="E-01", attrs=' data-triage="off"')
+        self.assertEqual(problems(fixes_page(one + reference)), [])
+        folded = '<section data-section id="ref" data-triage="off"><h2>Ref</h2>' + fix.format(id="E-02", attrs="")
+        self.assertEqual(problems(fixes_page(one + "</section>" + folded)), [])
+        self.assertEqual(problems(page(fix.format(id="CR-001", attrs=""))), [])
+        self.assertIn(
+            'facet "removes" is a reserved name; choose another', problems(page(main='data-facets="removes"'))
+        )
+
+    def test_a_fixes_page_with_nothing_worth_changing_passes(self) -> None:
+        self.assertEqual(problems(fixes_page("<p>Nothing worth changing in the full scan.</p>")), [])
 
     def test_the_entry_noun_is_a_singular_and_a_plural(self) -> None:
         self.assertEqual(problems(page(main='data-noun="plan plans"')), [])

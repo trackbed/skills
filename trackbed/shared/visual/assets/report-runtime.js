@@ -23,6 +23,7 @@
    *   title: string,
    *   facets: Record<string, string>,
    *   location: string,
+   *   removes?: string[],
    *   text: string,
    *   order: number,
    *   triageable: boolean,
@@ -356,6 +357,7 @@
         lines.push(
           `- ${entry.id}${severity} ${oneLine(entry.title)}${location}`,
         );
+        pushRemoves(lines, entry);
         const note = oneLine(triage[entry.id].note);
         if (note) lines.push(`  Note: ${note}`);
       }
@@ -367,6 +369,7 @@
       );
       for (const entry of dismissed) {
         lines.push(`- ${entry.id} ${oneLine(entry.title)}`);
+        pushRemoves(lines, entry);
         const note = oneLine(triage[entry.id].note);
         if (note) lines.push(`  Reason: ${note}`);
       }
@@ -378,6 +381,17 @@
       );
     }
     return `${lines.join("\n")}\n`;
+  }
+
+  /**
+   * A fix names the findings it removes, so the follow-up skill, which works on
+   * finding IDs, knows which findings the decision covers.
+   * @param {string[]} lines
+   * @param {EntryData} entry
+   */
+  function pushRemoves(lines, entry) {
+    if (entry.removes?.length)
+      lines.push(`  Removes: ${entry.removes.join(", ")}`);
   }
 
   /**
@@ -614,7 +628,8 @@
       const text =
         `${id} ${Object.values(facets).join(" ")} ${node.dataset.severityLabel ?? ""} ${node.textContent ?? ""}`.toLowerCase();
       const triageable = !node.closest('[data-triage="off"]');
-      return { id, title, facets, location, text, order, triageable };
+      const removes = (node.dataset.removes ?? "").split(/\s+/).filter(Boolean);
+      return { id, title, facets, location, removes, text, order, triageable };
     });
     const triageable = entries.filter((entry) => entry.triageable);
     // Filters and the summary use the report's own word for a severity level.

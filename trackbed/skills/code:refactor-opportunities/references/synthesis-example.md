@@ -11,7 +11,7 @@ Read this before Phase 3 step 8. This fictional seed-library scan shows how to r
 
 ## Fixes in recommended order
 
-### 1. Model packet readiness in the stock ledger
+### FIX-1: Model packet readiness in the stock ledger
 
 Availability is calculated differently by checkout, the catalog, and returns. Give the stock ledger responsibility for packet readiness: returned packets enter inspection, and only inspected packets become available. Have checkout and the catalog read availability from that ledger. This removes the need for three separate checks; adding their suggested patches would preserve the disagreement.
 
@@ -20,7 +20,7 @@ Availability is calculated differently by checkout, the catalog, and returns. Gi
 - **Automation candidate:** no.
 - **Order:** first, because it corrects the shared readiness model and removes the highest-severity problem. Verify that a returned packet stays unavailable until inspection passes.
 
-### 2. Inline the label forwarding function at its only caller
+### FIX-2: Inline the label forwarding function at its only caller
 
 The label helper adds a hop without owning behavior. Inline the formatter call and remove the helper.
 

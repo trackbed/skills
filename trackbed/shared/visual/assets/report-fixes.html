@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Refactor Opportunities · REFACTOR_OPPORTUNITIES_OVERVIEW.md</title>
+    <!--
+      Authoring template for the --visual report style, shape "fixes": a report that groups
+      its findings under the fixes that remove them, whose reader asks which fix to make
+      first and what each fix removes. The contract is in
+      shared/visual/references/visual-report.md; this file shows it applied to a small
+      refactor scan of a fictional seed library. Replace every value: nothing here is
+      boilerplate to keep.
+
+      One trackbed-followup per command the reader can paste the triage prompt into.
+    -->
+    <meta
+      name="trackbed-followup"
+      content="/trackbed:code:breakdown-findings"
+    />
+    <meta
+      name="trackbed-followup"
+      content="/trackbed:linear:breakdown-findings"
+    />
+    <!-- Leave both runtime elements empty. scripts/visual-report.py fills them. -->
+    <style data-trackbed-runtime></style>
+  </head>
+  <body>
+    <main
+      data-report
+      data-shape="fixes"
+      data-noun="fix fixes"
+      data-producer="trackbed:code:refactor-opportunities full"
+      data-source="REFACTOR_OPPORTUNITIES_OVERVIEW.md"
+      data-generated="2026-01-15T14:02:00+0100"
+      data-commit="1a2b3c4d5e6f"
+      data-root="/Users/example/seed-library"
+      data-facets="severity"
+    >
+      <!-- The verdict, what stands in the way, and the next step, before anything else.
+           Name each fix by what it changes and link it to its entry. -->
+      <header data-report-header>
+        <h1>Refactor Opportunities</h1>
+        <p>
+          Two fixes remove all four findings. Start with
+          <a href="#entry-FIX-1"
+            >modelling packet readiness in the stock ledger</a
+          >: it removes the one high-severity problem and the two that share its
+          cause. <a href="#entry-FIX-2">Inlining the label helper</a> is
+          independent and small.
+        </p>
+      </header>
+
+      <!-- Explain the labels this report uses, in its own terms. Closed by default. -->
+      <details class="tr-legend">
+        <summary>How to read this report</summary>
+        <dl class="tr-fields">
+          <dt>Fix</dt>
+          <dd>
+            One change that removes the findings listed under it. Fixes are in
+            the order to make them.
+          </dd>
+          <dt>Severity</dt>
+          <dd>
+            A fix takes the severity of the most severe finding it removes.
+          </dd>
+          <dt>Edit size</dt>
+          <dd>The lines the fix would edit, call sites included.</dd>
+          <dt>Automation candidate</dt>
+          <dd>
+            A fix over 500 lines, better made with a codemod or batch refactor
+            than by hand.
+          </dd>
+        </dl>
+      </details>
+
+      <div class="tr-kpis">
+        <div class="tr-kpi"><b>2</b><span>fixes</span></div>
+        <div class="tr-kpi"><b>4</b><span>findings removed</span></div>
+        <div class="tr-kpi"><b>0</b><span>automation candidates</span></div>
+      </div>
+
+      <!-- One section holds the fixes, in the report's recommended order. Each entry is one fix;
+           data-removes lists the IDs of the findings it removes, and no finding is under two fixes. -->
+      <section data-section id="fixes">
+        <h2>Fixes in recommended order</h2>
+        <article
+          data-entry
+          data-id="FIX-1"
+          data-severity="high"
+          data-removes="RO-001 RO-002 RO-003"
+        >
+          <!-- Title: the change to make. Then where. Then what is wrong and how the fix removes it. -->
+          <h3>Model packet readiness in the stock ledger</h3>
+          <p data-where>
+            <code data-loc>loans/checkout.ts:24</code> and
+            <code data-loc>catalog/availability.ts:38</code>
+          </p>
+          <p>
+            Checkout, the catalog, and returns each decide on their own whether
+            a returned packet is available, and they disagree. Giving the stock
+            ledger that decision removes all three checks; patching each one
+            would keep the disagreement.
+          </p>
+          <h4>Findings removed</h4>
+          <ul>
+            <li>
+              <code>RO-001</code> (high): checkout lends a returned packet
+              before inspection, in <code data-loc>loans/checkout.ts:24</code>
+            </li>
+            <li>
+              <code>RO-002</code> (medium): the catalog advertises uninspected
+              packets, in <code data-loc>catalog/availability.ts:38</code>
+            </li>
+            <li>
+              <code>RO-003</code> (medium): returns needs an inspection
+              exception, in <code data-loc>returns/accept.ts:51</code>
+            </li>
+          </ul>
+          <h4>Edit size</h4>
+          <p>
+            240 lines, including the ledger, all three callers, and their tests.
+            Not an automation candidate.
+          </p>
+          <h4>Order</h4>
+          <p>
+            First, because it corrects the shared readiness model and removes
+            the highest-severity problem. Verify that a returned packet stays
+            unavailable until inspection passes.
+          </p>
+        </article>
+        <article
+          data-entry
+          data-id="FIX-2"
+          data-severity="low"
+          data-removes="RO-004"
+        >
+          <h3>Inline the label forwarding function at its only caller</h3>
+          <p data-where><code data-loc>catalog/label.ts:12</code></p>
+          <p>
+            The label helper adds a hop without owning any behavior. Call the
+            formatter directly and remove the helper.
+          </p>
+          <h4>Findings removed</h4>
+          <ul>
+            <li>
+              <code>RO-004</code> (low): a forwarding function with no
+              responsibility of its own, in
+              <code data-loc>catalog/label.ts:12</code>
+            </li>
+          </ul>
+          <h4>Edit size</h4>
+          <p>
+            8 lines, including its caller and import. Not an automation
+            candidate.
+          </p>
+          <h4>Order</h4>
+          <p>
+            Independent of the ledger fix; second because it has less impact.
+          </p>
+        </article>
+      </section>
+
+      <!-- Reference material comes last, in as few sections as read well. Both carry
+           data-triage="off" (nothing here is a decision) and data-collapsed (starts folded).
+           The severity tables keep every column the report gives each finding. -->
+      <section data-section id="findings" data-triage="off" data-collapsed>
+        <h2>Findings by severity</h2>
+        <table data-sortable>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Severity</th>
+              <th>Category</th>
+              <th>Location</th>
+              <th>Description</th>
+              <th>Suggested fix</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>RO-001</td>
+              <td>High</td>
+              <td>Correctness</td>
+              <td><code data-loc>loans/checkout.ts:24</code></td>
+              <td>
+                Checks total quantity without checking whether inspection
+                passed.
+              </td>
+              <td>Add a pending-inspection check.</td>
+            </tr>
+            <tr>
+              <td>RO-002</td>
+              <td>Medium</td>
+              <td>Correctness</td>
+              <td><code data-loc>catalog/availability.ts:38</code></td>
+              <td>Counts returned packets as available before inspection.</td>
+              <td>Subtract the inspection queue.</td>
+            </tr>
+            <tr>
+              <td>RO-003</td>
+              <td>Medium</td>
+              <td>Special case</td>
+              <td><code data-loc>returns/accept.ts:51</code></td>
+              <td>
+                Marks every returned packet available, with an exception for
+                packets needing inspection.
+              </td>
+              <td>Add another status flag.</td>
+            </tr>
+            <tr>
+              <td>RO-004</td>
+              <td>Low</td>
+              <td>Structural</td>
+              <td><code data-loc>catalog/label.ts:12</code></td>
+              <td>
+                Forwards its argument unchanged to the label formatter and has
+                one caller.
+              </td>
+              <td>Inline it.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- One section gathers the report's remaining reference sections as labeled blocks. -->
+      <section data-section id="about" data-triage="off" data-collapsed>
+        <h2>About this scan</h2>
+        <h4>Special cases</h4>
+        <p>1 found; 1 removed by proposed fixes.</p>
+        <h4>Report provenance</h4>
+        <p>
+          Full scan of 211 files at commit <code>1a2b3c4d5e6f</code>, clean
+          working tree.
+        </p>
+        <h4>Nothing found</h4>
+        <p>
+          The scan found no deepening candidates and no implicit state machines.
+        </p>
+      </section>
+    </main>
+    <script data-trackbed-runtime></script>
+  </body>
+</html>
