@@ -1,6 +1,6 @@
 # Hook Reference
 
-Hooks run on their own around the host's work: before a shell command, after a file edit, when a session starts. The [hook table](../../README.md#hooks) lists all five with the event each one listens to. This page covers how to switch a hook off and what each one does in detail.
+Hooks run on their own around the host's work: before a shell command, after a file edit, when a session starts. The [hook table](../../README.md#hooks) lists all six with the event each one listens to. This page covers how to switch a hook off and what each one does in detail.
 
 | Hook | What it does for you |
 | --- | --- |
@@ -9,6 +9,7 @@ Hooks run on their own around the host's work: before a shell command, after a f
 | [`auto-format`](#auto-format) | Formats a file after the agent edits it, with your project's formatter. |
 | [`update-check`](#update-check) | Tells you when a newer plugin version is out. |
 | [`skill-usage-stats`](#skill-usage-stats) | Records which skills you use, locally. |
+| [`conductor-slash-command`](#conductor-slash-command) | Runs a `/trackbed:*` command you type at the start of a new Conductor chat. |
 
 ## Toggling Hooks
 
@@ -330,6 +331,20 @@ Two limits follow from these rules:
 JSON rows have `skill`, `runs`, `runsWithTranscript`, `runsWithDecisionRequest`, `decisionRequests`, `requestsPerRun`, `byKind` (`kind`, `dialog`, `message`), `dialogs` (`total`, `answered`, `cancelled`, `unanswered`), `messages` (`total`, `opensWithDecision`, and `words` and `replyWords` with `median`, `p90`, and `max`), `limitStalls`, and `reportFollowUps`. `runs` counts every selected run. `runsWithTranscript` counts runs whose transcript was read and holds the invoking message, and every number after it comes from those runs.
 
 `decisions` follows the same diagnostics and `--strict` contract as `cost`. Stdout carries only skill names and counts. Prompts, questions, replies, and paths stay off stdout; stderr diagnostics keep the `file=<path>` format.
+
+## conductor-slash-command
+
+Conductor puts a `<system_instruction>` block in front of the first message of every chat. That message no longer starts with `/`, so Claude Code does not expand a `/trackbed:*` command typed at its start. The model only sees the text. When it then calls the Skill tool, a skill that only you can start, such as `/trackbed:pr:github-review`, may be refused. Later messages in the chat are not affected.
+
+This hook runs on `UserPromptSubmit`. It acts only when all of these hold:
+
+- The message starts with Conductor's `<system_instruction>` block.
+- Your own text, after the last such block, starts with `/trackbed:<skill>`. Both spellings Claude Code accepts work: the skill name, such as `pr:github-review`, and its hyphenated id, such as `pr-github-review`.
+- The name matches a skill you can invoke in Claude Code: one without `user-invocable: false`, and whose `trackbed-platforms` includes `claude-code` when set.
+
+It then adds context that tells the model to read that skill's `SKILL.md` and follow it as if the command had expanded. The context names the skill's base directory, the value of `${CLAUDE_PLUGIN_ROOT}`, and the arguments you typed after the command, and tells the model not to call the Skill tool. The skill text is not copied into the context, because hook context is capped in size and most skills exceed it.
+
+Every other prompt gets `{}`. Prompts that do not contain both `</system_instruction>` and `/trackbed:` return before Node.js starts. The hook is fail-open: without Node.js, or when the payload cannot be read, it returns `{}`. It does nothing in the converted Codex plugin, which reads `$trackbed:*` mentions anywhere in a message.
 
 ## Codex Hook Command Support
 

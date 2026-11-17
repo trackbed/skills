@@ -8,7 +8,7 @@ Use it to switch one of this plugin's hooks off or back on, or to see which hook
 | --- | --- |
 | `status` | List every hook and whether it is enabled. |
 | `reset` | Enable every hook again. |
-| `<hook-name>` | The hook to change: `block-rm-rf`, `confirm-review-responses`, `skill-usage-stats`, `auto-format`, or `update-check`. With nothing after the name, the hook flips to the opposite state. |
+| `<hook-name>` | The hook to change: `block-rm-rf`, `confirm-review-responses`, `skill-usage-stats`, `conductor-slash-command`, `auto-format`, or `update-check`. With nothing after the name, the hook flips to the opposite state. |
 | `[enable\|disable]` | After a hook name, turn that hook on or off instead of flipping it. |
 
 ## Examples

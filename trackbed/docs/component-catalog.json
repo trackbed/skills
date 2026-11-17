@@ -556,6 +556,11 @@
       "path": "trackbed/hooks/block-rm-rf.sh"
     },
     {
+      "name": "conductor-slash-command",
+      "event": "UserPromptSubmit",
+      "path": "trackbed/hooks/conductor-slash-command.sh"
+    },
+    {
       "name": "confirm-review-responses",
       "event": "PreToolUse (Bash)",
       "path": "trackbed/hooks/confirm-review-responses.sh"
