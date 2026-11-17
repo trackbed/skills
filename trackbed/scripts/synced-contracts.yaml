@@ -110,7 +110,7 @@
     },
     {
       "name": "review-producer-conductor-diff-comments",
-      "extract_regex": "(?s)Synced Conductor diff-comment contract \\(keep aligned across review producers\\):\\s*## Producer values.*?## Synced contract\\s*(Treat Conductor comments as an optional projection.*?without weakening or replacing the canonical review result\\.)",
+      "extract_regex": "(?s)Synced Conductor diff-comment contract \\(keep aligned across review producers\\):\\s*## Producer values.*?## Synced contract\\s*(Treat Conductor comments as an optional projection.*?without weakening or replacing the canonical review result\\.)\\s*\\Z",
       "inventory": {
         "glob": "trackbed/skills/**/*.md",
         "marker": "Synced Conductor diff-comment contract (keep aligned across review producers):"
