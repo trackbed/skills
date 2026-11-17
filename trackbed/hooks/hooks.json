@@ -38,6 +38,14 @@
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/skill-usage-stats.sh"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/conductor-slash-command.sh"
+          }
+        ]
       }
     ],
     "PostToolUse": [
