@@ -50,11 +50,14 @@ The fields you use:
 - `needs.ai_feedback` and `review.ai_threads`: unresolved inline threads whose reviewer comments all come from bots or apps and that the Pull Request author has not answered since. `review.human_threads` counts open threads with feedback from a person.
 - `in_shape`: true when no need is set.
 
-Require `local.relation` to be `equal`, because the checks and threads describe the published head, not this checkout. Otherwise stop before any pass and say what to do:
+Require `local.relation` to be `equal`, because the checks and threads describe the published head, not this checkout. Otherwise stop before any pass, name the Pull Request branch from `pr.head`, and say what to do:
 
-- `ahead`: push the local commits first.
-- `behind` or `unknown`: update the checkout to the Pull Request head.
-- `diverged`: reconcile the local and published histories.
+- `ahead`: this checkout has commits the Pull Request branch lacks. Push them first.
+- `behind`: the Pull Request branch has commits this checkout lacks, such as a merge from GitHub's **Update branch** button. Pull them first.
+- `unknown`: this checkout does not have the Pull Request branch's head commit. Fetch the branch, then pull it, or reset to it if the branch was force-pushed, such as by GitHub's **Update with rebase**.
+- `diverged`: this checkout and the Pull Request branch each have commits the other lacks. Reconcile them first.
+
+The relation compares this checkout with the Pull Request branch, never with the target branch, so never describe one of these stops as being behind the target. For `behind` or `unknown`, add that the Pull Request does not need updating from its target branch first, because the branch pass rebases it.
 
 When `in_shape` is true, skip to Step 6: no pass runs.
 
