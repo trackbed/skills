@@ -8,6 +8,16 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 
 ## Unreleased
 
+## [1.1.1] - 2026-11-18
+
+### Added
+
+- Attach before and after screenshots to PRs (#1232)
+
+### Changed
+
+- Add agent prompts to install or upgrade both hosts (#1231)
+
 ## [1.1.0] - 2026-11-17
 
 ### Added
@@ -1379,6 +1389,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 
 - Preserve skill resources in conversion (#222)
 
+[1.1.1]: https://github.com/trackbed/skills/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/trackbed/skills/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/trackbed/skills/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/trackbed/skills/compare/v0.91.0...v1.0.0
