@@ -52,3 +52,5 @@ Rejected because repositories with an established, dependency-ready local develo
 ## Deprecation
 
 On 2026-10-08, repository maintainers removed `kramme:visual:demo-reel`, the capture child this decision delegates to. `trackbed:pr:generate-description` no longer accepts `--visual`, `--for-pr-create`, or `--start-if-easy`, and `trackbed:pr:create` no longer starts a local environment, captures evidence, or passes `gh pr create --attach`. This decision no longer applies and its scheduled safety review is void. The removal is recorded in [the skill catalog shape policy](2026-07-29-skill-catalog-shape.md).
+
+On 2026-11-18, [the screenshot evidence decision](2026-11-18-pr-screenshot-evidence.md) brought capture and attachment back without a separate capture skill.
