@@ -605,6 +605,14 @@
       "producer": "kramme:visual:demo-reel"
     },
     {
+      "id": "pr-evidence",
+      "path": ".trackbed/pr-evidence/",
+      "type": "dir",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:pr:generate-description"
+    },
+    {
       "id": "verify-understanding",
       "path": ".context/verify-understanding/",
       "type": "dir",

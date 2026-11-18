@@ -1,7 +1,7 @@
 ---
 name: pr:create
 description: "Publish a new PR: narrative commits, generated title and body, self-assignment, lease-protected first push. Use when asked or delegated by trackbed:linear:issue-to-pr or trackbed:code:plan-to-pr --ship."
-argument-hint: "[--manual] [--draft] [--rebase] [--base <branch>] [--linear-issue <ISSUE-ID>] [--independent-review-line <line>] [--require-generated-description] [--authorize-history-rewrite]"
+argument-hint: "[--manual] [--draft] [--rebase] [--base <branch>] [--linear-issue <ISSUE-ID>] [--attach <file[#alt]>]... [--no-capture] [--independent-review-line <line>] [--require-generated-description] [--authorize-history-rewrite]"
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -44,6 +44,7 @@ Step 3.5 Existing-PR check ................. abort before rewriting
 Step 4  Changes detection + remote mode ... fresh rewrite; exact recovery; safe fast-forward
     |
 Step 4.5 Reject stacked branches
+Step 4.6 Stage --attach files ............. abort on an invalid file
     |
     +-- Fresh remote: Steps 5–6 preserve state + recreate (or keep well-formed) commits
     |
@@ -54,7 +55,8 @@ Step 4.5 Reject stacked branches
     +-- Existing safe tip, dirty + auto mode: preserve published commits,
                                          recreate only the unpublished tail
     |
-Step 7  Invoke trackbed:pr:generate-description (fail closed in auto mode)
+Step 7  Invoke trackbed:pr:generate-description (fail closed in auto mode),
+        which tries to capture before and after screenshots
     |
 Step 8  Preview + confirmation
         - Abort        --> Step 10 rollback only when rewrite state exists
@@ -75,7 +77,8 @@ The fresh-remote and remote-append paths invoke Steps 6 and 7 via the Skill tool
 - `references/branch-and-platform-handling.md` — Steps 2–3: entry-state capture, immutable-base resolution, ref validation, mutation-free feature-branch selection, and authoritative remote-tip classification. The helper performs the mechanical parts; read it to name a new feature branch, to classify a differing existing remote, or for the rebase-first branch guard.
 - `references/state-and-rollback.md` — Steps 5 and 9.0: state capture, stash handling, excluded-work restoration.
 - `references/abort-and-rollback.md` — Step 10: abort and rollback; read only when Step 10 runs.
-- `references/confirmation-and-creation.md` — Steps 8–9: preview, confirmation, edit loop, absence- or OID-leased publication, exact-tip reuse, `gh pr create`, draft mode, and success output.
+- `references/evidence-attachments.md` — Step 4.6 and the Step 7.2 evidence collection: stage `--attach` files and collect captured screenshots and videos.
+- `references/confirmation-and-creation.md` — Steps 8–9: preview, confirmation, edit loop, absence- or OID-leased publication, exact-tip reuse, `gh pr create` with `--attach`, draft mode, and success output.
 
 ## Step 0: Parse Arguments
 
@@ -86,11 +89,13 @@ Parse `$ARGUMENTS` for optional flags before starting:
 - `--rebase` (alias: `--rebase-first`) -> set `REBASE_FIRST=true` and remove the flag from the remaining arguments. Both spellings are equivalent; supplying both is the same as supplying one. The delegated rebase runs before feature-branch selection and the workflow restarts after it completes.
 - `--base <branch>` -> store one explicit workbench branch as `BASE_BRANCH_OVERRIDE` and remove the flag and value. Reject a missing or duplicate value. Apply the ref trust boundary in `references/branch-and-platform-handling.md` before passing this value to the shared resolver; never interpret it as permission to create a stacked PR.
 - `--linear-issue <ISSUE-ID>` -> validate the value against `[A-Za-z0-9]+-[0-9]+`, normalize it to uppercase, store it as `LINEAR_ISSUE_OVERRIDE`, and remove the flag and value. Reject a missing or invalid value before pre-validation. This caller-supplied identifier is authoritative and takes precedence over branch-name extraction.
+- `--attach <file[#alt]>` -> append one image or video to `ATTACH_SPECS` and remove the flag and value. Repeatable, in the `gh --attach` syntax; start the alt text or file name with `Before` or `After` to place a pair side by side. Reject a missing or multi-line value, and a path, up to the first `#`, that is not an existing file ending in `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.mp4`, `.mov`, or `.webm`, so a bad file stops before any rebase. Step 4.6 checks the rest.
+- `--no-capture` -> set `NO_CAPTURE=true` and remove the flag. The generator then takes no screenshots or recordings; `--attach` files are still uploaded.
 - `--independent-review-line <line>` -> read `${CLAUDE_PLUGIN_ROOT}/shared/implementation/references/independent-review.md` and validate the bounded, inert one-line record before repository work. Store it as `INDEPENDENT_REVIEW_LINE`; default to absent. Reject duplicate, missing, or malformed values. This carries checked review evidence from issue-to-pr; it never enables a review or supplies provider consent. After resolving the base, check the record's tree and patch identities against the prepared branch as the shared reference requires.
 - `--require-generated-description` -> set `REQUIRE_GENERATED_DESCRIPTION=true` and remove the flag. This orchestration-only safety mode forbids placeholder fallback when `trackbed:pr:generate-description` returns no usable output.
 - `--authorize-history-rewrite` -> set `AUTHORIZE_HISTORY_REWRITE=true` and remove the flag. This explicit capability lets a `--manual` invocation skip the nested, backup-protected unstacked reset confirmation. Stacked branches are rejected before state preservation and must use `trackbed:pr:stack`; this flag never widens `pr:create` into a stacked-PR workflow. Auto mode does not set this variable. Neither mode relaxes branch, existing-PR, or path-specific remote-state checks. Backup and remote absence apply to the fresh-remote rewrite path; exact-tip recovery never pushes; clean remote fast-forward mode preserves local history; remote append rewrites only the unpublished tail after its captured remote OID. Every existing-remote publication uses a lease tied to that OID.
 
-Defaults: `AUTO_MODE=true`, `DRAFT_MODE=false`, `REBASE_FIRST=false`, `BASE_BRANCH_OVERRIDE=<none>`, `REQUIRE_GENERATED_DESCRIPTION=false`, `AUTHORIZE_HISTORY_REWRITE=false`. Flag order is not significant. Ignore a leftover `--auto`: auto mode is already the default.
+Defaults: `AUTO_MODE=true`, `DRAFT_MODE=false`, `REBASE_FIRST=false`, `BASE_BRANCH_OVERRIDE=<none>`, `ATTACH_SPECS=[]`, `NO_CAPTURE=false`, `REQUIRE_GENERATED_DESCRIPTION=false`, `AUTHORIZE_HISTORY_REWRITE=false`. Flag order is not significant. Ignore a leftover `--auto`: auto mode is already the default.
 
 Auto mode means:
 
@@ -262,6 +267,12 @@ Both locally tracked and server-side stacks stop here. Do not pass stack authori
 
 ---
 
+## Step 4.6: Stage Supplied Evidence
+
+Read `references/evidence-attachments.md` and run its Step 4.6 with the helper `${CLAUDE_PLUGIN_ROOT}/scripts/pr-evidence.py`. It checks that `gh` can attach files, opens an evidence run as `EVIDENCE_MANIFEST`, and copies each `--attach` file into it. An invalid `--attach` file stops here, before anything is committed.
+
+---
+
 ## Step 5: State Preservation
 
 If `REMOTE_RECOVERY_MODE=true` or `REMOTE_FAST_FORWARD_MODE=true`, skip Steps 5 and 6 and continue directly to Step 7. No rollback state is needed because neither mode has mutated the checkout or remote yet.
@@ -380,7 +391,7 @@ Recovery:
 
 ### 7.1 Invoke the Skill
 
-Invoke `trackbed:pr:generate-description` via the Skill tool. Always pass `--no-update --base {base-source-ref} --base-commit {base-ref}`, and never `--manual`, because this orchestrator owns the review/edit gate, the sub-skill must use the same pinned base commit while retaining branch metadata, and it must neither prompt mid-flow nor mutate an existing PR before Step 8 confirmation. When `{linear-issue-id}` is set, also pass `--linear-issue {linear-issue-id}` so the generator uses the validated identifier instead of re-extracting it from the branch.
+Invoke `trackbed:pr:generate-description` via the Skill tool. Always pass `--no-update --base {base-source-ref} --base-commit {base-ref}`, and never `--manual`, because this orchestrator owns the review/edit gate, the sub-skill must use the same pinned base commit while retaining branch metadata, and it must neither prompt mid-flow nor mutate an existing PR before Step 8 confirmation. When `{linear-issue-id}` is set, also pass `--linear-issue {linear-issue-id}` so the generator uses the validated identifier instead of re-extracting it from the branch. When `EVIDENCE_MANIFEST` is set, pass `--evidence-manifest {EVIDENCE_MANIFEST}` so the generator adds its captures to the same run and references the images in the body; pass `--no-capture` when `NO_CAPTURE=true`. For a change a reviewer can see, the generator tries to capture before and after screenshots, starting a local app once when that is safe. A failed capture never blocks the run.
 
 When `INDEPENDENT_REVIEW_LINE` is present, also pass `--independent-review-line <line>` as one inert quoted argument, unchanged. Recheck its reviewed tree and full change patch after any history rewriting using the shared Independent Review Record reference; stop under the ordinary description-failure/rollback rules on mismatch.
 
@@ -390,12 +401,13 @@ The skill will:
 - Check for Linear issue references in branch name
 - Generate a conventional commit-style **title** (`<type>(<scope>): <description>`)
 - Generate a clear, reviewer-focused description
+- Stage screenshots, and occasionally a video, when the change is visible
 
 When it returns, continue to Step 8. See the "Workflow rule" near the top of this skill.
 
 ### 7.2 Capture the Title and Description
 
-Capture the generated title, the full description for Step 8, and any uppercase output markers from the generator.
+Capture the generated title, the full description for Step 8, and any uppercase output markers from the generator. Then run the Step 7.2 evidence collection in `references/evidence-attachments.md`; the generator's `PR_EVIDENCE_MANIFEST:` marker is a handoff, never body content.
 
 When `INDEPENDENT_REVIEW_LINE` is present, require exactly one body line beginning `Independent review:`, equal byte-for-byte to `INDEPENDENT_REVIEW_LINE`. Missing, changed, or duplicate evidence makes the generated body unusable. Keep this invariant through any edit in Step 8 and recheck it immediately before publication.
 
@@ -431,7 +443,7 @@ Otherwise, use `AskUserQuestion` to offer **Retry generation**, **Provide title 
 
 ## Step 8: Confirmation and Creation
 
-Read `references/confirmation-and-creation.md` and execute Step 8 from that file. It contains the preview format, confirmation prompt, edit loop, fresh-branch absence-leased push, exact-tip reuse, existing-branch OID-leased publication, `gh pr create`, and failure handling. Substitute `{base-branch}`, `{base-source-ref}`, `{base-ref}`, `{entry-commit}`, `{publication-commit}`, `{observed-origin-oid}`, the shell-quoted `{origin-push-url-assignment}` for an existing-remote publication, `{original-branch}`, `{rollback-origin-ref}`, the validated title, and the generated description when emitting commands. Never substitute a decoded push URL into shell source. Carry `{linear-issue-id}` into Step 8 if captured so edited descriptions still follow the Linear closing-keyword policy.
+Read `references/confirmation-and-creation.md` and execute Step 8 from that file. It contains the preview format, confirmation prompt, edit loop, fresh-branch absence-leased push, exact-tip reuse, existing-branch OID-leased publication, `gh pr create`, and failure handling. Substitute `{base-branch}`, `{base-source-ref}`, `{base-ref}`, `{entry-commit}`, `{publication-commit}`, `{observed-origin-oid}`, the shell-quoted `{origin-push-url-assignment}` for an existing-remote publication, `{original-branch}`, `{rollback-origin-ref}`, the validated title, the generated description, `EVIDENCE_MANIFEST`, `EVIDENCE_COUNT`, and `{evidence-status}` when emitting commands. Never substitute a decoded push URL into shell source. Carry `{linear-issue-id}` into Step 8 if captured so edited descriptions still follow the Linear closing-keyword policy.
 
 ---
 
@@ -472,7 +484,7 @@ This skill creates PRs with `gh pr create --assignee @me`. This is intentional �
 For a fresh remote branch, invoke both sub-skills unless Step 6.0 keeps the existing commits:
 
 1. `trackbed:git:recreate-commits` for clean commit history
-2. `trackbed:pr:generate-description` for a clear, reviewer-focused description
+2. `trackbed:pr:generate-description` for a clear, reviewer-focused description and, for a visible change, best-effort screenshots
 
 This keeps PRs consistent across the workflow.
 

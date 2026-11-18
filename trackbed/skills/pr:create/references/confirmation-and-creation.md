@@ -2,7 +2,7 @@
 
 Use this reference for `/trackbed:pr:create` Steps 8–9 after the branch is prepared, commits are finalized, and the PR title/body have been generated.
 
-`{base-branch}` is the value captured in Steps 2–3. `{feature-branch}` is the current branch. In the fresh-remote path, `{rollback-origin-ref}` is the remote ref that Step 5 proved absent. In exact-tip recovery, `{entry-commit}` and `{observed-origin-oid}` are identical. In clean remote fast-forward mode, `{publication-commit}` equals `{entry-commit}`. In remote-append mode, `{publication-commit}` is the rewritten local tip captured after Step 6, while `{observed-origin-oid}` remains the immutable published-prefix boundary. Both publishing existing-remote modes use the endpoint encoded by `{origin-push-url-assignment}`, the byte-exact shell-quoted assignment returned by the helper for the endpoint that reported the observed OID. All are immutable values captured before description generation. `{title}` and `{description}` are validated Step 7 generator output or validated user-supplied replacements. `{linear-issue-id}` may be captured during branch handling. Substitute literal validated values when emitting commands, but insert `{origin-push-url-assignment}` only as its own assignment line and pass `"$ORIGIN_PUSH_URL"` to Git; never insert the decoded URL into shell source.
+`{base-branch}` is the value captured in Steps 2–3. `{feature-branch}` is the current branch. In the fresh-remote path, `{rollback-origin-ref}` is the remote ref that Step 5 proved absent. In exact-tip recovery, `{entry-commit}` and `{observed-origin-oid}` are identical. In clean remote fast-forward mode, `{publication-commit}` equals `{entry-commit}`. In remote-append mode, `{publication-commit}` is the rewritten local tip captured after Step 6, while `{observed-origin-oid}` remains the immutable published-prefix boundary. Both publishing existing-remote modes use the endpoint encoded by `{origin-push-url-assignment}`, the byte-exact shell-quoted assignment returned by the helper for the endpoint that reported the observed OID. All are immutable values captured before description generation. `{title}` and `{description}` are validated Step 7 generator output or validated user-supplied replacements. `{linear-issue-id}` may be captured during branch handling. `EVIDENCE_MANIFEST`, `EVIDENCE_COUNT`, and `{evidence-status}` come from Step 4.6 and the Step 7.2 evidence collection in `references/evidence-attachments.md`; a manifest path never enters the PR body. `{repo-root}` is the output of `git rev-parse --show-toplevel`. Substitute literal validated values when emitting commands, but insert `{origin-push-url-assignment}` only as its own assignment line and pass `"$ORIGIN_PUSH_URL"` to Git; never insert the decoded URL into shell source.
 
 ## Step 8: Confirmation and Creation
 
@@ -20,6 +20,7 @@ When `DRAFT_MODE=false`, use:
 Title: {title}
 Branch: {feature-branch} -> {base-branch}
 Status: Ready for review
+Evidence: {evidence-status}
 
 Description Preview:
 ---
@@ -35,6 +36,7 @@ Draft [PR] Ready to Create
 Title: {title}
 Branch: {feature-branch} -> {base-branch}
 Status: Draft
+Evidence: {evidence-status}
 
 Description Preview:
 ---
@@ -240,7 +242,7 @@ Create the PR body through a temporary file. Do not pass generated Markdown thro
 
 1. Capture `git rev-parse --verify HEAD` as `{publication-head}` immediately before allocating the temporary files. Require a full 40-character lowercase commit OID. In exact-tip recovery it must still equal `{entry-commit}`; in either existing-remote publishing mode it must equal `{publication-commit}`; in fresh publication it is the rewritten commit that the successful Step 8.3 push published.
 
-2. Create and capture temp file paths. Use the fixed `/tmp` templates so every captured path is shell-safe. If the second allocation fails, remove the first file before stopping:
+2. Create and capture temp paths. Use the fixed `/tmp` templates so every captured path is shell-safe. Allocate the evidence directory only when `EVIDENCE_MANIFEST` is set. If a later allocation fails, remove what was already allocated before stopping:
 
    ```bash
    if ! PR_TITLE_FILE=$(mktemp "/tmp/trackbed-pr-title.XXXXXX"); then
@@ -254,15 +256,44 @@ Create the PR body through a temporary file. Do not pass generated Markdown thro
    echo "$PR_BODY_FILE"
    ```
 
-3. Require each captured path to match `/tmp/trackbed-pr-(title|body).[A-Za-z0-9]+`, then write `{title}` and `{description}` to the corresponding path using the runtime's file-write capability. Do not use `cat <<EOF`, `printf "{description}"`, or any other shell-parsed form for generated Markdown.
+   ```bash
+   mktemp -d "/tmp/trackbed-pr-evidence.XXXXXX"
+   ```
 
-4. Emit the command below with the shell tool's bounded timeout. `GH_PROMPT_DISABLED=1` makes authentication or other interaction requirements fail closed. Include `--draft` on the first line only when `DRAFT_MODE=true`; otherwise omit it entirely (do not emit an empty flag). Substitute the validated captured paths for `{pr-title-file}` and `{pr-body-file}`. The trap removes both files on success, failure, or interruption.
+3. Require each captured path to match `/tmp/trackbed-pr-(title|body|evidence).[A-Za-z0-9]+`, then write `{title}` and `{description}` to the corresponding file using the runtime's file-write capability. Do not use `cat <<EOF`, `printf "{description}"`, or any other shell-parsed form for generated Markdown.
+
+   When `EVIDENCE_MANIFEST` is set and `EVIDENCE_COUNT` is above zero, prepare the attachments against the final body. The helper revalidates every staged file, keeps only `![alt](<ref>)` references to staged images, strips every other evidence reference, drops any remaining line that names a file or run directory inside the evidence directory, keeps a line that only mentions the directory, and writes `body.md`, an evidence-free `fallback-body.md`, and NUL-delimited `attach.nul` into `{pr-evidence-dir}`:
+
+   ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/pr-evidence.py" prepare --repo-root "{repo-root}" \
+     --manifest "{EVIDENCE_MANIFEST}" --body-file "{pr-body-file}" --out-dir "{pr-evidence-dir}"
+   ```
+
+   On success, set `{pr-publish-body-file}` to `{pr-evidence-dir}/body.md`, `{pr-fallback-body-file}` to `{pr-evidence-dir}/fallback-body.md`, and `{pr-attach-file}` to `{pr-evidence-dir}/attach.nul`.
+
+   Otherwise, whenever no attachments are prepared, including when `EVIDENCE_MANIFEST` is unset, `EVIDENCE_COUNT` is zero, or `prepare` fails, record any reason in `{evidence-status}`, remove evidence references from the body, and create the Pull Request without attachments, with `{pr-publish-body-file}` set to `{pr-body-file}` and `{pr-fallback-body-file}` and `{pr-attach-file}` empty:
+
+   ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/pr-evidence.py" strip --body-file "{pr-body-file}" --out-file "{pr-body-file}"
+   ```
+
+   A failing `strip` means the body could show broken images or local paths. Remove the temporary files and directory, then handle it as a `gh pr create` failure under Step 8.5, which keeps the manual-creation path and runs Step 9.0.
+
+4. Emit the command below with the shell tool's bounded timeout, under `bash`: it reads NUL-delimited values. `GH_PROMPT_DISABLED=1` makes authentication or other interaction requirements fail closed. Include `--draft` only when `DRAFT_MODE=true`; otherwise omit it entirely (do not emit an empty flag). Substitute the validated paths set in step 3, and an empty string for `{pr-evidence-dir}` when none was allocated. Run it from `{repo-root}` because attachment paths are relative to it. The trap removes every temporary file on success, failure, or interruption; the staged evidence stays under `.trackbed/pr-evidence/`.
 
 ```bash
+cd "{repo-root}" || exit 1
 PR_TITLE_FILE="{pr-title-file}"
 PR_BODY_FILE="{pr-body-file}"
+PR_EVIDENCE_DIR="{pr-evidence-dir}"
+PR_PUBLISH_BODY_FILE="{pr-publish-body-file}"
+PR_FALLBACK_BODY_FILE="{pr-fallback-body-file}"
+PR_ATTACH_FILE="{pr-attach-file}"
 cleanup_pr_files() {
   rm -f -- "$PR_TITLE_FILE" "$PR_BODY_FILE"
+  case "$PR_EVIDENCE_DIR" in
+    /tmp/trackbed-pr-evidence.*) rm -rf -- "$PR_EVIDENCE_DIR" ;;
+  esac
 }
 trap cleanup_pr_files EXIT
 trap 'exit 129' HUP
@@ -279,21 +310,59 @@ if ! (
   echo "The branch joined a local or server-side stack before Pull Request creation; stop before creation." >&2
   exit 1
 fi
-env GH_PROMPT_DISABLED=1 gh pr create \
-  --base "{base-branch}" \
-  --head "{feature-branch}" \
-  --assignee @me \
-  --title "$(cat "$PR_TITLE_FILE")" \
-  --body-file "$PR_BODY_FILE"
+ATTACH_ARGS=()
+if [ -n "$PR_ATTACH_FILE" ]; then
+  while IFS= read -r -d '' ATTACHMENT_VALUE; do
+    ATTACH_ARGS+=(--attach "$ATTACHMENT_VALUE")
+  done < "$PR_ATTACH_FILE"
+fi
+run_pr_create() {
+  body_file=$1
+  shift
+  env GH_PROMPT_DISABLED=1 gh pr create \
+    --base "{base-branch}" \
+    --head "{feature-branch}" \
+    --assignee @me \
+    --title "$(cat "$PR_TITLE_FILE")" \
+    --body-file "$body_file" \
+    "$@"
+}
+ATTACHMENT_RETRY=false
+if PR_CREATE_OUTPUT=$(run_pr_create "$PR_PUBLISH_BODY_FILE" "${ATTACH_ARGS[@]}" 2>&1); then
+  PR_CREATE_STATUS=0
+else
+  PR_CREATE_STATUS=$?
+fi
+if [ "$PR_CREATE_STATUS" -ne 0 ] && [ "${#ATTACH_ARGS[@]}" -gt 0 ] \
+  && ! printf '%s\n' "$PR_CREATE_OUTPUT" | grep -Eq '/pull/[0-9]+' \
+  && printf '%s\n' "$PR_CREATE_OUTPUT" | grep -Eqi 'attach|upload' \
+  && OPEN_COUNT=$(env GH_PROMPT_DISABLED=1 gh pr list --head "{feature-branch}" --state open --limit 1 --json number --jq length) \
+  && [ "$OPEN_COUNT" = 0 ]; then
+  printf '%s\n' "$PR_CREATE_OUTPUT" >&2
+  echo "Evidence upload failed before the Pull Request was created; retrying once without attachments." >&2
+  ATTACHMENT_RETRY=true
+  if PR_CREATE_OUTPUT=$(run_pr_create "$PR_FALLBACK_BODY_FILE" 2>&1); then
+    PR_CREATE_STATUS=0
+  else
+    PR_CREATE_STATUS=$?
+  fi
+fi
+printf '%s\n' "$PR_CREATE_OUTPUT"
+printf '%s\n' "PR_CREATE_STATUS=$PR_CREATE_STATUS" \
+  "ATTACHMENTS_PASSED=$((${#ATTACH_ARGS[@]} / 2))" \
+  "ATTACHMENT_RETRY=$ATTACHMENT_RETRY"
+exit "$PR_CREATE_STATUS"
 ```
 
 If this final stack guard fails, the trap removes the payload files and no Pull Request is created. When `FRESH_REMOTE_MODE=true`, execute Step 10 before stopping. Every existing-remote publication already completed in Step 8.3, so preserve that published state and stop without rollback. Do not treat a guard failure as a `gh pr create` failure because the creation command did not run.
 
-When `DRAFT_MODE=true`, add `--draft \` as the second line.
+When `DRAFT_MODE=true`, add `--draft \` to the `gh pr create` arguments inside `run_pr_create`.
 
 Always pass the validated explicit `--head` value. This prevents `gh pr create` from offering to push or fork when exact-tip recovery is using a remote branch without local upstream configuration; the skill's own mode-specific publication step remains the only allowed push.
 
-5. After `gh pr create` succeeds, query the created Pull Request through the same GitHub repository context with the shell tool's bounded timeout:
+`ATTACH_ARGS` holds one `--attach` pair per prepared file; image values carry `#<alt text>`. `gh` replaces each body reference to an attached path with the uploaded image and appends unreferenced files, such as videos, to the end of the body. When some uploads fail, `gh` still creates the Pull Request with the rest and exits non-zero. When the first attempt failed on an upload, printed no Pull Request URL, and the open-PR query proves no Pull Request exists for the branch, the block retries once with the evidence-free body. Any other failure, such as a network or authentication error, is not retried. Never retry attachments after a Pull Request may exist: uploads cannot be undone and a retry could duplicate them.
+
+5. Read the three labeled lines the block prints last; missing, duplicated, or malformed lines mean creation is unproven. Run the query below when `PR_CREATE_STATUS=0`, and also when it is non-zero with `ATTACHMENTS_PASSED` above zero, because `gh` may have created the Pull Request with only some attachments, or the retry may have found one the first attempt created. Query the created Pull Request through the same GitHub repository context with the shell tool's bounded timeout:
 
    ```bash
    env GH_PROMPT_DISABLED=1 gh pr list \
@@ -305,6 +374,15 @@ Always pass the validated explicit `--head` value. This prevents `gh pr create` 
    ```
 
    Require this query to succeed and return exactly one record. Require `state` to be `OPEN`, `baseRefName` to equal `{base-branch}`, `headRefName` to equal `{feature-branch}`, and `headRefOid` to equal `{publication-head}` exactly. Capture its `url` as `{pr-url}` for Step 9. A missing, malformed, duplicate, or mismatched result means GitHub did not prove that the created Pull Request contains the commit this invocation inspected. Report the creation result and observed metadata, but do not run Step 9 or claim success; do not roll back, close, or delete the Pull Request or branch automatically.
+
+   Set `{evidence-status}` from the outcome:
+   - Status zero, no retry: `attached {ATTACHMENTS_PASSED} files` plus the roles from the Step 7.2 evidence collection.
+   - Status zero after the retry: `skipped — upload failed before creation`, followed by the first diagnostic.
+   - Non-zero with a matching query result: accept it only when `PR_CREATE_OUTPUT` holds `{pr-url}` as a standalone line and no `a pull request ... already exists` diagnostic; matching metadata alone does not prove this invocation created it. Without the retry, set `partially attached` and keep every `gh` diagnostic. After a retry that reports `already exists`, report the Pull Request the query found and stop without Step 9 or manual-creation guidance.
+
+   After any proven creation with `ATTACHMENTS_PASSED` above zero, check that no local evidence path survived, because `gh` rewrites only the references it recognizes. Read the body with `env GH_PROMPT_DISABLED=1 gh pr view {pr-url} --json body --jq .body` into a new `mktemp "/tmp/trackbed-pr-body.XXXXXX"` file. When it contains `.trackbed/pr-evidence`, run the helper's `strip` on that file, and only when it reports `stripped_references` or `dropped_lines` above zero, update the body with `env GH_PROMPT_DISABLED=1 gh pr edit {pr-url} --body-file <file>`. Remove the file afterwards. If reading, stripping, or editing fails, continue to Step 9 with a warning that the description may show broken images.
+
+   Continue to Step 8.5 only when no created Pull Request was proven.
 
 ### 8.5 Handle PR Creation Failure
 
@@ -328,6 +406,8 @@ Manual creation:
 ---
 ```
 
+When evidence is staged, the description's `./.trackbed/pr-evidence/` image references cannot work in a Pull Request created by hand: dragging a file into GitHub's web form inserts a new upload URL and never rewrites an existing path. Write `{description}` to a new `mktemp "/tmp/trackbed-pr-body.XXXXXX"` file, run the helper's `strip` on it, print the stripped body in place of `{description}`, and remove the file. `strip` leaves each image's alt text in italics where the image was. If `strip` fails, print `{description}` unchanged and warn that its local image references must be replaced. Before the description, add `Screenshots and videos to drag into the PR: {evidence run directory}` and tell the user to drop each file at its italic alt text.
+
 If `DRAFT_MODE=true`, append a final line: `Remember to mark it as Draft before creating.`
 
 Recover the `{org}/{repo}` portion from `git remote get-url origin` (handle both SSH and HTTPS forms). If parsing fails, drop the URL line — the user can still create the PR via the GitHub UI.
@@ -342,6 +422,7 @@ On successful creation, emit the message below. When `DRAFT_MODE=true`, substitu
 URL: {pr-url}
 Branch: {feature-branch} -> {base-branch}
 Status: Ready for review
+Evidence: {evidence-status}
 Uncommitted work: {none | committed and included before history rewrite | committed and included as appended narrative commits | excluded from PR and restored locally | excluded from PR but restore needs manual conflict resolution}
 
 Commits included:
@@ -351,6 +432,8 @@ Commits included:
 
 Next steps:
   1. Review the PR description for accuracy
-  2. Add screenshots or videos if applicable
+  2. {Check the attached screenshots | Add screenshots or videos if applicable}
   3. Run tests and ensure CI passes
 ```
+
+Use `Check the attached screenshots` when any evidence was attached, and `Add screenshots or videos if applicable` otherwise.

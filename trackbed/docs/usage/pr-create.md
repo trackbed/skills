@@ -17,6 +17,8 @@ Use it when your branch is ready and has no Pull Request yet. It commits your un
 | `--rebase` | First rebase the branch onto the base branch and force-push it through `trackbed:pr:rebase`, then continue. |
 | `--base <branch>` | Open the Pull Request against `<branch>` instead of the detected base branch. See [Base Branch](../shipping.md#base-branch). |
 | `--linear-issue <ISSUE-ID>` | Use this Linear issue for the description and its closing line, instead of the ID read from the branch name. |
+| `--attach <file[#alt]>` | Upload this image or video with the Pull Request. Repeat it for more files. Start the alt text or file name with `Before` or `After` to show a pair side by side. A file inside the repository must be committed or ignored. |
+| `--no-capture` | Take no screenshots or recordings. `--attach` files are still uploaded. |
 | `--independent-review-line <line>` | Put this one-line record of an independent review in the description unchanged. Set by `trackbed:linear:issue-to-pr` when it delegates; you rarely need it. |
 | `--require-generated-description` | Stop when no title and body can be generated, even with `--manual`, and never skip the commit rewrite on a new branch. Set by `trackbed:linear:issue-to-pr` and `trackbed:code:plan-to-pr` when they delegate; you rarely need it. |
 | `--authorize-history-rewrite` | With `--manual`, skip the confirmation before the commit rewrite. |
@@ -35,6 +37,9 @@ Use it when your branch is ready and has no Pull Request yet. It commits your un
 
 # Target the development branch and link a Linear issue
 /trackbed:pr:create --base development --linear-issue DISC-202
+
+# Attach your own before and after screenshots
+/trackbed:pr:create --attach '~/Desktop/before.png#Before: empty cart' --attach '~/Desktop/after.png#After: cart with a saved item'
 ```
 
 ## What you get
@@ -42,6 +47,7 @@ Use it when your branch is ready and has no Pull Request yet. It commits your un
 - An open Pull Request on GitHub, assigned to you, with a Conventional Commits title and a generated description.
 - The branch pushed to `origin`, with your uncommitted work committed. On a branch that is not on the remote yet, the commits are rewritten unless they are already well formed, and the old history stays on a local backup branch. Commits already on the remote are never rewritten.
 - A feature branch created for you when you start on the base branch or a detached `HEAD`.
-- A closing message with the Pull Request URL, what happened to uncommitted work, and the commits included.
+- For a change a reviewer can see, before and after screenshots in the description when they can be captured safely, and occasionally a short video. See [Screenshots](../shipping.md#screenshots).
+- A closing message with the Pull Request URL, what was attached or why nothing was, what happened to uncommitted work, and the commits included.
 
 When a step fails before the push, your branch and uncommitted work are put back as they were when that is safe. Next, run `/trackbed:pr:fix-ci` to get the checks green. The [shipping guide](../shipping.md#publishing-a-pull-request) covers branches that already exist on the remote.

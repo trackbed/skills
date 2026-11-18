@@ -630,6 +630,11 @@
       "skills": ["trackbed/skills/pr:create/SKILL.md"]
     },
     {
+      "kind": "executable",
+      "suite": "trackbed/tests/python/test_pr_create_attach_block.py",
+      "skills": ["trackbed/skills/pr:create/SKILL.md"]
+    },
+    {
       "kind": "guidance",
       "suite": "trackbed/tests/linear-review-pr-guidance.bats",
       "skills": ["trackbed/skills/linear:review-pr/SKILL.md"]

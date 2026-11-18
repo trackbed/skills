@@ -15,9 +15,11 @@ Use it to write a Pull Request title and description from the branch diff, the c
 | `--no-update` | Print the title and body and never change an existing Pull Request. With `--check`, report only, without the offer to update. Skills that delegate to this one pass it. |
 | `--check` | Compare the open Pull Request's title and body with the diff and report where they disagree, instead of writing a description. After important or critical drift, it asks once before it regenerates and updates the Pull Request. |
 | `--strict` | With `--check`, also report suggestion-level drift, such as a claim that cannot be tied to the diff. |
+| `--no-capture` | Take no screenshots or recordings. |
 | `--base <ref>` | Compare against `<ref>` instead of the detected base branch. |
 | `--base-commit <oid>` | Pin the comparison to this full commit ID, together with `--base`. Set by `trackbed:pr:create` when it delegates; you rarely need it. |
 | `--linear-issue <ISSUE-ID>` | Use this Linear issue as context instead of the ID read from the branch name. |
+| `--evidence-manifest <path>` | Add captures to this staged evidence run and reference its images in the body. Works only with `--no-update`. Set by `trackbed:pr:create`, which uploads them; you rarely need it. |
 | `--independent-review-line <line>` | Put this one-line record of an independent review in the body unchanged. Works only with `--no-update`. Set by `trackbed:pr:create` when it delegates; you rarely need it. |
 
 ## Examples
@@ -39,6 +41,7 @@ Use it to write a Pull Request title and description from the branch diff, the c
 ## What you get
 
 - A Conventional Commits title and a description that follows your repository's Pull Request template when it has one.
+- For a change a reviewer can see, before and after screenshots of the changed screen when they can be captured safely, saved under `.trackbed/pr-evidence/`. This skill cannot upload them: when it updates a Pull Request or prints the text, it lists the files for you to drag into the Pull Request. `trackbed:pr:create` uploads them for you. See [Screenshots](../shipping.md#screenshots).
 - With an open Pull Request, its title and body updated on GitHub. With `--manual`, `--no-update`, or no Pull Request, the text in the conversation to copy.
 - A `MISSING REQUIREMENT:` line when context it will not invent is missing, such as the reason for a database migration. Unless the only gap is a missing Linear issue ID, it then prints the text instead of updating the Pull Request.
 - With `--manual`, when you accept the offer, the description saved to `.trackbed/pr-description/PR_DESCRIPTION.md`. It adds `.trackbed/` to Git's local exclude file.

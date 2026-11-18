@@ -43,14 +43,14 @@ Judge each item as the reader named in the fixed reader contract in Part 1 of `r
 - [ ] File names appear only when they identify a non-obvious entry point, migration, generated artifact, or cross-area coupling.
 - [ ] Test Plan contains only reviewer/QA scenarios or manual validation notes, written as "Do X. Expect Y.". Automated testing instructions, command checklists, CI-owned checks such as format, lint, typecheck, build, or the standard unit-test suite, and missing test targets are omitted from the PR body.
 - [ ] Local setup or infrastructure failures such as missing `node_modules`, failed package installs, unavailable Postgres, absent Docker services, and port conflicts are omitted from the PR body; CI owns automated verification status.
-- [ ] `## Screenshots / Videos` appears only for UI-facing changes, with a one-line comment naming what to capture, and the run output reminds the author to add it.
+- [ ] `## Screenshots / Videos` appears only for UI-facing changes or staged evidence. Every image it references is a staged entry from `PR_EVIDENCE_MANIFEST`, and a before and after pair sits in one table. With nothing staged, it holds a one-line comment naming what to capture, and the run output reminds the author to add it.
 
 ## Boundary, tone, and operational hygiene
 
 - [ ] Objective tone - no superlatives, no advocacy, no invented statistics.
 - [ ] **Regenerate:** No references to spec files (`siw/SPEC.md`, `siw/LOG.md`, etc.) or conversation history; reviewers can't see them. Linear is the only external source the body may cite.
 - [ ] **Regenerate:** No AI-attribution badges, "Generated with Claude Code", or `Co-Authored-By: Claude` lines.
-- [ ] No placeholder `[TODO]` / `[Fill this in]` strings (except the one-line Screenshots comment on UI-facing changes).
+- [ ] No placeholder `[TODO]` / `[Fill this in]` strings (except the one-line Screenshots comment on UI-facing changes with nothing staged).
 - [ ] Markdown headings, code blocks, and lists are well-formed.
 
 ## Output routing
