@@ -1201,7 +1201,8 @@
         "trap cleanup_pr_files EXIT",
         "--base \"{base-branch}\"",
         "--title \"$(cat \"$PR_TITLE_FILE\")\"",
-        "--body-file \"$PR_BODY_FILE\"",
+        "--body-file \"$body_file\"",
+        "run_pr_create \"$PR_PUBLISH_BODY_FILE\" \"${ATTACH_ARGS[@]}\"",
         "Before showing manual creation instructions, execute Step 9.0",
         "Do not run Step 10 here"
       ]
@@ -1375,7 +1376,7 @@
         "local exclude file",
         "Local environment failure notes such as missing `node_modules`, unavailable Postgres, missing services",
         "Read `${CLAUDE_PLUGIN_ROOT}/shared/writing/references/plain-language-rubric.md` and `references/readability-pass.md`",
-        "Include a placeholder section for visual aids only when the diff changes something a reviewer can see"
+        "Omit the section when the diff changes nothing a reviewer can see and no evidence is staged"
       ]
     },
     {
@@ -1693,6 +1694,7 @@
         "DEPRECATION_PLAN.md",
         "DEPRECATION_PLAN_*.md",
         ".context/demo-reels/",
+        ".trackbed/pr-evidence/",
         ".context/github-review-drafts/",
         ".context/github-review-replies/",
         ".context/session-search/",
@@ -1827,7 +1829,7 @@
       "trackbed:pr:adversarial-review": "Get one read-only review of your branch from a different model provider than the host you are using.",
       "trackbed:pr:code-review": "Review branch changes for bugs, tests, errors, types, architecture, security, performance, and cleanup; writes `REVIEW_OVERVIEW.md`.",
       "trackbed:pr:convention-review": "Flag drift from documented rules and established codebase practice, plus overcautious code, with evidence for every finding.",
-      "trackbed:pr:create": "Publish a new PR unattended: narrative commits, a generated title and body, and a lease-protected first push; `--manual` keeps the prompts.",
+      "trackbed:pr:create": "Publish a new PR unattended: narrative commits, a generated title and body with screenshots, and a lease-protected first push; `--manual` keeps the prompts.",
       "trackbed:pr:fix-ci": "Repair failing CI checks and reviewer feedback on an open PR with targeted pushes until checks pass; `--manual` keeps the prompts.",
       "trackbed:pr:generate-description": "Write a PR title and body from the diff, commits, and Linear context, updating an open PR unless `--manual`; `--check` reports drift.",
       "trackbed:pr:github-review": "Review someone else's GitHub PR or its whole stack, including linked Linear issues. Report-only unless you ask for a pending review.",

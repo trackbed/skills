@@ -169,6 +169,17 @@ These remain hard blockers: non-current branches, open Pull Requests, ambiguous,
 
 A direct invocation on a fresh branch keeps unpublished commits that already follow the repository's commit conventions instead of rewriting them. `trackbed:code:plan-to-pr` and `trackbed:linear:issue-to-pr` always get the narrative rewrite.
 
+### Screenshots
+
+For a change a reviewer can see, `/trackbed:pr:create` tries to put before and after screenshots in the description, side by side. `gh pr create --attach` uploads them, so it needs GitHub CLI 2.102 or later and a github.com repository.
+
+- **After.** `trackbed:pr:generate-description` captures the changed screen from a running local app. When nothing is running, it starts the app once, but only with the base branch's unchanged development command, with dependencies already installed and no install, migration, or credential step.
+- **Before.** It never runs the old version. It uses an image you pass, an image on the linked issue, a URL you named for the old version, or an old state the current app can still show. Otherwise the description gets the after image and one sentence about the old state.
+- **Video.** Only for motion or a multi-step interaction a still image cannot show.
+- **Your own files.** Pass `--attach before.png --attach after.png`, starting each alt text or file name with `Before` or `After` to pair them. A file inside the repository must be committed or ignored, or the run stops, because the run would otherwise commit it.
+
+A failed capture or upload never blocks the Pull Request; the closing message says what was attached or why nothing was. Capture uses only an app served from this checkout, and it reports any file it leaves in the worktree. Pass `--no-capture` to skip it. Files are staged under `.trackbed/pr-evidence/`, which Git ignores locally; `trackbed:workflow:cleanup-artifacts` removes them.
+
 ## Shaping Up an Open Pull Request
 
 `/trackbed:pr:shape-up` gets the current branch's open Pull Request ready to merge in one run. It reads the Pull Request first and runs only the passes it needs; a Pull Request that is already in shape gets a report and nothing else.

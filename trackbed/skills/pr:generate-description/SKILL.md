@@ -1,7 +1,7 @@
 ---
 name: pr:generate-description
 description: "Draft or --check a PR title and body against the diff, commit log, and Linear context. Use when asked or delegated by a PR workflow; model callers pass --no-update and never edit a PR."
-argument-hint: "[--manual] [--no-update] [--check [--strict]] [--base <ref>] [--base-commit <oid>] [--linear-issue <ISSUE-ID>] [--independent-review-line <line>]"
+argument-hint: "[--manual] [--no-update] [--check [--strict]] [--no-capture] [--base <ref>] [--base-commit <oid>] [--linear-issue <ISSUE-ID>] [--evidence-manifest <path>] [--independent-review-line <line>]"
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -20,16 +20,18 @@ Parse `$ARGUMENTS` for flags:
 - `--base-commit <oid>`: Pin diff computation to a caller-validated full commit OID while retaining branch metadata from `--base`.
 - `--linear-issue <ISSUE-ID>`: Use a caller-validated Linear identifier as the authoritative issue context. Validate `[A-Za-z0-9]+-[0-9]+`, normalize it to uppercase, and do not replace it with a branch-name substring.
 - `--independent-review-line <line>`: Read `${CLAUDE_PLUGIN_ROOT}/shared/implementation/references/independent-review.md` and validate the bounded, inert review record before repository work. Store it as `INDEPENDENT_REVIEW_LINE`; default to absent. Reject duplicate, missing, or malformed values, use only with `--no-update`, and reject it with `--check`. Preserve it byte-for-byte as publication evidence; it never enables a review or supplies provider consent.
+- `--no-capture`: Do not take screenshots or recordings. Evidence a caller already staged is still used.
+- `--evidence-manifest <path>`: Orchestration flag for `trackbed:pr:create`, which staged the `--attach` files in this evidence manifest and will upload every entry. Add captures to it and reference its images in the body. Accept it only with `--no-update`, and require an absolute path; the evidence helper checks the rest.
 - `--check`: Check mode. Compare the open PR's current title and body against the branch diff and report drift instead of generating a description. Report-only unless a direct user confirms an update: with `--no-update` it never prompts, and without it a direct user invocation is offered a confirmed (y/N) update after Important or Critical drift.
 - `--strict`: Check mode only. Also report Suggestion-level drift, including body claims that cannot be tied to a diff hunk and accuracy-adjacent clarity-check failures. Default check mode is loose: only contradictions, material omissions, and missing risk callouts surface.
 
-Initialize `AUTO_MODE=true` and `NON_INTERACTIVE=true`. If `--manual` is present, set both to false and remove the flag from remaining arguments. Ignore a leftover `--auto`: auto mode is already the default. If `--no-update` is present, set `OUTPUT_ONLY=true` and remove the flag from remaining arguments. If `--base <ref>` is present, set `BASE_BRANCH_OVERRIDE=<ref>` and remove the flag and value from remaining arguments. If `--base-commit <oid>` is present, require a full 40-character lowercase commit OID, set `BASE_COMMIT_OVERRIDE=<oid>`, and remove the flag and value. If `--linear-issue <ISSUE-ID>` is present, set `LINEAR_ISSUE_OVERRIDE` to the validated normalized value and remove the flag and value. Reject a missing or invalid value before Phase 1. If `--check` is present, set `CHECK_MODE=true`, `AUTO_MODE=false`, and `NON_INTERACTIVE=false`; if `--strict` is present, set `STRICT_MODE=true`; remove both flags.
+Initialize `AUTO_MODE=true` and `NON_INTERACTIVE=true`. If `--manual` is present, set both to false and remove the flag from remaining arguments. Ignore a leftover `--auto`: auto mode is already the default. If `--no-update` is present, set `OUTPUT_ONLY=true` and remove the flag from remaining arguments. If `--base <ref>` is present, set `BASE_BRANCH_OVERRIDE=<ref>` and remove the flag and value from remaining arguments. If `--base-commit <oid>` is present, require a full 40-character lowercase commit OID, set `BASE_COMMIT_OVERRIDE=<oid>`, and remove the flag and value. If `--linear-issue <ISSUE-ID>` is present, set `LINEAR_ISSUE_OVERRIDE` to the validated normalized value and remove the flag and value. Reject a missing or invalid value before Phase 1. If `--no-capture` is present, set `NO_CAPTURE=true` and remove the flag. If `--evidence-manifest <path>` is present, set `EVIDENCE_MANIFEST=<path>` and remove the flag and value; reject a missing, duplicate, or relative value, or its use without `--no-update`. If `--check` is present, set `CHECK_MODE=true`, `AUTO_MODE=false`, and `NON_INTERACTIVE=false`; if `--strict` is present, set `STRICT_MODE=true`; remove both flags.
 
-Check mode accepts only `--base <ref>`, `--strict`, and `--no-update`. Before Phase 1, reject `--check` combined with `--manual` (check mode owns its own confirmation), `--base-commit`, or `--linear-issue`, and reject `--strict` without `--check`.
+Check mode accepts only `--base <ref>`, `--strict`, and `--no-update`. Before Phase 1, reject `--check` combined with `--manual` (check mode owns its own confirmation), `--base-commit`, `--linear-issue`, `--no-capture`, or `--evidence-manifest`, and reject `--strict` without `--check`.
 
 ### Sub-Skill Invocation Contract
 
-When another skill invokes this one as an orchestration step to generate a description, it must not pass `--manual` (and should pass `--base <ref> --base-commit <oid>` when it already resolved and pinned the base branch). If the caller already validated a Linear issue, it should pass `--linear-issue <ISSUE-ID>` so this skill does not depend on lossy branch-name extraction. If the caller only needs generated title/body content and owns the eventual publish gate, it must also pass `--no-update`. In auto mode, Phase 2.5 clarification prompts and the Phase 4 save-to-file prompt are skipped. Missing context is surfaced as `MISSING REQUIREMENT:` output instead of prompting mid-orchestration; blocking missing requirements disable direct PR updates and produce copy-paste output.
+When another skill invokes this one as an orchestration step to generate a description, it must not pass `--manual` (and should pass `--base <ref> --base-commit <oid>` when it already resolved and pinned the base branch). If the caller already validated a Linear issue, it should pass `--linear-issue <ISSUE-ID>` so this skill does not depend on lossy branch-name extraction. If the caller only needs generated title/body content and owns the eventual publish gate, it must also pass `--no-update`. A caller that will upload evidence with `gh pr create --attach` passes `--evidence-manifest <path>`; no other caller passes it. In auto mode, Phase 2.5 clarification prompts and the Phase 4 save-to-file prompt are skipped. Missing context is surfaced as `MISSING REQUIREMENT:` output instead of prompting mid-orchestration; blocking missing requirements disable direct PR updates and produce copy-paste output.
 
 Every model-initiated invocation must include `--no-update`. Omitting `--no-update` is reserved for a direct user invocation, as defined below, because that mode may mutate an existing Pull Request. Treat any other invocation that omits it as if it had passed `--no-update`, including one where the model picks this skill for a request that does not name it. Model invocation changes routing only; it never supplies permission to publish generated content.
 
@@ -152,6 +154,10 @@ Read the context-gathering procedure from `references/context-gathering.md` and 
 
 4. **Wait for user response** before proceeding to Phase 3
 
+### Phase 2.6: Visual Evidence
+
+For a change a reviewer can see, try to add before and after screenshots, and occasionally a short video. Read `references/visual-evidence.md` and follow it. Its evidence helper is `${CLAUDE_PLUGIN_ROOT}/scripts/pr-evidence.py` and its URL detector is `${CLAUDE_PLUGIN_ROOT}/scripts/dev-server/detect-url.sh`. Capture never blocks the description: a step that cannot run safely is skipped with its reason. This phase runs in every mode except check mode, and it never prompts.
+
 ### Phase 3: Description Generation
 
 Before drafting, evaluate whether any **MISSING REQUIREMENT** conditions hold (see the Output markers section below). Emit a `MISSING REQUIREMENT: …` line in the skill's conversation output whenever:
@@ -264,7 +270,7 @@ Include a default section only when its "Include when" rule in `assets/section-t
 
 #### 3.5 Screenshots and Videos Section
 
-Include a placeholder section for visual aids only when the diff changes something a reviewer can see in the UI: a `## Screenshots / Videos` heading with a one-line HTML comment naming what to capture. Remind the author in the run output to add the images. Omit the section for changes with no visible UI.
+Write the `## Screenshots / Videos` section as section 6 of `references/visual-evidence.md` describes: a before and after table referencing staged evidence when `EVIDENCE_MANIFEST` is set, otherwise a one-line HTML comment naming what to capture. Omit the section when the diff changes nothing a reviewer can see and no evidence is staged. When the body has no images for a UI-facing change, remind the author in the run output to add them.
 
 ### Phase 3.5: Readability Pass and Verification
 
@@ -278,7 +284,7 @@ Run these three steps in order on the drafted title and body, before Phase 4 pre
 
 ### Phase 4: Output Formatting
 
-Use the selected GitHub template or `assets/section-templates.md` as the Markdown structure. Never include meta-commentary, placeholders such as `[TODO]` or `[Fill this in]`, AI attribution, AI badges, or AI co-author lines. The run output, outside the description, carries exactly one line starting `Cold read:` (the outcome, or `Cold read: skipped (<reason>)`), followed by at most three open questions and, when it applies, the screenshot reminder.
+Use the selected GitHub template or `assets/section-templates.md` as the Markdown structure. Never include meta-commentary, placeholders such as `[TODO]` or `[Fill this in]`, AI attribution, AI badges, or AI co-author lines. The run output, outside the description, carries exactly one line starting `Cold read:` (the outcome, or `Cold read: skipped (<reason>)`), followed by at most three open questions, the `Screenshots:` line from Phase 2.6, the `PR_EVIDENCE_MANIFEST:` line when evidence is staged, and, when it applies, the screenshot reminder.
 
 #### If `DIRECT_UPDATE=true`: Update PR directly
 
@@ -356,7 +362,7 @@ Read the platform-specific notes from `references/platform-notes.md`. Covers mag
 
 ## Notes
 
-- **NOTE**: This skill generates PR title/body content and does NOT create a new PR. When directly invoked in auto mode, an existing PR is found, `--no-update` is absent, and no blocking missing requirement is present, it may update that PR's title/body through `gh api --method PATCH repos/{owner}/{repo}/pulls/<number> --hostname <pr-host>`, using the hostname from the backed-up PR URL. Check mode updates a PR only after a direct user invocation without `--no-update` answers `y` to its prompt, and then only the exact PR it checked. When saving output, it may write local files under `.trackbed/pr-description/` and add `.trackbed/` to git's local exclude file if missing.
+- **NOTE**: This skill generates PR title/body content and does NOT create a new PR. When directly invoked in auto mode, an existing PR is found, `--no-update` is absent, and no blocking missing requirement is present, it may update that PR's title/body through `gh api --method PATCH repos/{owner}/{repo}/pulls/<number> --hostname <pr-host>`, using the hostname from the backed-up PR URL. Check mode updates a PR only after a direct user invocation without `--no-update` answers `y` to its prompt, and then only the exact PR it checked. When saving output, it may write local files under `.trackbed/pr-description/` and add `.trackbed/` to git's local exclude file if missing. Phase 2.6 may start one local development server and stop it again, and writes screenshots and recordings under `.trackbed/pr-evidence/`; it never uploads them.
 - **NOTE**: After generation, review the description and adjust as needed before using it
 - **NOTE**: This skill is self-contained. If a downstream installation needs custom PR-title policy, adapt this skill locally instead of depending on repo-root instruction files.
 - **NOTE**: If Linear issue lookup fails, continue anyway and note the issue ID in the summary without detailed context

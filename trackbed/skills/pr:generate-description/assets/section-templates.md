@@ -178,11 +178,21 @@ Use one account with a single platform and one with several.
 
 ## Screenshots / Videos
 
-**Include when:** the PR changes something a reviewer can see in the UI. Leave the section out otherwise.
+**Include when:** the PR changes something a reviewer can see in the UI, or evidence is staged. Leave the section out otherwise.
 
-Add a one-line HTML comment that names what to capture, and remind the author in the run output to add the images before requesting review.
+When `trackbed:pr:create` will upload staged evidence, show a before and after pair side by side, referencing each image by its staged path; `references/visual-evidence.md` has the rules. Otherwise add a one-line HTML comment that names what to capture, and remind the author in the run output to add the images before requesting review.
 
-**EXAMPLE:**
+**EXAMPLE (staged evidence):**
+
+```markdown
+## Screenshots / Videos
+
+| Before | After |
+| --- | --- |
+| ![Before: platform picker shown to a single-platform user](./.trackbed/pr-evidence/20261118T101500Z-3f9a1c2e/01-before-platform-picker-shown-to-a-single-platform-user.png) | ![After: single-platform user lands on the dashboard](./.trackbed/pr-evidence/20261118T101500Z-3f9a1c2e/02-after-single-platform-user-lands-on-the-dashboard.png) |
+```
+
+**EXAMPLE (nothing staged):**
 
 ```markdown
 ## Screenshots / Videos

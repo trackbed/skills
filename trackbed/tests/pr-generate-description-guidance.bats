@@ -130,9 +130,9 @@ PY
     test -f "$check"
     test ! -e "skills/kramme:pr:verify-description"
     assert_required_text "$skill" "disable-model-invocation: false"
-    assert_required_text "$skill" "argument-hint: \"[--manual] [--no-update] [--check [--strict]] [--base <ref>] [--base-commit <oid>] [--linear-issue <ISSUE-ID>] [--independent-review-line <line>]\""
+    assert_required_text "$skill" "argument-hint: \"[--manual] [--no-update] [--check [--strict]] [--no-capture] [--base <ref>] [--base-commit <oid>] [--linear-issue <ISSUE-ID>] [--evidence-manifest <path>] [--independent-review-line <line>]\""
     assert_required_text "$skill" "Check mode accepts only \`--base <ref>\`, \`--strict\`, and \`--no-update\`."
-    assert_required_text "$skill" "reject \`--check\` combined with \`--manual\` (check mode owns its own confirmation), \`--base-commit\`, or \`--linear-issue\`, and reject \`--strict\` without \`--check\`"
+    assert_required_text "$skill" "reject \`--check\` combined with \`--manual\` (check mode owns its own confirmation), \`--base-commit\`, \`--linear-issue\`, \`--no-capture\`, or \`--evidence-manifest\`, and reject \`--strict\` without \`--check\`"
     assert_required_text "$skill" "Every model-initiated invocation must include \`--no-update\`"
     assert_required_text "$skill" "A model caller that needs a drift report passes \`--check --no-update\`"
     assert_required_text "$skill" "Only a direct user invocation of \`--check\` may reach the confirmation prompt"
@@ -594,7 +594,7 @@ EOF
       previous=$line
     done
 
-    grep -qF "Include a placeholder section for visual aids only when the diff changes something a reviewer can see" "$skill/SKILL.md"
+    grep -qF "Omit the section when the diff changes nothing a reviewer can see and no evidence is staged" "$skill/SKILL.md"
     grep -qF "\`## Screenshots / Videos\` appears only for UI-facing changes" "$checklist"
     if grep -rnF "<!-- Consider including: -->" "$skill"; then exit 1; fi
     if grep -rnF --exclude=anti-patterns.md "<!-- Add screenshots or videos here" "$skill"; then exit 1; fi
@@ -859,21 +859,54 @@ docs/Pull_Request_Template/Feature.MD"
 	[ "$output" = "$expected" ] || { echo "$output"; false; }
 }
 
-@test "PR creation and description generation no longer capture or attach visual evidence" {
+@test "PR creation attaches supplied and captured screenshot evidence" {
 	run bash -c '
     set -e
     cd "'"$BATS_TEST_DIRNAME"'/.."
     create="skills/pr:create"
     generator="skills/pr:generate-description"
+    attachments="$create/references/evidence-attachments.md"
+    creation="$create/references/confirmation-and-creation.md"
+    capture="$generator/references/visual-evidence.md"
 
     test ! -e "skills/kramme:visual:demo-reel"
-    test ! -e "$create/scripts/prepare-demo-attachments.py"
-    test ! -e "$generator/references/visual-capture.md"
-    if grep -rqF "kramme:visual:demo-reel" "$create" "$generator"; then exit 1; fi
-    if grep -rqE -- "--visual|--for-pr-create|--start-if-easy" "$create" "$generator"; then exit 1; fi
-    if grep -rqF -- "--attach" "$create"; then exit 1; fi
-    grep -qF "Include a placeholder section for visual aids" "$generator/SKILL.md"
-    grep -qF "Add screenshots or videos if applicable" "$create/references/confirmation-and-creation.md"
+    if grep -rqE -- "--visual|--for-pr-create|--start-if-easy|demo-reel" "$create" "$generator"; then exit 1; fi
+
+    grep -qF -- "[--attach <file[#alt]>]... [--no-capture]" "$create/SKILL.md"
+    grep -qF -- "--attach <file[#alt]>\` -> append one image or video to \`ATTACH_SPECS\`" "$create/SKILL.md"
+    grep -qF "\${CLAUDE_PLUGIN_ROOT}/scripts/pr-evidence.py" "$create/SKILL.md"
+    grep -qF -- "pass \`--evidence-manifest {EVIDENCE_MANIFEST}\`" "$create/SKILL.md"
+    grep -qF "before Step 5 can commit anything" "$attachments"
+    grep -qF "Any rejection is a hard blocker before Step 5" "$attachments"
+    grep -qF "an untracked file inside the repository, which Step 5 would otherwise commit" "$attachments"
+    grep -qF "Never put a marker or a manifest path in \`{description}\`" "$attachments"
+    grep -qF "the host is \`github.com\`" "$attachments"
+    grep -qF "Any other failure, such as a network or authentication error, is not retried." "$creation"
+    grep -qF "check that no local evidence path survived" "$creation"
+    grep -qF "never rewrites an existing path" "$creation"
+    grep -qF -- "auto --check-owner" "$capture"
+    grep -qF "The diff touches no migration, schema, seed, or ORM configuration" "$capture"
+    grep -qF "extract one frame per second" "$capture"
+
+    grep -qF "ATTACH_ARGS+=(--attach \"\$ATTACHMENT_VALUE\")" "$creation"
+    grep -qF "retrying once without attachments" "$creation"
+    grep -qF "Never retry attachments after a Pull Request may exist" "$creation"
+    grep -qF "matching metadata alone does not prove this invocation created it" "$creation"
+    grep -qF "Evidence: {evidence-status}" "$creation"
+    grep -qF "Add screenshots or videos if applicable" "$creation"
+
+    grep -qF -- "[--no-capture]" "$generator/SKILL.md"
+    grep -qF -- "[--evidence-manifest <path>]" "$generator/SKILL.md"
+    grep -qF "\${CLAUDE_PLUGIN_ROOT}/scripts/pr-evidence.py" "$generator/SKILL.md"
+    grep -qF "\${CLAUDE_PLUGIN_ROOT}/scripts/dev-server/detect-url.sh" "$generator/SKILL.md"
+    grep -qF "Never switch branches, stash, reset, check out the base commit, or start the base version." "$capture"
+    grep -qF "never run a command the branch adds or edits" "$capture"
+    grep -qF "stop only the process this run started and its children" "$capture"
+    grep -qF "Never plan to blur or crop a secret afterwards" "$capture"
+    grep -qF "Look before you register." "$capture"
+    grep -qF "| Before | After |" "$capture"
+    grep -qF "keep local paths out of the body" "$capture"
+    grep -qF "PR_EVIDENCE_MANIFEST: <absolute manifest path>" "$capture"
   '
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }

@@ -165,6 +165,7 @@
       "trackbed/scripts/risk_classification.py",
       "trackbed/scripts/risk_patterns.py",
       "trackbed/scripts/resolve-stack-context.py",
+      "trackbed/scripts/pr-evidence.py",
       "trackbed/scripts/summarize-semantic-scan.py",
       "trackbed/scripts/visual-report.py",
       "trackbed/skills/visual:decisions/scripts/build-decisions.py",
@@ -626,6 +627,11 @@
     {
       "kind": "executable",
       "suite": "trackbed/tests/python/test_pr_create_preflight.py",
+      "skills": ["trackbed/skills/pr:create/SKILL.md"]
+    },
+    {
+      "kind": "executable",
+      "suite": "trackbed/tests/python/test_pr_create_attach_block.py",
       "skills": ["trackbed/skills/pr:create/SKILL.md"]
     },
     {
