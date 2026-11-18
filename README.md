@@ -76,7 +76,7 @@ Then check your environment and try a first workflow:
 /trackbed:verify:run      # run tests, linting, and type checks for changed code
 ```
 
-In Codex, start skills with `$` instead of `/`, for example `$trackbed:setup`. See [Installation & Updating](#installation--updating) for other install methods and auto-update.
+In Codex, start skills with `$` instead of `/`, for example `$trackbed:setup`. See [Installation & Updating](#installation--updating) for other install methods, auto-update, and [agent prompts](#install-or-upgrade-with-an-agent) that install or upgrade both hosts at once.
 
 ## Requirements
 
@@ -121,6 +121,63 @@ Both hosts expose the same skills and workflows. Choose the install and update c
 | --- | --- | --- |
 | Claude Code | `/plugin marketplace add` then `/plugin install` | Turn on auto-update, run `/plugin marketplace update`, or rerun the Git/local install |
 | Codex | `codex plugin marketplace add` then `codex plugin add` | `codex plugin marketplace upgrade` then `codex plugin add` |
+
+### Install or Upgrade with an Agent
+
+To set up both hosts in one step, paste one of these prompts into a Claude Code or Codex session on your machine. The agent runs the terminal commands from the sections below for each host and skips a host whose CLI is not installed.
+
+#### Install
+
+```text
+Install the trackbed plugin on this machine for both Claude Code and Codex.
+Handle each host separately. If the host's CLI (`claude` or `codex`) is not
+on PATH, skip that host and say so.
+
+Claude Code:
+1. Run `claude plugin marketplace add trackbed/skills`. If the trackbed
+   marketplace is already added, continue.
+2. Run `claude plugin install trackbed@trackbed`.
+3. Run `claude plugin list` and confirm trackbed@trackbed is enabled.
+
+Codex:
+1. Run `codex plugin marketplace add trackbed/skills --ref codex-plugin`.
+   If the trackbed marketplace is already added, continue.
+2. Run `codex plugin add trackbed@trackbed`.
+3. Run `codex plugin list` and confirm trackbed@trackbed is installed.
+
+Do not edit plugin caches or config files by hand. End with one line per
+host: the installed version, or why the host was skipped or failed. Then
+remind me to restart both hosts and to turn on auto-update in Claude Code
+under /plugin > Marketplaces > trackbed > Enable auto-update.
+```
+
+#### Upgrade
+
+```text
+Upgrade the trackbed plugin on this machine to the latest release for both
+Claude Code and Codex. Handle each host separately. If the host's CLI is not
+on PATH or trackbed@trackbed is not installed there, skip that host and say so.
+
+First note the current version on each host from `claude plugin list` and
+`codex plugin list`.
+
+Claude Code:
+1. Run `claude plugin marketplace update trackbed`.
+2. Run `claude plugin update trackbed@trackbed`.
+
+Codex:
+1. Run `codex plugin marketplace upgrade trackbed`.
+2. Run `codex plugin add trackbed@trackbed`.
+If the upgrade fails because the trackbed marketplace is a local build rather
+than a Git marketplace, re-run its original install instead:
+`npx --yes github:trackbed/skills install trackbed`, or, in a checkout, `git
+pull` then `node trackbed/scripts/convert-plugin.js install trackbed`.
+
+Do not edit plugin caches or config files by hand. End with one line per
+host: old version -> new version, already current, skipped, or failed with
+the error. Then remind me to restart both hosts, or to run /reload-plugins
+in Claude Code.
+```
 
 ### Claude Code
 
