@@ -47,3 +47,19 @@ sources:
     last_reviewed_at: 2026-11-06
     baseline_commit: "7dc50943bbf959dbe6a93a175e41e5fff8395e00"
     baseline_hash: "sha256:3136d6c4cfdae59d2f7028e35cd8b3b607ae21c84dec20352b888043a1d5fae8"
+  - id: anthropic-prompting-claude-fable-5-2
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-2.md
+    title: "Claude Docs - Prompting Claude Fable 5.2"
+    rationale: "The Current-model fit rubric area follows this guide's sections on prompts written for earlier models and on keeping caution from piling up."
+    usage: inspiration
+    last_reviewed_at: 2026-11-19
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:c20db12661c1cea8594aaf29a20dc2ad460437200f6ffbbbf8d3086b9c724c5d"
+  - id: anthropic-prompting-claude-opus-5-5
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5.md
+    title: "Claude Docs - Prompting Claude Opus 5.5"
+    rationale: "The same rubric area's checks on mid-workflow status notes that end the turn and on requests to write out reasoning follow this guide's sections on unattended agentic runs and on prompts written for thinking disabled."
+    usage: inspiration
+    last_reviewed_at: 2026-11-19
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:6171e5c0ada4178cf93c40470f7371df9e7380e8b6514b9fb34e183c914c784a"

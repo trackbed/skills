@@ -1,6 +1,6 @@
 # skill:review
 
-Use it to check a skill against the skill-authoring standards: focused scope, prompt size, portability, safety, retry behavior, error handling, and documentation. It reads the skill and reports findings in the conversation. It edits nothing and writes no file. To scaffold a new skill, use `trackbed:skill:create`.
+Use it to check a skill against the skill-authoring standards: focused scope, prompt size, portability, fit for current models, safety, retry behavior, error handling, and documentation. It reads the skill and reports findings in the conversation. It edits nothing and writes no file. To scaffold a new skill, use `trackbed:skill:create`.
 
 ## Arguments
 

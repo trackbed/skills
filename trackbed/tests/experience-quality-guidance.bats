@@ -76,3 +76,16 @@ assert_core_principle() {
 			"$registry" >/dev/null
 	done
 }
+
+@test "skill review flags instructions written for earlier models" {
+	review="skills/skill:review/SKILL.md"
+	grep -qF "**Current-model fit**: Instructions do not work around the limits of an earlier model." "$review"
+	grep -qF "a token budget shown to the agent" "$review"
+	grep -qF "a standing instruction to delegate that gives no cost or task-size threshold" "$review"
+	grep -qF "a mid-workflow status note allowed as a message of its own" "$review"
+	grep -qF "where the workflow means \`ask before …\` or covers routine, retryable steps" "$review"
+	grep -qF "Rate an instruction a current model may decline, or one that ends a multi-step run early, Major" "$review"
+	for id in anthropic-prompting-claude-fable-5-2 anthropic-prompting-claude-opus-5-5; do
+		grep -qF "id: $id" "skills/skill:review/references/sources.yaml"
+	done
+}
