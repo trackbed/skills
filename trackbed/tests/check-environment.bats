@@ -200,7 +200,7 @@ assert_text_row() {
 	assert_text_row "Root path" "$BATS_TEST_TMPDIR/root checkout"
 	assert_text_row "Default branch" "main"
 	assert_text_row "Port range" "55060-55069"
-	assert_text_row ".conductor/settings.toml" "present"
+	assert_text_row ".conductor/settings.toml" "present (legacy; Conductor 0.95 and later keep repository settings in the app)"
 }
 
 @test "reports conductor cloud mode without ports or default branch" {

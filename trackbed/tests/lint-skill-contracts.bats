@@ -393,6 +393,8 @@ required_invariants = {
     "isolation uses Conductor instead of raw Git": "use another Conductor workspace—not raw worktrees or throwaway branches—for isolation",
     "workspace lifecycle stays host-neutral": "Never remove, reset, or re-point a Conductor workspace path",
     "workspace archival stays in Conductor": "archive workspaces through Conductor",
+    "workspace creation needs the user's approval": "create one through Conductor only after the user approves it in this run",
+    "agents archive only workspaces their run created": "archive only one this run created, after the user approves it",
     "host detection never widens authority": "Conductor changes defaults, not permissions or safety gates",
 }
 missing = [

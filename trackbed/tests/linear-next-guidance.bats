@@ -90,7 +90,7 @@
     grep -qF "MISSING REQUIREMENT: Linear MCP is required to select the next issue" "$skill"
     grep -qF "Keep the analysis read-only" "$skill"
     grep -qF "create branches, change assignees, move statuses, add comments, create issues, or start implementation in this workspace." "$skill"
-    grep -qF "only Step 10 may start work, and only by creating new Conductor cloud workspaces for issues the user confirms in this run." "$skill"
+    grep -qF "only Step 10 may start work, and only by creating new Conductor workspaces, in the cloud or on this Mac, for issues the user confirms in this run." "$skill"
     grep -qF "trackbed:linear:issue-implement" "$skill"
   '
 
@@ -157,7 +157,7 @@
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
-@test "Linear next offers Conductor cloud workspaces only in cloud and only on an explicit yes" {
+@test "Linear next offers new Conductor workspaces only when it can start them and only on an explicit yes" {
 	run bash -c '
     set -e
     cd "'"$BATS_TEST_DIRNAME"'/.."
@@ -166,11 +166,12 @@
 
     test -f "$launch"
     test -f "skills/linear:next/scripts/cloud-launch.py"
-    grep -qF "10. **Offer to start the work in Conductor cloud.**" "$skill"
+    grep -qF "10. **Offer to start the work in new Conductor workspaces.**" "$skill"
     grep -qF "scripts/cloud-launch.py\" detect" "$skill"
-    grep -qF "A cloud workspace is one where \`CONDUCTOR_IS_LOCAL\` is \`0\`." "$skill"
+    grep -qF "A cloud workspace is one where \`CONDUCTOR_IS_LOCAL\` is \`0\`, and a local workspace one where it is \`1\`." "$skill"
     grep -qF "On \`not_cloud\`, end without mentioning Conductor." "$skill"
-    grep -qF "On \`ok\`, read \`references/cloud-launch.md\` and follow it." "$skill"
+    grep -qF "On \`local\`, continue only when Conductor'"'"'s \`CreateWorkspace\` tool (\`mcp__conductor__CreateWorkspace\`) is already present in the current tool set. Detect it by presence; never call it to probe." "$skill"
+    grep -qF "On \`ok\`, or on \`local\` with \`CreateWorkspace\` present, read \`references/cloud-launch.md\` and follow it" "$skill"
     grep -qF "Nothing here runs without the user'"'"'s explicit yes in this run." "$launch"
     grep -qF "Only an explicit yes to this question in this session enables it" "$launch"
     grep -qF "Pass \`--adversarial-review\` only after that separate explicit yes" "$launch"
@@ -189,10 +190,27 @@
     grep -qF "Accept only the \`claude\` and \`codex\` agents" "$launch"
     grep -qF "Never run \`launch\` again for the same issues in this run, and never create workspaces with \`conductor\` directly." "$launch"
     grep -qF "The helper retries only an HTTP 429 rate limit, which creates nothing" "$launch"
+    grep -qF "python3 \"{cloud-launch-helper}\" messages [--adversarial-review]" "$launch"
+    grep -qF "Generate three new UUIDs for the issue, a workspace ID, a session ID, and a message ID, and keep them for every retry of this issue." "$launch"
+    grep -qF "and its \`message\` exactly as the helper returned it." "$launch"
+    grep -qF "Never compose, edit, or append to a message." "$launch"
+    grep -qF "call it once more with the same three IDs" "$launch"
+    grep -qF "Stop at the first issue that is not \`created\`" "$launch"
+    grep -qF "never use the \`conductor\` CLI on this route, and never message, cancel, or archive the workspaces you created." "$launch"
+    grep -qF "runs can proceed in parallel on this Mac after each workspace finishes setup" "$launch"
     grep -qF "Run it in the foreground with the longest command timeout the host allows, at least 10 minutes" "$launch"
   '
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
+@test "Linear next checks local refs and reports the actual startup state" {
+	local launch="$BATS_TEST_DIRNAME/../skills/linear:next/references/cloud-launch.md"
+	grep -qF "git show-ref --verify --quiet 'refs/heads/{branchName}'" "$launch"
+	grep -qF 'Offer the issue only on exit 1' "$launch"
+	grep -qF 'Repeat the local branch check for the confirmed issues' "$launch"
+	grep -qF 'startup failed and Conductor cleaned up the workspace for an ID in `missingIds`' "$launch"
+	grep -qF 'Count `created` on the cloud route and `ready` on the local route' "$launch"
 }
 
 @test "Linear next summarizes every reported issue in plain language" {

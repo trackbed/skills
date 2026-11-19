@@ -586,6 +586,11 @@
       "skills": ["trackbed/skills/linear:next/SKILL.md"]
     },
     {
+      "kind": "guidance",
+      "suite": "trackbed/tests/wayfinder-handoff-guidance.bats",
+      "skills": ["trackbed/skills/discovery:wayfinder/SKILL.md"]
+    },
+    {
       "kind": "executable",
       "suite": "trackbed/tests/python/test_linear_next_cloud_launch.py",
       "skills": [

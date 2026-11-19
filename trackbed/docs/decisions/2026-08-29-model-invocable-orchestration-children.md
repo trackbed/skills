@@ -59,6 +59,8 @@ Amended 2026-11-09. `trackbed:linear:next` Step 10 does not invoke `trackbed:lin
 - The flag is accepted only from that launch message or from the user typing it. A model never adds it on its own initiative or infers it from an environment variable, a setting, or an earlier run. It has no effect with `--continue`, which never transitions the issue.
 - This changes only who answers the parent's confirmation. The `--set-in-progress` status handoff, the child's write, and its read-back verification are unchanged.
 
+Amended 2026-11-19 by [2026-11-19-local-conductor-orchestration.md](2026-11-19-local-conductor-orchestration.md): Step 10 may also start local workspaces. There `cloud-launch.py messages` builds the first message, and the model passes it unchanged to Conductor's `CreateWorkspace` tool.
+
 ### Pull Request shape-up delegations
 
 Amended 2026-11-10. `trackbed:pr:shape-up` is a user-only parent that gets an open Pull Request ready to merge: it rebases a branch that is behind its target, fixes failing CI, and fixes and answers comments from AI reviewers. It changes nothing itself and adds these exact edges. Direct user invocation of each child is unchanged.

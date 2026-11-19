@@ -182,6 +182,16 @@ detect_file() {
   fi
 }
 
+# Conductor 0.95 moved repository settings into the app and imported existing
+# files, so a remaining file is a legacy copy, not the live configuration.
+detect_legacy_conductor_settings() {
+  if [ -e ".conductor/settings.toml" ]; then
+    echo "present (legacy; Conductor 0.95 and later keep repository settings in the app)"
+  else
+    echo "missing"
+  fi
+}
+
 detect_conductor() {
   if [ -n "${CONDUCTOR_WORKSPACE_PATH:-}" ]; then
     echo "yes (${CONDUCTOR_WORKSPACE_PATH})"
@@ -781,7 +791,7 @@ if [ "$OUTPUT_FORMAT" = "json" ]; then
   printf ','
   detect_connector_note "Figma" "Connector authentication is not reliably inspectable from shell."
   printf ','
-  detect_connector_note "Conductor MCP" "MCP tool availability is not inspectable from shell; check for mcp__conductor__* tools in the host."
+  detect_connector_note "Conductor MCP" "MCP tool availability is not inspectable from shell; check for mcp__conductor__* tools in the host, such as CreateWorkspace and CreateSession for starting local workspaces and chats."
   printf '],'
   printf '"context":['
   repo_value "repoRoot" "$(detect_repo_root)"
@@ -808,7 +818,7 @@ if [ "$OUTPUT_FORMAT" = "json" ]; then
   printf ','
   repo_value "contextIgnored" "$(detect_context_ignored)"
   printf ','
-  repo_value ".conductor/settings.toml" "$(detect_file ".conductor/settings.toml")"
+  repo_value ".conductor/settings.toml" "$(detect_legacy_conductor_settings)"
   printf ','
   repo_value "conductor.json" "$(detect_file "conductor.json")"
   printf ','
@@ -860,7 +870,7 @@ echo
 echo "Integrations"
 detect_connector_note "Linear" "Connector authentication is not reliably inspectable from shell."
 detect_connector_note "Figma" "Connector authentication is not reliably inspectable from shell."
-detect_connector_note "Conductor MCP" "MCP tool availability is not inspectable from shell; check for mcp__conductor__* tools in the host."
+detect_connector_note "Conductor MCP" "MCP tool availability is not inspectable from shell; check for mcp__conductor__* tools in the host, such as CreateWorkspace and CreateSession for starting local workspaces and chats."
 echo
 echo "Context"
 repo_value "Repo root" "$(detect_repo_root)"
@@ -875,7 +885,7 @@ repo_value "Default branch" "$(detect_env_or_not_set CONDUCTOR_DEFAULT_BRANCH)"
 repo_value "Port range" "$(detect_conductor_port_range)"
 repo_value ".context" "$(detect_file ".context")"
 repo_value ".context ignored" "$(detect_context_ignored)"
-repo_value ".conductor/settings.toml" "$(detect_file ".conductor/settings.toml")"
+repo_value ".conductor/settings.toml" "$(detect_legacy_conductor_settings)"
 repo_value "conductor.json" "$(detect_file "conductor.json")"
 repo_value ".worktreeinclude" "$(detect_file ".worktreeinclude")"
 repo_value "Hook config" "$(detect_file "${PLUGIN_ROOT}/hooks/hooks.json")"

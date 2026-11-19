@@ -55,7 +55,7 @@ Use these uppercase markers when reasoning about the rebase and reporting progre
 
 ### Conductor workspaces
 
-Synced Conductor workspace boundary contract (keep aligned across git-mutating workflow skills): when `CONDUCTOR_WORKSPACE_PATH` is set: stay on the current branch absent explicit approval; use another Conductor workspace—not raw worktrees or throwaway branches—for isolation. Never remove, reset, or re-point a Conductor workspace path; archive workspaces through Conductor. Conductor changes defaults, not permissions or safety gates.
+Synced Conductor workspace boundary contract (keep aligned across git-mutating workflow skills): when `CONDUCTOR_WORKSPACE_PATH` is set: stay on the current branch absent explicit approval; use another Conductor workspace—not raw worktrees or throwaway branches—for isolation, and create one through Conductor only after the user approves it in this run. Never remove, reset, or re-point a Conductor workspace path; archive workspaces through Conductor, and archive only one this run created, after the user approves it. Conductor changes defaults, not permissions or safety gates.
 
 ### Step 0: Parse Arguments
 

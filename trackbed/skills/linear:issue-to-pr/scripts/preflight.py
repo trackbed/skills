@@ -6,8 +6,8 @@ The skill keeps Linear lookups, the Linear state gate, and judgment calls. This 
   args -- '<raw arguments>'                  Parse the skill arguments; create a private state file (`state_file`).
   capture --state-file PATH                  Record the entry branch, HEAD, status entries, and in-progress Git
                                              operations, then apply the fresh (clean tree) or continue gate.
-  check-branch --state-file PATH --branch B  Validate the Linear branch name, require no Pull Request and no
-                                             `origin` ref for it, and in continue mode prove the resume state.
+  check-branch --state-file PATH --branch B  Validate the Linear branch name, check for an existing Pull Request
+                                             and branch conflicts, and in continue mode prove the resume state.
   cleanup --state-file PATH                  Remove this helper's state file once the preflight no longer needs it.
 
 Each call prints one JSON document with `schema_version`, `command`, `status`, `reason`, and `message`. Exit codes:
@@ -479,6 +479,11 @@ def command_check_branch(options: argparse.Namespace) -> JsonDict:
     object_id = object_id_pattern(root)
     require_no_pull_request(root, branch)
     require_absent_remote_branch(root, branch, object_id)
+    if not continue_mode and os.environ.get("CONDUCTOR_IS_LOCAL") == "1" and branch != captured["branch"]:
+        ref = f"refs/heads/{branch}"
+        local_ref = git(root, "show-ref", "--verify", "--quiet", ref, ok=(0, 1))
+        if local_ref.returncode == 0:
+            raise Stop("local_branch_exists", f"{ref} already exists in this repository.", {"ref": ref})
     result: JsonDict = {
         "message": "The issue branch is valid and unpublished.",
         "issue_branch": branch,
