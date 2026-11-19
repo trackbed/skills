@@ -1,14 +1,14 @@
 ---
 name: code:copy-review
-description: Review unnecessary, redundant, or duplicative UI text across a codebase or the current branch diff. Defaults to a full-codebase audit on the base branch and automatically uses PR/local diff review on non-base branches; use --pr to force diff review. Supports scoped audits, confidence thresholds, and inline output.
-argument-hint: "[--pr] [--base <branch>] [--threshold 0-100] [--inline] [--visual] [--all | <scope-path>]"
+description: Review unnecessary, redundant, or duplicative UI text across a codebase or the current branch diff. Defaults to a full-codebase audit on the base branch and automatically uses PR/local diff review on non-base branches; use --pr to force diff review. Supports scoped audits, confidence thresholds, and inline output. User-only --apply fixes the findings in the working tree; with --visual it adds a before and after walkthrough with screenshots from the running app.
+argument-hint: "[--pr] [--base <branch>] [--threshold 0-100] [--inline] [--visual] [--apply] [--url <url>] [--all | <scope-path>] | --revert <finding-ids>"
 disable-model-invocation: false
 user-invocable: true
 ---
 
 # Copy Review for Codebase Scope, Pull Request, or Local Changes
 
-Audit the full codebase for unnecessary UI text when invoked on the resolved base branch. Automatically switch to PR/local diff review on a non-base branch, use `--pr` to force diff review, or pass `--all` or a scope path to force audit mode.
+Audit the full codebase for unnecessary UI text when invoked on the resolved base branch. Automatically switch to PR/local diff review on a non-base branch, use `--pr` to force diff review, or pass `--all` or a scope path to force audit mode. The review only reports unless the user adds `--apply`, which fixes the reported findings in the working tree in the same run; `--apply --visual` also writes a before and after walkthrough with screenshots from the running app.
 
 **Arguments:** "$ARGUMENTS"
 
@@ -17,6 +17,12 @@ Audit the full codebase for unnecessary UI text when invoked on the resolved bas
 ## Review Workflow
 
 ### Step 1: Parse Arguments
+
+Before parsing the review arguments, take the flags that belong to fixing:
+
+- **`--apply`:** set `APPLY_MODE=true` and remove the flag; otherwise set `APPLY_MODE=false`. `--apply` edits source files, so honor it only when the user typed it or asked in this session for the copy findings to be fixed; when a caller adds it on its own initiative, set `APPLY_MODE=false` instead and say that applying was skipped for lack of a user request. Reject `--apply` together with `--inline`: the fixes are recorded in `COPY_REVIEW_OVERVIEW.md`, which inline mode does not write.
+- **`--url <url>`:** store it as `APP_URL`, the running app to screenshot for the walkthrough, and remove it. Accept only a value that starts with `http://` or `https://`, and reject the flag unless `--apply` and `--visual` are both present.
+- **`--revert`:** honor it only on the same kind of user request; when a caller adds it on its own initiative, stop and say that reverting was skipped for lack of a user request. Otherwise set `REVERT_MODE=true` and treat everything after the flag as the request: which changes to undo, by finding ID, with any reasons. Reject any flag or scope given before it. Report `Copy review mode: revert named changes.`, read `references/apply-findings.md`, follow only its **Revert Named Changes** section, and stop without running Steps 2 to 11.
 
 1. If `--base <branch>` flag provided, store as `BASE_BRANCH_OVERRIDE`
 2. If `--threshold N` flag provided, store as `custom_threshold` (0-100). Only findings with confidence >= N will be reported. If not provided, set `custom_threshold=75`.
@@ -58,6 +64,7 @@ Audit the full codebase for unnecessary UI text when invoked on the resolved bas
 2. Read any repo-root project instruction files if present (`AGENTS.md`, `CLAUDE.md`, `.github/copilot-instructions.md`, markdown instruction files in repo-root `.claude/`, or equivalents).
 3. Extract initial UI stack, component library, design system, target audience, and content strategy conventions from those repo-root instruction files and the surrounding UI code.
 4. Pass the rubric and merged conventions to the reviewer agent, and instruct it to prioritize documented conventions over generic best practices.
+5. When `COPY_REVIEW_OVERVIEW.md` exists, read its `## Reverted by Request` section and any earlier finding marked `Action taken: Acknowledged — change reverted at the user's request`. In either mode, match decisions by file, enclosing component, and original text. Carry the `acknowledged` status and action into matching findings so Step 10 leaves them alone.
 
 ### Step 3: PR/Local Diff Mode — Resolve Base Branch and Identify UI-Relevant Changed Files
 
@@ -200,14 +207,27 @@ Otherwise:
 - In codebase scan mode, replace the report's base-branch metadata with the requested scope and file count, include a "Patterns & Themes" section, and overwrite any prior overview because the file represents the latest scan.
 - Include all sections even if empty (with count of 0)
 - Treat the file as a working artifact that should **not** be committed and can be cleaned up by `/trackbed:workflow:cleanup-artifacts`
+- Preserve every decision from Step 2 in `## Reverted by Request`, using `assets/applied-changes-format.md`, even when the new scope or threshold omits the finding. These records are separate from the active findings and have no finding IDs.
+
+### Step 10: Apply the Findings (`--apply`)
+
+When `APPLY_MODE=false`, skip this step. When the report has no Critical or Important finding, and no Suggestion the user asked to have applied, say `Nothing to apply: no Critical or Important findings.` and continue.
+
+Otherwise read `references/apply-findings.md` and follow it. It fixes the Critical and Important findings in the working tree without committing, runs `trackbed:verify:run --fast`, and records each outcome in the report with the statuses from `${CLAUDE_PLUGIN_ROOT}/shared/findings/references/finding-lifecycle.md`. This skill fixes its own findings and never invokes `trackbed:pr:resolve-review`.
+
+When `VISUAL_REPORT=true` as well, that reference hands off to `references/walkthrough-capture.md`, which uses `APP_URL` or finds the running app with `${CLAUDE_PLUGIN_ROOT}/scripts/dev-server/detect-url.sh`, and screenshots each change before and after its edit. It checks each capture pass for working-tree changes with `${CLAUDE_PLUGIN_ROOT}/scripts/review-tree-fingerprint.sh`. The fixes never wait on a screenshot.
 
 ### Write the Visual Report (`--visual`)
 
-When `VISUAL_REPORT=true`, add `COPY_REVIEW_OVERVIEW.html` beside the written `COPY_REVIEW_OVERVIEW.md`, in diff review and codebase scan mode alike. Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `findings`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-findings.html`. Its reader owns the interface text and is deciding which labels and helper text to cut. Follow-up command for the page: `/trackbed:pr:resolve-review`.
+When `VISUAL_REPORT=true`, add `COPY_REVIEW_OVERVIEW.html` beside the written `COPY_REVIEW_OVERVIEW.md`, in diff review and codebase scan mode alike, after Step 10 has recorded its outcomes. Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `findings`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-findings.html`; when at least one finding ended Step 10 with an `Applied —` outcome, `changes`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-changes.html`. Its reader owns the interface text and is deciding which labels and helper text to cut; on a `changes` page, checking each change against the running app and deciding which to keep. Follow-up command for the page: `/trackbed:pr:resolve-review`; for a `changes` page, `/trackbed:code:copy-review --revert`.
 
-### Step 10: Provide Action Plan
+A `changes` page is the before and after walkthrough. Copy the report's `Apply run` value into `data-run-id` on `<main>`. Each finding with an `Applied —` outcome is one entry under its finding ID, with its screenshot pair, or its `Before` and `After` text when it has none, as the comparison. Every other finding goes in an open `Left unchanged` section with its status.
 
-If Critical or Important findings were found:
+### Step 11: Provide Action Plan
+
+If `APPLY_MODE=true`, lead with what changed: the files edited, that nothing is committed, the verification result, and `/trackbed:code:copy-review --revert <finding-ids>` as the way to undo a change. Suggest `/trackbed:pr:resolve-review` only for findings still `open` or `deferred`.
+
+Otherwise, if Critical or Important findings were found:
 
 - When `INLINE_MODE=false`, suggest running `/trackbed:pr:resolve-review`; auto/local discovery will find `COPY_REVIEW_OVERVIEW.md` and ask which overview to resolve if multiple local review files exist.
 - When `INLINE_MODE=true`, suggest re-running with the inline report content passed as the argument: `/trackbed:pr:resolve-review <paste report>` — or invoke it in the same session so chat context contains the report.
@@ -227,9 +247,16 @@ Organize findings summary in the terminal output:
 - Important: X
 - Suggestions: X
 
+## Applied (only with --apply)
+- Fixed in the working tree, uncommitted: X
+- Left open: X, deferred: X, acknowledged: X
+- Verification: {result}
+- Screenshots: {X of X changes | skipped (reason) | not requested}
+
 Report output: {inline reply | COPY_REVIEW_OVERVIEW.md}
 
 To resolve findings: `/trackbed:pr:resolve-review`
+To undo a change (only with --apply): `/trackbed:code:copy-review --revert <finding-ids>`
 ```
 
 ## Usage Examples
@@ -260,4 +287,12 @@ To resolve findings: `/trackbed:pr:resolve-review`
 
 ```
 /trackbed:code:copy-review src/components
+```
+
+```
+/trackbed:code:copy-review --apply --visual
+```
+
+```
+/trackbed:code:copy-review --revert COPY-003
 ```

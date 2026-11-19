@@ -1030,6 +1030,14 @@
       "skills": ["trackbed/skills/pr:product-review/SKILL.md"]
     },
     {
+      "suite": "trackbed/tests/copy-review-guidance.bats",
+      "kind": "guidance",
+      "skills": [
+        "trackbed/skills/code:copy-review/SKILL.md",
+        "trackbed/skills/workflow:cleanup-artifacts/SKILL.md"
+      ]
+    },
+    {
       "suite": "trackbed/tests/python/test_convergence_state.py",
       "kind": "executable",
       "skills": ["trackbed/skills/pr:review-convergence/SKILL.md"]

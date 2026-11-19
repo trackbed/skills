@@ -51,6 +51,10 @@
           "when": "fix the report's findings as commits"
         },
         {
+          "skill": "code:copy-review",
+          "when": "rerun with --apply --visual to fix the findings uncommitted and see each change before and after"
+        },
+        {
           "skill": "code:breakdown-findings",
           "when": "the findings are too many for one PR and need PR-sized plans"
         }

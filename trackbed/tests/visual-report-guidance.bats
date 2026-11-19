@@ -232,7 +232,7 @@ import re
 SHAPES = {
     "pr:code-review": ["findings"],
     "pr:product-review": ["findings"],
-    "code:copy-review": ["findings"],
+    "code:copy-review": ["findings", "changes"],
     "pr:convention-review": ["findings"],
     "pr:overengineering-review": ["findings"],
     "pr:github-review": ["findings", "plan"],
