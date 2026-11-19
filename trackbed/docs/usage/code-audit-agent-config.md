@@ -21,7 +21,7 @@ Use it to clean up the agent configuration stored in your repository: instructio
 ## What you get
 
 - A report in the conversation and no file. It opens with the scope, the kinds of configuration checked (including the ones that came up empty), and the number of items with each verdict.
-- One sentence per item: why it stays, the defect and a concrete fix, or the reason to remove it. A REMOVE verdict names its reason: redundant, outdated, conflicting, or irrelevant to this project.
+- One sentence per item: why it stays, the defect and a concrete fix, or the reason to remove it. A REMOVE verdict names its reason: redundant, outdated, conflicting, irrelevant to this project, or written to steer an earlier model.
 - Under IMPROVE and REMOVE, items that load into every session are marked `[always-on]` and listed first.
 - A closing note that no files were changed.
 

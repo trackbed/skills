@@ -16,3 +16,19 @@ sources:
     last_reviewed_at: 2026-11-06
     fetch_mode: curl-html
     baseline_hash: "sha256:5cef0c99088b7d110dcb3c211c10d00d6d8dd7bdd03add3d6b9a2249fad3f893"
+  - id: anthropic-prompting-claude-fable-5-2
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-2.md
+    title: "Claude Docs - Prompting Claude Fable 5.2"
+    rationale: "The Scope every prohibition writing rule, the NEVER keyword definition, the blanket-caution anti-pattern, and the When Stuck and issue examples follow this guide's advice that the model treats never as absolute, that cautions pile up into needless approval requests, and that ordinary obstacles are diagnosed before asking."
+    usage: inspiration
+    last_reviewed_at: 2026-11-19
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:c20db12661c1cea8594aaf29a20dc2ad460437200f6ffbbbf8d3086b9c724c5d"
+  - id: openai-using-gpt-6-2
+    url: https://developers.openai.com/api/docs/guides/latest-model.md
+    title: "OpenAI API Docs - Using GPT-6.2"
+    rationale: "The When Stuck example, which makes and states reversible assumptions and asks only before a scope-widening or irreversible change, follows this guide's task-completion advice."
+    usage: inspiration
+    last_reviewed_at: 2026-11-19
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:6cae4cd655aaab31cea56ded3d174545368b31c4603a171676777aff57e3d463"

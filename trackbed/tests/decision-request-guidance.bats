@@ -168,3 +168,35 @@
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
+
+@test "decision requests are written for a reader who did not watch the run" {
+	cd "$BATS_TEST_DIRNAME/.."
+	format="shared/implementation/references/decision-request.md"
+	grep -qF "The reader did not watch the run and may be switching in from other work." "$format"
+	grep -qF "The question, evidence, and options must make sense without the earlier messages" "$format"
+	grep -qF "say in plain words what it is." "$format"
+}
+
+@test "shipping orchestrators keep status notes with the next tool call and name the turn endings they avoid" {
+	cd "$BATS_TEST_DIRNAME/.."
+	note="A message without a tool call ends the turn, so put a one-line status note in the same message as the next tool call."
+	for skill in skills/linear:issue-to-pr/SKILL.md skills/code:plan-to-pr/SKILL.md skills/pr:review-convergence/SKILL.md; do
+		grep -qF "$note" "$skill" || { echo "missing status-note rule in $skill"; return 1; }
+		grep -qF "or the work has run long, or on a summary that announces the next step instead of taking it." "$skill" || { echo "missing turn-ending rule in $skill"; return 1; }
+		if grep -qE "a one-line status note (between skills|after each gate) is fine" "$skill"; then
+			echo "stale status-note wording in $skill"
+			return 1
+		fi
+	done
+}
+
+@test "every skill that loads the decision request format declares the guides behind its reader rule" {
+	cd "$BATS_TEST_DIRNAME/.."
+	consumers=$(grep -rlF "shared/implementation/references/decision-request.md" skills --include='*.md' | cut -d/ -f2 | sort -u)
+	[ -n "$consumers" ]
+	for consumer in $consumers; do
+		for id in anthropic-prompting-claude-fable-5-2 openai-using-gpt-6-2; do
+			grep -qF "id: $id" "skills/$consumer/references/sources.yaml" || { echo "$consumer does not declare $id"; return 1; }
+		done
+	done
+}

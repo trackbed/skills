@@ -23,3 +23,27 @@ sources:
     last_reviewed_at: 2026-11-06
     baseline_commit: 2d4dd7eacb4c41a31d85501f6f44d33fef21017a
     baseline_hash: "sha256:411a6de1df78dc0bf27572ddd1f88aeca8b1da23537152316e7a581e5e9e5b67"
+  - id: anthropic-prompting-claude-fable-5-2
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-2.md
+    title: "Claude Docs - Prompting Claude Fable 5.2"
+    rationale: "The reader rule in the shared final report and decision request formats, which writes for someone who did not watch the run and explains names coined during the work, follows this guide's advice on making reports easy to follow."
+    usage: inspiration
+    last_reviewed_at: 2026-11-19
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:c20db12661c1cea8594aaf29a20dc2ad460437200f6ffbbbf8d3086b9c724c5d"
+  - id: anthropic-prompting-claude-opus-5-5
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5.md
+    title: "Claude Docs - Prompting Claude Opus 5.5"
+    rationale: "The workflow contract's rule that a status note goes in the same message as the next tool call, and the turn endings it rules out, follow this guide's section on unattended agentic runs."
+    usage: inspiration
+    last_reviewed_at: 2026-11-19
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:6171e5c0ada4178cf93c40470f7371df9e7380e8b6514b9fb34e183c914c784a"
+  - id: openai-using-gpt-6-2
+    url: https://developers.openai.com/api/docs/guides/latest-model.md
+    title: "OpenAI API Docs - Using GPT-6.2"
+    rationale: "The same reader rule's ban on carrying run shorthand into user-facing text follows this guide's advice that a final answer stand on its own, without shorthand from tool calls or internal work."
+    usage: inspiration
+    last_reviewed_at: 2026-11-19
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:6cae4cd655aaab31cea56ded3d174545368b31c4603a171676777aff57e3d463"

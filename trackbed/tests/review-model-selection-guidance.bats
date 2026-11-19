@@ -171,3 +171,21 @@ PY
     [[ "$text" == *'Forward any explicit user reviewer-model choice with the review handoff'* ]] || false
   done
 }
+
+@test "stepped-down Claude Code reviewers keep or report the orchestrator's effort" {
+  local policy
+  policy="$(cat "$POLICY")"
+  [[ "$policy" == *"A subagent inherits the session's effort level only while it runs on the orchestrator's model"* ]] || false
+  [[ "$policy" == *"trusted session/runtime metadata gives the orchestrator's effort level"* ]] || false
+  [[ "$policy" == *"otherwise report once that stepped-down reviewers run at the selected model's default effort"* ]] || false
+  grep -qF "does not inherit the session's effort level" "$ROOT/docs/review.md"
+}
+
+@test "every skill that loads the model policy declares Claude Code's subagent docs" {
+  local consumer consumers
+  consumers=$(cd "$ROOT" && grep -rlF "shared/pr-review/references/model-selection.md" skills --include='*.md' | cut -d/ -f2 | sort -u)
+  [ -n "$consumers" ]
+  for consumer in $consumers; do
+    grep -qF "id: anthropic-claude-code-subagents" "$ROOT/skills/$consumer/references/sources.yaml" || { echo "$consumer does not declare the subagent docs"; return 1; }
+  done
+}

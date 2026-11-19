@@ -100,6 +100,8 @@ Haiku and Luna stay at their own class. `TRACKBED_REVIEW_SUBAGENT_LEVEL` accepts
 
 An explicit `--subagent-model` flag or conversational reviewer-model choice still wins over the setting.
 
+In Claude Code, a reviewer on a model other than the orchestrator's does not inherit the session's effort level. The review passes the orchestrator's level when it can read it, and otherwise reports once that the stepped-down reviewers run at their model's default effort.
+
 ### Overriding One Run
 
 Pass `--subagent-model <model>` to any of the four review skills above, `pr:github-review`, or `pr:review-convergence`. The value can be a model class, a runtime-supported model ID, or `inherit` to use the orchestrator's model.

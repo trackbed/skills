@@ -48,11 +48,19 @@ SKILL="skills/code:audit-agent-config/SKILL.md"
   grep -qF "never widen a scoped audit or follow the path outside the repo" "$SKILL"
 }
 
-@test "verdicts require verified evidence for all four defect classes" {
+@test "verdicts require verified evidence for all five defect classes" {
   grep -qF "**Redundant**" "$SKILL"
   grep -qF "**Outdated**" "$SKILL"
   grep -qF "**Conflicting**" "$SKILL"
   grep -qF "**Irrelevant**" "$SKILL"
+  grep -qF "**Model-stale**" "$SKILL"
+  grep -qF "conflicting, or irrelevant entries and for rules written for earlier models" "$SKILL"
+  grep -qF "id: anthropic-prompting-claude-fable-5-2" "skills/code:audit-agent-config/references/sources.yaml"
+  grep -qF "id: anthropic-prompting-claude-opus-5-5" "skills/code:audit-agent-config/references/sources.yaml"
+  grep -qF "Test every item against the five defect classes." "$SKILL"
+  grep -qF "Flag only a form the item's own wording shows, and quote that wording as the evidence" "$SKILL"
+  grep -qF "Asking for a short explanation of a result is not this defect." "$SKILL"
+  grep -qF "the fix names the exact action, its scope, and when to ask" "$SKILL"
   grep -qF "Verify with an existence check (glob, file read, or \`--help\` on a referenced command) before flagging." "$SKILL"
   grep -qF "Verify with a repository-wide search for the tool or pattern before flagging." "$SKILL"
   grep -qF "never REMOVE or IMPROVE on suspicion" "$SKILL"

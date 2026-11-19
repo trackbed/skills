@@ -54,3 +54,23 @@ setup() {
 	! grep -qF 'skills.sh' "$SOURCES" || false
 	! grep -qiE 'skill discovery|guideline keyword' <<<"$entry" || false
 }
+
+@test "update-agents-md scopes prohibitions instead of seeding blanket cautions" {
+	grep -qF -- '- **NEVER** — Absolute prohibition with no exception; agents apply it literally' "$SKILL"
+	grep -qF -- '- **Scope every prohibition** - Use NEVER only when no exception exists.' "$SKILL"
+	grep -qF 'write `ALWAYS ask before …` and name the exact action' "$SKILL"
+	grep -qF -- '- Blanket cautions that halt routine, reversible work' "$SKILL"
+	stuck=$(awk '/^### When Stuck$/{f=1; next} /^### /{f=0} f' "$SKILL")
+	issues=$(awk '/^### Issue Management$/{f=1; next} /^### /{f=0} f' "$SKILL")
+	grep -qF -- '- **ALWAYS** diagnose a failing command, a missing file, or an empty result before asking' <<<"$stuck"
+	grep -qF -- '- **ALWAYS** make a reasonable, reversible assumption when a detail is unclear, state it, and keep going' <<<"$stuck"
+	grep -qF -- "- **ALWAYS** ask before a change that widens the task's scope or cannot be undone" <<<"$stuck"
+	grep -qF -- "- **ALWAYS** ask before changing an issue's status" <<<"$issues"
+	if grep -qE '^- \*\*NEVER\*\*' <<<"$stuck"$'\n'"$issues"; then
+		echo "a blanket NEVER example returned"
+		return 1
+	fi
+	for id in anthropic-prompting-claude-fable-5-2 openai-using-gpt-6-2; do
+		grep -qF "id: $id" "$SOURCES"
+	done
+}

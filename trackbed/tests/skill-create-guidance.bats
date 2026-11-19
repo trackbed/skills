@@ -144,3 +144,22 @@ heading_line() {
 	grep -qF "usage: inspiration" <<<"$posthog_entry"
 	grep -qi "outcome-contract authoring default" <<<"$posthog_entry"
 }
+
+@test "authoring guidance writes for current models" {
+	section="$(sed -n '/^### Write for current models$/,/^### No time-sensitive info$/p' "$BEST_PRACTICES")"
+	[ -n "$section" ]
+	grep -qF "**Scope every prohibition and stop.**" <<<"$section"
+	grep -qF "when the action is allowed after approval, write \`ask before …\`" <<<"$section"
+	grep -qF "**Name the stops you want.**" <<<"$section"
+	grep -qF "a status note belongs in the same message as the next tool call" <<<"$section"
+	grep -qF "**Leave thinking to the host.**" <<<"$section"
+	grep -qF "Asking for a short explanation of a result is fine." <<<"$section"
+	grep -qF "**Show no token budget.**" <<<"$section"
+	grep -qF "**Justify each delegation.**" <<<"$section"
+	grep -qF "**Avoid hard caps on prose.**" <<<"$section"
+	grep -qF "**Write reports for a reader who did not watch the run.**" <<<"$section"
+	grep -qF "Write for current models: scope every prohibition and stop condition" "$SKILL"
+	for id in anthropic-prompting-claude-fable-5-2 anthropic-prompting-claude-opus-5-5 openai-using-gpt-6-2; do
+		grep -qF "id: $id" "$SOURCES"
+	done
+}

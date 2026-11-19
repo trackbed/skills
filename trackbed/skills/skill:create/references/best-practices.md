@@ -101,6 +101,18 @@ Mandatory ordered steps are the exception, not the default. Require an explicit 
 
 For those workflows, number the steps. Name preconditions when later steps depend on them, map decision branches that actually exist ("If X, do Y. Otherwise, skip to Step 3."), and state what to do when failure needs a distinct stop or fallback. Everywhere else, describe the goal and let the agent choose the route, then judge the run against the success evidence.
 
+### Write for current models
+
+A current model follows instructions closely and thinks before it acts, so wording that once compensated for a weaker model now costs context or misfires.
+
+- **Scope every prohibition and stop.** A model applies `never` and `stop` literally. Reserve `never` for an action with no exception; when the action is allowed after approval, write `ask before …` and name the exact action. Give a stop condition its scope: write "stop when the validation helper refuses the input", not "stop at the first error", which also halts routine, retryable steps. Add the reason when it is not obvious.
+- **Name the stops you want.** In a multi-step workflow, say where the run waits for the user and that it continues everywhere else. On a host where a message without a tool call ends the turn, a status note belongs in the same message as the next tool call.
+- **Leave thinking to the host.** Do not tell the agent to think harder, think less, or write out its reasoning in the reply: the host's effort setting controls thinking, and some models decline a request to reproduce their reasoning. Asking for a short explanation of a result is fine.
+- **Show no token budget.** A token budget written into the instructions does not improve the work and can raise its cost.
+- **Justify each delegation.** Say what a subagent adds, when a task is too small to need one, and what its brief must contain, instead of a standing instruction to delegate.
+- **Avoid hard caps on prose.** A rule such as a maximum word count per sentence is followed exactly and makes choppy text; describe the reader and what they need instead.
+- **Write reports for a reader who did not watch the run.** The final message stands on its own, leads with the outcome, and explains or avoids labels coined during the work.
+
 ### No time-sensitive info
 
 Skill instructions are durable artifacts. Once a skill is published, it can be:

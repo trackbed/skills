@@ -26,6 +26,8 @@ Where each role runs:
 
 Both agent definitions declare `model: inherit`.
 
+Neither definition sets an `effort` level, so each role runs at the session's effort level while it stays on the orchestrator's model. In Claude Code, a subagent on another model does not inherit that level, so a class step-down can also change effort. The shared policy passes the orchestrator's level when it can read it, and otherwise reports that stepped-down reviewers run at their model's default effort.
+
 ### Usage evidence
 
 Source: the local skill-usage log and Claude Code transcripts for 2026-10-06 to 2026-10-20.
@@ -78,6 +80,10 @@ This is the option the 2026-10-20 record deferred. It is rejected here because d
 
 An opt-in such as a `filters` level would avoid changing the default, but it keeps today's cost for every user who does not discover it. `TRACKBED_REVIEW_SUBAGENT_LEVEL` was unset in every measured session.
 
+### Lower the filter roles' effort instead of their model class
+
+Keep both filter roles on the orchestrator's model and launch them at a lower effort level, such as `low`. Anthropic's prompting guide for Claude Fable 5.2 names `low` for fast subagents and reports most of the capability gain at `high`. This would cut thinking tokens without changing which model labels the findings. The meta-review would need the level set per launch rather than in the agent definition, because `trackbed:deslop-reviewer` also runs as a primary reviewer, and a host without a per-launch effort setting would keep its default. Not evaluated yet: [Evidence Required Before Acceptance](#evidence-required-before-acceptance) compares it with the class step-down.
+
 ### Drop the filter stages
 
 Rejected. The [review execution evidence record](2026-09-08-review-execution-evidence.md) requires the integrity → relevance → slop-meta order, and `trackbed:pr:code-review` already skips both stages when no finding reaches them.
@@ -94,7 +100,8 @@ Rejected. The [review execution evidence record](2026-09-08-review-execution-evi
 2. **Label agreement replay.** Replay at least ten recent `trackbed:pr:code-review` runs that had at least one primary finding. Re-run the relevance stage on the lower class over the saved primary outputs and compare labels with the orchestrator-class labels. Accept only if:
    - no Critical or Important finding labelled in scope at the orchestrator's class is labelled out of scope at the lower class, and
    - overall label agreement is at least 95%.
-3. **Session-limit effect.** Note how the measured saving changes the session-limit picture for `trackbed:pr:github-review`, `trackbed:code:plan-to-pr`, `trackbed:linear:issue-to-pr`, and `trackbed:pr:code-review`.
+3. **Effort comparison.** Repeat the item 2 replay with the relevance stage on the orchestrator's model at `low` effort, and apply the same thresholds. Record the model and effort level of every replayed launch, including those in item 2, so the decision weighs a lower effort against a lower class on the same runs.
+4. **Session-limit effect.** Note how the measured saving changes the session-limit picture for `trackbed:pr:github-review`, `trackbed:code:plan-to-pr`, `trackbed:linear:issue-to-pr`, and `trackbed:pr:code-review`.
 
 ## Relation to the 2026-10-20 Record
 

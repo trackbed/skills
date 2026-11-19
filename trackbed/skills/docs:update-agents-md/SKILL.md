@@ -66,7 +66,7 @@ The policy block is an explicit verbatim-template exception to the **One rule pe
 Use these keywords to indicate requirement strength:
 
 - **ALWAYS** — Mandatory requirement
-- **NEVER** — Strong prohibition
+- **NEVER** — Absolute prohibition with no exception; agents apply it literally
 - **PREFER** — Strong recommendation, exceptions allowed
 - **CAN** — Optional, developer's discretion
 - **NOTE** — Context or clarification
@@ -79,6 +79,7 @@ Strictness hierarchy: ALWAYS/NEVER > PREFER > CAN > NOTE/EXAMPLE
 - **Existing sections first** - Only propose new sections if no appropriate existing section exists
 - **Reconcile, don't append** - Before adding a rule or Context Pointer, check whether an equivalent already exists; update it in place instead of duplicating. Re-running this skill must not create duplicate rules or sections
 - **One rule per bullet** - Keep each authored guideline minimal and atomic; explicitly marked verbatim templates are exempt
+- **Scope every prohibition** - Use NEVER only when no exception exists. When the action is allowed after approval, write `ALWAYS ask before …` and name the exact action: agents apply NEVER literally, and broad cautions pile up into approval requests nobody needs. Add a short reason clause when the purpose is not obvious
 - **Start with keyword** - Every authored rule begins with ALWAYS/NEVER/PREFER/CAN/NOTE; explicitly marked verbatim templates are exempt
 - **Headers + bullets** - Use no paragraphs in authored guidance; explicitly marked verbatim templates are exempt
 - **Code blocks** - For commands and templates
@@ -137,8 +138,9 @@ Use this authoring example when the top-level modules are not obvious from the d
 ```markdown
 ## When Stuck
 
-- **ALWAYS** ask a clarifying question or propose alternatives
-- **NEVER** initiate large speculative changes without confirmation
+- **ALWAYS** diagnose a failing command, a missing file, or an empty result before asking: retry, fix the request, or try another route first
+- **ALWAYS** make a reasonable, reversible assumption when a detail is unclear, state it, and keep going
+- **ALWAYS** ask before a change that widens the task's scope or cannot be undone
 ```
 
 ### Git Commits
@@ -156,8 +158,8 @@ Use this authoring example when the top-level modules are not obvious from the d
 ```markdown
 ## Linear Issues
 
-- **NEVER** change issue status without explicit instruction
-- **NEVER** create issues without explicit instruction
+- **ALWAYS** ask before changing an issue's status, unless the user's request or a skill they invoked calls for that change
+- **ALWAYS** ask before creating an issue, unless the user's request or a skill they invoked calls for it
 ```
 
 ### Package Manager
@@ -193,5 +195,6 @@ Omit these:
 - Content duplicated from skills
 - Lists of installed skills or plugins, which the host already shows
 - Rules that configured lint, format, or type checks already enforce
+- Blanket cautions that halt routine, reversible work, such as "always ask before any change" or "stop at the first error"
 - Link dumps without a trigger or purpose
 - Deep pointer chains where the active agent instruction file points to a doc that only points elsewhere
