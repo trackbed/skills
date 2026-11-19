@@ -99,6 +99,15 @@
       ],
       "trackbed/evals/refactor-opportunities/_project/src/units/weight.js": [
         "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/refactor-opportunities/refactor-adr-drift/fixtures/drift/src/channels/api.js": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/refactor-opportunities/refactor-adr-drift/fixtures/drift/src/channels/csv.js": [
+        "trackbed/tests/skill-eval-suites.bats"
+      ],
+      "trackbed/evals/refactor-opportunities/refactor-adr-drift/fixtures/drift/src/channels/eligibility.js": [
+        "trackbed/tests/skill-eval-suites.bats"
       ]
     },
     "excluded": {
@@ -1401,6 +1410,9 @@
       "trackbed/skills/workflow:wizard/assets/template.sh": [
         "trackbed/tests/skill-resource-references.bats",
         "trackbed/tests/workflow-wizard-template.bats"
+      ],
+      "trackbed/evals/refactor-opportunities/refactor-adr-drift/scaffold.sh": [
+        "trackbed/tests/skill-eval-suites.bats"
       ],
       "trackbed/evals/refactor-opportunities/refactor-clean-module/scaffold.sh": [
         "trackbed/tests/skill-eval-suites.bats"

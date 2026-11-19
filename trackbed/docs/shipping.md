@@ -80,7 +80,7 @@ Stack history rewrites capture every remote branch's original commit before fetc
 
 Its `--continue` mode requires the selected archived plan already to be `IN_PROGRESS`, the exact deterministic unpublished plan branch, and only in-scope existing changes.
 
-`/trackbed:code:breakdown-findings --reconcile` can infer `DONE` from a proven merged plan branch only while the selected in-scope source state still matches the landed implementation. Later scoped changes or reversions require review and block automatic completion and dependent unblocking, including with `--auto`.
+`/trackbed:code:breakdown-findings --reconcile` can infer `DONE` from a proven merged plan branch only while the selected in-scope source state still matches the landed implementation. Later scoped changes or reversions require review and block automatic completion and dependent unblocking, including with `--auto`. When other work has already fixed a plan's problem, reconcile proposes closing the plan as `SUPERSEDED` instead of refreshing it, and waits for your confirmation, even with `--auto`.
 
 ## Final Reports
 

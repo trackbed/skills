@@ -31,7 +31,7 @@ Valid active statuses: `TODO`, `READY`, `IN_PROGRESS`, `BLOCKED`, `DRIFTED`, `ST
 
 `IN_PROGRESS` means an executor has claimed the plan and begun its implementation workflow. Generation and reconcile never infer or assign it from source changes alone; the executor must update the selected plan header and matching index row together before implementation begins.
 
-Terminal statuses: `DONE`, `SUPERSEDED`.
+Terminal statuses: `DONE`, `SUPERSEDED`. Reconcile proposes `SUPERSEDED` for a plan whose problem other work already fixed, and applies it only after confirmation.
 
 Reconcile may update active statuses when dependency, drift, or stale-context evidence changes. It preserves an explicit `IN_PROGRESS` claim while changes are consistent with active implementation; ordinary in-scope implementation changes do not alone make the plan `DRIFTED`. Evidence that the plan is blocked or stale moves it to that state, while unexpected changes inconsistent with active implementation move it to `DRIFTED`. Any other reset requires an explicit user request. Reconcile must not mark a plan `DONE` unless the index, plan, or user already explicitly says the implementation is complete and validation does not contradict that claim, or a merged plan branch from `trackbed:code:plan-to-pr` is proven and recorded with its Pull Request and landed commit, with the selected in-scope state still matching the landed implementation; it still never infers `IN_PROGRESS`. Executors mark `DONE` only after the plan's completion criteria and verification checks pass.
 

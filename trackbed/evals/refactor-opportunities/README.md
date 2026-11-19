@@ -1,11 +1,12 @@
 # Refactor opportunities eval
 
-Three invented Parcel Desk cases exercise the unchanged
+Four invented Parcel Desk cases exercise the
 `trackbed:code:refactor-opportunities` skill in path scope. They check one
 shared delivery rule across three channels, a stable quote module importing a
-volatile tariff module, and a clean weight conversion module. Every case checks
-that the skill fired, inspects `REFACTOR_OPPORTUNITIES_OVERVIEW.md`, and grades
-the reply. No refactor should be implemented.
+volatile tariff module, a clean weight conversion module, and an accepted ADR
+that the channel code has drifted from. Every case checks that the skill fired,
+inspects `REFACTOR_OPPORTUNITIES_OVERVIEW.md`, and grades the reply. No
+refactor should be implemented.
 
 Run a local, advisory comparison before changing the skill:
 
@@ -100,3 +101,27 @@ cost $1.73 to $1.84; runs that scanned the ten files in the main thread cost
 $0.61 to $0.63. Two of three candidate runs in the comparison launched agents.
 The base traces were not kept; their 10 to 12 turns and $0.66 to $0.74 match
 the main-thread runs. The comparison and rerun together cost $9.30.
+
+## ADR drift comparison
+
+On 2026-11-19, Claude Code 2.1.328 ran the `refactor-adr-drift` case three
+times on each version: `origin/main` (`8a62748a`) against a working tree that
+adds the drifted-ADR rule to Phase 3 step 5, ranked mode, and the shared audit
+workflow. In the fixture, ADR-0001 rejects a shared eligibility module, yet the
+API and CSV channels import one, and the preview keeps its own copy of the rule
+that misses the new `skerry` destination.
+
+```bash
+make -C trackbed skill-eval-compare SUITE=refactor-opportunities ARGS='--case refactor-adr-drift --concurrency 3'
+```
+
+Both versions passed all 12 checks, so the runner reported no detectable
+difference. Every base report already kept the preview's stale copy as a fix
+and said that the code and ADR-0001 disagree, through the existing "worth
+reopening because of concrete new evidence" exception. Every candidate report
+used the new annotation instead: "Code has drifted from ADR-0001 at
+src/channels/api.js:1 … either the record or the code is wrong." The case
+therefore protects a contract the model already met; it records no observed
+failure. Base runs cost $0.72 and took 96 seconds each, candidate runs $0.64
+and 76 seconds; the comparison cost $4.07. Reports stay local under
+`trackbed/.context/adr-drift-eval/`.

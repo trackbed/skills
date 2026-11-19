@@ -21,7 +21,7 @@ Use it after a review, audit, or QA run to turn validated findings into implemen
 | --- | --- |
 | `--auto` | Skip the confirmation of the proposed themes or slices. With `--reconcile`, apply low-risk updates such as status changes without asking; other questions are still asked. |
 | `--resume` | Regenerate only the plan files missing from an existing set, after checking that the sources match and asking you. Not available for a set made with `--split`. |
-| `--reconcile` | Check an existing plan set against the current code and propose updates to plan statuses, outdated code excerpts, and the rejection record. Without `--auto`, it waits for your confirmation before writing. |
+| `--reconcile` | Check an existing plan set against the current code and propose updates to plan statuses, outdated code excerpts, and the rejection record. It also proposes closing a plan whose problem other work already fixed. Without `--auto`, it waits for your confirmation before writing; closing a plan always waits. |
 | `--split` | Plan mergeable Pull Request slices from the current branch's changes instead of from findings. It accepts only `--auto`, `--base`, and `--visual`, and may answer KEEP AS ONE and write nothing. |
 | `--visual` | Also write `PR_PLAN_INDEX.html`, an interactive page of the whole plan set. See [Visual Reports](../visual-reports.md). |
 | `--all` | With `--reconcile`, update every plan in the index that is not `DONE` or `SUPERSEDED`. Cannot be combined with plan files. |

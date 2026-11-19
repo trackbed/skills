@@ -69,3 +69,13 @@ sources:
     last_reviewed_at: 2026-11-19
     fetch_mode: curl-markdown
     baseline_hash: "sha256:1190caa9852cc0dd6d1bb87b45da5bd71950280c2caa0953aa0f7b3a40bccdad"
+  - id: shadcn-improve-audit-playbook
+    url: https://raw.githubusercontent.com/shadcn/improve/main/skills/improve/references/audit-playbook.md
+    title: "shadcn/improve - audit playbook"
+    rationale: "The Phase 3 step 5 ADR filter, and the ranked mode and shared audit workflow filters it feeds, keep a finding whose ADR the code no longer follows and name the drift, following this source's rule that a stale decision record is itself a finding rather than grounds to suppress one. No upstream prose or assets are copied."
+    usage: inspiration
+    upstream_path: "skills/improve/references/audit-playbook.md"
+    last_reviewed_at: 2026-11-19
+    baseline_commit: "cac56e1ebd3c279aa9153616cfeac7b174ab90f9"
+    license: "MIT license verified from upstream LICENSE.md on 2026-11-19; this skill adapts the concept only and does not copy upstream files."
+    baseline_hash: "sha256:587c1b927070f3c28139ad95ac34cc21a7da32618cfeb966cb774e58a865d4c8"
