@@ -18,9 +18,10 @@ PLUGIN = Path(__file__).resolve().parents[2]
 SCRIPT_PATH = PLUGIN / "scripts" / "visual-report.py"
 ASSETS = PLUGIN / "shared" / "visual" / "assets"
 TEMPLATE = ASSETS / "report-findings.html"
-SHAPES = ("findings", "plan", "qa", "inquiry", "assessment", "fixes")
+SHAPES = ("findings", "plan", "qa", "inquiry", "assessment", "fixes", "changes")
 NEEDS_SHAPE = (
-    "<main data-report> needs data-shape, one of findings, plan, qa, inquiry, assessment, fixes, as the skill names it"
+    "<main data-report> needs data-shape, one of findings, plan, qa, inquiry, assessment, fixes, changes, "
+    "as the skill names it"
 )
 
 sys.dont_write_bytecode = True
@@ -62,6 +63,10 @@ def page(body: str = ENTRY, head: str = "", main: str = "") -> str:
 
 def fixes_page(body: str) -> str:
     return page(body).replace('data-shape="findings"', 'data-shape="fixes"')
+
+
+def changes_page(body: str) -> str:
+    return page(body).replace('data-shape="findings"', 'data-shape="changes"')
 
 
 def problems(source: str) -> list[str]:
@@ -275,6 +280,86 @@ class ContractTests(unittest.TestCase):
         self.assertIn(
             'facet "removes" is a reserved name; choose another', problems(page(main='data-facets="removes"'))
         )
+
+    def test_a_change_shows_its_before_and_after(self) -> None:
+        change = '<article data-entry data-id="{id}"{attrs}><h3>Change</h3><p>Body</p>{compare}</article>'
+        side = '<figure data-side="{side}"><blockquote>Text</blockquote><figcaption><b>{side}</b></figcaption></figure>'
+        pair = "<div data-compare>" + side.format(side="before") + side.format(side="after") + "</div>"
+        one = change.format(id="COPY-001", attrs="", compare=pair)
+        self.assertEqual(problems(changes_page(one)), [])
+        # A change may show more than one comparison, such as the same text on two screens.
+        self.assertEqual(problems(changes_page(change.format(id="COPY-001", attrs="", compare=pair + pair))), [])
+        self.assertEqual(
+            problems(changes_page(change.format(id="COPY-001", attrs="", compare=""))),
+            [
+                "change COPY-001 needs a before and after: an element marked data-compare holding "
+                '<figure data-side="before"> and <figure data-side="after">',
+                "a changes page needs a before and after for each change, in an element marked data-compare",
+            ],
+        )
+        needs_both = (
+            'a data-compare holds one <figure data-side="before"> and then one <figure data-side="after">, found {}'
+        )
+        for sides, found in (
+            (("before",), "before"),
+            (("after", "before"), "after, before"),
+            (("before", "after", "after"), "before, after, after"),
+            ((), "neither"),
+        ):
+            with self.subTest(sides=sides):
+                compare = "<div data-compare>" + "".join(side.format(side=name) for name in sides) + "</div>"
+                self.assertEqual(
+                    problems(changes_page(change.format(id="COPY-001", attrs="", compare=compare))),
+                    [needs_both.format(found)],
+                )
+        unknown = pair.replace('data-side="after"', 'data-side="now"')
+        self.assertEqual(
+            problems(changes_page(change.format(id="COPY-001", attrs="", compare=unknown))),
+            ['data-side="now" is not a side; use before or after', needs_both.format("before")],
+        )
+        # A side is a figure directly inside its comparison, and a comparison sits in one entry, never in another.
+        wrapped = pair.replace('<figure data-side="after">', '<div><figure data-side="after">').replace(
+            "</figure></div>", "</figure></div></div>"
+        )
+        self.assertIn(
+            'data-side="after" belongs on a <figure> directly inside a data-compare',
+            problems(changes_page(change.format(id="COPY-001", attrs="", compare=wrapped))),
+        )
+        self.assertIn(
+            'data-side="before" belongs on a <figure> directly inside a data-compare',
+            problems(changes_page(one.replace('<figure data-side="before">', '<div data-side="before">', 1))),
+        )
+        self.assertIn(
+            "data-compare belongs inside an entry, under its Before and after heading",
+            problems(changes_page(one + pair)),
+        )
+        self.assertEqual(
+            problems(changes_page(change.format(id="COPY-001", attrs="", compare="<hr data-compare>"))),
+            [
+                "data-compare belongs on an element that holds the two figures, not on <hr>",
+                "change COPY-001 needs a before and after: an element marked data-compare holding "
+                '<figure data-side="before"> and <figure data-side="after">',
+            ],
+        )
+        nested = pair.replace("</div>", pair + "</div>")
+        self.assertIn(
+            "a data-compare is nested inside another; give each comparison its own element",
+            problems(changes_page(change.format(id="COPY-001", attrs="", compare=nested))),
+        )
+        # What the run left unchanged is not a change, whether marked itself or by its section, and other shapes
+        # may show a comparison without being required to.
+        left = change.format(id="COPY-002", attrs=' data-triage="off"', compare="")
+        self.assertEqual(problems(changes_page(one + left)), [])
+        folded = '<section data-section id="ref" data-triage="off"><h2>Left</h2>' + change.format(
+            id="COPY-003", attrs="", compare=""
+        )
+        self.assertEqual(problems(changes_page(one + "</section>" + folded)), [])
+        self.assertEqual(problems(page(change.format(id="CR-001", attrs="", compare=""))), [])
+        self.assertEqual(problems(page(change.format(id="CR-001", attrs="", compare=pair))), [])
+        for facet in ("compare", "side"):
+            self.assertIn(
+                f'facet "{facet}" is a reserved name; choose another', problems(page(main=f'data-facets="{facet}"'))
+            )
 
     def test_a_fixes_page_with_nothing_worth_changing_passes(self) -> None:
         self.assertEqual(problems(fixes_page("<p>Nothing worth changing in the full scan.</p>")), [])
