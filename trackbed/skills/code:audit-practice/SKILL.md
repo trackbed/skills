@@ -128,4 +128,4 @@ List all eighteen mistakes in numeric order in `All Checks`, one sentence per ev
 
 ## Source Tracking
 
-`references/sources.yaml` records the post this rubric adapts and the companion glossary that defines its terms. Do not load it during normal use.
+`references/sources.yaml` records the post this rubric adapts, the companion glossary that defines its terms, and the provider prompting guides behind the effort entry. Do not load it during normal use.

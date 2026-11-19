@@ -10,13 +10,13 @@ These costs land on every session before it does any work.
 
 ### 1. Effort set too high
 
-Higher effort buys longer reasoning on every request, spending output tokens and time without improving routine work.
+Higher effort buys longer reasoning on every request, spending output tokens and time without improving routine work. Each provider documents a default effort level per model, and a level that suited one model can be too high for the next.
 
-- **Evidence:** `effort.requests_by_level` and `effort.median_thinking_seconds`; Claude Code `effortLevel`; Codex `model_reasoning_effort` and `plan_mode_reasoning_effort`.
-- **LIKELY:** the top of the host's scale (`max` in Claude Code, `xhigh` in Codex) is the configured default or serves more than half of recorded requests.
-- **CLEAR:** the default sits below the top, and fewer than a fifth of requests use the top level.
-- **Self-check:** Do you raise effort for a hard problem and lower it afterwards, or leave it at the top?
-- **Change:** set the default to the lowest level that handles routine work, and raise it per task for hard debugging or design.
+- **Evidence:** `effort.requests_by_level` and `effort.median_thinking_seconds`; Claude Code `effortLevel`; Codex `model_reasoning_effort` and `plan_mode_reasoning_effort`; the model in use and the effort level its provider documents as that model's default.
+- **LIKELY:** the configured default sits above the model's documented default with no recorded measurement of a gain, or more than half of recorded requests run above it. When the documented default is not known, LIKELY means the top of the host's scale (`max` in Claude Code, `xhigh` in Codex) is the configured default or serves more than half of recorded requests; say so in the evidence cell.
+- **CLEAR:** the default is at or below the documented default, and fewer than a fifth of requests run above it. When the documented default is not known, CLEAR means the default sits below the top of the scale and fewer than a fifth of requests use the top level.
+- **Self-check:** Do you raise effort for a hard problem and lower it afterwards, or leave it above the model's documented default?
+- **Change:** set the default to the model's documented default, try one level lower for routine work, and raise it per task for hard debugging or design; keep a higher default only where a measurement shows the gain.
 - **Then:** the host's effort setting.
 
 ### 2. Overlong skills

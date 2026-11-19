@@ -82,8 +82,25 @@ SOURCES="skills/code:audit-practice/references/sources.yaml"
   grep -qF "List all eighteen mistakes in numeric order" "$SKILL"
 }
 
-@test "sources credit the post and its glossary as inspiration" {
+@test "sources credit the post, its glossary, and the provider guides as inspiration only" {
   grep -qF "url: https://x.com/mattpocockuk/status/2109973273924579720" "$SOURCES"
   grep -qF "url: https://www.aicodingdictionary.com/" "$SOURCES"
-  [ "$(grep -c 'usage: inspiration' "$SOURCES")" -eq 2 ]
+  [ "$(grep -c 'usage: inspiration' "$SOURCES")" -eq "$(grep -c '^  - id: ' "$SOURCES")" ]
+  if grep -qF 'usage: copied' "$SOURCES"; then
+    echo "audit-practice must not retain copied source material"
+    return 1
+  fi
+}
+
+@test "effort is judged against the model's documented default" {
+  entry=$(awk '/^### 1\. Effort set too high$/{f=1; next} /^### /{f=0} f' "$RUBRIC")
+  [ -n "$entry" ]
+  grep -qF "Each provider documents a default effort level per model, and a level that suited one model can be too high for the next." <<<"$entry"
+  grep -qF "the model in use and the effort level its provider documents as that model's default" <<<"$entry"
+  grep -qF -- "- **LIKELY:** the configured default sits above the model's documented default with no recorded measurement of a gain" <<<"$entry"
+  grep -qF "When the documented default is not known, LIKELY means the top of the host's scale" <<<"$entry"
+  grep -qF "keep a higher default only where a measurement shows the gain" <<<"$entry"
+  for id in anthropic-prompting-claude-fable-5-2 anthropic-prompting-claude-opus-5-5 openai-using-gpt-6-2; do
+    grep -qF "id: $id" "$SOURCES"
+  done
 }

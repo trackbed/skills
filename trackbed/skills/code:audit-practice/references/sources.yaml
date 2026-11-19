@@ -15,3 +15,27 @@ sources:
     last_reviewed_at: 2026-10-29
     fetch_mode: curl-html
     baseline_hash: "sha256:e0c192ee3b3004416414bd1b7fac95f5b17f3d551bd4ca0b55f2ec27944e32e3"
+  - id: anthropic-prompting-claude-fable-5-2
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-2.md
+    title: "Claude Docs - Prompting Claude Fable 5.2"
+    rationale: "The effort entry's comparison against the model's documented default level follows this guide's effort calibration advice."
+    usage: inspiration
+    last_reviewed_at: 2026-11-19
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:c20db12661c1cea8594aaf29a20dc2ad460437200f6ffbbbf8d3086b9c724c5d"
+  - id: anthropic-prompting-claude-opus-5-5
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5.md
+    title: "Claude Docs - Prompting Claude Opus 5.5"
+    rationale: "The effort entry's point that a level suited to one model can be too high for the next follows this guide's note that effort level names do not mean the same amount of thinking across models."
+    usage: inspiration
+    last_reviewed_at: 2026-11-19
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:6171e5c0ada4178cf93c40470f7371df9e7380e8b6514b9fb34e183c914c784a"
+  - id: openai-using-gpt-6-2
+    url: https://developers.openai.com/api/docs/guides/latest-model.md
+    title: "OpenAI API Docs - Using GPT-6.2"
+    rationale: "The effort entry's comparison against the model's documented default level follows this guide's recommended starting reasoning effort."
+    usage: inspiration
+    last_reviewed_at: 2026-11-19
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:6cae4cd655aaab31cea56ded3d174545368b31c4603a171676777aff57e3d463"
