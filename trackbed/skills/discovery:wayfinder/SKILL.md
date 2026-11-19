@@ -23,13 +23,14 @@ Find a route through an initiative that is too large or uncertain for one agent 
 
 ### Step 1: Classify the invocation
 
-1. Parse `$ARGUMENTS` as either:
+1. If `$ARGUMENTS` begins with the exact line `Wayfinder worker assignment`, read `references/conductor-parallel-handoffs.md` and follow **Accept a Dispatched Ticket**. A verified worker goes directly to Step 5. Stop on an invalid assignment.
+2. Otherwise parse `$ARGUMENTS` as either:
    - an initiative description for **chart mode**; or
    - an existing `MAP.md` path, optionally followed by a ticket ID, for **work mode**.
-2. Resolve a directory argument to `<directory>/MAP.md` when that file exists. If the directory contains `tickets/WF-*.md` but no `MAP.md`, treat it as interrupted-chart recovery and enter the directory-without-map rule in `references/storage.md`.
-3. Infer the mode from an explicit initiative or map already supplied in the current request when no arguments are present. Otherwise ask for either the initiative or the existing map path.
-4. Stop with `WAYFINDER NOT NEEDED` when the route is already clear and the whole planning problem fits in one session. Recommend the smallest matching downstream workflow.
-5. Stop with `UNSUPPORTED BACKEND` when the user wants an external tracker to be canonical. Explain that this version is local-only and leave Linear-native blocking as a future extension.
+3. Resolve a directory argument to `<directory>/MAP.md` when that file exists. If the directory contains `tickets/WF-*.md` but no `MAP.md`, treat it as interrupted-chart recovery and enter the directory-without-map rule in `references/storage.md`.
+4. Infer the mode from an explicit initiative or map already supplied in the current request when no arguments are present. Otherwise ask for either the initiative or the existing map path.
+5. Stop with `WAYFINDER NOT NEEDED` when the route is already clear and the whole planning problem fits in one session. Recommend the smallest matching downstream workflow.
+6. Stop with `UNSUPPORTED BACKEND` when the user wants an external tracker to be canonical. Explain that this version is local-only and leave Linear-native blocking as a future extension.
 
 ### Step 2: Resolve safe local storage
 
@@ -52,16 +53,16 @@ Run this step only in chart mode.
 Run this step only in work mode.
 
 1. Read the lifecycle from `references/work-through-map.md` and the type rules from `references/ticket-types.md`; load the map at low resolution and reconcile its derived index before selection.
-2. When separate agents or workspaces are involved, read `references/conductor-parallel-handoffs.md`. Require one map owner to serialize claims; stop if no owner is identified. Copy `assets/resolution-handoff-template.md` for any non-owner worker in a parallel run.
+2. When separate agents or workspaces are involved, or the user asks the map owner to start workers, read `references/conductor-parallel-handoffs.md`. Require one map owner to serialize claims; stop if no owner is identified. If the owner is starting workers, follow **Start Workers From the Map Owner** and stop after that workflow reports the outcomes. Copy `assets/resolution-handoff-template.md` for any non-owner worker in a parallel run.
 3. Honor a named ticket only when it is frontier work; otherwise report its exact unavailable state and stop. With no named ticket, select the first frontier row in map order.
-4. Claim before investigation using the lifecycle's solo or owner-mediated sequence. Never infer abandonment from elapsed time or clear another session's claim without its release or explicit user confirmation.
+4. Claim before investigation using the lifecycle's solo or owner-mediated sequence. Never infer abandonment from elapsed time. Follow the lifecycle's claim-release rules or, for a failed dispatch, the parallel handoff rules.
 
 ### Step 5: Resolve the claimed ticket
 
 1. Work only the claimed question and follow its type in `references/ticket-types.md`. Load related ticket bodies only when their full detail is necessary.
 2. Record the full answer and linked evidence without copying secrets, credentials, private data, or sensitive logs; record safe locations or redacted facts instead.
 3. Commit the resolution in the role-specific, retry-safe order from `references/work-through-map.md`. In a parallel run, also follow `references/conductor-parallel-handoffs.md`; a non-owner worker must not edit the canonical ticket or `MAP.md`.
-4. Close mis-scoped work as `OUT OF SCOPE`, link it from the map's **Out of scope** section, and omit it from **Decisions so far**.
+4. For mis-scoped work, a non-owner worker proposes `OUT OF SCOPE` in its packet. The owner or solo session closes the ticket, links it from the map's **Out of scope** section, and omits it from **Decisions so far**.
 
 ### Step 6: Stop or hand off
 

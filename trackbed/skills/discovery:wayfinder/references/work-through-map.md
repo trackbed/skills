@@ -38,7 +38,7 @@ For a solo session, use this sequence:
 3. Mirror the claim in the map row.
 4. Re-read both files. If another valid claim is present, do not work the ticket; yield it and select another frontier item or stop.
 
-Do not infer abandonment from elapsed time. Clear a claim only when its owner releases it or the user explicitly confirms reassignment. Record the release or reassignment in the ticket and recompute its `READY` or `BLOCKED` status from its blockers.
+Do not infer abandonment from elapsed time. Clear a claim only when its owner releases it, the user explicitly confirms reassignment, or the map owner verifies failed dispatch under the parallel handoff rules. Record the release or reassignment in the ticket and recompute its `READY` or `BLOCKED` status from its blockers.
 
 ## 4. Resolve the Question
 
