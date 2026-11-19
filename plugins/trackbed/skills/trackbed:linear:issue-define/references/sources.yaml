@@ -1,0 +1,33 @@
+sources:
+  - id: pocock-triage-issue
+    url: https://github.com/mattpocock/skills/tree/383b6a06d59c4ce0ffcb14112bfd91265a86cf91/skills/triage-issue
+    title: "Matt Pocock skills - triage-issue"
+    rationale: "The durability rule for issue bodies (no file paths, no line numbers — describe modules, behaviors, and contracts) is adapted from this source."
+    usage: inspiration
+    last_reviewed_at: 2026-07-29
+    baseline_hash: "sha256:05f43a612b1bbb64b35a61a729856a80a614a14fbf4499ac05ba71764a34472f"
+  - id: pocock-github-triage
+    url: https://raw.githubusercontent.com/mattpocock/skills/main/skills/engineering/triage/SKILL.md
+    title: "Matt Pocock skills - github-triage"
+    rationale: "The resume-from-prior-session pattern in IMPROVE MODE (parse prior AI-authored triage notes, keep settled points apart from open questions, check for new answers, and continue without re-asking resolved questions) is adapted from this skill's Gather context step, Needs-info template, and Resuming a previous session guidance. Keeping module and interface decisions in the issue follows its AGENT-BRIEF.md guidance to describe interfaces and behavioral contracts."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
+    baseline_hash: "sha256:d45827c299c021f77b0f146fefa3ee679b13f99e9a2ffdf48e8de2347adeefe1"
+  - id: pocock-to-tickets
+    url: https://github.com/mattpocock/skills/blob/4ae2317ddb22b046e26455e4f9c9b3aaaf62212d/skills/engineering/to-tickets/SKILL.md
+    title: "Matt Pocock skills - to-tickets"
+    rationale: "IMPROVE MODE reading an issue's comments before deciding what is settled follows this skill's instruction to read a referenced issue's full body and comments first."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_commit: "4ae2317ddb22b046e26455e4f9c9b3aaaf62212d"
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:56ec23c5b2782785d4e65bff9e315b6d3aeb4ef977c174a219e99489fada1995"
+  - id: aihero-codebases-ai-agents-love
+    url: https://www.aihero.dev/how-to-make-codebases-ai-agents-love
+    title: "AI Hero - How To Make Codebases AI Agents Love"
+    rationale: "The Interface Impact section and guideline in the comprehensive issue template follow this article's advice to carry module boundaries from specs into implementation issues."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:5cef0c99088b7d110dcb3c211c10d00d6d8dd7bdd03add3d6b9a2249fad3f893"

@@ -1,0 +1,33 @@
+sources:
+  - id: anthropic-claude-code-skills
+    url: https://code.claude.com/docs/en/skills.md
+    title: "Claude Code Docs - Extend Claude with skills"
+    rationale: "The model-invocation metadata and direct-user versus Skill-tool routing boundary follow Claude Code's documented skill invocation controls; the explicit argument parse, the compaction resume rule, and the skipped pre-commit verify or simplify run follow its documented `$ARGUMENTS` substitution (which avoids the end-of-skill argument append), post-compaction skill truncation, and pre-commit check behavior."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:358645b4b6ee39b4015da0ce872a4f59fd73223a665d253b8cde921ebc3c5b03"
+  - id: addy-git-workflow-versioning
+    url: https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/git-workflow-and-versioning/SKILL.md
+    title: "Addy Osmani agent-skills - git workflow and versioning"
+    rationale: "Narrative commit reconstruction and branch-history quality standards are adapted from this source, and its save-point view of commits informs the rule that coarse and medium recreations keep every commit building."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
+    baseline_hash: "sha256:51677cf03845dd29d08ea4d3125665057b720aea3dccc572f25d8b172409ece6"
+  - id: github-gh-stack-atomic-push
+    url: https://raw.githubusercontent.com/github/gh-stack/2a49e6751238633db504655d8a8eba3e433e827d/cmd/push.go
+    title: "GitHub gh-stack — atomic push defaults"
+    rationale: "Clearing GH_STACK_NO_ATOMIC preserves atomic Git ref updates without claiming atomic PR/API updates."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_commit: "2a49e6751238633db504655d8a8eba3e433e827d"
+    baseline_hash: "sha256:1cc68cd2956308dfe71c82a2cbcd27ff351e3277503c75bb45ddf3c1b68131e4"
+  - id: github-gh-stack-checkout-targets
+    url: https://raw.githubusercontent.com/github/gh-stack/bd0a32504f9ae9f795875a9e6bb90ff7408fda08/cmd/checkout.go
+    title: "gh-stack checkout target resolution"
+    rationale: "Remote checkout uses the resolved stack number because numeric operands and PR URLs both take the stack-first resolution path; importing selects the top branch, so recovery restores the entry branch."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_commit: "bd0a32504f9ae9f795875a9e6bb90ff7408fda08"
+    baseline_hash: "sha256:ac9b7ac2972602f0f0039c56a43df0b8fe2aeb4dbe31636796285318743ee568"

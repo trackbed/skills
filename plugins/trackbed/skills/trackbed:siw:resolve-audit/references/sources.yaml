@@ -1,0 +1,9 @@
+sources:
+  - id: egm-resolve
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/403d8881d62022490637d740657b33f01e321ea8/skills/egm-resolve/SKILL.md
+    title: "google/elephant-goldfish-model - egm-resolve"
+    rationale: "Requiring a dispute to cite evidence the reviewer could read, and escalating a dispute that rests on unrecorded knowledge instead of dropping the finding, is informed by this source; reviewed at upstream commit 403d8881d62022490637d740657b33f01e321ea8. Keeping the audit's severity unchanged in every issue follows its later change that preserves reviewer severity labels (upstream commit 84dad26e1dbf684eefb74c112c4b7f0bf645733d). Accepting a finding believed to be over-rated, with the evidence for a lower rating recorded in the issue, deliberately departs from this source, which tells the author to contest a finding whose severity they dispute."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "6a8001ea31ccf72430ba0603a467ec6df9f69dd7"
+    baseline_hash: "sha256:6bb1909b42b815e074bd486c6244b56eef8d61669abb3302c764a16be05af472"

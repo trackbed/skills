@@ -1,0 +1,18 @@
+sources:
+  - id: getsentry-agents-md-skill
+    url: https://raw.githubusercontent.com/getsentry/skills/main/skills/agents-md/SKILL.md
+    title: "getsentry/skills - agents-md skill"
+    rationale: "The inspect-before-writing workflow, the check that cited paths and commands exist, editing one instruction file when CLAUDE.md only points to AGENTS.md, and the anti-patterns against listing installed skills or restating lint, format, and type-check rules follow this skill."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "e94f22214528d69899d09c627b3315ddc3544816"
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:8a91ada35068f43ef7ee03e38937863bac4f407878b06f0a4f1ddb4af24bec7e"
+  - id: aihero-codebases-ai-agents-love
+    url: https://www.aihero.dev/how-to-make-codebases-ai-agents-love
+    title: "AI Hero - How To Make Codebases AI Agents Love"
+    rationale: "The enforce-before-instructing writing rule and the Module Map authoring example follow this article's argument that the codebase shapes agent output more than its instruction files, and that agents need the developer's map of the modules."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:5cef0c99088b7d110dcb3c211c10d00d6d8dd7bdd03add3d6b9a2249fad3f893"

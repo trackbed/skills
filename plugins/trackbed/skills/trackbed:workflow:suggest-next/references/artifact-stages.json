@@ -1,0 +1,328 @@
+{
+  "version": 1,
+  "notes": [
+    "Stage table for trackbed:workflow:suggest-next. scripts/inventory.py matches each entry's paths against the working directory by name only and never reads the files.",
+    "paths: a file path, a glob, or a directory with a trailing slash, relative to the working directory.",
+    "produced_by and next[].skill are skill names without the plugin prefix; the helper adds it and marks any next skill that is not installed. A <...> placeholder in args stands for one of the entry's matched paths.",
+    "The helper lists matched entries newest first. rank_after names entries that, when they also match, rank ahead of this one whatever the modification times: breakdown-findings writes PR_PLAN_INDEX.md after its plans, so the index would otherwise hide the plans' next steps.",
+    "Confirm every row against the producing and consuming skills' SKILL.md when either changes. A matched file is a hint about where the user is, not proof that a run finished."
+  ],
+  "artifacts": [
+    {
+      "id": "code-review-report",
+      "paths": ["REVIEW_OVERVIEW.md"],
+      "produced_by": "pr:code-review",
+      "stage": "A branch review report is waiting; its findings may not be fixed yet.",
+      "next": [
+        {
+          "skill": "pr:resolve-review",
+          "when": "fix the report's findings as commits"
+        },
+        {
+          "skill": "code:breakdown-findings",
+          "when": "the findings are too many for one PR and need PR-sized plans"
+        }
+      ]
+    },
+    {
+      "id": "product-review-report",
+      "paths": ["PRODUCT_REVIEW_OVERVIEW.md"],
+      "produced_by": "pr:product-review",
+      "stage": "A product review report is waiting; its findings may not be fixed yet.",
+      "next": [
+        {
+          "skill": "pr:resolve-review",
+          "when": "fix the report's findings as commits"
+        },
+        {
+          "skill": "code:breakdown-findings",
+          "when": "the findings are too many for one PR and need PR-sized plans"
+        }
+      ]
+    },
+    {
+      "id": "copy-review-report",
+      "paths": ["COPY_REVIEW_OVERVIEW.md"],
+      "produced_by": "code:copy-review",
+      "stage": "A copy review report is waiting; its findings may not be fixed yet.",
+      "next": [
+        {
+          "skill": "pr:resolve-review",
+          "when": "fix the report's findings as commits"
+        },
+        {
+          "skill": "code:breakdown-findings",
+          "when": "the findings are too many for one PR and need PR-sized plans"
+        }
+      ]
+    },
+    {
+      "id": "convention-review-report",
+      "paths": ["CONVENTION_REVIEW_OVERVIEW.md"],
+      "produced_by": "pr:convention-review",
+      "stage": "A convention review report is waiting; its findings may not be fixed yet.",
+      "next": [
+        {
+          "skill": "pr:resolve-review",
+          "when": "fix the report's findings as commits"
+        },
+        {
+          "skill": "code:breakdown-findings",
+          "args": "<report-path>",
+          "when": "the findings are too many for one PR and need PR-sized plans"
+        }
+      ]
+    },
+    {
+      "id": "overengineering-review-report",
+      "paths": ["OVERENGINEERING_REVIEW_OVERVIEW.md"],
+      "produced_by": "pr:overengineering-review",
+      "stage": "An overengineering review report is waiting; its findings may not be fixed yet.",
+      "next": [
+        {
+          "skill": "pr:resolve-review",
+          "when": "fix the report's findings as commits"
+        },
+        {
+          "skill": "code:breakdown-findings",
+          "args": "<report-path>",
+          "when": "the findings are too many for one PR and need PR-sized plans"
+        }
+      ]
+    },
+    {
+      "id": "doc-review-report",
+      "paths": ["DOC_REVIEW.md"],
+      "produced_by": "docs:review",
+      "stage": "A document review is written; the document has not necessarily been revised.",
+      "next": [
+        {
+          "skill": "docs:review",
+          "when": "review the document again after revising it by hand"
+        },
+        {
+          "skill": "siw:spec-audit",
+          "when": "the document is an SIW specification that needs a full audit"
+        }
+      ]
+    },
+    {
+      "id": "pr-plans",
+      "paths": ["PR_PLAN_W[0-9][0-9][A-Z]_*.md"],
+      "produced_by": "code:breakdown-findings",
+      "stage": "Findings are planned as PR-sized plans; some may not be implemented yet.",
+      "next": [
+        {
+          "skill": "code:plan-to-pr",
+          "args": "<plan-path> --ship",
+          "when": "implement, review, and ship one PR_PLAN_W##L_*.md plan as a PR"
+        },
+        {
+          "skill": "code:work-from-plan",
+          "args": "<plan-path>",
+          "when": "implement one PR_PLAN_W##L_*.md plan on the current branch without shipping"
+        },
+        {
+          "skill": "code:breakdown-findings",
+          "args": "--reconcile",
+          "when": "check which plans are already done"
+        }
+      ]
+    },
+    {
+      "id": "pr-plan-index",
+      "paths": ["PR_PLAN_INDEX.md"],
+      "rank_after": ["pr-plans"],
+      "produced_by": "code:breakdown-findings",
+      "stage": "A PR plan index is written; some of its plans may not be implemented yet.",
+      "next": [
+        {
+          "skill": "code:breakdown-findings",
+          "args": "--reconcile",
+          "when": "check which indexed plans are already done"
+        }
+      ]
+    },
+    {
+      "id": "qa-report",
+      "paths": ["QA_REPORT.md"],
+      "produced_by": "qa",
+      "stage": "A QA report is written; its issues, if any, may not be fixed yet.",
+      "next": [
+        {
+          "skill": "code:breakdown-findings",
+          "when": "turn the validated QA findings into PR-sized plans"
+        },
+        {
+          "skill": "debug:investigate",
+          "when": "trace the root cause of one reported bug first"
+        }
+      ]
+    },
+    {
+      "id": "codebase-audit-report",
+      "paths": [
+        "CODEBASE_WEAKNESS_REPORT.md",
+        "REFACTOR_OPPORTUNITIES_OVERVIEW.md"
+      ],
+      "produced_by": "code:refactor-opportunities",
+      "stage": "A codebase audit is written; its findings are not planned yet.",
+      "next": [
+        {
+          "skill": "code:breakdown-findings",
+          "when": "plan the findings as PR-sized changes"
+        },
+        {
+          "skill": "code:refactor-pass",
+          "when": "clean up one small area directly"
+        }
+      ]
+    },
+    {
+      "id": "agent-readiness-report",
+      "paths": ["AGENT_NATIVE_AUDIT.md"],
+      "produced_by": "code:agent-readiness",
+      "stage": "An agent-readiness audit is written; its findings are not planned yet.",
+      "next": [
+        {
+          "skill": "code:breakdown-findings",
+          "when": "plan the audit's findings as PR-sized changes"
+        }
+      ]
+    },
+    {
+      "id": "dependency-audit-report",
+      "paths": ["DEPENDENCY_AUDIT.md"],
+      "produced_by": "deps:audit",
+      "stage": "A dependency upgrade plan is written; its phases may not be applied yet.",
+      "next": [
+        {
+          "skill": "deps:audit",
+          "when": "re-run the audit to apply its low-risk Phase 2, or to get the siw:init command for its Phase 4 campaigns"
+        }
+      ]
+    },
+    {
+      "id": "outside-view-report",
+      "paths": ["OUTSIDE_VIEW_REPORT.md"],
+      "produced_by": "code:outside-view",
+      "stage": "An outsider's read of the codebase is written.",
+      "next": [
+        {
+          "skill": "code:refactor-opportunities",
+          "args": "--ranked",
+          "when": "rank the weaknesses the outside view should be compared against"
+        },
+        {
+          "skill": "code:breakdown-findings",
+          "args": "<report-path>",
+          "when": "plan the confirmed findings as PR-sized changes"
+        }
+      ]
+    },
+    {
+      "id": "strategic-inquiry",
+      "paths": ["STRATEGIC_INQUIRY.md"],
+      "produced_by": "discovery:strategic-inquiry",
+      "stage": "Strategic questions are written; they may still be open.",
+      "next": [
+        {
+          "skill": "discovery:interview",
+          "when": "work through one question in depth"
+        },
+        {
+          "skill": "docs:adr",
+          "when": "record a question that is now decided"
+        },
+        { "skill": "siw:init", "when": "a question turned into build work" }
+      ]
+    },
+    {
+      "id": "wayfinder-map",
+      "paths": [".context/wayfinder/*/MAP.md"],
+      "produced_by": "discovery:wayfinder",
+      "stage": "A wayfinder decision map is charted; its frontier tickets may still be open.",
+      "next": [
+        {
+          "skill": "discovery:wayfinder",
+          "args": "<map-path>",
+          "when": "resolve the next open ticket on the map"
+        }
+      ]
+    },
+    {
+      "id": "siw-discovery",
+      "paths": ["siw/DISCOVERY_BRIEF.md"],
+      "produced_by": "discovery:interview",
+      "stage": "An SIW discovery brief is written.",
+      "next": [
+        {
+          "skill": "siw:init",
+          "when": "create or link the specification from the brief"
+        }
+      ]
+    },
+    {
+      "id": "siw-strengthening-plan",
+      "paths": ["siw/SPEC_STRENGTHENING_PLAN.md"],
+      "produced_by": "discovery:interview",
+      "stage": "A spec-strengthening plan is waiting to be applied to the SIW specification.",
+      "next": [
+        {
+          "skill": "discovery:interview",
+          "args": "--siw --apply",
+          "when": "fold the pending plan into the specification"
+        },
+        {
+          "skill": "siw:spec-audit",
+          "when": "audit the specification once the plan is applied"
+        }
+      ]
+    },
+    {
+      "id": "siw-spec-audit",
+      "paths": ["AUDIT_SPEC_REPORT.md", "siw/AUDIT_SPEC_REPORT.md"],
+      "produced_by": "siw:spec-audit",
+      "stage": "An SIW specification audit is written; its findings may be undecided.",
+      "next": [
+        {
+          "skill": "siw:resolve-audit",
+          "when": "decide each audit finding and update the specification"
+        }
+      ]
+    },
+    {
+      "id": "siw-issues",
+      "paths": ["siw/issues/ISSUE-*.md"],
+      "produced_by": "siw:generate-phases",
+      "stage": "SIW issues are generated locally and not yet in Linear, unless a transfer already ran.",
+      "next": [
+        {
+          "skill": "siw:transfer-to-linear",
+          "when": "move the approved issue set to Linear"
+        },
+        {
+          "skill": "workflow:cleanup-artifacts",
+          "args": "--siw",
+          "when": "the transfer is verified and the local SIW files can go"
+        }
+      ]
+    },
+    {
+      "id": "siw-workspace",
+      "paths": ["siw/"],
+      "produced_by": "siw:init",
+      "stage": "An SIW workspace exists. Which step comes next depends on the files inside it.",
+      "next": [
+        {
+          "skill": "siw:spec-audit",
+          "when": "the specification is not audited yet"
+        },
+        {
+          "skill": "siw:generate-phases",
+          "when": "the specification is ready to break into issues"
+        }
+      ]
+    }
+  ]
+}

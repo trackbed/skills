@@ -1,0 +1,97 @@
+sources:
+  - id: anthropic-claude-code-skills
+    url: https://code.claude.com/docs/en/skills.md
+    title: "Claude Code Docs - Extend Claude with skills"
+    rationale: "The model-invocation metadata and direct-user versus Skill-tool routing boundary follow Claude Code's documented skill invocation controls."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:977bb9f8d6a004c37e6731afd94bc3ad7bba1e64a2b2d7e7f22df910d4b06287"
+  - id: addy-git-workflow-versioning
+    url: https://raw.githubusercontent.com/addyosmani/agent-skills/main/skills/git-workflow-and-versioning/SKILL.md
+    title: "Addy Osmani agent-skills - git workflow and versioning"
+    rationale: "Output markers, pull-request handoff conventions, and stating deliberate scope boundaries as reviewer notes are adapted from this source. The PR handoff discipline, structured change-summary expectations, and output-marker style that shape check mode's drift report come from the same source; they were reviewed against upstream commit 5e262b20e0cd88dba39e558f42f5c0b6d766d4b4 when check mode was a separate verifier skill. The release-impact contract for breaking changes, including saying whether old behavior keeps working through a deprecation period and until when, draws on its Release & Versioning section, added at upstream commit 1ffce563cf8a77c474f09b194ca93004a6f4a2b8."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "301b02b12bff98e4688e6984af6556802322bbde"
+    baseline_hash: "sha256:b1a84eac7a47f6e2985a27733137d862fcdeb552eefe2bd17629e1f3c20e0e97"
+  - id: github-pr-template-docs
+    url: https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/creating-a-pull-request-template-for-your-repository
+    title: "GitHub Docs - Creating a pull request template for your repository"
+    rationale: "Supported GitHub pull request template locations and multiple-template directory behavior are based on this source."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:2e6d2525dfed87cb3ebf6538687eecc9e5d33fc0a8e079ed0ca9d86d09a82e08"
+  - id: github-about-templates-docs
+    url: https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/about-issue-and-pull-request-templates
+    title: "GitHub Docs - About issue and pull request templates"
+    rationale: "Matching pull request template file names without regard to letter case, with an .md or .txt extension, follows this page's description of template file names."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    fetch_mode: curl-html
+    baseline_hash: "sha256:ad0e0ccf653eb38d3029581941db05f51a2d8cac633b4014a6f2ff481c6bc4cd"
+  - id: mattpocock-pr-skill
+    url: https://raw.githubusercontent.com/mattpocock/skills/main/skills/engineering/pr/SKILL.md
+    title: "mattpocock/skills - pr skill"
+    rationale: "Asking whether a revert fully undoes the change, and saying in the Rollout section what a revert leaves behind, is inspired by this skill's Merge Danger section, which classes a change as a one-way or two-way door."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_commit: "e484a8095543718ced436b9b49a8160ed4554000"
+    baseline_hash: "sha256:ab63f1cf78647389edcd386c9427c5dfca27ed2836930c24773ffee834c19bcd"
+  - id: fofr-govuk-style-skill
+    url: https://gist.githubusercontent.com/fofr/505e225f9bf5e839d30c12ba6bfa0be2/raw
+    title: "An agent skill for writing in the GOV.UK style"
+    rationale: "Its reader-focused structure, front-loaded editing approach, and final comprehension check inform the shared plain-language rubric that the readability pass applies to PR descriptions."
+    usage: inspiration
+    last_reviewed_at: 2026-08-16
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:56466ee04d1a2469eb3203744470f46274269e01837bda1937b7a736cc1cfe52"
+  - id: govuk-identify-user-needs
+    url: https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/plan-manage-content/identify-user-needs/
+    title: "GOV.UK content and publishing guidance - Identify user needs"
+    rationale: "Its user-needs guidance informs the readability pass's fixed reader contract: what a reviewer needs to understand, decide, or do."
+    usage: inspiration
+    last_reviewed_at: 2026-08-16
+    fetch_mode: curl-html
+    baseline_hash: "sha256:4030bacb2fd97c21f27d3b641c19d8f4973cd0bf2c6a1f15021ba1eead34d939"
+  - id: govuk-clear-language
+    url: https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/writing-guidelines/clear-language/
+    title: "GOV.UK content and publishing guidance - Use clear language"
+    rationale: "Its guidance on familiar wording, active voice, and concise sentences informs the shared plain-language rubric that the readability pass applies."
+    usage: inspiration
+    last_reviewed_at: 2026-08-16
+    fetch_mode: curl-html
+    baseline_hash: "sha256:c0c04c9c1900ab67897f8d79b15b52b416908d4c9f057196e7a7e56d7ef20fdb"
+  - id: govuk-a-to-z-style-guide
+    url: https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/style-guides/a-to-z-style-guide/
+    title: "GOV.UK content and publishing guidance - A to Z style guide"
+    rationale: "Its guidance on headings, lists, links, and terminology informs the formatting mechanics of the shared rubric that the readability pass applies."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:ba3a76fd78b0a57b303b1fa6f684e97d21a51deb5c6ffaf32ac1a4b7602c3563"
+  - id: egm-claude-integration
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/403d8881d62022490637d740657b33f01e321ea8/docs/claude.md
+    title: "google/elephant-goldfish-model - Claude Code integration"
+    rationale: "Running the cold read in a plugin agent that starts without the project's instruction files is informed by this source's reviewer-isolation guidance; reviewed at upstream commit 403d8881d62022490637d740657b33f01e321ea8."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "6a8001ea31ccf72430ba0603a467ec6df9f69dd7"
+    baseline_hash: "sha256:b2723722b419b1c368db423885a4421dda71278cf1f22b9928c7b722a0ab6730"
+  - id: egm-codex-integration
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/4ac6b173c15704339bcd654f22a16b4c30120385/docs/codex.md
+    title: "google/elephant-goldfish-model - Codex integration"
+    rationale: "Naming the Codex fork_context spawn variant for the cold read, and telling the cold reader to ignore project and user-level instruction files that Codex may still load, are informed by this source; reviewed at upstream commit 4ac6b173c15704339bcd654f22a16b4c30120385."
+    usage: inspiration
+    last_reviewed_at: 2026-11-08
+    baseline_commit: "6a8001ea31ccf72430ba0603a467ec6df9f69dd7"
+    baseline_hash: "sha256:d1a64b8df61b7012a4fc112381b1946a8c98e125e92d1c21e05bc419b0fa6cdf"
+  - id: egm-style-persona
+    url: https://raw.githubusercontent.com/google/elephant-goldfish-model/6efc127defc561e3a672b3d155b8216255a10e25/agents/style.md
+    title: "google/elephant-goldfish-model - style reviewer"
+    rationale: "Narrowing a PR description's claims about tested or supported behavior to what its Test plan exercises, through the shared rubric's Caveats and Claims test, is informed by this source's defensive-caveats check; reviewed at upstream commit 6efc127defc561e3a672b3d155b8216255a10e25."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "5382b17619be07811a14b2146c7672620b34a791"
+    baseline_hash: "sha256:9330780622baaef8dc683ea78efb3ff8e4583e3dde7ab6092b84df50e8c9ea58"

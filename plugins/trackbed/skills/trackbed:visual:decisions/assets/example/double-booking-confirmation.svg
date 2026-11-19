@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 760" width="390" height="760" font-family="Helvetica, Arial, sans-serif">
+  <title>Synthetic capture: booking confirmation on a phone</title>
+  <rect width="390" height="760" fill="#f7f6f2"/>
+  <rect width="390" height="56" fill="#ffffff"/>
+  <text x="195" y="35" font-size="16" font-weight="700" fill="#1f2a2e" text-anchor="middle">Booking confirmed</text>
+  <circle cx="195" cy="150" r="44" fill="#dbe9e6"/>
+  <path d="M175 151 l14 14 l28 -30" fill="none" stroke="#0b6259" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="195" y="236" font-size="22" font-weight="700" fill="#1f2a2e" text-anchor="middle">You're booked in</text>
+  <text x="195" y="264" font-size="14" fill="#5b6468" text-anchor="middle">Studio B is yours on Saturday.</text>
+  <rect x="24" y="300" width="342" height="190" rx="10" fill="#ffffff" stroke="#d9d6cc"/>
+  <text x="44" y="336" font-size="13" fill="#5b6468">Session</text>
+  <text x="44" y="358" font-size="16" font-weight="700" fill="#1f2a2e">Glazing session</text>
+  <text x="44" y="398" font-size="13" fill="#5b6468">When</text>
+  <text x="44" y="420" font-size="16" font-weight="700" fill="#1f2a2e">Sat 14 March · 10:00 – 12:00</text>
+  <text x="44" y="460" font-size="13" fill="#5b6468">Booked by R. Castellanos at 09:41</text>
+  <rect x="24" y="520" width="342" height="52" rx="8" fill="#0b6259"/>
+  <text x="195" y="552" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">Add to calendar</text>
+  <text x="195" y="612" font-size="14" fill="#0b6259" text-anchor="middle">View my bookings</text>
+  <text x="195" y="716" font-size="12" fill="#8a9296" text-anchor="middle">No warning that the slot was already taken</text>
+</svg>

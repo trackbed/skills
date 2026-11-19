@@ -1,0 +1,17 @@
+sources:
+  - id: compound-ce-polish-dev-server
+    url: https://github.com/EveryInc/compound-engineering-plugin/tree/main/skills/ce-polish
+    title: "EveryInc compound-engineering-plugin - ce-polish"
+    rationale: "The optional visual-mode app URL auto-detection flow references the shared dev-server detection contract adapted from this source, and confirming a detected URL or asking for one when none answers follows its start-and-hand-off guidance."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "7dc50943bbf959dbe6a93a175e41e5fff8395e00"
+    baseline_hash: "sha256:17a7b2d6f768641a32bd16048a6865dd6e7cb6c9d8a324078aa42f26a97d7416"
+  - id: conductor-review-and-merge
+    url: https://www.conductor.build/docs/guides/review-and-merge
+    title: "Conductor Docs - Review and merge a workspace"
+    rationale: "Conductor's local diff-comment and Checks workflow informs the optional projection of canonical review findings into workspace comments."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:0300d252efa1c16119200bcd472369e066f6344ff12874e8bf5224000b9616ef"

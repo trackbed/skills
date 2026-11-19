@@ -1,0 +1,48 @@
+sources:
+  - id: linear-project-milestones
+    url: https://linear.app/docs/project-milestones
+    title: "Linear — Project milestones"
+    rationale: "The phase-to-milestone mapping in references/linear-mapping.md (Milestone Mapping) relies on project milestones being stages inside one project that carry a name, an optional description, and an optional target date, with issues added to them."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:203a1fa55ab8510a849337261d3d2523910ad1357701d79851d1df65b19e7880"
+  - id: linear-mcp
+    url: https://linear.app/docs/mcp
+    title: "Linear — Model Context Protocol (MCP) server"
+    rationale: "The skill targets the official Linear MCP server, whose tools find, create, and update Linear objects such as issues, projects, and comments. The page lists no fixed tool catalog and says more functionality is on the way, so Phase 1 discovers milestone, document, relation, and attachment-upload support at runtime instead of assuming it. Phase 1's Codex and mcp-remote setup hints follow the page's setup instructions."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:538503f22222a2f383d6ae47447fd7f8dd89ff5ee1b48dc51ca3b2c04f6b0aef"
+  - id: linear-issue-relations
+    url: https://linear.app/docs/issue-property#issue-relations
+    title: "Linear — Issue properties: Issue relations"
+    rationale: "The Issue relations section's blocked, blocking, related, and duplicate relation types ground the native-relation pass in references/linear-mapping.md (Dependencies), which writes each SIW Blocked by and Blocks edge as a blocking relation and each SIW Related link as a related relation when capability discovery finds the matching parameter on the issue write tool, and keeps text-only dependencies otherwise. The text-only fallback does not rely on identifier mentions creating relations: on 2026-11-09, issue descriptions written through the Linear API that named other issues carried no relations."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_hash: ""
+  - id: linear-priority
+    url: https://linear.app/docs/issue-property#priority
+    title: "Linear — Issue properties: Priority"
+    rationale: "The Priority section's fixed levels (No priority, Low, Medium, High, and Urgent, with no custom levels) ground the priority mapping table in references/linear-mapping.md, which maps SIW High, Medium, and Low onto them and leaves Urgent unused. The page gives no numeric values; linear-graphql-schema supplies them."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_hash: ""
+  - id: linear-graphql-schema
+    url: https://raw.githubusercontent.com/linear/linear/master/packages/sdk/src/schema.graphql
+    graphql_definitions:
+      [IssueCreateInput, IssueRelationType, ProjectCreateInput, WorkflowState]
+    title: "Linear — GraphQL API schema"
+    rationale: "Source of the numeric priority scale in the Priority Mapping table (0 No priority, 1 Urgent, 2 High, 3 Medium, 4 Low) from the priority field description on IssueCreateInput, the WorkflowState type values (backlog/unstarted/started/completed/canceled) used for status mapping, the ProjectCreateInput contract (teamIds required, statusId is a UUID), and the IssueRelationType enum noted in the Dependencies section."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_hash: ""
+  - id: linear-rate-limiting
+    url: https://linear.app/developers/rate-limiting
+    title: "Linear — API rate limiting"
+    rationale: "Informs the expectation that one-issue-per-mutation migration stays within the per-user hourly request and complexity limits for typical SIW sizes, and Phase 6's rate-limit handling, which recognizes the RATELIMITED error code, HTTP 429, and the X-RateLimit-* headers."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:9355d0895afb9075261ef190914251b9a492702ebf7c3e8848e9d1526abd92bf"
