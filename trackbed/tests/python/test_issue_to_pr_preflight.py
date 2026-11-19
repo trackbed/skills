@@ -113,6 +113,7 @@ class HelperCase(unittest.TestCase):
             "GIT_CONFIG_NOSYSTEM": "1",
             "GIT_EDITOR": "true",
             "CONDUCTOR_DEFAULT_BRANCH": "",
+            "CONDUCTOR_IS_LOCAL": "0",
         }
         for patcher in (
             mock.patch.dict(os.environ, environment),
@@ -587,6 +588,21 @@ class FreshBranchTests(RepoCase):
         payload = self.check(self.state)
         self.assert_status(payload, "blocked", "remote_branch_exists")
         self.assertEqual(payload["details"], {"ref": f"refs/heads/{BRANCH}", "object_id": pushed})
+
+    def test_fresh_local_conductor_launch_refuses_a_branch_in_another_worktree(self) -> None:
+        other_worktree = self.tmp / "existing-worktree"
+        git(self.repo, "worktree", "add", "-qb", BRANCH, str(other_worktree))
+        before = self.worktree_identity(self.repo)
+        with mock.patch.dict(os.environ, {"CONDUCTOR_IS_LOCAL": "1"}):
+            payload = self.check(self.state)
+            self.assert_status(payload, "blocked", "local_branch_exists")
+            self.assertEqual(payload["details"], {"ref": f"refs/heads/{BRANCH}"})
+            self.assertEqual(self.worktree_identity(self.repo), before)
+            git(self.repo, "worktree", "remove", str(other_worktree))
+            self.assert_status(self.check(self.state), "blocked", "local_branch_exists")
+            git(self.repo, "switch", BRANCH)
+            self.assert_status(self.capture(self.state), "ok")
+            self.assert_status(self.check(self.state), "ok")
 
     def test_failed_or_ambiguous_ls_remote_blocks(self) -> None:
         origin = str(origin_of(self.repo))
