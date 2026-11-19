@@ -1,6 +1,6 @@
 # docs:update-agents-md
 
-Use it to add or change rules in `AGENTS.md`, the instruction file your agents read. It writes each rule as one bullet that starts with a strength keyword (`ALWAYS`, `NEVER`, `PREFER`, `CAN`, or `NOTE`), points to existing docs, scripts, and skills instead of copying them, and checks that every path, command, and skill it cites exists. It shows you the planned additions and edits the file after you confirm. It can also insert the Hard-Cut Greenfield Policy, a no-compatibility-code policy for projects with no released users.
+Use it to add or change rules in `AGENTS.md`, the instruction file your agents read. It writes each rule as one bullet that starts with a strength keyword (`ALWAYS`, `NEVER`, `PREFER`, `CAN`, or `NOTE`), keeps `NEVER` for rules with no exception and writes `ALWAYS ask before …` where approval is enough, points to existing docs, scripts, and skills instead of copying them, and checks that every path, command, and skill it cites exists. It shows you the planned additions and edits the file after you confirm. It can also insert the Hard-Cut Greenfield Policy, a no-compatibility-code policy for projects with no released users.
 
 ## Examples
 
