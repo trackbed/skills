@@ -628,6 +628,22 @@
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
+@test "breakdown plans pin current behavior before restructuring untested code" {
+	run bash -c '
+    set -e
+    cd "'"$BATS_TEST_DIRNAME"'/.."
+    requirements="skills/code:breakdown-findings/references/plan-content-requirements.md"
+    rubric="skills/code:breakdown-findings/references/plan-quality-rubric.md"
+
+    grep -qF "and no existing test exercises that code, make the first implementation step add tests that pin its current behavior and pass before any code moves" "$requirements"
+    grep -qF "Later steps keep them passing without changing what they assert." "$requirements"
+    grep -qF "If the code cannot be tested, name the verification gap and a concrete manual check that compares behavior before and after." "$requirements"
+    grep -qF "A plan that restructures code without changing its behavior, where no existing test exercises that code, starts with a step that adds tests pinning the current behavior" "$rubric"
+  '
+
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
 @test "plan-to-PR invokes its guarded work-from-plan child with only the archived plan" {
 	run bash -c '
     set -e

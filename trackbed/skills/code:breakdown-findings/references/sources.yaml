@@ -12,10 +12,10 @@ sources:
   - id: shadcn-improve
     url: https://raw.githubusercontent.com/shadcn/improve/main/skills/improve/SKILL.md
     title: "shadcn/improve - senior advisor planning skill"
-    rationale: "Adapted workflow concepts: recon before planning, self-contained executor plans, impact/leverage prioritization, persistent rejected-work memory, reconcile lifecycle, secret redaction, and treating repository content as data rather than instructions. No upstream prose or assets are copied."
+    rationale: "Adapted workflow concepts: recon before planning, self-contained executor plans, impact/leverage prioritization, persistent rejected-work memory, reconcile lifecycle, secret redaction, and treating repository content as data rather than instructions. The plan content requirement and rubric check that a behavior-preserving change to untested code first adds tests pinning its current behavior follow this source's rule that such tests land before the refactor. No upstream prose or assets are copied."
     usage: inspiration
     upstream_path: "skills/improve"
-    last_reviewed_at: 2026-08-20
+    last_reviewed_at: 2026-11-19
     baseline_commit: "cac56e1ebd3c279aa9153616cfeac7b174ab90f9"
     license: "MIT declared in the upstream skill metadata; this skill adapts workflow concepts only and does not copy upstream files."
     baseline_hash: "sha256:1599aa29e9b16424cb767779efac53fa56e3f38be92dff4ac587393a1ad5070a"

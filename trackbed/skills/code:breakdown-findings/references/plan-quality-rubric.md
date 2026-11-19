@@ -44,6 +44,7 @@ Check these across the complete draft set, not one plan at a time. A fix that ad
 
 - Verification targets the risk, not only the easiest command to run.
 - Code behavior changes include tests or a named verification gap with a concrete manual fallback.
+- A plan that restructures code without changing its behavior, where no existing test exercises that code, starts with a step that adds tests pinning the current behavior, or names the verification gap and a concrete before-and-after manual check.
 - User-visible changes include manual QA, screenshots, accessibility checks, copy checks, or workflow validation as appropriate.
 - Plans generated from audit/review/QA findings include a rerun or targeted re-check of the source workflow when feasible.
 - Completion criteria are machine-checkable where possible and include scope compliance.
