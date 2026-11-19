@@ -66,6 +66,15 @@ setup() {
 	grep -qF 'Run this section only when `AUDIT_MODE=solo`; launch no reviewers.' "$AUDIT_WORKFLOW"
 }
 
+@test "ADR filters keep a finding whose ADR the code has drifted from" {
+	grep -qF 'An ADR the code no longer follows cannot settle a finding: before dropping one, check that the code the ADR governs still does what it decided.' "$REFACTOR_SKILL"
+	grep -qF '`_"code has drifted from ADR-NNNN at <file:line> — the record or the code is wrong"_`' "$REFACTOR_SKILL"
+	grep -qF 'keep a finding whose ADR the code has drifted from, with the drift named' "$RANKED_MODE"
+	grep -qF 'or the code no longer follows the ADR, and name that drift with the finding' "$AUDIT_WORKFLOW"
+	grep -qF 'An accepted ADR explains an issue only while the code still follows it' "$AUDIT_WORKFLOW"
+	grep -qF 'id: shadcn-improve-audit-playbook' "skills/code:refactor-opportunities/references/sources.yaml"
+}
+
 @test "ranked mode preserves the explicit history baseline" {
 	grep -qF '[--ranked [--solo] [--output <path>] [--max-findings N] [--base <ref>]]' <(sed -n '/^argument-hint:/p' "$REFACTOR_SKILL")
 	grep -qF 'resolve an explicit `--base <ref>` with `git rev-parse' "$REFACTOR_SKILL"

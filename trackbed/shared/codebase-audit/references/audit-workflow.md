@@ -92,7 +92,7 @@ After the active research reviewers return, pass all raw candidates, near misses
 The challenge reviewer must:
 
 1. Drop or mark candidates whose evidence is weak, speculative, purely stylistic, or contradicted by project conventions.
-2. Check whether a finding contradicts accepted ADRs; keep it only when new evidence shows the trade-off has shifted.
+2. Check whether a finding contradicts accepted ADRs; keep it only when new evidence shows the trade-off has shifted or the code no longer follows the ADR, and name that drift with the finding.
 3. Deduplicate candidates with the same root cause.
 4. Flag disagreements between reviewers.
 5. Promote any missed correctness candidate that has a concrete failure path.
@@ -145,7 +145,7 @@ Record the answers for the report's Impressions (Unverified) section. Impression
 2. Drop style preferences that do not affect comprehension, correctness, or change cost.
 3. Drop generic best-practice advice unless the current code shows actual risk or repeated friction.
 4. Drop findings that are only missing tests unless the missing test maps to an important behavior, invariant, regression risk, or recently changed area.
-5. Drop issues explained by documented project conventions, accepted ADRs, framework guarantees, generated-code contracts, or deliberate performance trade-offs.
+5. Drop issues explained by documented project conventions, accepted ADRs, framework guarantees, generated-code contracts, or deliberate performance trade-offs. An accepted ADR explains an issue only while the code still follows it; when the code has drifted from the ADR, keep the issue and name the drift.
 6. Keep a candidate that is localized but correctness-critical even if it appears once.
 7. Promote a maintainability or readability candidate only when it affects repeated work, important code paths, cross-module changes, onboarding/traversal, or review confidence.
 8. Prefer fewer high-confidence findings over a complete inventory. If more than `MAX_FINDINGS` remain, keep only the top-ranked findings and list the rest as filtered or follow-up candidates.
