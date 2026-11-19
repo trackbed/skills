@@ -356,6 +356,129 @@ test("the prompt lists the findings each decided fix removes", () => {
   );
 });
 
+test("a changes page hands back the changes to undo, not the ones to keep", () => {
+  const changes = {
+    ...META,
+    shape: "changes",
+    runId: "75bcca93-b9fe-4aa0-88ce-ded812220775",
+    producer: "trackbed:code:copy-review --pr --apply",
+    source: "COPY_REVIEW_OVERVIEW.md",
+    acceptLabel: "Keep",
+    dismissLabel: "Revert",
+    nounOne: "change",
+    nounMany: "changes",
+  };
+  const entries = [
+    entry({
+      id: "COPY-001",
+      title: "The Remove button no longer repeats its trash icon in words",
+      facets: { severity: "high" },
+      location: "src/components/PacketRow.tsx:42",
+    }),
+    entry({
+      id: "COPY-002",
+      title: "The Settings page no longer opens with a second heading",
+      facets: { severity: "high" },
+      location: "src/pages/Settings.tsx:12",
+      order: 1,
+    }),
+    entry({
+      id: "COPY-003",
+      title: "The email field no longer has a placeholder",
+      facets: {},
+      location: "",
+      order: 2,
+    }),
+    entry({ id: "COPY-004", title: "Left unchanged", triageable: false }),
+  ];
+  assert.equal(
+    runtime.buildPrompt(
+      changes,
+      entries,
+      {
+        "COPY-001": { decision: "dismiss", note: "new members\nneed the word" },
+        "COPY-002": { decision: "accept", note: "good" },
+        "COPY-004": { decision: "dismiss", note: "" },
+      },
+      "/trackbed:code:copy-review --revert",
+    ),
+    [
+      "/trackbed:code:copy-review --revert",
+      "",
+      "Decisions on the changes recorded in COPY_REVIEW_OVERVIEW.md (trackbed:code:copy-review --pr --apply, generated 2026-01-15T14:02:00+01:00, commit 1a2b3c4d5e6f).",
+      "Apply run: 75bcca93-b9fe-4aa0-88ce-ded812220775",
+      "COPY_REVIEW_OVERVIEW.md is the record for what each change did and what was there before; this message only says which changes to undo.",
+      "",
+      "Undo only the 1 change marked Revert, restoring what the record says was there before:",
+      "- COPY-001 [high] The Remove button no longer repeats its trash icon in words (src/components/PacketRow.tsx:42)",
+      "  Reason: new members need the word",
+      "",
+      "Leave the 1 change marked Keep as it is:",
+      "- COPY-002 The Settings page no longer opens with a second heading",
+      "  Note: good",
+      "",
+      "1 other change had no decision and should stay as it is.",
+      "",
+    ].join("\n"),
+  );
+
+  const kept = runtime.buildPrompt(
+    { ...changes, commit: "", runId: undefined },
+    entries,
+    {
+      "COPY-001": { decision: "accept", note: "" },
+      "COPY-002": { decision: "accept", note: "" },
+    },
+    "",
+  );
+  assert.equal(
+    kept,
+    [
+      "Decisions on the changes recorded in COPY_REVIEW_OVERVIEW.md (trackbed:code:copy-review --pr --apply, generated 2026-01-15T14:02:00+01:00).",
+      "COPY_REVIEW_OVERVIEW.md is the record for what each change did and what was there before; this message only says which changes to undo.",
+      "",
+      "No changes were marked Revert; undo nothing.",
+      "",
+      "Leave the 2 changes marked Keep as they are:",
+      "- COPY-001 The Remove button no longer repeats its trash icon in words",
+      "- COPY-002 The Settings page no longer opens with a second heading",
+      "",
+      "1 other change had no decision and should stay as it is.",
+      "",
+    ].join("\n"),
+  );
+  // A changes page that names no labels still offers Keep and Revert, so its
+  // buttons and its prompt agree on what a dismissal means.
+  assert.deepEqual(runtime.decisionLabels("changes", undefined, ""), {
+    acceptLabel: "Keep",
+    dismissLabel: "Revert",
+  });
+  assert.deepEqual(runtime.decisionLabels("findings", undefined, undefined), {
+    acceptLabel: "Accept",
+    dismissLabel: "Dismiss",
+  });
+  assert.deepEqual(runtime.decisionLabels("plan", "Run", "Skip"), {
+    acceptLabel: "Run",
+    dismissLabel: "Skip",
+  });
+  assert.ok(
+    runtime
+      .buildPrompt(
+        { ...changes, acceptLabel: "Accept", dismissLabel: "Dismiss" },
+        entries,
+        { "COPY-001": { decision: "dismiss", note: "" } },
+        "",
+      )
+      .includes("Undo only the 1 change marked Revert,"),
+  );
+  // Only a changes page reads a dismissal as work to do.
+  assert.ok(
+    runtime
+      .buildPrompt({ ...changes, shape: "findings" }, entries, {}, "")
+      .includes("No changes were accepted."),
+  );
+});
+
 test("the prompt calls entries what the page calls them", () => {
   const plans = {
     ...META,
