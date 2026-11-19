@@ -128,7 +128,8 @@ Use only the working-tree commands when `SOURCE_REF` is unset. Use only the name
    - `MISSING` - the index references a plan file that is absent.
    - `STALE` - the live code no longer matches the plan's **Current State** excerpts, the verification commands changed, or recon/tradeoff context has materially changed.
    - `DONE` - the index or plan is explicitly marked `DONE`, or a merged plan-to-pr branch is proven by **Merged Plan Branch Evidence**, and no obvious drift contradicts that status. Do not infer `DONE` solely because source files changed.
-   - `SUPERSEDED` - the index, rejection record, or user explicitly marks the plan as replaced by another plan/PR.
+   - `SUPERSEDED` - the index, rejection record, or user explicitly marks the plan as replaced by another plan/PR, or the user confirms a **Resolved Outside the Plan** proposal.
+   - Before classifying a plan `DRIFTED` or `STALE`, run **Resolved Outside the Plan** below. Report a plan it flags there instead.
    - In non-Git manual mode, do not promote a plan to `READY` based on unavailable drift evidence. Preserve its existing lifecycle status unless dependency, file-presence, excerpt, rejection, or user evidence proves a transition, and keep the manual drift limitation visible.
 3. Apply split/worktree drift guidance:
    - Treat stale **Current State** excerpts relative to a slice implementation in `EVIDENCE_ROOT` or `SOURCE_COMMIT` as `STALE`, provided the original boundary remains valid.
@@ -204,6 +205,15 @@ fi
 
 Exit `0` proves the selected scope retains the landed state. Exit `1` means later committed or local scoped changes require review; report the affected paths and preserve the existing status and dependency blocking. Any other exit is an evidence error. Named-ref mode ignores unrelated worktree state. Changes outside the scope do not invalidate this check. If later scoped changes are legitimate, completion needs independent validation and an explicit completion claim under the ordinary lifecycle rules; confirmation of a matching branch alone cannot bypass this failed proof. Repeat the check immediately before a transition write.
 
+### Resolved Outside the Plan
+
+1. Purpose: retire a plan whose problem other work already fixed, instead of refreshing its excerpts and leaving it open for an executor.
+2. Plan selection: run this check only when `GIT_EVIDENCE_AVAILABLE=true`, and only for update-scoped plans whose file exists, whose index status is `TODO`, `READY`, `BLOCKED`, `DRIFTED`, or `STALE`, whose drift evidence shows in-scope changes after `Planned at`, and for which **Merged Plan Branch Evidence** ran and found no merged Pull Request whose head branch matches the plan, whether exact, candidate, or conflicted. The plan's own merged implementation looks the same as a fix from other work, so it must never be proposed as `SUPERSEDED`. When merged plan branch evidence is unavailable, skip this check, report `Resolved outside plan: unavailable (merged plan branch evidence unavailable)`, and classify by the ordinary rules. Skip `IN_PROGRESS` plans, whose in-scope changes are expected implementation work, and sets whose index records a `branch split of ...` source, whose plans land existing slice work rather than fix a problem on the base.
+3. Check: compare the plan's **Problem Statement**, **Current State**, and **Intended End State** with the selected source evidence. The problem is resolved only when, at every location the plan cites, the code that shows the problem is gone or already does what **Intended End State** describes. Code that only moved, a partial fix, a fix that exists only in uncommitted changes, or a fix the evidence cannot confirm is not resolved: classify the plan by the ordinary rules.
+4. Evidence: name the commits that changed the in-scope paths since `Planned at`, from `git -C "$EVIDENCE_ROOT" log --oneline <planned-at-sha>..HEAD -- <in-scope paths>` (with `--source`, use `"$SOURCE_COMMIT"` in place of `HEAD`), and the live `file:line` that shows the fix.
+5. Proposal: report the plan under `RESOLVED OUTSIDE PLAN:` with that evidence, propose `SUPERSEDED`, and record the fixing commits in a reconcile note in `PR_PLAN_INDEX.md`. Never propose a current-state refresh for it. Like every move to `SUPERSEDED`, the proposal requires confirmation, even with `--auto`. When the user declines, classify the plan by the ordinary rules.
+6. Dependents: for each plan this one blocks, check the dependent's **Prerequisite Readiness Evidence** for it against the same source evidence. When its readiness decision passes, propose removing the blocker as a dependency change; otherwise keep the dependent `BLOCKED` and name the unmet base state.
+
 ## 3. Reconcile Rejection Records
 
 1. For the scoped evidence:
@@ -231,6 +241,7 @@ Exit `0` proves the selected scope retains the landed state. Exit `1` means late
      READY: W01A, W01B
      BLOCKED: W02A (blocked by W01A not DONE)
      DRIFTED: W03A (src/api/orders.ts changed since PLANNED_AT_SHA)
+     RESOLVED OUTSIDE PLAN: W02B (fixed by <commit> at src/api/refunds.ts:<line>; propose SUPERSEDED; confirm)
      MISSING: W04A (PR_PLAN_W04A_...)
      MERGED BRANCH CANDIDATES: W03B (#130; branch prefix differs from derived identity; confirm)
      RECONSIDERED REJECTIONS: REJECTED-002
@@ -238,6 +249,7 @@ Exit `0` proves the selected scope retains the landed state. Exit `1` means late
    Proposed artifact updates:
      - Update PR_PLAN_INDEX.md statuses and drift notes
      - Mark PR_PLAN_W01C_...md DONE and append its Execution Result
+     - Mark PR_PLAN_W02B_...md SUPERSEDED and note its fixing commits in PR_PLAN_INDEX.md
      - Refresh PR_PLAN_W03A_...md current-state excerpts
      - Update PR_PLAN_REJECTIONS.md status for REJECTED-002
 
@@ -252,7 +264,7 @@ Exit `0` proves the selected scope retains the landed state. Exit `1` means late
    - status update
    - verification-result update
 
-   An exact-tier **Merged Plan Branch Evidence** `DONE` on a plan that is not `IN_PROGRESS`, with its Execution Result write, is a status update. Merged-branch candidates and `IN_PROGRESS` transitions always require confirmation.
+   An exact-tier **Merged Plan Branch Evidence** `DONE` on a plan that is not `IN_PROGRESS`, with its Execution Result write, is a status update. Merged-branch candidates and `IN_PROGRESS` transitions always require confirmation. So does every move to `SUPERSEDED`, including a **Resolved Outside the Plan** proposal.
 
 5. `--auto` must never bypass confirmation for any of these six exclusions:
    - scope expansion

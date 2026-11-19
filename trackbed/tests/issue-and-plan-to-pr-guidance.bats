@@ -628,6 +628,46 @@
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
+@test "reconcile proposes retiring a plan that other work already fixed, only with confirmation" {
+	run bash -c '
+    set -e
+    cd "'"$BATS_TEST_DIRNAME"'/.."
+    skill="skills/code:breakdown-findings/SKILL.md"
+    reconcile="skills/code:breakdown-findings/references/reconcile-workflow.md"
+    index_template="skills/code:breakdown-findings/assets/index-template.md"
+    sources="skills/code:breakdown-findings/references/sources.yaml"
+
+    # The check runs before drift classification, so a fixed plan is never refreshed and left open.
+    grep -qFx "### Resolved Outside the Plan" "$reconcile"
+    grep -qF "Before classifying a plan \`DRIFTED\` or \`STALE\`, run **Resolved Outside the Plan** below." "$reconcile"
+    grep -qF "or the user confirms a **Resolved Outside the Plan** proposal" "$reconcile"
+    grep -qF "Skip \`IN_PROGRESS\` plans, whose in-scope changes are expected implementation work" "$reconcile"
+    grep -qF "sets whose index records a \`branch split of ...\` source" "$reconcile"
+
+    # A merged branch of the plan itself is never mistaken for a fix from other work.
+    grep -qF "found no merged Pull Request whose head branch matches the plan, whether exact, candidate, or conflicted" "$reconcile"
+    grep -qF "Resolved outside plan: unavailable (merged plan branch evidence unavailable)" "$reconcile"
+
+    # Only a confirmed, committed fix at every cited location counts.
+    grep -qF "The problem is resolved only when, at every location the plan cites, the code that shows the problem is gone or already does what **Intended End State** describes." "$reconcile"
+    grep -qF "Code that only moved, a partial fix, a fix that exists only in uncommitted changes, or a fix the evidence cannot confirm is not resolved" "$reconcile"
+    grep -qF "log --oneline <planned-at-sha>..HEAD -- <in-scope paths>" "$reconcile"
+
+    # The proposal is never auto-applied and never refreshes the plan; dependents are re-checked.
+    grep -qF "Never propose a current-state refresh for it." "$reconcile"
+    grep -qF "the proposal requires confirmation, even with \`--auto\`" "$reconcile"
+    grep -qF "So does every move to \`SUPERSEDED\`, including a **Resolved Outside the Plan** proposal." "$reconcile"
+    grep -qF "RESOLVED OUTSIDE PLAN: W02B" "$reconcile"
+    grep -qF "When its readiness decision passes, propose removing the blocker as a dependency change" "$reconcile"
+    grep -qF "resolved-outside-plan, or pre-existing-edit cases still require confirmation" "$skill"
+    grep -qF "Reconcile proposes \`SUPERSEDED\` for a plan whose problem other work already fixed, and applies it only after confirmation." "$index_template"
+
+    grep -qF "id: shadcn-improve-closing-the-loop" "$sources"
+  '
+
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
 @test "breakdown plans pin current behavior before restructuring untested code" {
 	run bash -c '
     set -e
