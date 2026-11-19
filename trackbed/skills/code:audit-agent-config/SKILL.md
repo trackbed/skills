@@ -1,6 +1,6 @@
 ---
 name: code:audit-agent-config
-description: "Audit repository-persisted agent instructions, skills, subagents, hooks, MCP servers, permissions, and memory for redundant, outdated, conflicting, or irrelevant entries; return read-only KEEP / IMPROVE / REMOVE verdicts. Never edits files or inspects global config. Not for codebase agent-readiness (trackbed:code:agent-readiness) or general code-quality audits (trackbed:code:refactor-opportunities)."
+description: "Audit repository-persisted agent instructions, skills, subagents, hooks, MCP servers, permissions, and memory for redundant, outdated, conflicting, or irrelevant entries and for rules written for earlier models; return read-only KEEP / IMPROVE / REMOVE verdicts. Never edits files or inspects global config. Not for codebase agent-readiness (trackbed:code:agent-readiness) or general code-quality audits (trackbed:code:refactor-opportunities)."
 argument-hint: "[scope-path]"
 disable-model-invocation: false
 user-invocable: true
@@ -59,12 +59,20 @@ Complete the itemization of every surface before starting Step 3: conflict detec
 
 ## Step 3: Evaluate Each Item
 
-Test every item against the four defect classes. Each REMOVE verdict must name its class and cite checkable evidence; claims must be verified, not pattern-matched.
+Test every item against the five defect classes. Each REMOVE verdict must name its class and cite checkable evidence; claims must be verified, not pattern-matched.
 
 1. **Redundant** — duplicates another in-scope item, restates the agent's default behavior, or restates what the code or repo structure already makes obvious. Name the surviving copy that makes it redundant.
 2. **Outdated** — references files, commands, components, tools, or workflows that no longer exist, or contradicts the repository's current state. Verify with an existence check (glob, file read, or `--help` on a referenced command) before flagging. Git history is corroborating evidence: compare when the config item last changed (`git log -1 --format=%cs -- <file>`) against the code or paths it governs — a rule untouched since a restructure of what it references is likely stale.
 3. **Conflicting** — contradicts another in-scope item so the agent cannot satisfy both. Cite both sides; recommend REMOVE for the weaker or staler side and KEEP for the other.
 4. **Irrelevant** — cannot apply to this project (targets a stack, tool, or platform the repo does not use). Verify with a repository-wide search for the tool or pattern before flagging. Where the platform records local usage statistics for skills or commands, zero recorded use is supporting evidence of irrelevance — never sufficient on its own.
+5. **Model-stale** — written to steer an earlier model, so on a current model it costs context or backfires. Flag only a form the item's own wording shows, and quote that wording as the evidence:
+   - an instruction to think harder, think less, or write out reasoning in the reply. The host's effort setting controls how much a current model thinks, and some models decline a request to reproduce their reasoning. Asking for a short explanation of a result is not this defect.
+   - a token or context budget given to the model as a number to work within.
+   - a standing instruction to delegate to subagents whatever the task size, with no statement of when delegation is worth its cost.
+   - a hard cap on the wording of every reply or sentence, such as a maximum word count per sentence.
+   - a blanket stop or approval rule over routine, reversible steps, such as `stop at the first error`, `never retry`, or `ask before any change`. A current model applies such a rule literally and halts work nobody wanted halted, so the fix names the exact action, its scope, and when to ask (`ask before …`).
+
+   The verdict is IMPROVE when a narrower rule still earns its place, such as an approval step or a delegation threshold, and REMOVE otherwise.
 
 Also test every instruction for **structural compensation**: a rule that exists only to steer agents around the code's structure, such as "when you change X, also update Y and Z" or "never import from `foo/internal`". The rule may still be needed, but always-on prose is the weakest way to hold it. When a tool the repository already runs could enforce it — a lint rule, a type, a test, or a check script — the verdict is IMPROVE, and the sentence names that mechanism; verify the tool is configured in the repository before naming it. When no tool can enforce it, the verdict stays KEEP, and the sentence notes the scattered code it compensates for so `/trackbed:code:refactor-opportunities` can assess it.
 
