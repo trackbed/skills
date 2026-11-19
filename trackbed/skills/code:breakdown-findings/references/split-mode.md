@@ -183,7 +183,7 @@ If the recommendation is **SPLIT**:
 ````markdown
 ## Implementation Setup
 
-When `CONDUCTOR_WORKSPACE_PATH` is set, each slice's "own dedicated git worktree" means a separate Conductor workspace. Do not run the raw `git worktree` example below, and say so when presenting this setup.
+When `CONDUCTOR_WORKSPACE_PATH` is set, each slice's "own dedicated git worktree" means a separate Conductor workspace. Do not run the raw `git worktree` example below, and say so when presenting this setup. Create the slice's workspace in Conductor, rooted where the bullets below say; an agent whose tool set already includes Conductor's `CreateWorkspace` tool may create it only after the user approves that workspace.
 
 Implement this plan in its **own dedicated git worktree**, separate from every other plan in this split.
 
@@ -209,9 +209,9 @@ After slices are implemented, reviewed, or rebased, reconcile each slice against
 
 ### Conductor workspaces
 
-Synced Conductor workspace boundary contract (keep aligned across git-mutating workflow skills): when `CONDUCTOR_WORKSPACE_PATH` is set: stay on the current branch absent explicit approval; use another Conductor workspace—not raw worktrees or throwaway branches—for isolation. Never remove, reset, or re-point a Conductor workspace path; archive workspaces through Conductor. Conductor changes defaults, not permissions or safety gates.
+Synced Conductor workspace boundary contract (keep aligned across git-mutating workflow skills): when `CONDUCTOR_WORKSPACE_PATH` is set: stay on the current branch absent explicit approval; use another Conductor workspace—not raw worktrees or throwaway branches—for isolation, and create one through Conductor only after the user approves it in this run. Never remove, reset, or re-point a Conductor workspace path; archive workspaces through Conductor, and archive only one this run created, after the user approves it. Conductor changes defaults, not permissions or safety gates.
 
-For a split run inside Conductor, each slice's "own dedicated git worktree" should be a separate Conductor workspace; say so when presenting the Implementation Setup.
+For a split run inside Conductor, each slice's "own dedicated git worktree" should be a separate Conductor workspace; say so when presenting the Implementation Setup. This planning run never creates those workspaces itself, because it writes only planning artifacts.
 
 - Use after a code review surfaces _"this is doing too much"_, when a reviewer asks for a split, or before opening a PR you suspect bundles unrelated work.
 - **Author-driven, not reviewer-driven.** Splitting is the author's responsibility — reviewers shouldn't carry it. Self-review the diff first (a quick read-through, or run `trackbed:pr:code-review`) so the seams reflect what the code actually does, not just what the file tree looks like.
