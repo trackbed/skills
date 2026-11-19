@@ -2,6 +2,8 @@
 
 Use this format for every stop that waits on the user in a workflow that loads this file: a question, a confirmation, an approval, or a blocker only the user can clear. A stopped run shows a decision request instead of its success report. The format sets order and content, not length.
 
+The reader did not watch the run and may be switching in from other work. The question, evidence, and options must make sense without the earlier messages: use the words the issue, the plan, and the code use, and when the request needs a name the workflow coined, such as a gate number or a finding fingerprint, say in plain words what it is.
+
 ## Order
 
 1. **First line:** `Decision needed · {work-item}: {question}`. The work item is the tracker issue ID or the plan's execution label. The question is one sentence and ends with a question mark.

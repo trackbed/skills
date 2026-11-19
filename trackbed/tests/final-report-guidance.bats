@@ -105,3 +105,23 @@
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
+
+@test "final reports are written for a reader who did not watch the run" {
+	cd "$BATS_TEST_DIRNAME/.."
+	format="shared/implementation/references/final-report.md"
+	grep -qF "Write for a reader who did not watch the run." "$format"
+	grep -qF "The status block keeps its field names and values, which later steps and tools read." "$format"
+	grep -qF "do not lean on names the workflow coined for its own bookkeeping" "$format"
+	reader=$(grep -nFx "## Reader" "$format" | cut -d: -f1)
+	order=$(grep -nFx "## Order" "$format" | cut -d: -f1)
+	[ -n "$reader" ]
+	[ "$reader" -lt "$order" ]
+
+	consumers=$(grep -rlF "shared/implementation/references/final-report.md" skills --include='*.md' | cut -d/ -f2 | sort -u)
+	[ -n "$consumers" ]
+	for consumer in $consumers; do
+		for id in anthropic-prompting-claude-fable-5-2 openai-using-gpt-6-2; do
+			grep -qF "id: $id" "skills/$consumer/references/sources.yaml" || { echo "$consumer does not declare $id"; return 1; }
+		done
+	done
+}

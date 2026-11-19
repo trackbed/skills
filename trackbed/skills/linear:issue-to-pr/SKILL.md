@@ -19,7 +19,7 @@ The subprocess helpers use `${CLAUDE_PLUGIN_ROOT}/scripts/lib/review_process.py`
 ## Workflow Contract
 
 - Invoke every delegated skill through the platform's skill mechanism. If direct invocation is unavailable, locate and read that skill's installed `SKILL.md` and follow it with the same arguments. This rule covers every delegation below and in the shipping reference; they name the skill and its arguments without repeating it.
-- Continue from one delegated skill to the next without ending the turn or waiting for acknowledgement; a one-line status note between skills is fine.
+- Continue from one delegated skill to the next without ending the turn or waiting for acknowledgement. A message without a tool call ends the turn, so put a one-line status note in the same message as the next tool call. Do not end the turn because a skill finished or the work has run long, or on a summary that announces the next step instead of taking it.
 - Pause only for a hard blocker or a decision that the issue, referenced context, repository conventions, and code cannot determine safely.
 - Show every stop that waits on the user, in this file or a reference it loads, as a decision request: read `${CLAUDE_PLUGIN_ROOT}/shared/implementation/references/decision-request.md` before the first one and follow it. A blocked run shows a decision request, never a Step 5 success template.
 - Treat a delegated skill failure as a workflow failure. Preserve its recovery information and do not skip ahead.

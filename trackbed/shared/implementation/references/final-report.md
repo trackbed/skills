@@ -2,6 +2,10 @@
 
 Use this format for the success report of a workflow that loads this file. A stopped run shows a decision request instead. The format sets the order and how attention items are worded. It does not shorten the report: every fact the workflow reports keeps a place.
 
+## Reader
+
+Write for a reader who did not watch the run. They have not seen the tool calls, the files the run opened, or its earlier messages, and this report may be the only message they read. Use the words the issue, the plan, and the code use. The status block keeps its field names and values, which later steps and tools read. In the prose parts, do not lean on names the workflow coined for its own bookkeeping, such as gate numbers, finding fingerprints, or state names: say in plain words what the thing is.
+
 ## Order
 
 1. **Outcome:** one or two sentences saying what the run produced and where it stands. Include the Pull Request link when one exists; otherwise say that no Pull Request was created and why.

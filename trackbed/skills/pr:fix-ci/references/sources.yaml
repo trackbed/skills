@@ -23,3 +23,19 @@ sources:
     last_reviewed_at: 2026-11-08
     baseline_commit: "bd0a32504f9ae9f795875a9e6bb90ff7408fda08"
     baseline_hash: "sha256:ac9b7ac2972602f0f0039c56a43df0b8fe2aeb4dbe31636796285318743ee568"
+  - id: anthropic-prompting-claude-fable-5-2
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-2.md
+    title: "Claude Docs - Prompting Claude Fable 5.2"
+    rationale: "The reader rule in the shared decision request format, which writes for someone who did not watch the run and explains names coined during the work, follows this guide's advice on making reports easy to follow."
+    usage: inspiration
+    last_reviewed_at: 2026-11-19
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:c20db12661c1cea8594aaf29a20dc2ad460437200f6ffbbbf8d3086b9c724c5d"
+  - id: openai-using-gpt-6-2
+    url: https://developers.openai.com/api/docs/guides/latest-model.md
+    title: "OpenAI API Docs - Using GPT-6.2"
+    rationale: "The same reader rule's ban on carrying run shorthand into user-facing text follows this guide's advice that a final answer stand on its own, without shorthand from tool calls or internal work."
+    usage: inspiration
+    last_reviewed_at: 2026-11-19
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:6cae4cd655aaab31cea56ded3d174545368b31c4603a171676777aff57e3d463"
