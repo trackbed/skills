@@ -34,11 +34,17 @@ NOTICE = (
 )
 SEVERITIES = ("critical", "high", "medium", "low", "suggestion")
 # What a page is for decides how it is laid out. Each shape has its own template and its own required part.
-SHAPES = ("findings", "plan", "qa", "inquiry", "assessment", "fixes")
+SHAPES = ("findings", "plan", "qa", "inquiry", "assessment", "fixes", "changes")
 SHAPE_PARTS = {
     "assessment": ("data-scorecard", "an assessment page needs its scores in an element marked data-scorecard"),
     "qa": ("data-tested", "a qa page needs what was tested in an element marked data-tested"),
+    "changes": (
+        "data-compare",
+        "a changes page needs a before and after for each change, in an element marked data-compare",
+    ),
 }
+# The two sides of a before and after comparison on a changes page, in the order they are written.
+COMPARE_SIDES = ("before", "after")
 VOID_TAGS = frozenset(
     {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"}
 )
@@ -60,6 +66,7 @@ RESERVED_FACETS = frozenset(
         "accept-label",
         "collapsed",
         "commit",
+        "compare",
         "controls",
         "copy",
         "noun",
@@ -78,8 +85,10 @@ RESERVED_FACETS = frozenset(
         "report",
         "report-header",
         "root",
+        "run-id",
         "section",
         "severity-label",
+        "side",
         "sortable",
         "source",
         "triage",
@@ -111,6 +120,10 @@ class Open:
     attrs: Attrs
     has_heading: bool = False
     has_lead: bool = False
+    # On a changes page: the comparisons a decided change holds, and the sides a comparison holds.
+    needs_compare: bool = False
+    compares: int = 0
+    sides: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -218,6 +231,10 @@ class PageParser(HTMLParser):
                 self._problem("data-section must be inside <main data-report>")
         if "data-entry" in attr_map:
             self._check_entry(attr_map)
+        if "data-compare" in attr_map:
+            self._check_compare(tag)
+        if "data-side" in attr_map:
+            self._check_side(tag, attr_map["data-side"].strip())
         if tag == "h1" and self._inside_attr("data-report-header"):
             self._has_title_heading = True
         if tag in {"h2", "h3"}:
@@ -239,7 +256,9 @@ class PageParser(HTMLParser):
         if tag == "img" and "alt" not in attr_map:
             self._problem("an <img> needs an alt attribute that says what it shows")
         if tag not in VOID_TAGS:
-            self._stack.append(Open(tag, attr_map))
+            node = Open(tag, attr_map)
+            node.needs_compare = "data-entry" in attr_map and self._shape == "changes" and self._decided(attr_map)
+            self._stack.append(node)
 
     def handle_endtag(self, tag: str) -> None:
         if tag == "title":
@@ -278,6 +297,16 @@ class PageParser(HTMLParser):
                     f"entry {entry_id} needs a lead paragraph: one or two plain sentences, before any fields, "
                     "saying what it is and why it matters"
                 )
+            if node.needs_compare and node.compares == 0:
+                self._problem(
+                    f"change {entry_id} needs a before and after: an element marked data-compare holding "
+                    '<figure data-side="before"> and <figure data-side="after">'
+                )
+        if "data-compare" in node.attrs and node.sides != list(COMPARE_SIDES):
+            self._problem(
+                'a data-compare holds one <figure data-side="before"> and then one <figure data-side="after">, '
+                f"found {', '.join(node.sides) or 'neither'}"
+            )
 
     def _check_attrs(self, tag: str, attrs: Attrs) -> None:
         for name, value in attrs.items():
@@ -385,9 +414,36 @@ class PageParser(HTMLParser):
                 "and put the report's own label in data-severity-label"
             )
 
+    def _decided(self, attrs: Attrs) -> bool:
+        """Whether the reader accepts or dismisses this entry, which neither it nor anything around it turns off."""
+        return attrs.get("data-triage") != "off" and all(node.attrs.get("data-triage") != "off" for node in self._stack)
+
+    def _check_compare(self, tag: str) -> None:
+        """A comparison holds its two figures, belongs to one entry, and is never nested in another comparison."""
+        if tag in VOID_TAGS:
+            self._problem(f"data-compare belongs on an element that holds the two figures, not on <{tag}>")
+            return
+        if self._inside_attr("data-compare"):
+            self._problem("a data-compare is nested inside another; give each comparison its own element")
+        for node in reversed(self._stack):
+            if "data-entry" in node.attrs:
+                node.compares += 1
+                return
+        self._problem("data-compare belongs inside an entry, under its Before and after heading")
+
+    def _check_side(self, tag: str, side: str) -> None:
+        """Each side of a comparison is a named figure, directly in the comparison it belongs to."""
+        if side not in COMPARE_SIDES:
+            self._problem(f'data-side="{side}" is not a side; use before or after')
+            return
+        if tag != "figure" or not self._stack or "data-compare" not in self._stack[-1].attrs:
+            self._problem(f'data-side="{side}" belongs on a <figure> directly inside a data-compare')
+            return
+        self._stack[-1].sides.append(side)
+
     def _check_removes(self, entry_id: str, attrs: Attrs) -> None:
         """A fix the reader decides on names the findings it removes, and each finding belongs to one fix."""
-        if attrs.get("data-triage") == "off" or any(node.attrs.get("data-triage") == "off" for node in self._stack):
+        if not self._decided(attrs):
             return
         findings = attrs.get("data-removes", "").split()
         if not findings:

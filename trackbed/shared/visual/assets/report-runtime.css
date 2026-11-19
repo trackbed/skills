@@ -538,6 +538,52 @@ meter[data-tone="warn"]::-moz-meter-bar {
   height: auto;
 }
 
+/* A before and after pair on a changes page: side by side when there is room, stacked when not.
+   The sides differ by their caption's first word and by line style, not by color alone. */
+[data-compare] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 16px;
+  margin: 0 0 16px;
+}
+
+[data-compare] > figure {
+  min-width: 0;
+  margin: 0;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-top: 3px dashed var(--border-bright);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+[data-compare] > figure[data-side="after"] {
+  border-top: 3px solid var(--green);
+}
+
+[data-compare] img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+[data-compare] blockquote {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+[data-compare] figcaption {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+}
+
+[data-compare] figcaption > b {
+  color: var(--text);
+}
+
 /* ---------- Sections ---------- */
 
 [data-section] {

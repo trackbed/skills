@@ -29,6 +29,8 @@
    *   triageable: boolean,
    * }} EntryData
    * @typedef {{
+   *   shape?: string,
+   *   runId?: string,
    *   producer: string,
    *   source: string,
    *   generated: string,
@@ -338,6 +340,15 @@
     const commit = meta.commit ? `, commit ${meta.commit.slice(0, 12)}` : "";
     const lines = [];
     if (followup) lines.push(followup, "");
+    if (meta.shape === "changes") {
+      pushChangeDecisions(lines, meta, triage, {
+        accepted,
+        dismissed,
+        undecided,
+        commit,
+      });
+      return `${lines.join("\n")}\n`;
+    }
     lines.push(
       `Triage of ${meta.source} (${meta.producer}, generated ${meta.generated}${commit}).`,
       `${meta.source} is the record for what each ${noun(meta, 1)} says; this message only says which ${noun(meta, 2)} to act on.`,
@@ -384,6 +395,83 @@
   }
 
   /**
+   * What the two decisions are called. A changes page reports edits that are
+   * already made, so its decisions are to keep or revert each one even when
+   * the page names no labels; its prompt reads a dismissal as work to undo.
+   * @param {string} shape
+   * @param {string | undefined} accept
+   * @param {string | undefined} dismiss
+   * @returns {{ acceptLabel: string, dismissLabel: string }}
+   */
+  function decisionLabels(shape, accept, dismiss) {
+    const changes = shape === "changes";
+    return {
+      acceptLabel: accept || (changes ? "Keep" : "Accept"),
+      dismissLabel: dismiss || (changes ? "Revert" : "Dismiss"),
+    };
+  }
+
+  /**
+   * A changes page reports edits that are already made, so the work to hand
+   * back is the dismissed ones: those are undone, and the rest stay.
+   * @param {string[]} lines
+   * @param {ReportMeta} meta
+   * @param {Record<string, Decision>} triage
+   * @param {{ accepted: EntryData[], dismissed: EntryData[], undecided: number, commit: string }} decisions
+   */
+  function pushChangeDecisions(lines, meta, triage, decisions) {
+    const { accepted, dismissed, undecided, commit } = decisions;
+    const { acceptLabel: keep, dismissLabel: undo } = decisionLabels(
+      "changes",
+      meta.acceptLabel === "Accept" ? "" : meta.acceptLabel,
+      meta.dismissLabel === "Dismiss" ? "" : meta.dismissLabel,
+    );
+    lines.push(
+      `Decisions on the ${noun(meta, 2)} recorded in ${meta.source} (${meta.producer}, generated ${meta.generated}${commit}).`,
+    );
+    if (meta.runId) lines.push(`Apply run: ${oneLine(meta.runId)}`);
+    lines.push(
+      `${meta.source} is the record for what each ${noun(meta, 1)} did and what was there before; this message only says which ${noun(meta, 2)} to undo.`,
+      "",
+    );
+    if (dismissed.length === 0) {
+      lines.push(`No ${noun(meta, 2)} were marked ${undo}; undo nothing.`);
+    } else {
+      lines.push(
+        `Undo only the ${dismissed.length} ${noun(meta, dismissed.length)} marked ${undo}, restoring what the record says was there before:`,
+      );
+      for (const entry of dismissed) {
+        const severity = entry.facets.severity
+          ? ` [${entry.facets.severity}]`
+          : "";
+        const location = entry.location ? ` (${entry.location})` : "";
+        lines.push(
+          `- ${entry.id}${severity} ${oneLine(entry.title)}${location}`,
+        );
+        const note = oneLine(triage[entry.id].note);
+        if (note) lines.push(`  Reason: ${note}`);
+      }
+    }
+    if (accepted.length > 0) {
+      lines.push(
+        "",
+        `Leave the ${accepted.length} ${noun(meta, accepted.length)} marked ${keep} as ${accepted.length === 1 ? "it is" : "they are"}:`,
+      );
+      for (const entry of accepted) {
+        lines.push(`- ${entry.id} ${oneLine(entry.title)}`);
+        const note = oneLine(triage[entry.id].note);
+        if (note) lines.push(`  Note: ${note}`);
+      }
+    }
+    if (undecided > 0) {
+      lines.push(
+        "",
+        `${undecided} other ${noun(meta, undecided)} had no decision and should stay as ${undecided === 1 ? "it is" : "they are"}.`,
+      );
+    }
+  }
+
+  /**
    * A fix names the findings it removes, so the follow-up skill, which works on
    * finding IDs, knows which findings the decision covers.
    * @param {string[]} lines
@@ -424,6 +512,7 @@
     storageKey,
     sanitizeTriage,
     buildPrompt,
+    decisionLabels,
   };
 
   if (typeof module === "object" && module && module.exports)
@@ -522,8 +611,11 @@
     if (!(main instanceof HTMLElement) || main.dataset.trackbedReady) return;
     main.dataset.trackbedReady = "true";
 
+    const shape = (main.dataset.shape ?? "").trim();
     /** @type {ReportMeta} */
     const meta = {
+      shape,
+      runId: main.dataset.runId,
       producer: main.dataset.producer ?? "",
       source: main.dataset.source ?? "",
       generated: main.dataset.generated ?? "",
@@ -535,8 +627,11 @@
       ]
         .map((node) => node.getAttribute("content") ?? "")
         .filter(Boolean),
-      acceptLabel: main.dataset.acceptLabel || "Accept",
-      dismissLabel: main.dataset.dismissLabel || "Dismiss",
+      ...decisionLabels(
+        shape,
+        main.dataset.acceptLabel,
+        main.dataset.dismissLabel,
+      ),
       nounOne: (main.dataset.noun ?? "").trim().split(/\s+/)[0] || "entry",
       nounMany: (main.dataset.noun ?? "").trim().split(/\s+/)[1] || "entries",
     };
@@ -546,7 +641,10 @@
     const dismissedLabel =
       meta.dismissLabel === "Dismiss" ? "Dismissed" : meta.dismissLabel;
 
-    const triageKey = storageKey(window.location.pathname, meta.generated);
+    const triageKey = storageKey(
+      window.location.pathname,
+      meta.runId || meta.generated,
+    );
     const triage = sanitizeTriage(readStore(triageKey));
     const stored = /** @type {Partial<Settings> | null} */ (
       readStore(SETTINGS_KEY)

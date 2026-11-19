@@ -613,6 +613,14 @@
       "producer": "trackbed:pr:generate-description"
     },
     {
+      "id": "copy-review-screenshots",
+      "path": ".trackbed/copy-review/",
+      "type": "dir",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:code:copy-review"
+    },
+    {
       "id": "verify-understanding",
       "path": ".context/verify-understanding/",
       "type": "dir",
