@@ -512,7 +512,7 @@ Linear issue tracking. These skills need an authenticated Linear MCP server; `is
 
 | Skill | Invocation | Arguments | Description |
 | --- | --- | --- | --- |
-| `/trackbed:linear:backlog-refine` | User | `[team] [--project <name>] [--label <name>] [--stale-days <n>] [--limit <n>] [--apply]` | Grade a Linear team's open backlog and propose completing, cancelling, merging, splitting, or rewriting issues. Read-only unless `--apply`. |
+| `/trackbed:linear:backlog-refine` | User | `[team] [--project <name>] [--label <name>] [--stale-days <n>] [--limit <n>\|--all] [--apply]` | Grade a Linear team's open backlog and propose completing, cancelling, merging, splitting, or rewriting issues. Read-only unless `--apply`. |
 | `/trackbed:linear:breakdown-findings` | User | `[--auto] [--ask] [--dry-run] [--resume <partial-report-path>] [--team <team>] [--project <project>] [--label <label>] [--] [source ...]` | Turn reviewed audit, review, scan, or QA findings into coordinated, PR-sized Linear issues. |
 | `/trackbed:linear:issue-define` | User, Auto | `[--auto [--ask]] [--] [issue-id or description and/or file paths for context]` | Create or improve a Linear issue that fits one PR; larger work becomes a parent with sub-issues. `--auto` drafts from rough input. |
 | `/trackbed:linear:issue-implement` | User, Auto | `<ISSUE-ID> [--auto] [--set-in-progress]` | Implement one Linear issue: branch setup, reference mapping, planning, coding, and fast verification. |

@@ -1,7 +1,7 @@
 ---
 name: linear:backlog-refine
 description: "Requires Linear MCP. Grades a Linear team's open backlog for clarity, scope, agent-readiness, freshness, and resolution evidence; clusters related work and flags conflicting issues; and proposes complete, cancel, merge, split, rewrite, ask, or keep. Read-only unless --apply is passed and each write batch is approved. Use for backlog grooming or pre-planning cleanup. Not for selecting, defining, or implementing an issue; use trackbed:linear:next or trackbed:linear:issue-define instead."
-argument-hint: "[team] [--project <name>] [--label <name>] [--stale-days <n>] [--limit <n>] [--apply]"
+argument-hint: "[team] [--project <name>] [--label <name>] [--stale-days <n>] [--limit <n>|--all] [--apply]"
 disable-model-invocation: true
 user-invocable: true
 ---
@@ -25,9 +25,10 @@ Parse `$ARGUMENTS` before Step 1.
 - `--label <name>`: filter to a label.
 - `--stale-days <n>`: days without any update before an issue is flagged stale. Default 90.
 - `--limit <n>`: cap collected backlog issues. Default 200, maximum 400.
+- `--all` collects and grades every matching backlog issue without a cap. The team, backlog state, project, and label filters still apply.
 - `--apply`: enable the write phase. Without it the skill is read-only and ends after the report.
 
-Reject unknown flags and repeated flags with one short message naming the offending token.
+Reject `--all` combined with `--limit` before Step 1 and ask the user to choose one. Reject unknown flags and repeated flags with one short message naming the offending token.
 
 ## Workflow
 
@@ -47,10 +48,10 @@ Reject unknown flags and repeated flags with one short message naming the offend
    - If status metadata is unavailable, fetch team issues and filter locally by state name with the same exclusions.
 
 4. **Fetch the backlog.**
-   - Call Linear MCP `list_issues` with the team, backlog state filters, optional `project`, optional `label`, ordered by least recently updated first so stale issues are collected before the cap is reached. Follow the cursor until the backlog is exhausted or `--limit` is reached.
-   - Dedupe by issue identifier or UUID.
-   - If the cap is reached before all pages are exhausted, say so in the report and suggest raising `--limit` or narrowing by project or label.
-   - If no backlog issues match, report that and stop.
+   - Call Linear MCP `list_issues` with the team, backlog state filters, optional `project`, and optional `label`, ordered by least recently updated first.
+   - Dedupe by issue identifier or UUID. Without `--all`, follow cursors until the matching backlog is exhausted or the collection cap is reached. If the cap leaves matching issues or pages uncollected, report that and suggest `--all`, raising `--limit`, or narrowing by project or label.
+   - With `--all`, read `references/full-backlog-report.md` before fetching and use its batching and reporting rules through the end of the run. Follow every cursor for every selected backlog state. When filtering locally because state metadata is unavailable, page through the team results until exhausted and keep only matching backlog issues.
+   - Full coverage requires exhausting every matching backlog page and grading and recording every collected match. If pagination fails, report the incomplete coverage and the error. If no issues were collected, stop and report whether the filters returned no matches or the fetch failed.
 
 5. **Enrich issues that need it.**
    - Call Linear MCP `get_issue` with `includeRelations: true` for every issue, so blockers, duplicates, parents, and sub-issues are visible.
@@ -103,10 +104,11 @@ Reject unknown flags and repeated flags with one short message naming the offend
 
 10. **Validate drafts and report the plan.** Re-grade the exact final description of every rewrite and split child against every readiness item, retaining the evidence and any open gaps. Unsupported assumptions and unanswered questions never count as closed gaps. Compute projected readiness only from drafts that pass this final check; a proposed action alone is not evidence of readiness.
 
-    Count retained implementation issues once, replace split parents with their children, and exclude completed, canceled, merged-away, and tracking-only parent issues from projected readiness. Show the identifiers or draft keys behind each count, distinguish existing issues from new children, and keep awaiting-prerequisite and unknown startability separate from ready-to-start. Label projections as conditional on applying the drafts and persisting their relations; do not assume prerequisites will complete. Use this structure:
+    Count retained implementation issues once, replace split parents with their children, and exclude completed, canceled, merged-away, and tracking-only parent issues from projected readiness. Show the identifiers or draft keys behind each count, distinguish existing issues from new children, and keep awaiting-prerequisite and unknown startability separate from ready-to-start. Label projections as conditional on applying the drafts and persisting their relations; do not assume prerequisites will complete. Use this structure inline for capped runs or across the index and batch files for `--all`:
 
     ```text
     Backlog refinement: {team} ({n} issues graded, {m} need action)
+    Coverage: {full matching backlog | partial with reason and affected scope}
     Agent-ready now (verified specifications): {a} | projected after applying validated drafts: {b} | human-only: {c}
     Startability now: ready-to-start {r} | awaiting-prerequisite {w} | unknown {u}
     Projected startability: ready-to-start {pr} | awaiting-prerequisite {pw} | unknown {pu}
@@ -144,10 +146,10 @@ Reject unknown flags and repeated flags with one short message naming the offend
     Open questions:
     {for each ask: issue, question, who can answer, what becomes agent-ready once answered; for an ask raised by a conflict, the conflict key, because its question appears under Conflicts}
 
-    Next: {"rerun with --apply to apply approved batches" | "handoff lines"}
+    Next: {"rerun the same command with --apply to apply approved batches" | "handoff lines"}
     ```
 
-    Omit the `keep` rows from `Proposed actions` when more than 20 issues were graded; list their identifiers in one line instead. Omit empty sections except `Conflicts`, so an empty conflict result is distinguishable from a skipped search. Name the conflict key beside every issue a conflict involves, in its `Why` cell or in the `keep` identifier line. Leave `Startability` as `n/a` for any issue that is not `agent-ready`; only `agent-ready` rows contribute to the startability counts, which sum to the agent-ready count rather than the graded count. For picking autonomous implementation work, hand off to `trackbed:linear:next {team} --agent-ready`; only issues that are also ready to start are candidates. Selection rechecks live evidence rather than trusting this report. With that handoff, list the issues in an unresolved `contradiction` and say not to pick them until the decision is recorded in Linear, because selection judges each issue on its own.
+    In inline reports, omit the `keep` rows from `Proposed actions` when more than 20 issues were graded; list their identifiers in one line instead. Omit empty sections except `Conflicts`, so an empty conflict result is distinguishable from a skipped search. Name the conflict key beside every issue a conflict involves, in its `Why` cell or in the `keep` identifier line. Leave `Startability` as `n/a` for any issue that is not `agent-ready`; only `agent-ready` rows contribute to the startability counts, which sum to the agent-ready count rather than the graded count. For picking autonomous implementation work, hand off to `trackbed:linear:next {team} --agent-ready`; only issues that are also ready to start are candidates. Selection rechecks live evidence rather than trusting this report. With that handoff, list the issues in an unresolved `contradiction` (link to the list for `--all`) and say not to pick them until the decision is recorded in Linear, because selection judges each issue on its own.
 
 11. **Apply approved changes (`--apply` only).**
     - Resolve the team's state whose type is `completed` and the state whose type is `canceled` before presenting terminal batches. If either needed state cannot be resolved unambiguously, do not apply that action; report the missing state. A `complete` action may use only the completed state, and a `cancel` action may use only the canceled state.
