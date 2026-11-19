@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: refactor-adr-drift
+expected_outcome: |
+  Merged fix (2026-11-19, adapted from shadcn/improve): an ADR the code no
+  longer follows cannot settle a finding. ADR-0001 rejects a shared
+  eligibility module, yet the API and CSV channels already import one and the
+  preview keeps its own copy that misses the skerry rule. The report must keep
+  the preview finding and say the code has drifted from ADR-0001, instead of
+  dropping the finding as settled by the ADR.
+context:
+  scaffold_script: scaffold.sh
