@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Copy Review Summary · COPY_REVIEW_OVERVIEW.md</title>
+    <!--
+      Authoring template for the --visual report style, shape "changes": a report of
+      edits that are already made, whose reader asks what was changed, whether each
+      change looks right, and which ones to keep. The contract is in
+      shared/visual/references/visual-report.md; this file shows it applied to a small
+      copy review of a fictional seed library, run with --apply. Replace every value:
+      nothing here is boilerplate to keep.
+
+      One trackbed-followup per command the reader can paste the decisions into.
+    -->
+    <meta name="trackbed-followup" content="/trackbed:code:copy-review --revert" />
+    <!-- Leave both runtime elements empty. scripts/visual-report.py fills them. -->
+    <style data-trackbed-runtime></style>
+  </head>
+  <body>
+    <!-- Keep and Revert replace Accept and Dismiss: every change here is already in the working tree. -->
+    <main
+      data-report
+      data-shape="changes"
+      data-noun="change changes"
+      data-accept-label="Keep"
+      data-dismiss-label="Revert"
+      data-producer="trackbed:code:copy-review --pr --apply"
+      data-source="COPY_REVIEW_OVERVIEW.md"
+      data-run-id="75bcca93-b9fe-4aa0-88ce-ded812220775"
+      data-generated="2026-01-15T14:02:00+0100"
+      data-commit="1a2b3c4d5e6f"
+      data-root="/Users/example/seed-library"
+      data-facets="severity category"
+    >
+      <!-- What was done, what the reader should look at first, and what is still theirs to decide. -->
+      <header data-report-header>
+        <h1>Copy Review Summary</h1>
+        <p>
+          Three of four findings are fixed in the working tree, and nothing is committed. Look first at
+          <a href="#entry-COPY-001">the Remove button, which now relies on its icon</a>.
+          <a href="#entry-COPY-004">One finding was left unchanged</a> for you to decide.
+        </p>
+      </header>
+
+      <!-- Explain the labels this report uses, in its own terms. Closed by default. -->
+      <details class="tr-legend">
+        <summary>How to read this report</summary>
+        <dl class="tr-fields">
+          <dt>Change</dt>
+          <dd>One edit this run made to the interface text. It is in the working tree and not committed.</dd>
+          <dt>Keep and Revert</dt>
+          <dd>
+            Keep leaves a change in place. Revert marks it to be undone: copy the prompt and paste it to the agent.
+          </dd>
+          <dt>Before and after</dt>
+          <dd>
+            Screenshots of the running app, taken before and after the edit. When a screen could not be captured, the
+            text itself.
+          </dd>
+          <dt>Important</dt>
+          <dd>Clear redundancy that adds noise without adding information.</dd>
+          <dt>Suggestion</dt>
+          <dd>Borderline redundancy. Removing it could cost some readers clarity, so it is not changed unasked.</dd>
+        </dl>
+      </details>
+
+      <div class="tr-kpis">
+        <div class="tr-kpi"><b>3</b><span>changes made</span></div>
+        <div class="tr-kpi"><b>2 of 3</b><span>changes with screenshots</span></div>
+        <div class="tr-kpi"><b>1</b><span>finding left unchanged</span></div>
+      </div>
+
+      <!-- One section holds the changes, in the order a person meets them in the product. Each entry is one
+           change, named by the ID of the finding it resolves. -->
+      <section data-section id="changes">
+        <h2>Changes made</h2>
+        <article
+          data-entry
+          data-id="COPY-001"
+          data-severity="high"
+          data-severity-label="Important"
+          data-category="label-icon-duplication"
+        >
+          <!-- Title: what is different now. Where: the edit, then the screen that shows it. -->
+          <h3>The Remove button no longer repeats its trash icon in words</h3>
+          <p data-where><code data-loc>src/components/PacketRow.tsx:42</code>, shown on <code>/packets</code></p>
+          <p>
+            The word "Remove" sat beside a trash icon on every row of the packet list. The icon now stands alone, and
+            the button keeps its name for screen readers.
+          </p>
+          <h4>Before and after</h4>
+          <!-- One comparison: the before figure, then the after figure. Each image keeps the relative path the
+               report cites and links to itself, so the reader can open it at full size. -->
+          <div data-compare>
+            <figure data-side="before">
+              <a href=".trackbed/copy-review/20260115-140200/COPY-001-before.png"
+                ><img
+                  src=".trackbed/copy-review/20260115-140200/COPY-001-before.png"
+                  alt="Before: a packet row ending in a trash icon followed by the word Remove"
+              /></a>
+              <figcaption><b>Before</b> The icon and the word say the same thing.</figcaption>
+            </figure>
+            <figure data-side="after">
+              <a href=".trackbed/copy-review/20260115-140200/COPY-001-after.png"
+                ><img
+                  src=".trackbed/copy-review/20260115-140200/COPY-001-after.png"
+                  alt="After: the same packet row ending in the trash icon alone"
+              /></a>
+              <figcaption><b>After</b> The icon alone, on every row.</figcaption>
+            </figure>
+          </div>
+          <h4>What changed</h4>
+          <dl class="tr-fields">
+            <dt>Text removed</dt>
+            <dd>"Remove"</dd>
+            <dt>Kept for screen readers</dt>
+            <dd><code>aria-label="Remove"</code> on the button</dd>
+            <dt>Files changed</dt>
+            <dd>
+              <code data-loc>src/components/PacketRow.tsx</code> and
+              <code data-loc>src/components/PacketRow.test.tsx</code>, whose lookup now uses the button's name
+            </dd>
+          </dl>
+          <h4>Why</h4>
+          <p>A trash icon is a standard way to say remove, so the word widened every row without adding meaning.</p>
+          <dl class="tr-meta">
+            <div>
+              <dt>Confidence</dt>
+              <dd>90</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article
+          data-entry
+          data-id="COPY-002"
+          data-severity="high"
+          data-severity-label="Important"
+          data-category="heading-context-duplication"
+        >
+          <h3>The Settings page no longer opens with a second "Settings" heading</h3>
+          <p data-where><code data-loc>src/pages/Settings.tsx:12</code>, shown on <code>/settings</code></p>
+          <p>
+            The page title and the first heading under it both read "Settings". The heading is gone, and the first
+            group of options now starts directly under the title.
+          </p>
+          <h4>Before and after</h4>
+          <div data-compare>
+            <figure data-side="before">
+              <a href=".trackbed/copy-review/20260115-140200/COPY-002-before.png"
+                ><img
+                  src=".trackbed/copy-review/20260115-140200/COPY-002-before.png"
+                  alt="Before: the Settings page with the word Settings as the title and again as the first heading"
+              /></a>
+              <figcaption><b>Before</b> The same word twice, one above the other.</figcaption>
+            </figure>
+            <figure data-side="after">
+              <a href=".trackbed/copy-review/20260115-140200/COPY-002-after.png"
+                ><img
+                  src=".trackbed/copy-review/20260115-140200/COPY-002-after.png"
+                  alt="After: the Settings page with one title and the Notifications group directly under it"
+              /></a>
+              <figcaption><b>After</b> One title, then the options.</figcaption>
+            </figure>
+          </div>
+          <h4>What changed</h4>
+          <dl class="tr-fields">
+            <dt>Text removed</dt>
+            <dd>The heading "Settings"</dd>
+            <dt>Files changed</dt>
+            <dd><code data-loc>src/pages/Settings.tsx</code></dd>
+          </dl>
+          <h4>Why</h4>
+          <p>The page title already names the page, so the heading repeated its parent.</p>
+        </article>
+
+        <article
+          data-entry
+          data-id="COPY-003"
+          data-severity="high"
+          data-severity-label="Important"
+          data-category="placeholder-label-mirror"
+        >
+          <h3>The email field no longer has a placeholder that mirrors its label</h3>
+          <p data-where><code data-loc>src/pages/Join.tsx:18</code>, shown on <code>/join/confirm</code></p>
+          <p>The field is labeled "Email" and its placeholder said "Enter your email". The placeholder is gone.</p>
+          <h4>Before and after</h4>
+          <!-- A side with no image holds the text itself, and its caption says why there is no image. -->
+          <div data-compare>
+            <figure data-side="before">
+              <blockquote>Label: Email. Placeholder: Enter your email</blockquote>
+              <figcaption><b>Before</b> Text only: the screen opens from an emailed link this run did not have.</figcaption>
+            </figure>
+            <figure data-side="after">
+              <blockquote>Label: Email. No placeholder.</blockquote>
+              <figcaption><b>After</b> Text only, for the same reason.</figcaption>
+            </figure>
+          </div>
+          <h4>What changed</h4>
+          <dl class="tr-fields">
+            <dt>Text removed</dt>
+            <dd>"Enter your email"</dd>
+            <dt>Files changed</dt>
+            <dd>
+              <code data-loc>src/pages/Join.tsx</code> and <code data-loc>src/locales/en.json</code>, where the unused
+              key <code>join.emailPlaceholder</code> was deleted
+            </dd>
+          </dl>
+          <h4>Why</h4>
+          <p>The placeholder restated the label and added no format hint.</p>
+        </article>
+      </section>
+
+      <!-- What the run did not change stays open: it is part of the answer, and nothing here is a decision
+           the Keep and Revert buttons fit. -->
+      <section data-section id="unchanged" data-triage="off">
+        <h2>Left unchanged</h2>
+        <article
+          data-entry
+          data-id="COPY-004"
+          data-severity="suggestion"
+          data-category="obvious-empty-state-text"
+        >
+          <h3>The empty loans list says "No loans yet"</h3>
+          <p data-where><code data-loc>src/pages/Loans.tsx:61</code></p>
+          <p>
+            Not changed: it is a Suggestion, and the line may help a new member see that the list is working. Say so
+            if you want it removed.
+          </p>
+          <h4>Suggested fix</h4>
+          <div data-copy="suggested fix"><p>Remove the line and let the Borrow button carry the empty list.</p></div>
+        </article>
+      </section>
+
+      <!-- Reference material comes last, folded, in as few sections as read well. -->
+      <section data-section id="about" data-triage="off" data-collapsed>
+        <h2>About this review</h2>
+        <h4>Scope</h4>
+        <p>The branch diff against <code>origin/main</code> and local changes: six interface files.</p>
+        <h4>Screenshots</h4>
+        <p>
+          Captured from <code>http://localhost:5173</code>, served by this checkout, at 1280 by 800 and cropped to the
+          part of the screen that changed.
+        </p>
+        <h4>Verification</h4>
+        <p>The fast checks passed after the edits.</p>
+        <h4>Filtered out</h4>
+        <p>One finding was filtered as older than this branch. Nothing was filtered as previously addressed.</p>
+        <h4>Copy strengths</h4>
+        <ul>
+          <li>The packet list uses column headings and no helper text.</li>
+        </ul>
+      </section>
+    </main>
+    <script data-trackbed-runtime></script>
+  </body>
+</html>

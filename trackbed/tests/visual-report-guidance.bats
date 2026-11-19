@@ -259,7 +259,7 @@ for name, expected in SHAPES.items():
     text = pathlib.Path("skills", name, "SKILL.md").read_text()
     line = next((line for line in text.splitlines() if "Synced visual report contract" in line), "")
     tail = line.split("in the run's closing output.", 1)[-1]
-    named = re.findall(r"`(findings|plan|qa|inquiry|assessment|fixes)`, from the template `\$\{CLAUDE_PLUGIN_ROOT\}/shared/visual/assets/report-(\w+)\.html`", tail)
+    named = re.findall(r"`(findings|plan|qa|inquiry|assessment|fixes|changes)`, from the template `\$\{CLAUDE_PLUGIN_ROOT\}/shared/visual/assets/report-(\w+)\.html`", tail)
     if [shape for shape, _ in named] != expected:
         problems.append(f"{name}: names {[shape for shape, _ in named]}, expected {expected}")
     for shape, template in named:
@@ -279,7 +279,7 @@ PY
 
 @test "each shape has a template that follows the contract and leads with what its reader came for" {
 	local shape
-	for shape in findings plan qa inquiry assessment fixes; do
+	for shape in findings plan qa inquiry assessment fixes changes; do
 		run python3 "$SCRIPT" --check "shared/visual/assets/report-$shape.html"
 		[ "$status" -eq 1 ] || {
 			echo "report-$shape.html: $output"
@@ -348,7 +348,39 @@ reference = re.search(r'<section data-section id="findings"[^>]*>', fixes)
 if not reference or "data-collapsed" not in reference.group(0) or 'data-triage="off"' not in reference.group(0):
     problems.append("fixes: the findings by severity must be folded reference")
 
-for shape in ("findings", "plan", "qa", "inquiry", "assessment", "fixes"):
+changes = read("changes")
+for mark in (
+    'data-noun="change changes"',
+    'data-accept-label="Keep"',
+    'data-dismiss-label="Revert"',
+    "<h4>Before and after</h4>",
+    '<figure data-side="before">',
+    '<figure data-side="after">',
+    "<figcaption><b>Before</b>",
+    "<figcaption><b>After</b>",
+    'alt="Before: ',
+    'alt="After: ',
+    "<blockquote>",
+    "<h4>What changed</h4>",
+    "<h4>Why</h4>",
+):
+    if mark not in changes:
+        problems.append(f"changes lacks {mark}")
+if re.search(r'data-facets="([^"\s]+)', changes).group(1) != "severity":
+    problems.append("changes: the first facet is not severity")
+# Each screenshot keeps the report's relative path and links to itself, so it opens at full size.
+shots = re.findall(r'<a href="([^"]+)"\s*><img\s+src="([^"]+)"', changes)
+if len(shots) < 2 or any(link != source or not source.startswith(".trackbed/copy-review/") for link, source in shots):
+    problems.append("changes: a screenshot does not link to its own relative path")
+if changes.count("<div data-compare>") != changes[: changes.index('id="unchanged"')].count("data-entry"):
+    problems.append("changes: every change made needs exactly one comparison in the template")
+unchanged = re.search(r'<section data-section id="unchanged"[^>]*>', changes)
+if not unchanged or "data-collapsed" in unchanged.group(0) or 'data-triage="off"' not in unchanged.group(0):
+    problems.append("changes: what was left unchanged must stay open, with nothing to decide")
+if changes.index('id="changes"') > changes.index('id="unchanged"'):
+    problems.append("changes: the changes made do not come first")
+
+for shape in ("findings", "plan", "qa", "inquiry", "assessment", "fixes", "changes"):
     text = read(shape)
     header = text[text.index("<header data-report-header>") : text.index("</header>")]
     if 'href="#' not in header:
@@ -372,6 +404,11 @@ PY
 		'How does it score, where is it weakest, and what would move the score?' \
 		'Which fix do I make first, and what does each fix remove?' \
 		'The script rejects a fix without the list and a finding listed under two fixes.' \
+		'What was changed, does each change look right, and which do I keep?' \
+		'`Keep` and `Revert` for changes' \
+		'Never pair a screenshot with one from another screen, size, or state, and never draw, retouch, or mock up a side.' \
+		'The script rejects a change without a comparison and a comparison without both sides in that order.' \
+		'On a `changes` page the prompt names the changes to undo, because every change is already made.' \
 		'Never invent content to fill a block.'; do
 		grep -qF -- "$phrase" "$CONTRACT" || {
 			echo "contract lacks: $phrase"
