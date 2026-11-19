@@ -1,6 +1,6 @@
 # linear:next
 
-Use it when you are deciding what to pick up next from a Linear team. It collects unstarted issues that are assigned to you or unassigned, checks each for value, blockers, and readiness, recommends one, and looks for more that can be worked on in parallel. It is read-only, except that in a Conductor cloud workspace it offers to start the issues you confirm, each in a new workspace. To clean up the backlog first, use `trackbed:linear:backlog-refine`.
+Use it when you are deciding what to pick up next from a Linear team. It collects unstarted issues that are assigned to you or unassigned, checks each for value, blockers, and readiness, recommends one, and looks for more that can be worked on in parallel. It can also start issues you confirm from a supported cloud or local Conductor workspace. To clean up the backlog first, use `trackbed:linear:backlog-refine`.
 
 ## Before you run it
 
@@ -50,6 +50,6 @@ Use it when you are deciding what to pick up next from a Linear team. It collect
 - One recommended issue with a plain-language summary, the reasons for the choice, and its readiness.
 - Up to four more ready issues that are independent of the recommendation and of each other.
 - A ranked shortlist with an estimate of the UI/UX work in each issue, and the valuable issues that are not ready with what each one needs.
-- In a Conductor cloud workspace, an offer to start the shortlisted issues an agent can finish there. Each one you confirm gets a new workspace that runs `trackbed:linear:issue-to-pr` with `--ship`.
+- In a Conductor workspace that can start other workspaces, an offer to start the shortlisted issues an agent can finish. Each one you confirm gets a new workspace that runs `trackbed:linear:issue-to-pr` with `--ship`. Local launches require Conductor 0.95 or later and the `CreateWorkspace` tool.
 
 Next, start the issue you picked with `trackbed:linear:issue-implement`.

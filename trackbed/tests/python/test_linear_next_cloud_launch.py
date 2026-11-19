@@ -1,4 +1,4 @@
-"""Behavioral tests for the trackbed:linear:next Conductor cloud launcher.
+"""Behavioral tests for the trackbed:linear:next Conductor workspace launcher.
 
 Every Conductor call runs against a fake `conductor` placed first on PATH that records its argv and replays one
 configured response per call.
@@ -101,10 +101,12 @@ class CloudLaunchTest(unittest.TestCase):
             return []
         return [json.loads(line) for line in self.log.read_text(encoding="utf-8").splitlines()]
 
-    def test_detect_reports_not_cloud_for_local_and_non_conductor_sessions(self) -> None:
+    def test_detect_reports_local_and_non_conductor_sessions_without_calling_conductor(self) -> None:
         code, result = self.run_helper("detect", CONDUCTOR_IS_LOCAL="1")
-        self.assertEqual((code, result["status"], result["reason"]), (0, "not_cloud", "local_workspace"))
+        self.assertEqual((code, result["status"], result["reason"]), (0, "local", "local_workspace"))
         code, result = self.run_helper("detect", CONDUCTOR_IS_LOCAL=None)
+        self.assertEqual((code, result["status"], result["reason"]), (0, "not_cloud", "not_conductor"))
+        code, result = self.run_helper("detect", CONDUCTOR_IS_LOCAL="yes")
         self.assertEqual((code, result["status"], result["reason"]), (0, "not_cloud", "not_conductor"))
         self.assertEqual(self.calls(), [])
 
@@ -330,6 +332,78 @@ class CloudLaunchTest(unittest.TestCase):
         empty.mkdir()
         code, result = self.run_helper(*argv, responses=[created(1)], PATH=str(empty))
         self.assertEqual((code, result["reason"]), (2, "cli_missing"))
+        self.assertEqual(self.calls(), [])
+
+    def test_messages_builds_the_same_first_messages_locally_without_calling_conductor(self) -> None:
+        argv = [
+            "--unstarted",
+            "DISC-1",
+            "--item",
+            "DISC-1",
+            "claude",
+            "opus-5-5-1m",
+            "--item",
+            "DISC-2",
+            "codex",
+            "gpt-5.5",
+        ]
+        code, result = self.run_helper("messages", *argv, CONDUCTOR_IS_LOCAL="1")
+        self.assertEqual((code, result["status"], result["reason"]), (0, "ok", "messages_built"))
+        self.assertEqual(
+            [(entry["issue"], entry["agent"], entry["model"], entry["message"]) for entry in result["results"]],
+            [
+                ("DISC-1", "claude", "opus-5-5-1m", "/trackbed:linear-issue-to-pr DISC-1 --ship --launch-confirmed"),
+                ("DISC-2", "codex", "gpt-5.5", "$trackbed:linear:issue-to-pr DISC-2 --ship"),
+            ],
+        )
+        self.assertEqual(self.calls(), [])
+
+    def test_messages_match_the_cloud_launch_messages(self) -> None:
+        items = ["--item", "DISC-1", "claude", "opus-5-5-1m", "--item", "DISC-2", "codex", "gpt-5.5"]
+        flags = ["--adversarial-review", "--unstarted", "DISC-2"]
+        _, local = self.run_helper("messages", *flags, *items, CONDUCTOR_IS_LOCAL="1")
+        _, cloud = self.run_helper(
+            "launch", "--project-id", "proj_1", *flags, *items, responses=[created(1), created(2)]
+        )
+        self.assertEqual(
+            [entry["message"] for entry in local["results"]], [entry["message"] for entry in cloud["results"]]
+        )
+        parsed = [preflight.parse_arguments(entry["message"].split(" ", 1)[1]) for entry in local["results"]]
+        self.assertEqual([args["launch_confirmed"] for args in parsed], [False, True])
+        self.assertTrue(all(args["ship_mode"] and args["adversarial_review"] for args in parsed))
+
+    def test_messages_never_infer_review_consent_from_environment(self) -> None:
+        code, result = self.run_helper(
+            "messages", "--item", "DISC-1", "codex", "gpt-5.5",
+            CONDUCTOR_IS_LOCAL="1", ADVERSARIAL_REVIEW="true", TRACKBED_ADVERSARIAL_REVIEW="1",
+        )  # fmt: skip
+        self.assertEqual(code, 0)
+        self.assertEqual(result["results"][0]["message"], "$trackbed:linear:issue-to-pr DISC-1 --ship")
+
+    def test_messages_validate_every_item(self) -> None:
+        cases = {
+            "issue_invalid": ["--item", "disc 1; rm", "claude", "opus-5-5-1m"],
+            "agent_invalid": ["--item", "DISC-1", "cursor", "auto"],
+            "model_invalid": ["--item", "DISC-1", "claude", "Opus 5"],
+            "issue_duplicate": ["--item", "DISC-1", "claude", "opus-5-5-1m"] * 2,
+            "unstarted_unknown": ["--unstarted", "DISC-2", "--item", "DISC-1", "claude", "opus-5-5-1m"],
+            "too_many_items": [
+                part for number in range(26) for part in ("--item", f"DISC-{number}", "claude", "opus-5-5-1m")
+            ],
+            "usage": [],
+        }
+        for reason, argv in cases.items():
+            with self.subTest(reason):
+                code, result = self.run_helper("messages", *argv, CONDUCTOR_IS_LOCAL="1")
+                self.assertEqual((code, result["status"], result["reason"]), (2, "error", reason))
+        self.assertEqual(self.calls(), [])
+
+    def test_messages_refuse_to_run_outside_a_local_workspace(self) -> None:
+        argv = ["messages", "--item", "DISC-1", "claude", "opus-5-5-1m"]
+        for value in ("0", None):
+            with self.subTest(CONDUCTOR_IS_LOCAL=value):
+                code, result = self.run_helper(*argv, CONDUCTOR_IS_LOCAL=value)
+                self.assertEqual((code, result["status"], result["reason"]), (2, "error", "not_local"))
         self.assertEqual(self.calls(), [])
 
 

@@ -6,7 +6,7 @@ Read this reference when `ADVERSARIAL_REVIEW=true`. It owns how this workflow ca
 
 The flag is the user's consent to send the tracked `HEAD` snapshot, the committed diff, and the frozen requirements to the provider opposite the host. It covers this invocation only, including its shipping steps and its isolated convergence agent.
 
-Accept it only when the user typed it on this invocation, wrote it into a launch prompt such as a Conductor routine, or confirmed it during a `trackbed:linear:next` cloud launch that wrote it into the first message. Nothing stored turns it on: never read it from an environment variable, Git configuration, or a settings file, and never infer it from an installed provider CLI or an earlier run. Never add the flag on your own initiative.
+Accept it only when the user typed it on this invocation, wrote it into a launch prompt such as a Conductor routine, or confirmed it during a `trackbed:linear:next` workspace launch whose helper built the first message that carries it. Nothing stored turns it on: never read it from an environment variable, Git configuration, or a settings file, and never infer it from an installed provider CLI or an earlier run. Never add the flag on your own initiative.
 
 A `--continue` invocation needs the flag again; consent from the interrupted invocation does not carry over. Forward the flag alone, never `--adversarial-provider` or `--adversarial-model`, so the reviewer is always the provider opposite the host.
 

@@ -325,7 +325,7 @@ See the [SIW guide](trackbed/docs/siw.md) for the full workflow reference.
 | `--depth balanced\|full` | Raise the review profile above the branch's risk floor; it never lowers it |
 | `--adversarial-review` | Also get a review from the model provider opposite your host on medium- and high-risk work; you decide any of its findings the run wants to reject |
 | `--continue` | Resume on the issue's exact unpublished branch; the issue must already be started and every changed path must belong to it |
-| `--launch-confirmed` | Count an earlier yes as the start confirmation, for `unstarted` issues only; `/trackbed:linear:next` cloud launches set it |
+| `--launch-confirmed` | Count an earlier yes as the start confirmation, for `unstarted` issues only; `/trackbed:linear:next` workspace launches set it |
 
 `/trackbed:code:plan-to-pr` runs the same pipeline for one `PR_PLAN_*.md` file. The [shipping guide](trackbed/docs/shipping.md) covers preconditions, status changes, and the handoff in full.
 

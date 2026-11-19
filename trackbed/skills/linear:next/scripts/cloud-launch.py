@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
-"""Conductor cloud launcher for trackbed:linear:next.
+"""Conductor workspace launcher for trackbed:linear:next.
 
-The skill keeps issue selection and the user's confirmation. This helper owns the Conductor CLI calls:
+The skill keeps issue selection and the user's confirmation. This helper owns every first message and the Conductor
+CLI calls:
 
   detect                                        Report whether this session runs in a usable Conductor cloud
-                                                workspace, with its project ID and this session's model.
+                                                workspace, with its project ID and this session's model, or in a
+                                                local Conductor workspace.
   launch --project-id ID [--adversarial-review] [--unstarted ISSUE [--unstarted ...]] --item ISSUE AGENT MODEL [--item ...]
                                                 Create one cloud workspace per confirmed issue, in order, whose
                                                 first message runs trackbed:linear:issue-to-pr ISSUE --ship. Each
                                                 --unstarted issue's message also carries --launch-confirmed, so
                                                 issue-to-pr does not ask again while it is still unstarted.
+  messages [--adversarial-review] [--unstarted ISSUE [--unstarted ...]] --item ISSUE AGENT MODEL [--item ...]
+                                                In a local workspace, validate the same items and print each first
+                                                message without calling Conductor. The skill passes each message
+                                                unchanged to Conductor's CreateWorkspace tool, which the CLI cannot
+                                                reach from a local workspace.
 
 Each call prints one JSON document with `schema_version`, `command`, `status`, `reason`, and `message`. Exit codes:
 0 when the call completed; 1 when `launch` stopped before starting every issue; 2 for an invalid invocation.
@@ -54,7 +61,7 @@ AUTH_EXIT = 3
 ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
 ISSUE_RE = re.compile(r"[A-Z][A-Z0-9]*-[0-9]+")
 MODEL_RE = re.compile(r"[a-z0-9][a-z0-9.-]*")
-EXIT_CODES = {"ok": 0, "not_cloud": 0, "unavailable": 0, "stopped": 1, "error": 2}
+EXIT_CODES = {"ok": 0, "local": 0, "not_cloud": 0, "unavailable": 0, "stopped": 1, "error": 2}
 
 
 class Stop(Exception):
@@ -124,9 +131,11 @@ def unavailable(reason: str, message: str) -> JsonDict:
 
 def detect() -> JsonDict:
     is_local = os.environ.get("CONDUCTOR_IS_LOCAL")
+    if is_local == "1":
+        # The CLI has no credential here; the skill decides from its own tool set whether it can create workspaces.
+        return {"status": "local", "reason": "local_workspace", "message": "Conductor local workspace detected."}
     if is_local != "0":
-        reason = "local_workspace" if is_local == "1" else "not_conductor"
-        return {"status": "not_cloud", "reason": reason, "message": "This is not a Conductor cloud workspace."}
+        return {"status": "not_cloud", "reason": "not_conductor", "message": "This is not a Conductor workspace."}
     if shutil.which(CONDUCTOR) is None:
         return unavailable("cli_missing", "the Conductor CLI is not installed in this workspace")
     workspace_id = os.environ.get("CONDUCTOR_WORKSPACE_ID", "")
@@ -185,6 +194,41 @@ def validate_unstarted(unstarted: Sequence[str], items: Sequence[tuple[str, str,
     return set(unstarted)
 
 
+def first_message(issue: str, agent: str, launch_confirmed: bool, adversarial_review: bool) -> str:
+    message = f"{INVOCATIONS[agent]} {issue} --ship"
+    if launch_confirmed:
+        message += " --launch-confirmed"
+    if adversarial_review:
+        message += " --adversarial-review"
+    return message
+
+
+def messages(
+    raw_items: Sequence[Sequence[str]],
+    adversarial_review: bool = False,
+    unstarted: Sequence[str] = (),
+) -> JsonDict:
+    if os.environ.get("CONDUCTOR_IS_LOCAL") != "1":
+        raise Stop("not_local", "messages runs only in a Conductor local workspace; use launch in a cloud workspace.")
+    items = validate_items(raw_items)
+    launch_confirmed = validate_unstarted(unstarted, items)
+    results = [
+        {
+            "issue": issue,
+            "agent": agent,
+            "model": model,
+            "message": first_message(issue, agent, issue in launch_confirmed, adversarial_review),
+        }
+        for issue, agent, model in items
+    ]
+    return {
+        "status": "ok",
+        "reason": "messages_built",
+        "message": f"Built {len(results)} first messages.",
+        "results": results,
+    }
+
+
 def create_outcome(created: CliResult) -> JsonDict:
     if created.outcome == "ok":
         answer = created.data if isinstance(created.data, dict) else {}
@@ -240,11 +284,7 @@ def launch(
     stopped = False
     wait_budget = RATE_LIMIT_WAIT_BUDGET
     for issue, agent, model in items:
-        message = f"{INVOCATIONS[agent]} {issue} --ship"
-        if issue in launch_confirmed:
-            message += " --launch-confirmed"
-        if adversarial_review:
-            message += " --adversarial-review"
+        message = first_message(issue, agent, issue in launch_confirmed, adversarial_review)
         entry: JsonDict = {"issue": issue, "agent": agent, "model": model, "message": message}
         results.append(entry)
         if stopped:
@@ -268,15 +308,19 @@ def launch(
 
 def build_parser() -> JsonArgumentParser:
     parser = JsonArgumentParser(
-        prog="cloud-launch.py", description="Conductor cloud launcher for trackbed:linear:next."
+        prog="cloud-launch.py", description="Conductor workspace launcher for trackbed:linear:next."
     )
     commands = parser.add_subparsers(dest="command", required=True, parser_class=JsonArgumentParser)
-    commands.add_parser("detect", help="Report whether this is a usable Conductor cloud workspace.")
+    commands.add_parser("detect", help="Report whether this is a usable Conductor cloud or local workspace.")
     launch_parser = commands.add_parser("launch", help="Start confirmed issues in new Conductor cloud workspaces.")
     launch_parser.add_argument("--project-id", required=True)
     launch_parser.add_argument("--adversarial-review", action="store_true")
     launch_parser.add_argument("--unstarted", action="append", default=[], metavar="ISSUE")
     launch_parser.add_argument("--item", nargs=3, action="append", required=True, metavar=("ISSUE", "AGENT", "MODEL"))
+    messages_parser = commands.add_parser("messages", help="Print the first messages for a local workspace launch.")
+    messages_parser.add_argument("--adversarial-review", action="store_true")
+    messages_parser.add_argument("--unstarted", action="append", default=[], metavar="ISSUE")
+    messages_parser.add_argument("--item", nargs=3, action="append", required=True, metavar=("ISSUE", "AGENT", "MODEL"))
     return parser
 
 
@@ -292,6 +336,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         command = args.command
         if command == "detect":
             return emit(command, detect())
+        if command == "messages":
+            return emit(command, messages(args.item, args.adversarial_review, args.unstarted))
         return emit(command, launch(args.project_id, args.item, args.adversarial_review, args.unstarted))
     except Stop as stop:
         return emit(command, {"status": "error", "reason": stop.reason, "message": stop.message})
