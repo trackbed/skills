@@ -138,6 +138,7 @@
       "trackbed/scripts/check-doc-citations.py",
       "trackbed/scripts/json_object.py",
       "trackbed/scripts/git-rewrite/stack-publication.py",
+      "trackbed/scripts/lib/pr_staging.py",
       "trackbed/scripts/lib/review_process.py",
       "trackbed/scripts/lint-skill-contracts.py",
       "trackbed/scripts/lint_skill_contracts/catalog.py",
