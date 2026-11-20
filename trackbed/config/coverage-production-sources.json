@@ -172,7 +172,7 @@
       "trackbed/skills/visual:decisions/scripts/decisions_choices.py",
       "trackbed/skills/visual:decisions/scripts/decisions_content.py",
       "trackbed/skills/visual:decisions/scripts/decisions_evidence.py",
-      "trackbed/skills/visual:decisions/scripts/decisions_images.py",
+      "trackbed/scripts/visual_evidence_images.py",
       "trackbed/skills/visual:decisions/scripts/decisions_item.py",
       "trackbed/skills/visual:decisions/scripts/decisions_model.py",
       "trackbed/skills/visual:decisions/scripts/decisions_page.py",

@@ -373,6 +373,14 @@ function sharedRuntimeFor(plugin) {
         targetPath: path.join("scripts", "skill-usage.js"),
       },
       {
+        sourceFile: path.join(
+          plugin.root,
+          "scripts",
+          "visual_evidence_images.py",
+        ),
+        targetPath: path.join("scripts", "visual_evidence_images.py"),
+      },
+      {
         sourceFile: path.join(plugin.root, "scripts", "visual-report.py"),
         targetPath: path.join("scripts", "visual-report.py"),
       },
