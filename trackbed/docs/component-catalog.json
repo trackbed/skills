@@ -148,16 +148,6 @@
       "path": "trackbed/skills/docs:solution-note/SKILL.md"
     },
     {
-      "name": "trackbed:docs:sync-release",
-      "invocation": "User",
-      "path": "trackbed/skills/docs:sync-release/SKILL.md"
-    },
-    {
-      "name": "trackbed:docs:to-markdown",
-      "invocation": "User, Auto",
-      "path": "trackbed/skills/docs:to-markdown/SKILL.md"
-    },
-    {
       "name": "trackbed:docs:track-rejected-enhancements",
       "invocation": "User",
       "path": "trackbed/skills/docs:track-rejected-enhancements/SKILL.md"
@@ -166,11 +156,6 @@
       "name": "trackbed:docs:ubiquitous-language",
       "invocation": "User",
       "path": "trackbed/skills/docs:ubiquitous-language/SKILL.md"
-    },
-    {
-      "name": "trackbed:docs:update-agents-md",
-      "invocation": "User",
-      "path": "trackbed/skills/docs:update-agents-md/SKILL.md"
     },
     {
       "name": "trackbed:git:commit-message",

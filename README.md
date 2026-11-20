@@ -103,7 +103,6 @@ The enabled safety hooks fail closed when `jq` or Python is unavailable. Without
 | GitHub Pull Request, review, CI, and changelog workflows | Authenticated GitHub CLI: `brew install gh` or [cli.github.com](https://cli.github.com/), then `gh auth login` |
 | Linear workflows | Authenticated Linear MCP server |
 | Browser QA and live product review | Claude in Chrome, Chrome DevTools, or Playwright MCP |
-| Document conversion | `uv`/`uvx`; MarkItDown dependencies download on demand |
 | Recoverable cleanup in autonomous workflows, and the `trash` alternative that `block-rm-rf` recommends | `brew install trash` (macOS) / `apt install trash-cli` (Linux) |
 | Codex checkout installs | Node.js 18+, npm, and the Codex CLI (`npm install -g @openai/codex`) |
 | Project verification and formatting | The target project's own build, test, type-check, and formatter tools, such as `nx`, `dotnet`, `prettier`, `eslint`, or `tsc` |
@@ -384,7 +383,6 @@ Before a stack `rebase` or `sync` changes a branch checked out in another Conduc
 /trackbed:verify:run          # run tests, linting, and type checks for changed code
 /trackbed:setup               # report missing local workflow dependencies
 /trackbed:visual:explain      # generate an HTML diagram or explainer page
-/trackbed:docs:to-markdown    # convert PDF, Word, Excel, or images to Markdown
 /trackbed:code:refactor-pass  # simplification + AI-slop pass on recent changes
 /trackbed:code:work-from-plan # route and execute a standalone implementation plan
 ```
@@ -619,7 +617,7 @@ Generate visual output: self-contained HTML pages, diagrams, and decision docume
 
 #### Documentation & Writing
 
-Decision records, specs, solution notes, document review and conversion, and plain-language editing.
+Decision records, specs, solution notes, document review, and plain-language editing.
 
 | Skill | Invocation | Arguments | Description |
 | --- | --- | --- | --- |
@@ -628,10 +626,7 @@ Decision records, specs, solution notes, document review and conversion, and pla
 | `/trackbed:docs:track-rejected-enhancements` | User | `<record\|check\|append\|reconsider> <concept>` | (experimental) Record rejected enhancement ideas in `.out-of-scope/` and check new requests against them. |
 | `/trackbed:docs:review` | User | `[markdown-path] [--trade-offs] [--inline\|--file\|--output <path>] [--visual]` | Review one Markdown document, such as a plan, proposal, or README draft, and get a verdict with severity-ordered findings. |
 | `/trackbed:docs:solution-note` | User | `[problem, lesson, or context] \| --refresh [solution-note-path\|--all] [--apply]` | Record a solved problem in `docs/solutions/` after a fix, migration, or lesson; `--refresh` audits existing notes against the code. |
-| `/trackbed:docs:sync-release` | User | `[<base>...<ref>\|--base <rev> [--ref <rev>]\|--current] [--apply]` | Compare install, usage, architecture, and contract docs against a release range and report drift; `--apply` fixes it. |
-| `/trackbed:docs:to-markdown` | User, Auto | — | Convert PDF, Office, HTML, image, audio, and other files to Markdown with MarkItDown. |
 | `/trackbed:docs:ubiquitous-language` | User | — | Extract a DDD-style glossary of domain terms from the conversation into `UBIQUITOUS_LANGUAGE.md`, flagging ambiguous terms. |
-| `/trackbed:docs:update-agents-md` | User | — | Add or update guidelines in AGENTS.md, such as a no-compatibility-code policy, in a structured, keyword-based style. |
 | `/trackbed:text:clarify` | User, Auto | `[--humanize] [file-path or text]` | Rewrite prose so readers can understand and act on it quickly; `--humanize` removes AI-writing patterns instead. |
 
 #### Skill Authoring
@@ -785,6 +780,9 @@ Usage records from before the rename count toward the new names. Your settings c
 | `/kramme:session:context-setup` | `/trackbed:code:work-from-plan`, `/trackbed:code:plan-to-pr`, and `/trackbed:linear:issue-implement` keep a shared preparation checklist with focused context loading, and a shared forward-progress reference covers context recovery. Ask directly for rules-file updates; the setup ritual, markers, and mandatory repair gate are retired. |
 | `/kramme:nx:setup-portless` and the `nx` skill domain | Ask directly for portless setup or Nx `dev:local`/`dev:full` target wiring. No replacement keeps its target templates or certificate-trust steps. |
 | `/trackbed:visual:check-slop` | Ask directly for a check of HTML screens for AI-style UI patterns, or use `/trackbed:pr:product-review` for broader UX, visual, and accessibility critique. The bundled Gesso Build detector, its 73 rules, and its `--fix` mode are no longer shipped. |
+| `/trackbed:docs:sync-release` | Ask directly to compare install, usage, architecture, and contract docs against a release range, or use `/trackbed:docs:review` for one document. No replacement keeps the evidence-linked drift report or its `--apply` mode. |
+| `/trackbed:docs:to-markdown` | Ask directly for a conversion, or run MarkItDown yourself: `uvx --from 'markitdown[all]' markitdown <file>`. `/trackbed:setup` no longer checks for `uvx` or `markitdown`. |
+| `/trackbed:docs:update-agents-md` | Ask directly for `AGENTS.md` edits, or use `/trackbed:code:encode-constraint` to turn a rule into a check. Its keyword style rules, pointer checks, and Hard-Cut Greenfield Policy template are no longer shipped. |
 
 ## Documentation
 
@@ -1012,13 +1010,12 @@ Reviewed at commit `403d8881d62022490637d740657b33f01e321ea8`, the Codex integra
 - `trackbed:code:audit-practice`: The eighteen mistakes it checks for are adapted from Matt Pocock's [post on agentic coding mistakes](https://x.com/mattpocockuk/status/2109973273924579720), with terms read through AI Hero's [AI Coding Dictionary](https://www.aicodingdictionary.com/).
 - `trackbed:code:encode-constraint`: Inspired by [@poteto's X post](https://x.com/poteto/status/2109699980248408574) on treating the codebase as agent memory and turning each observed agent mistake into a constraint.
 - `trackbed:product:prd`: The PRD written after prototyping as a decision record, with its behavior contract, golden-set evals, rollout gates, kill switch, and change log, is adapted from Aakash Gupta's [post on an AI-era PRD template](https://x.com/aakashgupta/status/2112951808050245874).
-- `trackbed:docs:update-agents-md`: Inspired by [getsentry/skills](https://github.com/getsentry/skills/blob/main/plugins/sentry-skills/skills/agents-md/SKILL.md).
 - `trackbed:git:commit-message`: From [getsentry/skills](https://github.com/getsentry/skills/blob/main/plugins/sentry-skills/skills/commit/SKILL.md).
 - `trackbed:text:clarify` and the shared plain-language rubric that `trackbed:pr:generate-description` also applies: Inspired by [fofr's GOV.UK style skill](https://gist.github.com/fofr/505e225f9bf5e839d30c12ba6bfa0be2) and official GOV.UK guidance on [identifying user needs](https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/plan-manage-content/identify-user-needs/) and [using clear language](https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/writing-guidelines/clear-language/), adapted into a locale-neutral reader-task workflow.
 - `trackbed:text:clarify --humanize`: Its AI-writing pattern catalog adapts Wikipedia: Signs of AI writing (maintained by WikiProject AI Cleanup) under CC BY-SA 4.0 and retains adapted text from [blader/humanizer](https://github.com/blader/humanizer)'s `SKILL.md` at commit [`3e1da8bfce43ecbe43a56f3cb00b62fbdf1cbd56`](https://github.com/blader/humanizer/blob/3e1da8bfce43ecbe43a56f3cb00b62fbdf1cbd56/SKILL.md) under the MIT License. Both notices ship with the skill.
 - `trackbed:visual:explain`, including its `--onboarding` mode: Adapted from [nicobailon/visual-explainer](https://github.com/nicobailon/visual-explainer).
 - Skills authoring patterns: Inspired by [mgechev/skills-best-practices](https://github.com/mgechev/skills-best-practices).
-- Current-model checks in `trackbed:skill:review`, `trackbed:skill:create`, `trackbed:code:audit-agent-config`, `trackbed:docs:update-agents-md`, and `trackbed:code:audit-practice`: Informed by Anthropic's prompting guides for [Claude Fable 5.2](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-2) and [Claude Opus 5.5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5) and OpenAI's [Using GPT-6.2](https://developers.openai.com/api/docs/guides/latest-model) guide.
+- Current-model checks in `trackbed:skill:review`, `trackbed:skill:create`, `trackbed:code:audit-agent-config`, and `trackbed:code:audit-practice`: Informed by Anthropic's prompting guides for [Claude Fable 5.2](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-2) and [Claude Opus 5.5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5) and OpenAI's [Using GPT-6.2](https://developers.openai.com/api/docs/guides/latest-model) guide.
 - Turn-ending rules in `trackbed:linear:issue-to-pr`, `trackbed:code:plan-to-pr`, `trackbed:pr:review-convergence`, and `trackbed:pr:github-review`, and the reader rule in the shared final report and decision request formats: Informed by the same three guides.
 - Effort handling for stepped-down reviewers in the shared review model policy: Grounded in Claude Code's [subagent documentation](https://code.claude.com/docs/en/sub-agents).
 - `trackbed:session:automate-repeats` effectiveness evidence, counterfactual improvement gate, and explicit skill-use extraction: Inspired by Warp's [skill-doctor workflow, rubrics, guidance, and collector at commit `737129f`](https://github.com/warpdotdev/common-skills/tree/737129fae58e1feb4ec956c0f0bfa597b5c6ee89/.agents/skills/skill-doctor).

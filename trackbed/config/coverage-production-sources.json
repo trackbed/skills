@@ -337,8 +337,7 @@
       "skills": [
         "trackbed/skills/code:work-from-plan/SKILL.md",
         "trackbed/skills/docs:adr/SKILL.md",
-        "trackbed/skills/docs:feature-spec/SKILL.md",
-        "trackbed/skills/docs:update-agents-md/SKILL.md"
+        "trackbed/skills/docs:feature-spec/SKILL.md"
       ]
     },
     {
@@ -376,8 +375,7 @@
       "skills": [
         "trackbed/skills/code:audit-agent-config/SKILL.md",
         "trackbed/skills/code:encode-constraint/SKILL.md",
-        "trackbed/skills/debug:find-sibling-bugs/SKILL.md",
-        "trackbed/skills/docs:update-agents-md/SKILL.md"
+        "trackbed/skills/debug:find-sibling-bugs/SKILL.md"
       ]
     },
     {
@@ -432,11 +430,6 @@
     },
     {
       "kind": "guidance",
-      "suite": "trackbed/tests/docs-update-agents-md-guidance.bats",
-      "skills": ["trackbed/skills/docs:update-agents-md/SKILL.md"]
-    },
-    {
-      "kind": "guidance",
       "suite": "trackbed/tests/interview-ui-guidance.bats",
       "skills": [
         "trackbed/skills/discovery:interview/SKILL.md",
@@ -458,16 +451,8 @@
     },
     {
       "kind": "guidance",
-      "suite": "trackbed/tests/docs-sync-release-guidance.bats",
-      "skills": ["trackbed/skills/docs:sync-release/SKILL.md"]
-    },
-    {
-      "kind": "guidance",
       "suite": "trackbed/tests/solution-note-guidance.bats",
-      "skills": [
-        "trackbed/skills/docs:solution-note/SKILL.md",
-        "trackbed/skills/docs:sync-release/SKILL.md"
-      ]
+      "skills": ["trackbed/skills/docs:solution-note/SKILL.md"]
     },
     {
       "kind": "guidance",
@@ -987,7 +972,6 @@
         "trackbed/skills/debug:find-sibling-bugs/SKILL.md",
         "trackbed/skills/discovery:interview/SKILL.md",
         "trackbed/skills/docs:feature-spec/SKILL.md",
-        "trackbed/skills/docs:update-agents-md/SKILL.md",
         "trackbed/skills/linear:issue-define/SKILL.md",
         "trackbed/skills/linear:issue-implement/SKILL.md",
         "trackbed/skills/pr:code-review/SKILL.md",
