@@ -1,169 +1,34 @@
 # AGENTS.md
 
-## Scope
-
-- **NOTE** This file is the canonical agent-facing instruction source for the `trackbed` Claude Code plugin, whose source lives in `trackbed/`, and its Codex conversion path.
+Edit shipped components in the canonical plugin source under `trackbed/`. Installed copies, app bundles, and generated Codex output are derived from that source.
 
 ## Context Map
 
-- **ALWAYS** read [CONTRIBUTING.md](CONTRIBUTING.md) for local setup, change guidelines, and contributor verification.
-- **ALWAYS** read [docs/architecture.md](trackbed/docs/architecture.md) before changing subsystem boundaries or runtime flow.
-- **ALWAYS** use [docs/code-map.md](trackbed/docs/code-map.md) to choose the first source files and closest tests for a change.
-- **ALWAYS** consult [docs/decisions/README.md](trackbed/docs/decisions/README.md) before revisiting a settled repository decision.
-- **ALWAYS** keep install, quick-start usage, component listings, and testing entry points in the canonical public [README.md](README.md), and put deep usage reference in linked guides under `trackbed/docs/`, such as [docs/review.md](trackbed/docs/review.md) and [docs/shipping.md](trackbed/docs/shipping.md), per [docs/decisions/2026-10-28-readme-entry-point.md](trackbed/docs/decisions/2026-10-28-readme-entry-point.md).
-- **PREFER** the generated [component catalog](trackbed/docs/component-catalog.json) over the full README when locating a shipped skill, agent, or hook; regenerate it with `python3 trackbed/scripts/generate-component-reference.py --write` after component changes.
-- **ALWAYS** use [.agents/skills/](.agents/skills/) or [Local Repository Maintenance](README.md#local-repository-maintenance) to locate repository-maintenance skills, which are intentionally absent from the shipped component catalog.
-- **ALWAYS** read [agent-portability.md](trackbed/docs/agent-portability.md) before changing converter, hook, MCP, or host-adapter behavior.
-- **ALWAYS** treat the documentation site in `site/` as a rendering of `README.md`, the user-facing guides under `trackbed/docs/`, and component frontmatter: change the source, **NEVER** write page content under `site/`, and place each new README `##` section or guide in `site/scripts/lib/config.mjs`, per [site/README.md](site/README.md).
-- **NOTE** `CLAUDE.md` imports this file so every host receives the same repository instructions.
+- **ALWAYS** read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, authoring conventions, and verification. Use the [code map](trackbed/docs/code-map.md) to find source files and focused tests.
+- **ALWAYS** read the [architecture guide](trackbed/docs/architecture.md) before changing subsystem boundaries or runtime flow, and the [portability guide](trackbed/docs/agent-portability.md) before changing converter, hook, MCP, or host-adapter behavior.
+- **ALWAYS** consult the [decision index](trackbed/docs/decisions/README.md) before revisiting a settled decision.
+- **PREFER** the [component catalog](trackbed/docs/component-catalog.json) when looking up a shipped skill, agent, or hook. Repository-only maintenance skills live in [.agents/skills/](.agents/skills/) and are listed in [Local Repository Maintenance](README.md#local-repository-maintenance).
 
 ## Issue Tracking
 
-- **ALWAYS** track this repository's issues in Linear, in the **Trackbed Skills** team (key `SKILLS`, issues such as `SKILLS-1`) of the `trackbed` workspace.
-- **ALWAYS** confirm that a Linear MCP server is connected to the `trackbed` workspace before using it for these issues, including through the `trackbed:linear:*` skills; otherwise call the Linear GraphQL API at `https://api.linear.app/graphql` with the API key from `LINEAR_TRACKBED_API_KEY` in the `Authorization` header, and never print the key.
-
-## Project Structure
-
-- **NOTE** The repository has one canonical Claude Code plugin source plus local-only maintenance skills:
-
-```text
-trackbed/            # Canonical plugin source
-  .claude-plugin/plugin.json   # Plugin manifest
-  agents/                      # Specialized subagents
-  skills/                      # Shipped skills
-  shared/                      # References and assets used by more than one skill
-  hooks/hooks.json             # Event handlers configuration
-.agents/skills/                # Local repository-maintenance skills
-site/                          # Documentation site rendered from the README, guides, and components
-```
+- **ALWAYS** track this repository's issues in the **Trackbed Skills** team (`SKILLS`) of the `trackbed` Linear workspace.
+- **ALWAYS** verify the MCP connection belongs to `trackbed` before using it. If that connection is unavailable or belongs to another workspace, use `https://api.linear.app/graphql` with `LINEAR_TRACKBED_API_KEY` in the `Authorization` header. For this repository, that fallback also satisfies the Linear access prerequisite in `trackbed:linear:*` workflows. Keep their approval and verification steps and never print the key.
 
 ## Adding Components
 
-### Agents
+- **ALWAYS** use the [frontmatter schema](trackbed/scripts/schemas/skill-contracts.json) for shipped skills and agents. Use kebab-case names and omit the host-added `trackbed:` prefix from their source names. The local maintenance skill keeps its [explicit namespace](trackbed/docs/decisions/2026-11-05-trackbed-plugin-namespace.md).
+- **ALWAYS** create agents at `trackbed/agents/<agent-name>.md` with `model: inherit`. For agents that report findings, set `disallowedTools: Write, Edit, NotebookEdit` and retain the `**Read-only agent.**` body rule. Bash can still write files, and the Codex converter drops the frontmatter restriction.
+- **ALWAYS** launch outsider readers through the [cold-reader contract](trackbed/shared/agents/references/cold-reader.md). Only `trackbed:cold-reader` may set `omitClaudeMd`.
+- **ALWAYS** give a new or renamed shipped skill exactly two kebab-case segments in `trackbed/skills/<domain>:<skill-name>/SKILL.md` and its frontmatter name, unless an accepted ADR grants an exception. Use the [catalog decision](trackbed/docs/decisions/2026-07-29-skill-catalog-shape.md) when adding domains or deciding whether skills should merge.
+- **ALWAYS** set `disable-model-invocation: true` by default for side-effecting skills. Follow the accepted exceptions for [guarded orchestration children](trackbed/docs/decisions/2026-08-29-model-invocable-orchestration-children.md) and [model-initiated ADR authoring](trackbed/docs/decisions/2026-11-02-model-invocable-adr-authoring.md).
+- **ALWAYS** set `trackbed-platforms: [claude-code]` when a skill requires a Claude Code-only feature, such as Agent Teams, to run.
+- **ALWAYS** keep each shipped skill self-contained within the installed plugin. Follow the [shared-resource decision](trackbed/docs/decisions/2026-10-01-plugin-level-shared-skill-resources.md) for runtime paths and subagent prompts.
+- **ALWAYS** follow the [skill epilogue decision](trackbed/docs/decisions/2026-09-07-skill-epilogue-verification-only.md) when writing a skill's gates and verification section.
+- **ALWAYS** register hooks in [hooks.json](trackbed/hooks/hooks.json) and call `exit_if_hook_disabled` from [check-enabled.sh](trackbed/hooks/lib/check-enabled.sh) before the hook does work.
 
-- **ALWAYS** create agents at `trackbed/agents/<agent-name>.md` with this frontmatter shape:
+## Documentation and Verification
 
-```yaml
----
-name: <agent-name>
-description: When and how to use this agent (shown in Task tool)
-model: inherit
-color: <appropriate-color>
----
-# Agent mission and expected output
-```
-
-- **ALWAYS** add `disallowedTools: Write, Edit, NotebookEdit` to the frontmatter of every agent that reports findings instead of changing code, and keep its `**Read-only agent.**` body rule, because Bash can still write files and the Codex converter drops the field.
-- **ALWAYS** launch an agent that must read as an outsider through the `trackbed:cold-reader` contract in `trackbed/shared/agents/references/cold-reader.md`, and **NEVER** set `omitClaudeMd` on any other agent, because project rules are a reviewer's input, per [docs/decisions/2026-11-02-cold-reader-isolation.md](trackbed/docs/decisions/2026-11-02-cold-reader-isolation.md).
-
-### Skills
-
-- **ALWAYS** create shipped skills at `trackbed/skills/<domain>:<skill-name>/SKILL.md` with this frontmatter shape:
-
-```yaml
----
-name: <domain>:<skill-name>
-description: When to auto-trigger this skill
-argument-hint: [optional-argument]
-disable-model-invocation: false
-user-invocable: true
----
-# Skill instructions
-```
-
-- **ALWAYS** declare `name`, `description`, `disable-model-invocation`, and `user-invocable` explicitly in every skill.
-- **ALWAYS** make `name` and `description` precise enough to route model auto-invocation correctly.
-- **CAN** add `argument-hint` as the slash-menu placeholder when a skill accepts arguments.
-- **CAN** add `trackbed-platforms` to restrict a skill to `[claude-code]`, `[codex]`, or both; omit it to include the skill on all platforms.
-- **ALWAYS** restrict skills that require Claude Code-only behavior such as Agent Teams to `trackbed-platforms: [claude-code]`.
-- **ALWAYS** set `disable-model-invocation: true` for user-triggered skills with side effects such as git mutations, file deletion, or Pull Request creation; use `false` when model auto-invocation is safe.
-- **CAN** set `disable-model-invocation: false` for a side-effecting child skill only when an accepted ADR names the exact child and parent, its description narrowly routes model use, its body defines a least-side-effect model-invocation contract, and focused tests pin the parent's guarded arguments.
-- **ALWAYS** set `user-invocable: false` only for background conventions that should not appear in the slash-command menu; use `true` for skills users should see there.
-- **PREFER** the Agent Skills directory shape below and keep `SKILL.md` focused on orchestration:
-
-```text
-<domain>:<skill-name>/
-├── SKILL.md           # Core instructions, target under 500 lines
-├── references/        # Documentation and prompts loaded on demand
-├── assets/            # Output and code templates
-└── scripts/           # Executable helpers
-```
-
-- **PREFER** moving reference data, prompts, and examples to `references/`, templates to `assets/`, and executable behavior to `scripts/`, with explicit on-demand read instructions from `SKILL.md`; see [Anthropic's skill documentation](https://code.claude.com/docs/en/skills#add-supporting-files).
-- **CAN** use `/trackbed:skill:create` for guided skill scaffolding.
-- **ALWAYS** give every user-invocable skill a usage guide at `trackbed/docs/usage/<domain>-<skill-name>.md`, and update it in the same change that adds, renames, or removes one of the skill's flags: the documentation site shows it on the skill's page, and its sync fails when the Options table and the `argument-hint` list different flags, per [site/README.md](site/README.md#usage-guides).
-
-### Hooks
-
-- **ALWAYS** edit `trackbed/hooks/hooks.json` when adding `PreToolUse`, `PostToolUse`, `UserPromptSubmit`, `SessionStart`, or `Stop` handlers.
-- **ALWAYS** make every hook support the toggle system by starting its script with the appropriate form below:
-
-```bash
-source "${CLAUDE_PLUGIN_ROOT}/hooks/lib/check-enabled.sh"
-exit_if_hook_disabled "hook-name"        # PreToolUse
-exit_if_hook_disabled "hook-name" "json" # PostToolUse or Stop
-```
-
-## Component Conventions
-
-- **ALWAYS** use kebab-case name segments and leave the namespace out of skill and agent frontmatter names and folders: Claude Code adds the plugin name and the Codex converter adds the same prefix, so every shipped component is invoked as `trackbed:<name>`, per [docs/decisions/2026-11-05-trackbed-plugin-namespace.md](trackbed/docs/decisions/2026-11-05-trackbed-plugin-namespace.md).
-- **ALWAYS** store component definitions as Markdown files with YAML frontmatter.
-- **PREFER** concise, actionable instructions.
-- **ALWAYS** document every command, skill, agent, and hook in `README.md` with what it does and when to use it; give each skill and agent a one-line summary of at most 160 characters in `summaries` under `readme_skill_sync` or `readme_agent_sync` in `trackbed/scripts/synced-contracts.yaml`, which the generated README rows display.
-- **ALWAYS** keep README paragraphs and list items under 500 characters, and treat `readme prose: long-paragraph burndown` warnings from `python3 trackbed/scripts/lint-skill-contracts.py` as an ordered review queue: split the text, use a list or table, or move the detail to the owning `SKILL.md` or a linked docs guide.
-- **ALWAYS** use “Pull Request” or “PR” terminology consistently.
-- **ALWAYS** use plain-English branch commit messages without Conventional Commit prefixes.
-- **ALWAYS** use Conventional Commits for PR titles because CI validates them and they become changelog-generating merge commit messages.
-- **PREFER** keeping new or refactored `SKILL.md` files under 500 lines by moving supporting material into the skill directory; legacy skills may exceed the target only until migrated.
-- **ALWAYS** treat `long-skill burndown` warnings at or above 300 lines from `python3 trackbed/scripts/lint-skill-contracts.py` as an ordered review queue, starting with the first warning and preserving the 500-line hard-failure budget and existing behavior; warnings prompt review, not automatic deletion or unsafe trimming.
-- **ALWAYS** treat `long-description burndown` warnings at or above 500 characters as an ordered review queue, starting with the first warning and preserving trigger nouns, safety constraints, and non-derivable context while shrinking.
-- **NEVER** add `Common Rationalizations` or `Red Flags` sections to a skill; fold any real gate into the step where it applies and keep `## Verification` only for artifact contracts, consumer expectations, and test-pinned items not stated elsewhere in the body, per [docs/decisions/2026-09-07-skill-epilogue-verification-only.md](trackbed/docs/decisions/2026-09-07-skill-epilogue-verification-only.md).
-- **ALWAYS** keep every skill and agent `description` frontmatter value at or below 1024 characters for Codex compatibility, moving examples and extended trigger guidance into the body.
-- **ALWAYS** resolve shipped skill edits to `trackbed/skills/<domain>:<skill-name>/` and maintenance skill edits to `.agents/skills/<skill-name>/`.
-- **NEVER** edit installed copies under `~/.codex/skills`, `~/.agents/skills`, `~/.claude/skills`, app bundles, or generated install output when changing repository behavior.
-- **ALWAYS** keep each skill self-contained within the installed plugin: it may use its own directory, `trackbed/shared/<topic>/{references,assets}/`, and runtime helpers in `trackbed/scripts/`, but never this repository's `AGENTS.md`, `CLAUDE.md`, `README.md`, `docs/`, or `tests/`, per [docs/decisions/2026-10-01-plugin-level-shared-skill-resources.md](trackbed/docs/decisions/2026-10-01-plugin-level-shared-skill-resources.md).
-- **ALWAYS** keep a file that two or more skills need in one plugin-level location instead of mirroring it, and name every `${CLAUDE_PLUGIN_ROOT}/...` path a skill uses in its `SKILL.md` body, the only place Claude Code substitutes the variable; pass resolved paths into subagent prompts through placeholders.
-- **ALWAYS** run static SkillSpector scanning for new or materially changed skills and shared resources with `make -C trackbed skill-security-changed`; use `make -C trackbed skill-security` for release-candidate full-tree checks and `skillspector scan <url-or-path> --no-llm` before installing third-party skills.
-- **PREFER** semantic SkillSpector scans only when provider credentials are intentionally configured and the skill contents are acceptable to send to that provider.
-- **NOTE** SkillSpector complements tests, linting, and human review rather than replacing them.
-- **ALWAYS** triage high and critical SkillSpector findings before merge or installation.
-
-## External Sources and Rights
-
-- **ALWAYS** declare every external inspiration or copied source in `<skill>/references/sources.yaml`, or beside plugin-level scripts no single skill owns in `trackbed/scripts/<dir>/sources.yaml`, with `id`, `url` or `context7_library`, `title`, `rationale`, `usage`, `last_reviewed_at`, and `baseline_hash`.
-- **ALWAYS** use `usage: inspiration` only when the local skill retains ideas, facts, methods, or workflow influence expressed in original local language.
-- **ALWAYS** use `usage: copied` when source prose, code, templates, or substantial assets remain, and include a verified compatible `license`, a `notice` relative to the skill directory or the plugin-level manifest's directory, exact `upstream_path`, and one immutable `upstream_commit`, `baseline_commit`, `upstream_revision`, `upstream_release`, or `version`.
-- **ALWAYS** ship the complete required notice with copied material and repeat the source, license, path, and immutable revision pointer in copied-file headers where the format permits it.
-- **NEVER** treat public availability, attribution, or this repository's MIT license as permission to retain third-party expression.
-- **NEVER** copy material whose license is absent, unclear, incompatible, or forbids reproduction; link to it and write an original summary instead.
-- **NEVER** commit fetched source bodies or `references/sources-snapshot/` directories.
-- **NOTE** Source audits may process upstream content transiently, but the repository retains only source URLs, original provenance notes, review dates, hashes, and required copied-source metadata enforced by the skill-contract linter.
-
-## Skill Naming
-
-- **ALWAYS** name every new or renamed skill exactly `<domain>:<skill-name>` in its frontmatter and folder, invoked as `trackbed:<domain>:<skill-name>`, unless an accepted ADR grants an exception.
-- **PREFER** verb-first action names such as `resolve-review`, `generate-phases`, and `fix-ci`.
-- **CAN** use object-first names such as `issue-define` and `issue-implement` when two or more skills share the object prefix.
-- **CAN** use noun compounds such as `code-review`, `spec-audit`, and `commit-message` when the name describes a thing rather than an action.
-- **ALWAYS** create a singleton domain only when it names a durable capability area that would be misleading under every existing domain, adds routing information beyond restating the skill name, can plausibly classify more than one responsibility, and has either recorded use or a time-bounded emerging case with an owner and review date.
-- **ALWAYS** merge adjacent skills when intent, inputs, output, side effects, and safety gates overlap and only an implementation technique or mode differs.
-- **ALWAYS** keep adjacent skills separate when a single-clause route identifies a distinct intent, workflow phase, durable output, permission boundary, or failure path.
-- **ALWAYS** consult current 30-day and 90-day usage as evidence without treating usage as the sole catalog decision criterion.
-- **NEVER** treat legacy naming outliers as precedent; structural exceptions require an accepted ADR before merge.
-
-## Verification
-
-- **ALWAYS** run the smallest meaningful focused check first, use smoke for representative feedback, and broaden in proportion to the change:
-
-```bash
-make -C trackbed test-smoke # Representative cross-language feedback
-make -C trackbed test       # Complete default suite
-make -C trackbed lint       # Shell, Python, and JavaScript linting
-make -C trackbed pr-verify  # Normal pre-PR gate
-make -C trackbed verify     # Release-candidate gate
-```
-
-- **ALWAYS** use [docs/code-map.md](trackbed/docs/code-map.md) to map changed files to the closest focused tests.
-- **PREFER** pinning behavior wording in tests against the owning `SKILL.md` or the docs guide that documents it; pin `README.md` only for component existence, generated rows, migration entries, and links.
+- **ALWAYS** update the [public README and linked guides](trackbed/docs/decisions/2026-10-28-readme-entry-point.md) at their sources. For site placement and shipped user-invocable skills' usage guides, follow the [site guide](site/README.md).
+- **ALWAYS** follow the [source and licensing rules](CONTRIBUTING.md#external-sources-and-rights) when using third-party material.
 - **ALWAYS** regenerate the component reference after changing a skill, agent, or hook with `python3 trackbed/scripts/generate-component-reference.py --write`.
-- **ALWAYS** run `npm --prefix site test` and `npm --prefix site run build` after changing `site/`, and after moving, renaming, or deleting a file or heading that `README.md` or a guide under `trackbed/docs/` links to: the site build fails on dead links and on README sections or guides that are not placed, the Docs Site CI job runs it on every Pull Request, and `pr-verify` does not.
+- **ALWAYS** run `make -C trackbed skill-security-changed` for new or materially changed shipped skills and shared resources. Follow the [scan guide](trackbed/docs/development.md#skill-security-scans) for release checks, third-party intake, and finding triage.

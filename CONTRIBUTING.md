@@ -44,14 +44,19 @@ The repository-root `package.json` versions the npm installer entrypoint. `track
 ## Change Guidelines
 
 - Keep changes scoped to the subsystem being modified.
-- Add or update README entries when adding skills, agents, hooks, commands, or user-facing workflows, including a one-line summary for each new skill or agent in `trackbed/scripts/synced-contracts.yaml`. Keep README paragraphs short, and put deep usage detail in the matching guide under `trackbed/docs/`.
-- Keep skills self-contained within the installed plugin. A skill may use its own directory, plugin-level `trackbed/shared/` references and assets, and `trackbed/scripts/` helpers, but never repository-level docs. Put a file that two or more skills need in one of those plugin-level locations instead of copying it, and name its `${CLAUDE_PLUGIN_ROOT}/...` path in each consuming `SKILL.md`.
+- Add or update README entries for new skills, agents, hooks, commands, and user-facing workflows. Follow the [README decision](trackbed/docs/decisions/2026-10-28-readme-entry-point.md) for generated summaries, prose length, and where tests should check behavior wording. Use “Pull Request” or “PR” consistently.
+- Keep shipped skills self-contained within the installed plugin. A skill may use its own directory, plugin-level `trackbed/shared/` references and assets, and `trackbed/scripts/` helpers, but never repository-level docs. Put a file that two or more skills need in one of those plugin-level locations instead of copying it, and name its `${CLAUDE_PLUGIN_ROOT}/...` path in each consuming `SKILL.md`.
 - Keep skills current with new models. When Anthropic or OpenAI release a new model or prompting guide, review the skills it affects against it; `/trackbed:skill:review` checks current-model fit. Declare the guide in each changed skill's `references/sources.yaml` so the monthly `/trackbed:skill:audit-sources` run flags its later revisions.
-- Keep `SKILL.md` files focused; move reference material to `references/`, templates to `assets/`, and executable helpers to `scripts/`.
-- Treat public availability as provenance, not permission. Copy external prose, code, templates, or substantial assets only under a verified compatible license; preserve the complete required notice in the affected skill and mark the source `usage: copied` in `references/sources.yaml` with its exact upstream path and an immutable commit, revision, release, or version. For conceptual inspiration, use `usage: inspiration` and rewrite in original language.
-- Give plugin-level scripts that no single skill owns, such as `trackbed/scripts/dev-server/`, a `sources.yaml` and any required notice in their own directory. The skill-contract lint checks these manifests by the same provenance rules, with notice paths relative to the manifest.
-- Never commit fetched upstream source bodies or `references/sources-snapshot/` directories. Store source URLs, original notes, review dates, upstream commit IDs, and normalized hashes only.
+- Keep `SKILL.md` focused on orchestration. Move references, templates, and helpers to `references/`, `assets/`, and `scripts/` and load them at the step that needs them. The [frontmatter guide](trackbed/skills/skill:create/references/frontmatter-guide.md) covers routing descriptions, menu visibility, quoted argument hints, and platform selection.
 - Use plain-English commit messages on branches. Pull Request titles must use Conventional Commits format.
+
+### External Sources and Rights
+
+Record each external source in the skill's `references/sources.yaml`. For plugin-level scripts that no single skill owns, place `sources.yaml` beside the scripts. The [manifest schema](trackbed/scripts/schemas/skill-contracts.json) lists the fields every entry requires.
+
+- Use `usage: inspiration` for ideas, facts, or methods expressed in your own words. When permission to reproduce a source is absent or unclear, link to it and write an original summary.
+- Use `usage: copied` for retained prose, code, templates, or substantial assets. Verify a compatible upstream license even for public, attributed material. Record the license, exact `upstream_path`, and immutable commit, revision, release, or version. Ship the complete required notice. Its `notice` path is relative to the skill directory for skills and to the manifest directory for shared scripts. Where the file format permits a header, include the source, license, upstream path, and immutable revision there. See the [copied-source example](trackbed/scripts/dev-server/sources.yaml).
+- Keep source-audit downloads transient. Commit provenance notes, review dates, hashes, and revision metadata. Exclude fetched audit bodies and `references/sources-snapshot/` directories from commits.
 
 ## Verification
 
@@ -81,6 +86,8 @@ make -C trackbed verify
 
 Focused targets are listed in [docs/development.md](trackbed/docs/development.md#running-the-tests). Use [docs/code-map.md](trackbed/docs/code-map.md) to map files to likely tests.
 
+When addressing size warnings from `python3 trackbed/scripts/lint-skill-contracts.py`, start with the first entry in the relevant README prose, skill length, or description queue. Split long README passages or move detail to a guide. Move skill reference material out of the body and preserve behavior, routing terms, safety constraints, and context readers cannot infer. The [contract registry](trackbed/scripts/synced-contracts.yaml) defines the warning thresholds and hard limits.
+
 ### Documentation site
 
 The site under [site/](site/README.md) renders the README, the user-facing guides, and the component sources; it holds no page content of its own. It has its own `package.json` and needs the Node.js version named there. The Docs Site CI job tests and builds it on every Pull Request; `make -C trackbed pr-verify` does not. Run the same checks yourself after changing `site/`, and after moving, renaming, or deleting a file or heading that the README or a guide links to:
@@ -91,7 +98,7 @@ npm --prefix site test
 npm --prefix site run build
 ```
 
-The build fails on a link whose target file or heading is gone, and on a README section or guide that [site/scripts/lib/config.mjs](site/scripts/lib/config.mjs) does not place. It also fails when a user-invocable skill has no [usage guide](site/README.md#usage-guides), or when the guide's Options table and the skill's `argument-hint` list different flags.
+The build checks links and headings. Register each new README `##` section or top-level `trackbed/docs/*.md` guide in [site/scripts/lib/config.mjs](site/scripts/lib/config.mjs). The site discovers [usage guides](site/README.md#usage-guides) separately for shipped user-invocable skills. Add or update the matching guide when a skill or its flags change.
 
 ### Optional pre-commit check
 
