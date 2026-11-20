@@ -1,0 +1,257 @@
+{
+  "format": "trackbed-interview-round",
+  "schemaVersion": 1,
+  "session": {
+    "id": "email-2fa-login",
+    "title": "Email-based 2FA for login",
+    "topic": "Software Feature"
+  },
+  "number": 2,
+  "title": "Where the code step lives, and what stays out",
+  "synthesis": [
+    "You want a second factor that needs **no app install**, and you would rather ship a narrow version in two weeks than a complete one in six.",
+    "That makes recovery and scope the open questions: both decide how much of the sign-in flow has to change."
+  ],
+  "progress": {
+    "label": "Coverage",
+    "target": 80,
+    "entries": [
+      {
+        "label": "User and why now",
+        "value": 85
+      },
+      {
+        "label": "User experience",
+        "value": 45,
+        "note": "Code step placement is open"
+      },
+      {
+        "label": "Security",
+        "value": 60
+      },
+      {
+        "label": "Data model",
+        "value": 30
+      },
+      {
+        "label": "Non-goals",
+        "value": 20
+      }
+    ]
+  },
+  "questions": [
+    {
+      "id": "code-step",
+      "kind": "choice",
+      "dimension": "User experience",
+      "title": "Where does the person enter the emailed code?",
+      "why": "This decides whether the existing sign-in form changes or stays as it is. A second screen is easier to add but is one more page load on every sign-in.",
+      "options": [
+        {
+          "id": "inline",
+          "label": "On the sign-in form",
+          "description": "The code field appears under the password once the password is accepted.",
+          "gives": ["One screen from start to finish", "No new route"],
+          "costs": ["The form has to handle a half-signed-in state"],
+          "figure": {
+            "kind": "sketch",
+            "alt": "Sign-in form with an extra code field under the password field",
+            "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 480 300\" width=\"480\" height=\"300\" font-family=\"'Avenir Next', 'Segoe UI', Helvetica, Arial, sans-serif\"><rect width=\"480\" height=\"300\" fill=\"#ffffff\"/><rect x=\"20\" y=\"20\" width=\"440\" height=\"260\" rx=\"10\" fill=\"#f5f4ef\" stroke=\"#565c64\" stroke-width=\"1.5\"/><text x=\"44\" y=\"58\" font-size=\"18\" fill=\"#1a1d21\" font-weight=\"600\">Sign in</text><rect x=\"44\" y=\"76\" width=\"392\" height=\"36\" rx=\"6\" fill=\"#ffffff\" stroke=\"#aab1bb\"/><text x=\"56\" y=\"100\" font-size=\"15\" fill=\"#565c64\">ada@example.com</text><rect x=\"44\" y=\"122\" width=\"392\" height=\"36\" rx=\"6\" fill=\"#ffffff\" stroke=\"#aab1bb\"/><text x=\"56\" y=\"146\" font-size=\"15\" fill=\"#565c64\">Password</text><rect x=\"44\" y=\"172\" width=\"392\" height=\"58\" rx=\"6\" fill=\"#dcefe3\" stroke=\"#17663a\" stroke-width=\"2\"/><text x=\"56\" y=\"196\" font-size=\"15\" fill=\"#1a1d21\">Code from your email</text><text x=\"56\" y=\"218\" font-size=\"15\" fill=\"#565c64\">_ _ _ _ _ _</text><rect x=\"44\" y=\"240\" width=\"120\" height=\"28\" rx=\"6\" fill=\"#0b6259\"/><text x=\"104\" y=\"259\" font-size=\"14\" fill=\"#ffffff\" text-anchor=\"middle\">Sign in</text></svg>"
+          }
+        },
+        {
+          "id": "second-screen",
+          "label": "On its own screen",
+          "description": "A password that checks out leads to a screen that only asks for the code.",
+          "gives": [
+            "The sign-in form stays as it is",
+            "Room for resend and help links"
+          ],
+          "costs": ["One more page on every sign-in"],
+          "figure": {
+            "kind": "sketch",
+            "alt": "A separate screen with a large code field, a verify button, and a resend link",
+            "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 480 300\" width=\"480\" height=\"300\" font-family=\"'Avenir Next', 'Segoe UI', Helvetica, Arial, sans-serif\"><rect width=\"480\" height=\"300\" fill=\"#ffffff\"/><rect x=\"20\" y=\"20\" width=\"440\" height=\"260\" rx=\"10\" fill=\"#f5f4ef\" stroke=\"#565c64\" stroke-width=\"1.5\"/><text x=\"44\" y=\"58\" font-size=\"18\" fill=\"#1a1d21\" font-weight=\"600\">Check your email</text><text x=\"44\" y=\"86\" font-size=\"15\" fill=\"#565c64\">We sent a 6-digit code to ada@example.com</text><rect x=\"44\" y=\"108\" width=\"392\" height=\"64\" rx=\"6\" fill=\"#dcefe3\" stroke=\"#17663a\" stroke-width=\"2\"/><text x=\"240\" y=\"150\" font-size=\"26\" fill=\"#1a1d21\" text-anchor=\"middle\" letter-spacing=\"10\">_ _ _ _ _ _</text><rect x=\"44\" y=\"190\" width=\"120\" height=\"30\" rx=\"6\" fill=\"#0b6259\"/><text x=\"104\" y=\"210\" font-size=\"14\" fill=\"#ffffff\" text-anchor=\"middle\">Verify</text><text x=\"184\" y=\"210\" font-size=\"14\" fill=\"#3a5a78\">Send a new code</text><text x=\"44\" y=\"256\" font-size=\"14\" fill=\"#565c64\">Step 2 of 2</text></svg>"
+          }
+        }
+      ],
+      "recommendation": {
+        "pick": "second-screen",
+        "reason": "`LoginForm` has no notion of a partly signed-in session, so the second screen is the smaller change."
+      }
+    },
+    {
+      "id": "friction",
+      "kind": "scale",
+      "dimension": "Security",
+      "title": "How often should a returning person be asked for a code?",
+      "why": "Asking every time is the safest and the most annoying. Remembering a device trades a little safety for far fewer codes.",
+      "low": "Every sign-in",
+      "high": "Once per device, then never",
+      "steps": 5,
+      "figure": {
+        "kind": "bars",
+        "unit": "codes a month",
+        "caption": "Codes one person would enter, at 20 sign-ins a month on 2 devices.",
+        "bars": [
+          {
+            "label": "Every sign-in",
+            "value": 20
+          },
+          {
+            "label": "Every 30 days",
+            "value": 2
+          },
+          {
+            "label": "Once per device",
+            "value": 0.2
+          }
+        ]
+      },
+      "recommendation": {
+        "pick": 3,
+        "reason": "Re-asking every 30 days is the usual middle ground."
+      }
+    },
+    {
+      "id": "edge-order",
+      "kind": "rank",
+      "dimension": "User experience",
+      "title": "Which failure matters most to get right in the first version?",
+      "why": "There is time to handle two of these well. The order tells me which ones get a designed path and which get a plain error message.",
+      "items": [
+        {
+          "id": "late-email",
+          "label": "The email arrives late",
+          "description": "The code expires before it is read."
+        },
+        {
+          "id": "lost-inbox",
+          "label": "The person lost access to the inbox",
+          "description": "They can never receive a code."
+        },
+        {
+          "id": "wrong-code",
+          "label": "Wrong code typed several times",
+          "description": "Lockout and retry rules."
+        },
+        {
+          "id": "two-tabs",
+          "label": "Sign-in started in two tabs",
+          "description": "Two codes are live at once."
+        }
+      ],
+      "recommendation": {
+        "pick": null,
+        "reason": "This is a product call: it depends on which failure your support inbox sees most."
+      }
+    },
+    {
+      "id": "scope",
+      "kind": "matrix",
+      "dimension": "Non-goals",
+      "title": "What is in this pass, and what is not?",
+      "why": "Everything you move out of the first pass becomes a stated non-goal in the plan, with the reason you give.",
+      "rows": [
+        {
+          "id": "trusted-devices",
+          "label": "Remembered devices"
+        },
+        {
+          "id": "backup-codes",
+          "label": "Backup codes",
+          "description": "Printed codes for when email is unreachable."
+        },
+        {
+          "id": "admin-enforce",
+          "label": "Admins can require 2FA for a team"
+        },
+        {
+          "id": "sms",
+          "label": "SMS as a second channel"
+        }
+      ],
+      "columns": [
+        {
+          "id": "now",
+          "label": "This pass"
+        },
+        {
+          "id": "later",
+          "label": "Later"
+        },
+        {
+          "id": "never",
+          "label": "Never"
+        }
+      ],
+      "recommendation": {
+        "pick": {
+          "trusted-devices": "now",
+          "backup-codes": "later",
+          "admin-enforce": "later",
+          "sms": "never"
+        },
+        "reason": "Remembered devices follows from your answer on friction; SMS brings a vendor and a cost that nothing here asks for."
+      }
+    },
+    {
+      "id": "effort",
+      "kind": "allocate",
+      "dimension": "Scope",
+      "title": "Where should the two weeks go?",
+      "why": "A rough split tells me where to be thorough in the plan and where a simple first version is enough.",
+      "total": 100,
+      "unit": "points",
+      "items": [
+        {
+          "id": "flow",
+          "label": "The sign-in flow itself"
+        },
+        {
+          "id": "recovery",
+          "label": "Recovery when email fails"
+        },
+        {
+          "id": "abuse",
+          "label": "Rate limits and abuse"
+        },
+        {
+          "id": "settings",
+          "label": "Settings to turn it on and off"
+        }
+      ],
+      "recommendation": {
+        "pick": {
+          "flow": 40,
+          "recovery": 25,
+          "abuse": 25,
+          "settings": 10
+        },
+        "reason": "Recovery and abuse are where 2FA projects usually slip."
+      }
+    },
+    {
+      "id": "session-column",
+      "kind": "confirm",
+      "dimension": "Data model",
+      "title": "Sessions already record when a second factor passed",
+      "why": "If this is right, the data model needs no migration and the plan can skip it.",
+      "statement": "The `sessions` table has a nullable `mfa_verified_at` column that nothing writes to yet, so a verified code can be recorded there.",
+      "source": "`db/schema.sql` line 212",
+      "figure": {
+        "kind": "code",
+        "language": "sql",
+        "code": "CREATE TABLE sessions (\n  id uuid PRIMARY KEY,\n  user_id uuid NOT NULL,\n  mfa_verified_at timestamptz\n);"
+      }
+    },
+    {
+      "id": "worry",
+      "kind": "text",
+      "dimension": "Risk",
+      "title": "What would make you regret shipping this in six months?",
+      "why": "The answer usually names the requirement nobody has written down yet.",
+      "placeholder": "A sentence or two is plenty"
+    }
+  ]
+}
