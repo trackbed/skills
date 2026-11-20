@@ -1,18 +1,12 @@
 # Frontmatter Field Reference
 
-Every SKILL.md must declare all fields explicitly. Never rely on defaults.
+Declare the four required fields explicitly in every `SKILL.md`.
 
 ## Required Fields
 
 ### `name`
 
-Format: `{domain}:{action}` with optional suffix segments only when they represent separate concepts. Users invoke it as `/trackbed:{domain}:{action}`; the host adds the `trackbed:` prefix, so never write it here. Prefer command flags such as `--team` for execution modes.
-
-- 1-55 characters total, so the invoked `trackbed:` name stays within 64
-- Segment-based validation: each segment (split by `:`) uses lowercase letters, numbers, and hyphens only
-- No consecutive hyphens in any segment
-- Must exactly match the parent directory name
-- Examples: `code:refactor-pass`, `pr:fix-ci`, `git:commit-message`
+Use the source name validated in Phase 3, for example `pr:fix-ci`. The frontmatter name must match the skill directory.
 
 ### `description`
 
@@ -40,8 +34,8 @@ Controls whether Claude can auto-invoke without user action.
 
 | Value | Use when... |
 | --- | --- |
-| `true` | Skill has side effects: creates/modifies/deletes files, runs git commands, calls external APIs, creates PRs |
-| `false` | Skill is read-only or advisory: analysis, formatting, review, style checking |
+| `true` | Default for skills that change files, Git history, or external state |
+| `false` | Safe implicit use, including read-only analysis and explicitly approved exceptions with a limited model-invocation contract |
 
 ### `user-invocable`
 
@@ -64,7 +58,7 @@ Controls whether the skill appears in the `/` menu.
 
 Placeholder text shown in the `/` menu. Only include when the skill accepts arguments.
 
-- Format: descriptive placeholder in brackets
+- Quote the hint so bracketed placeholders are YAML strings, for example `argument-hint: "[file-path]"`.
 - Examples:
   - `"[file-path or text]"`
   - `"[skill-name or description]"`

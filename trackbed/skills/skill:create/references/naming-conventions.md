@@ -3,14 +3,15 @@
 ## Name Format
 
 ```
-{domain}:{action}[:{qualifier}...]
+{domain}:{action}
 ```
 
 This is the frontmatter `name` and the skill directory name. Users and models invoke the skill as `/trackbed:{domain}:{action}`: Claude Code puts the plugin name in front, and the Codex converter adds the same prefix. Never write the `trackbed:` prefix into the frontmatter name.
 
 - **domain** — category grouping related skills
 - **action** — what the skill does, following word-order patterns below
-- **qualifier** (optional) — variant marker such as `team`
+
+For a shipped Trackbed skill, use exactly these two segments unless an accepted ADR grants an exception for that name. Use flags such as `--team` for execution modes. When scaffolding for another plugin, a qualifier may identify a distinct concept if that plugin's naming policy allows it.
 
 ## Existing Domain Namespaces
 
