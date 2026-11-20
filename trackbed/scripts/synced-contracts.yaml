@@ -1095,7 +1095,7 @@
         "{pr-shipping-contract}",
         "- `{fix-ci-invocation}`: `trackbed:pr:fix-ci --no-consolidate`.",
         "do not rerun `trackbed:linear:issue-to-pr` or claim a cross-session Step 7 resume",
-        "trackbed:pr:create --linear-issue {issue-id} --require-generated-description",
+        "trackbed:pr:create --linear-issue {issue-id} --require-generated-description --no-artifacts",
         "trackbed:workflow:cleanup-artifacts --auto"
       ]
     },
@@ -1104,7 +1104,7 @@
       "path": "trackbed/skills/code:plan-to-pr/references/shipping-contract.md",
       "contains": [
         "{pr-shipping-contract}",
-        "trackbed:pr:create --base {base-branch} --require-generated-description",
+        "trackbed:pr:create --base {base-branch} --require-generated-description --no-artifacts",
         "`--scope-plan {validated-scope-plan}`",
         "Completion disposition: published_blocked"
       ]

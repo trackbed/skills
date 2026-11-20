@@ -10,7 +10,7 @@ The required implementation and review children are:
 When shipping, also require these publication children before the Linear state write, because they are invoked later in the same run:
 
 - `trackbed:workflow:cleanup-artifacts` for `--auto`.
-- `trackbed:pr:create` for `--linear-issue {issue-id} --require-generated-description`.
+- `trackbed:pr:create` for `--linear-issue {issue-id} --require-generated-description --no-artifacts`.
 - `trackbed:pr:fix-ci` for `--no-consolidate`.
 
 For review convergence, also confirm that its required read-only gates are installed and model-callable: `trackbed:pr:gut-check`, `trackbed:pr:code-review`, `trackbed:pr:convention-review`, `trackbed:pr:overengineering-review`, `trackbed:code:refactor-opportunities`, and `trackbed:verify:run`. When `ADVERSARIAL_REVIEW=true`, also require `trackbed:pr:adversarial-review`, which convergence invokes as Gate 5; without the flag it is not required. Its remediation helpers are not required children: convergence uses `trackbed:pr:resolve-review --implement-only` only when the installed copy is model-callable and otherwise makes the smallest direct fix, and it never starts a model-disabled helper automatically.

@@ -198,7 +198,7 @@ If `SHIP_MODE=true`, resolve `${CLAUDE_PLUGIN_ROOT}/shared/implementation/refere
 2. Invoke `trackbed:workflow:cleanup-artifacts --auto` to retire current-project disposable workflow artifacts.
 3. Require a clean, unambiguous worktree.
 4. Record the verified tree identity.
-5. Invoke `trackbed:pr:create --linear-issue {issue-id} --require-generated-description`.
+5. Invoke `trackbed:pr:create --linear-issue {issue-id} --require-generated-description --no-artifacts`.
 6. Prove that the initial remote Pull Request head matches the verified tree.
 7. Invoke `trackbed:pr:fix-ci --no-consolidate`, plus `{rebase-flag}` when set, until CI is green and review feedback is addressed.
 8. Prove that the final remote Pull Request head matches the clean local result, and rerun project verification if CI remediation changed the tree.

@@ -75,7 +75,7 @@
     done
     grep -qF "Invoke \`trackbed:linear:issue-implement\` with \`{issue-id} --auto --set-in-progress\`" "$parent"
     grep -qF "Invoke \`trackbed:workflow:cleanup-artifacts --auto\`" "$parent"
-    grep -qF "Invoke \`trackbed:pr:create --linear-issue {issue-id} --require-generated-description\`" "$parent"
+    grep -qF "Invoke \`trackbed:pr:create --linear-issue {issue-id} --require-generated-description --no-artifacts\`" "$parent"
     grep -qF "Invoke \`trackbed:pr:fix-ci --no-consolidate\`" "$parent"
     grep -qF "Invoke automatically only as the exact child of \`trackbed:linear:issue-to-pr\`" "$implement"
     grep -qF "the exact child of \`trackbed:linear:issue-to-pr --ship\`" "$cleanup"
@@ -579,7 +579,7 @@ PYTEST
     shared_contract="shared/implementation/references/pr-shipping-contract.md"
 
     grep -qF "trackbed:workflow:cleanup-artifacts --auto" "$shipping"
-    grep -qF "trackbed:pr:create --linear-issue {issue-id} --require-generated-description" "$shipping"
+    grep -qF "trackbed:pr:create --linear-issue {issue-id} --require-generated-description --no-artifacts\`" "$shipping"
     grep -qF "trackbed:pr:fix-ci --no-consolidate" "$shipping"
     grep -qF -- "- \`{work-id}\`: \`{issue-id}\`." "$shipping"
     grep -qF -- "- \`{archive-key}\`: \`linear-issue-to-pr\`." "$shipping"
