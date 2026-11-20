@@ -31,7 +31,7 @@ Use when the user is about to start a feature and needs written alignment — sc
 Route elsewhere if:
 
 - **Multi-phase, multi-contributor, or needs an audit trail** → use `/trackbed:siw:init` for the full tracked workflow (siw/ dir, LOG.md, OPEN_ISSUES_OVERVIEW.md, issues/).
-- **Project-level rules** (package manager, commit style, coding conventions) → use `/trackbed:docs:update-agents-md`.
+- **Project-level rules** (package manager, commit style, coding conventions) → add them to the project's agent instruction file, such as `AGENTS.md`, or use `/trackbed:code:encode-constraint` when a check can enforce the rule.
 - **Deep requirements unknown** (need a long adaptive interview) → use `/trackbed:discovery:interview`, then pass the resulting plan's path to this skill as its origin.
 - **A prototype is already built** and the ship decision, metrics, rollout, and kill switch need recording → use `/trackbed:product:prd`.
 - **Security hardening depth** needed in the Boundaries section → this skill names the pattern (Always Do / Ask First / Never Do) but does not inline security content. Pair with a dedicated security-hardening skill if one exists.

@@ -17,25 +17,21 @@
 	[ "$status" -eq 0 ]
 }
 
-@test "agent-instruction rules route to the user-run update-agents-md command" {
-	run bash -c '
-    set -e
-    cd "'"$BATS_TEST_DIRNAME"'/.."
-    skill="skills/docs:update-agents-md/SKILL.md"
-    frontmatter="$(awk "/^---\$/{n++; next} n==1" "$skill")"
+@test "agent-instruction rules route to the instruction file or encode-constraint" {
+	cd "$BATS_TEST_DIRNAME/.."
+	local route_text="add them to the project's agent instruction file, such as \`AGENTS.md\`, or use \`/trackbed:code:encode-constraint\` when a check can enforce the rule."
 
-    grep -qx "disable-model-invocation: true" <<<"$frontmatter" ||
-      { echo "update-agents-md must be model-disabled"; exit 1; }
-    grep -qx "user-invocable: true" <<<"$frontmatter" ||
-      { echo "update-agents-md must appear in the slash menu"; exit 1; }
+	grep -qF "$route_text" "skills/docs:feature-spec/SKILL.md"
+	grep -qF "$route_text" "skills/docs:adr/SKILL.md"
+}
 
-    for route in skills/docs:feature-spec/SKILL.md skills/docs:adr/SKILL.md; do
-      grep -qF "/trackbed:docs:update-agents-md" "$route" ||
-        { echo "$route no longer routes to /trackbed:docs:update-agents-md"; exit 1; }
-    done
-  '
-
-	[ "$status" -eq 0 ] || { echo "$output"; false; }
+@test "removed docs commands leave no routes behind" {
+	cd "$BATS_TEST_DIRNAME/.."
+	local removed
+	for removed in docs:sync-release docs:to-markdown docs:update-agents-md; do
+		[ ! -e "skills/$removed" ]
+		! grep -rqF "trackbed:$removed" skills shared agents hooks docs/usage || false
+	done
 }
 
 @test "feature spec keeps rejected approaches inside its six areas" {

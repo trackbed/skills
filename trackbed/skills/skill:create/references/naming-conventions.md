@@ -21,7 +21,7 @@ This is the frontmatter `name` and the skill directory name. Users and models in
 | `siw` | Structured Implementation Workflow | `siw:init`, `siw:spec-audit`, `siw:generate-phases` |
 | `git` | Git operations | `git:commit-message` |
 | `visual` | Visual output, diagrams | `visual:explain` |
-| `docs` | Documentation, conversion | `docs:to-markdown`, `docs:update-agents-md` |
+| `docs` | Documentation | `docs:adr`, `docs:review` |
 | `text` | Text processing | `text:clarify` |
 | `discovery` | Requirements gathering | `discovery:interview` |
 | `hooks` | Plugin hook management | `hooks:toggle` |

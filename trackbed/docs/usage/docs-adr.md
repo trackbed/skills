@@ -1,6 +1,6 @@
 # docs:adr
 
-Use it to record a significant, long-lived decision as an Architecture Decision Record: the problem, the choice, the alternatives you rejected, and the consequences. It finds your project's ADR log and matches its template, file naming, and status words; without one it writes to `docs/decisions/` with its own template. It creates one ADR file and, when an accepted decision replaces an older ADR, marks that older record as superseded. For feature scope before coding, use `trackbed:docs:feature-spec`; for rules agents should follow, use `trackbed:docs:update-agents-md`.
+Use it to record a significant, long-lived decision as an Architecture Decision Record: the problem, the choice, the alternatives you rejected, and the consequences. It finds your project's ADR log and matches its template, file naming, and status words; without one it writes to `docs/decisions/` with its own template. It creates one ADR file and, when an accepted decision replaces an older ADR, marks that older record as superseded. For feature scope before coding, use `trackbed:docs:feature-spec`. Put rules agents should follow in your agent instruction file, such as `AGENTS.md`, or use `trackbed:code:encode-constraint` when a check can enforce them.
 
 ## Before you run it
 

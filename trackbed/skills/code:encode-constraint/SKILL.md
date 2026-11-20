@@ -71,7 +71,7 @@ Otherwise, walk the ladder from the top and choose the first rung that can expre
 4. **Write a structural rule** with the linter's plugin API or a structural-search tool when configuration cannot express a syntactic shape.
 5. **Write a test or check script** when the invariant spans files, depends on values, or relates artifacts, such as generated output matching its source.
 6. **Add an agent hook** only when the mistake is an agent action, such as a command or an edit to a protected path, rather than a code shape. A hook protects only agents in that host, so pair it with a repository check when the action leaves a trace in files.
-7. **Draft an instruction rule** as the fallback when no mechanism can decide the invariant. Do not edit instruction files; include the drafted rule in the report and suggest the user add it with `/trackbed:docs:update-agents-md`. Then skip Steps 4 and 5, since prose has no failure message or red run, and continue at Step 6.
+7. **Draft an instruction rule** as the fallback when no mechanism can decide the invariant. Do not edit instruction files; include the drafted rule in the report and suggest the user add it to the project's agent instruction file, such as `AGENTS.md`. Then skip Steps 4 and 5, since prose has no failure message or red run, and continue at Step 6.
 
 When rung 1 needs a broad refactor, do not start it here. Land the strongest cheaper rung now and report the refactor as a follow-up for `/trackbed:code:refactor-opportunities`. Record one clause per rejected stronger rung that explains why it was rejected.
 

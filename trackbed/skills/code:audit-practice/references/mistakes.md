@@ -51,7 +51,7 @@ User-level instruction files load into every session in every repository, so eac
 - **CLEAR:** a short list of preferences that hold in every repository.
 - **Self-check:** Would every rule in your global file apply in any repository you open?
 - **Change:** keep global steering to universal preferences; move project rules into that project's `AGENTS.md`, procedures into skills, and long references behind pointers.
-- **Then:** `/trackbed:docs:update-agents-md` for rules that belong to one project.
+- **Then:** `/trackbed:code:encode-constraint` for any moved rule that a check can enforce instead of prose.
 
 ## Alignment
 

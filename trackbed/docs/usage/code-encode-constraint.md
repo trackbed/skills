@@ -30,5 +30,5 @@ Give one of these. With no argument, it uses the most recent correction you made
 - Uncommitted changes that add the check, wire it into the repository's normal verification and CI, and fix the existing violations. When there are many, or a fix would change behavior, they are recorded in a baseline that can only shrink.
 - A report in the conversation: the rule in one sentence, the mechanism chosen and why stronger ones were rejected, the exact failure message, proof that the check fails on the mistake and passes on the repository, and follow-ups.
 - A question before it adds a dependency, a new tool, or a CI job, or changes a public interface.
-- When no tool can decide the rule, a drafted instruction rule in the report and no check. Add it with `trackbed:docs:update-agents-md`.
+- When no tool can decide the rule, a drafted instruction rule in the report and no check. Add it to your agent instruction file, such as `AGENTS.md`.
 - A list of existing instruction rules that the new check now enforces, with their locations. They are not edited.

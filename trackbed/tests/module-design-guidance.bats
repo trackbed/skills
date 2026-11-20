@@ -153,11 +153,9 @@ setup() {
 	grep -qF "## Interfaces" "skills/linear:issue-implement/assets/technical-plan.md"
 }
 
-@test "agent-instruction skills prefer enforcement and structure over compensating prose" {
+@test "agent-config audit prefers enforcement and structure over compensating prose" {
 	grep -qF "**structural compensation**" "skills/code:audit-agent-config/SKILL.md"
 	grep -qF "verify the tool is configured in the repository before naming it" "skills/code:audit-agent-config/SKILL.md"
-	grep -qF "**Enforce before instructing**" "skills/docs:update-agents-md/SKILL.md"
-	grep -qF "### Module Map" "skills/docs:update-agents-md/SKILL.md"
 }
 
 @test "test audit, sibling bugs, onboarding, and API design apply the module-depth lens" {
