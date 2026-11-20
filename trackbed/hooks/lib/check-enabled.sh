@@ -83,10 +83,10 @@ is_hook_enabled() {
 
 # Exit early for disabled hooks, draining stdin to avoid broken pipes.
 # Usage: exit_if_hook_disabled "hook-name" ["json"]
-# - Use mode "json" for PostToolUse/Stop hooks that must emit an empty JSON object when disabled.
+# Use "json" when a disabled hook must emit an empty JSON object.
 exit_if_hook_disabled() {
   local hook_name="$1"
-  local mode="$2"
+  local mode="${2:-}"
 
   if ! is_hook_enabled "$hook_name"; then
     # Drain stdin to avoid SIGPIPE in the caller if input is being piped.
