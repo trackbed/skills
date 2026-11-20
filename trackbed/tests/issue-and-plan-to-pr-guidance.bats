@@ -428,7 +428,7 @@
     grep -qF "Do not consume a cycle or restart applicability." "$review"
     grep -qF ".context/{archive-key}/reviews/" "$review"
 
-	    grep -qF "trackbed:pr:create --base {base-branch} --require-generated-description" "$shipping"
+	    grep -qF "trackbed:pr:create --base {base-branch} --require-generated-description --no-artifacts\`" "$shipping"
 	    ! grep -qF -- "--authorize-history-rewrite" "$shipping" || false
 	    grep -qF "trackbed:pr:fix-ci --no-consolidate" "$shipping"
 	    [ "$(grep -cF "trackbed:pr:fix-ci --no-consolidate --scope-plan {validated-scope-plan}" "$skill")" -eq 3 ]

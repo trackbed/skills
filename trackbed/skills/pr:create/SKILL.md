@@ -1,7 +1,7 @@
 ---
 name: pr:create
 description: "Publish a new PR: narrative commits, generated title and body, self-assignment, lease-protected first push. Use when asked or delegated by trackbed:linear:issue-to-pr or trackbed:code:plan-to-pr --ship."
-argument-hint: "[--manual] [--draft] [--rebase] [--base <branch>] [--linear-issue <ISSUE-ID>] [--attach <file[#alt]>]... [--no-capture] [--independent-review-line <line>] [--require-generated-description] [--authorize-history-rewrite]"
+argument-hint: "[--manual] [--draft] [--rebase] [--base <branch>] [--linear-issue <ISSUE-ID>] [--attach <file[#alt]>]... [--no-capture] [--artifact <file[#name]>]... [--no-artifacts] [--independent-review-line <line>] [--require-generated-description] [--authorize-history-rewrite]"
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -44,7 +44,7 @@ Step 3.5 Existing-PR check ................. abort before rewriting
 Step 4  Changes detection + remote mode ... fresh rewrite; exact recovery; safe fast-forward
     |
 Step 4.5 Reject stacked branches
-Step 4.6 Stage --attach files ............. abort on an invalid file
+Steps 4.6-4.7 Stage --attach files and collect workflow artifacts
     |
     +-- Fresh remote: Steps 5–6 preserve state + recreate (or keep well-formed) commits
     |
@@ -61,7 +61,7 @@ Step 7  Invoke trackbed:pr:generate-description (fail closed in auto mode),
 Step 8  Preview + confirmation
         - Abort        --> Step 10 rollback only when rewrite state exists
         - Edit         --> loop until user confirms
-        - Create       --> publish/reuse branch + gh pr create
+        - Create       --> publish/reuse branch + gh pr create + artifact upload
     |
 Step 9  Success output
 ```
@@ -78,6 +78,7 @@ The fresh-remote and remote-append paths invoke Steps 6 and 7 via the Skill tool
 - `references/state-and-rollback.md` — Steps 5 and 9.0: state capture, stash handling, excluded-work restoration.
 - `references/abort-and-rollback.md` — Step 10: abort and rollback; read only when Step 10 runs.
 - `references/evidence-attachments.md` — Step 4.6 and the Step 7.2 evidence collection: stage `--attach` files and collect captured screenshots and videos.
+- `references/pr-artifacts.md` — Stage explicit artifacts before any rebase, collect workflow documents in Step 4.7, and upload in Step 8.6.
 - `references/confirmation-and-creation.md` — Steps 8–9: preview, confirmation, edit loop, absence- or OID-leased publication, exact-tip reuse, `gh pr create` with `--attach`, draft mode, and success output.
 
 ## Step 0: Parse Arguments
@@ -91,11 +92,13 @@ Parse `$ARGUMENTS` for optional flags before starting:
 - `--linear-issue <ISSUE-ID>` -> validate the value against `[A-Za-z0-9]+-[0-9]+`, normalize it to uppercase, store it as `LINEAR_ISSUE_OVERRIDE`, and remove the flag and value. Reject a missing or invalid value before pre-validation. This caller-supplied identifier is authoritative and takes precedence over branch-name extraction.
 - `--attach <file[#alt]>` -> append one image or video to `ATTACH_SPECS` and remove the flag and value. Repeatable, in the `gh --attach` syntax; start the alt text or file name with `Before` or `After` to place a pair side by side. Reject a missing or multi-line value, and a path, up to the first `#`, that is not an existing file ending in `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.mp4`, `.mov`, or `.webm`, so a bad file stops before any rebase. Step 4.6 checks the rest.
 - `--no-capture` -> set `NO_CAPTURE=true` and remove the flag. The generator then takes no screenshots or recordings; `--attach` files are still uploaded.
+- `--artifact <file[#name]>` -> append one document to `ARTIFACT_SPECS` and remove the flag and value. Repeatable; the text after the first `#` names the artifact. Reject a missing or multi-line value, and a path, up to the first `#`, that is not an existing file ending in `.md`, `.markdown`, `.txt`, `.html`, or `.htm`. Complete validation before any rebase as directed in Steps 2–3.
+- `--no-artifacts` -> set `NO_ARTIFACTS=true` and remove the flag. Step 4.7 then collects no documents on its own; `--artifact` files are still uploaded.
 - `--independent-review-line <line>` -> read `${CLAUDE_PLUGIN_ROOT}/shared/implementation/references/independent-review.md` and validate the bounded, inert one-line record before repository work. Store it as `INDEPENDENT_REVIEW_LINE`; default to absent. Reject duplicate, missing, or malformed values. This carries checked review evidence from issue-to-pr; it never enables a review or supplies provider consent. After resolving the base, check the record's tree and patch identities against the prepared branch as the shared reference requires.
 - `--require-generated-description` -> set `REQUIRE_GENERATED_DESCRIPTION=true` and remove the flag. This orchestration-only safety mode forbids placeholder fallback when `trackbed:pr:generate-description` returns no usable output.
 - `--authorize-history-rewrite` -> set `AUTHORIZE_HISTORY_REWRITE=true` and remove the flag. This explicit capability lets a `--manual` invocation skip the nested, backup-protected unstacked reset confirmation. Stacked branches are rejected before state preservation and must use `trackbed:pr:stack`; this flag never widens `pr:create` into a stacked-PR workflow. Auto mode does not set this variable. Neither mode relaxes branch, existing-PR, or path-specific remote-state checks. Backup and remote absence apply to the fresh-remote rewrite path; exact-tip recovery never pushes; clean remote fast-forward mode preserves local history; remote append rewrites only the unpublished tail after its captured remote OID. Every existing-remote publication uses a lease tied to that OID.
 
-Defaults: `AUTO_MODE=true`, `DRAFT_MODE=false`, `REBASE_FIRST=false`, `BASE_BRANCH_OVERRIDE=<none>`, `ATTACH_SPECS=[]`, `NO_CAPTURE=false`, `REQUIRE_GENERATED_DESCRIPTION=false`, `AUTHORIZE_HISTORY_REWRITE=false`. Flag order is not significant. Ignore a leftover `--auto`: auto mode is already the default.
+Defaults: `AUTO_MODE=true`, `DRAFT_MODE=false`, `REBASE_FIRST=false`, `BASE_BRANCH_OVERRIDE=<none>`, `ATTACH_SPECS=[]`, `NO_CAPTURE=false`, `ARTIFACT_SPECS=[]`, `NO_ARTIFACTS=false`, `REQUIRE_GENERATED_DESCRIPTION=false`, `AUTHORIZE_HISTORY_REWRITE=false`. Flag order is not significant. Ignore a leftover `--auto`: auto mode is already the default.
 
 Auto mode means:
 
@@ -130,7 +133,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/skills/pr:create/scripts/pr-create-preflight.py" 
 
 The helper is read-only apart from the base fetch the shared resolver performs: it never creates branches, commits, stashes, pushes, or changes configuration, and never prints the origin URL. It prints one JSON document; parse it as JSON and never `eval` or source it. Use its `facts` as the agent-tracked values for the rest of the invocation: `entry_branch` (`null` means `<detached>`) as `{entry-branch}`, `entry_commit` as `{entry-commit}`, `base_source_ref` as `{base-source-ref}`, `base_ref` as `{base-ref}`, `base_branch` as `{base-branch}`, `feature_branch` as `{feature-branch}`, `linear_issue_id` as `{linear-issue-id}`, `observed_origin_oid` (`null` means `<absent>`) as `{observed-origin-oid}`, `branch_action` as `{branch-action}`, and `worktree_status` as `{worktree-status}`. Initialize `{feature-branch-created}=false`. Route on `status`:
 
-- `ok` (exit 0) — Steps 1–4.5 passed. `remote_mode` `fresh` sets `FRESH_REMOTE_MODE=true`; `recovery` sets `REMOTE_RECOVERY_MODE=true`. Continue with Step 5.
+- `ok` (exit 0) — Steps 1–4.5 passed. `remote_mode` `fresh` sets `FRESH_REMOTE_MODE=true`; `recovery` sets `REMOTE_RECOVERY_MODE=true`. Continue through the artifact and evidence staging steps before Step 5.
 - `blocked` (exit 1) — stop and report `reason`, `message`, and `details`. For a Step 1 reason, read `references/pre-validation-checks.md` only to word the error and its recovery steps.
 - `feature_branch_required` (exit 3) — the entry is detached or on `{base-branch}`. Name a branch from `facts.changed_paths` or the Linear issue per "Detached HEAD or currently on the base" in `references/branch-and-platform-handling.md`, apply its ref trust boundary, then rerun the helper with the same flags plus `--feature-branch "{validated-candidate}"`.
 - `remote_classification_required` (exit 3) — origin already has the current branch and every other check, including Step 4.5, passed. When `branch_action` is `null`, the remote tip differs from `{entry-commit}`: classify it with the frozen-endpoint procedure in `references/branch-and-platform-handling.md`, starting at "If they differ, freeze the one effective push endpoint". When it is `reuse-existing-exact-tip`, the tip matches but auto mode must include dirty work. Then finalize the mode in Step 4.4.
@@ -149,6 +152,8 @@ The helper performs the checks in `references/pre-validation-checks.md` (GitHub 
 ## Steps 2-3: Branch Handling
 
 The helper performs the mechanical parts of `references/branch-and-platform-handling.md`: it captures `{entry-branch}` / `{entry-commit}`, runs `${CLAUDE_PLUGIN_ROOT}/scripts/resolve-base.sh` to resolve one validated remote `{base-source-ref}`, pins its full commit OID as immutable `{base-ref}`, retains `{base-branch}` as metadata, validates the current or supplied `{feature-branch}`, captures `{observed-origin-oid}`, and records `{branch-action}` without creating, deleting, or switching branches. Keep these values for the entire invocation.
+
+If `ARTIFACT_SPECS` is non-empty, follow “Stage Explicit Artifacts” in `references/pr-artifacts.md` with `${CLAUDE_PLUGIN_ROOT}/scripts/pr-artifacts.py` after preflight and before the optional rebase. Stop on any rejection.
 
 ### Optional rebase-first
 
@@ -270,6 +275,10 @@ Both locally tracked and server-side stacks stop here. Do not pass stack authori
 ## Step 4.6: Stage Supplied Evidence
 
 Read `references/evidence-attachments.md` and run its Step 4.6 with the helper `${CLAUDE_PLUGIN_ROOT}/scripts/pr-evidence.py`. It checks that `gh` can attach files, opens an evidence run as `EVIDENCE_MANIFEST`, and copies each `--attach` file into it. An invalid `--attach` file stops here, before anything is committed.
+
+### Step 4.7: Stage Artifacts
+
+Read `references/pr-artifacts.md` and run its Step 4.7 with the helper `${CLAUDE_PLUGIN_ROOT}/scripts/pr-artifacts.py`. Reuse the explicit artifact run when one exists. Unless `NO_ARTIFACTS=true`, stage documents written while building this change that a reviewer looks at or decides from, such as a prototype, a walkthrough page, or a decision record, and at most one QA, review, or audit report, after checking them for content that must not be published.
 
 ---
 
@@ -443,7 +452,7 @@ Otherwise, use `AskUserQuestion` to offer **Retry generation**, **Provide title 
 
 ## Step 8: Confirmation and Creation
 
-Read `references/confirmation-and-creation.md` and execute Step 8 from that file. It contains the preview format, confirmation prompt, edit loop, fresh-branch absence-leased push, exact-tip reuse, existing-branch OID-leased publication, `gh pr create`, and failure handling. Substitute `{base-branch}`, `{base-source-ref}`, `{base-ref}`, `{entry-commit}`, `{publication-commit}`, `{observed-origin-oid}`, the shell-quoted `{origin-push-url-assignment}` for an existing-remote publication, `{original-branch}`, `{rollback-origin-ref}`, the validated title, the generated description, `EVIDENCE_MANIFEST`, `EVIDENCE_COUNT`, and `{evidence-status}` when emitting commands. Never substitute a decoded push URL into shell source. Carry `{linear-issue-id}` into Step 8 if captured so edited descriptions still follow the Linear closing-keyword policy.
+Read `references/confirmation-and-creation.md` and execute Step 8 from that file. It contains the preview format, confirmation prompt, edit loop, fresh-branch absence-leased push, exact-tip reuse, existing-branch OID-leased publication, `gh pr create`, and failure handling. Substitute `{base-branch}`, `{base-source-ref}`, `{base-ref}`, `{entry-commit}`, `{publication-commit}`, `{observed-origin-oid}`, the shell-quoted `{origin-push-url-assignment}` for an existing-remote publication, `{original-branch}`, `{rollback-origin-ref}`, the validated title, the generated description, `EVIDENCE_MANIFEST`, `EVIDENCE_COUNT`, `{evidence-status}`, and `{artifact-status}` when emitting commands. Never substitute a decoded push URL into shell source. Carry `{linear-issue-id}` into Step 8 if captured so edited descriptions still follow the Linear closing-keyword policy. After Step 8.4 proves the created Pull Request, run Step 8.6 in `references/pr-artifacts.md` to upload the staged artifacts; an upload failure never fails or rolls back the Pull Request.
 
 ---
 

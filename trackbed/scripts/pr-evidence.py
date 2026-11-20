@@ -24,21 +24,30 @@ one-line diagnostic on failure.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import re
-import secrets
 import shutil
 import subprocess
 import sys
-import time
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
+from pr_staging import (  # noqa: E402
+    StagingError,
+    fail_if_symlink_chain,
+    load_manifest,
+    manifest_location,
+    open_run,
+    reject_uncommitted_repo_file,
+    resolve_repo_root,
+    sha256,
+    write_manifest,
+)
+
 SCHEMA_VERSION = 1
 EVIDENCE_DIR = Path(".trackbed") / "pr-evidence"
-EXCLUDE_ENTRY = ".trackbed/"
 MAX_ATTACHMENTS = 50
 IMAGE_LIMIT = 10 * 1024 * 1024
 VIDEO_LIMIT = 100 * 1024 * 1024
@@ -50,7 +59,6 @@ MAX_ALT_LENGTH = 200
 # directory itself, such as `.trackbed/pr-evidence/` or `.trackbed/pr-evidence/<run-id>/`,
 # names no local file and stays in the body.
 LEFTOVER_PATH_PATTERN = re.compile(r"\.trackbed/pr-evidence/[\w.-]*\w")
-RUN_ID_PATTERN = re.compile(r"^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$")
 FILE_NAME_PATTERN = re.compile(r"^[0-9]{2}-(before|after|other)-[a-z0-9-]{1,40}\.[a-z0-9]{3,4}$")
 # Markdown image or link targets and HTML src attributes that point into the evidence directory.
 REFERENCE_PATTERN = re.compile(
@@ -59,104 +67,14 @@ REFERENCE_PATTERN = re.compile(
 )
 
 
-class EvidenceError(ValueError):
-    """Raised when evidence cannot safely become a Pull Request attachment."""
-
-
-def fail_if_symlink_chain(path: Path, stop: Path) -> None:
-    current = path
-    while True:
-        if current.is_symlink():
-            raise EvidenceError(f"{current} must not be a symlink")
-        if current == stop or current.parent == current:
-            return
-        current = current.parent
-
-
-def resolve_repo_root(value: str) -> Path:
-    root = Path(value).expanduser()
-    if not root.is_absolute():
-        raise EvidenceError("--repo-root must be an absolute path")
-    root = root.resolve(strict=True)
-    if not root.is_dir():
-        raise EvidenceError("--repo-root must be a directory")
-    return root
-
-
-def evidence_root(repo_root: Path) -> Path:
-    root = repo_root / EVIDENCE_DIR
-    fail_if_symlink_chain(root, repo_root)
-    return root
-
-
-def run_git(repo_root: Path, *args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["git", "-C", str(repo_root), *args],
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=30,
-    )
-
-
-def ensure_excluded(repo_root: Path) -> None:
-    result = run_git(repo_root, "rev-parse", "--git-path", "info/exclude")
-    if result.returncode != 0 or not result.stdout.strip():
-        raise EvidenceError("could not locate Git's local exclude file")
-    exclude = Path(result.stdout.strip())
-    if not exclude.is_absolute():
-        exclude = repo_root / exclude
-    exclude.parent.mkdir(parents=True, exist_ok=True)
-    existing = exclude.read_text(encoding="utf-8") if exclude.exists() else ""
-    if EXCLUDE_ENTRY not in existing.splitlines():
-        with exclude.open("a", encoding="utf-8") as handle:
-            handle.write(("" if existing.endswith("\n") or not existing else "\n") + EXCLUDE_ENTRY + "\n")
-
-
-def manifest_location(repo_root: Path, manifest_arg: str) -> Path:
-    manifest = Path(manifest_arg).expanduser()
-    if not manifest.is_absolute():
-        raise EvidenceError("--manifest must be an absolute path")
-    manifest = Path(os.path.abspath(manifest))
-    root = evidence_root(repo_root)
-    try:
-        relative = manifest.relative_to(root)
-    except ValueError as exc:
-        raise EvidenceError(f"manifest must be below {root}") from exc
-    if len(relative.parts) != 2 or relative.parts[1] != "manifest.json" or not RUN_ID_PATTERN.match(relative.parts[0]):
-        raise EvidenceError("manifest must be <run-id>/manifest.json in the evidence directory")
-    fail_if_symlink_chain(manifest, repo_root)
-    if not manifest.is_file():
-        raise EvidenceError("manifest must be a regular file")
-    return manifest
-
-
-def load_manifest(manifest: Path) -> dict[str, Any]:
-    try:
-        payload = json.loads(manifest.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        raise EvidenceError(f"manifest is not readable JSON: {exc}") from exc
-    if not isinstance(payload, dict) or payload.get("schema_version") != SCHEMA_VERSION:
-        raise EvidenceError(f"manifest schema_version must be {SCHEMA_VERSION}")
-    if not isinstance(payload.get("entries"), list):
-        raise EvidenceError("manifest entries must be an array")
-    return payload
-
-
-def write_manifest(manifest: Path, payload: dict[str, Any]) -> None:
-    temporary = manifest.with_name("manifest.json.tmp")
-    temporary.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    os.replace(temporary, manifest)
-
-
 def clean_alt(value: str) -> str:
     text = " ".join(value.split())
     if not text:
-        raise EvidenceError("alt text must not be empty")
+        raise StagingError("alt text must not be empty")
     if len(text) > MAX_ALT_LENGTH:
-        raise EvidenceError(f"alt text must be at most {MAX_ALT_LENGTH} characters")
+        raise StagingError(f"alt text must be at most {MAX_ALT_LENGTH} characters")
     if any(character in text for character in "[]()<>#`|"):
-        raise EvidenceError("alt text must not contain [ ] ( ) < > # ` or |")
+        raise StagingError("alt text must not contain [ ] ( ) < > # ` or |")
     return text
 
 
@@ -167,7 +85,7 @@ def media_kind(path: Path) -> tuple[str, int]:
     if extension in VIDEO_EXTENSIONS:
         return "video", VIDEO_LIMIT
     supported = ", ".join(sorted(IMAGE_EXTENSIONS | VIDEO_EXTENSIONS))
-    raise EvidenceError(f"{path.name} has an unsupported file type; use one of {supported}")
+    raise StagingError(f"{path.name} has an unsupported file type; use one of {supported}")
 
 
 def matches_signature(path: Path) -> bool:
@@ -191,41 +109,16 @@ def matches_signature(path: Path) -> bool:
 
 def check_media_file(path: Path) -> tuple[str, int]:
     if path.is_symlink() or not path.is_file():
-        raise EvidenceError(f"{path} must be a regular file, not a symlink")
+        raise StagingError(f"{path} must be a regular file, not a symlink")
     kind, limit = media_kind(path)
     size = path.stat().st_size
     if size == 0:
-        raise EvidenceError(f"{path.name} is empty")
+        raise StagingError(f"{path.name} is empty")
     if size > limit:
-        raise EvidenceError(f"{path.name} exceeds the {limit // (1024 * 1024)} MB {kind} limit")
+        raise StagingError(f"{path.name} exceeds the {limit // (1024 * 1024)} MB {kind} limit")
     if not matches_signature(path):
-        raise EvidenceError(f"{path.name} content does not match its {path.suffix.lower()} extension")
+        raise StagingError(f"{path.name} content does not match its {path.suffix.lower()} extension")
     return kind, size
-
-
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def reject_uncommitted_repo_file(repo_root: Path, source: Path) -> None:
-    try:
-        relative = source.resolve(strict=True).relative_to(repo_root)
-    except ValueError:
-        return
-    if relative.parts[: len(EVIDENCE_DIR.parts)] == EVIDENCE_DIR.parts:
-        return
-    if run_git(repo_root, "ls-files", "--error-unmatch", "--", str(relative)).returncode == 0:
-        return
-    if run_git(repo_root, "check-ignore", "-q", "--", str(relative)).returncode == 0:
-        return
-    raise EvidenceError(
-        f"{relative} is an untracked file inside the repository, so the PR workflow would commit it; "
-        "move it outside the repository and pass that path instead"
-    )
 
 
 def infer_role(name: str, alt: str) -> str:
@@ -246,39 +139,29 @@ def reference_for(run_id: str, file_name: str) -> str:
 
 
 def command_init(args: argparse.Namespace) -> dict[str, Any]:
-    repo_root = resolve_repo_root(args.repo_root)
-    ensure_excluded(repo_root)
-    root = evidence_root(repo_root)
-    root.mkdir(parents=True, exist_ok=True)
-    fail_if_symlink_chain(root, repo_root)
-    run_id = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()) + "-" + secrets.token_hex(4)
-    run_dir = root / run_id
-    run_dir.mkdir()
-    manifest = run_dir / "manifest.json"
-    write_manifest(manifest, {"schema_version": SCHEMA_VERSION, "run_id": run_id, "entries": []})
-    return {"dir": str(run_dir), "manifest": str(manifest), "run_id": run_id}
+    return open_run(resolve_repo_root(args.repo_root), EVIDENCE_DIR, SCHEMA_VERSION)
 
 
 def command_add(args: argparse.Namespace) -> dict[str, Any]:
     repo_root = resolve_repo_root(args.repo_root)
-    manifest = manifest_location(repo_root, args.manifest)
-    payload = load_manifest(manifest)
+    manifest = manifest_location(repo_root, EVIDENCE_DIR, args.manifest)
+    payload = load_manifest(manifest, SCHEMA_VERSION)
     entries: list[dict[str, Any]] = payload["entries"]
     if len(entries) >= MAX_ATTACHMENTS:
-        raise EvidenceError(f"gh attaches at most {MAX_ATTACHMENTS} files per Pull Request")
+        raise StagingError(f"gh attaches at most {MAX_ATTACHMENTS} files per Pull Request")
 
     if args.spec is not None:
         if args.file is not None:
-            raise EvidenceError("pass either --spec or --file, not both")
+            raise StagingError("pass either --spec or --file, not both")
         path_text, separator, alt_text = args.spec.partition("#")
         if not separator:
             alt_text = ""
     else:
         if args.file is None:
-            raise EvidenceError("pass --spec or --file")
+            raise StagingError("pass --spec or --file")
         path_text, alt_text = args.file, args.alt or ""
     if not path_text or "\n" in path_text or "\x00" in path_text:
-        raise EvidenceError("attachment path must be one non-empty line")
+        raise StagingError("attachment path must be one non-empty line")
     source = Path(path_text).expanduser()
     if not source.is_absolute():
         source = Path.cwd() / source
@@ -293,14 +176,14 @@ def command_add(args: argparse.Namespace) -> dict[str, Any]:
     file_name = f"{len(entries) + 1:02d}-{role}-{slugify(alt)}{source.suffix.lower()}"
     destination = manifest.parent / file_name
     if destination.exists():
-        raise EvidenceError(f"{file_name} already exists in the run directory")
+        raise StagingError(f"{file_name} already exists in the run directory")
     digest = sha256(source)
     if any(entry.get("sha256") == digest for entry in entries):
-        raise EvidenceError(f"{source.name} is already staged")
+        raise StagingError(f"{source.name} is already staged")
     shutil.copyfile(source, destination)
     if sha256(destination) != digest:
         destination.unlink()
-        raise EvidenceError(f"{source.name} changed while it was copied")
+        raise StagingError(f"{source.name} changed while it was copied")
 
     entry = {
         "alt": alt,
@@ -317,33 +200,33 @@ def command_add(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def validated_entries(repo_root: Path, manifest: Path) -> list[dict[str, Any]]:
-    payload = load_manifest(manifest)
+    payload = load_manifest(manifest, SCHEMA_VERSION)
     run_id = manifest.parent.name
     entries: list[dict[str, Any]] = []
     for index, raw in enumerate(payload["entries"]):
         if not isinstance(raw, dict):
-            raise EvidenceError(f"entries[{index}] must be an object")
+            raise StagingError(f"entries[{index}] must be an object")
         file_name = raw.get("file")
         if not isinstance(file_name, str) or not FILE_NAME_PATTERN.match(file_name):
-            raise EvidenceError(f"entries[{index}].file is not a staged evidence name")
+            raise StagingError(f"entries[{index}].file is not a staged evidence name")
         path = manifest.parent / file_name
         fail_if_symlink_chain(path, repo_root)
         kind, _size = check_media_file(path)
         if raw.get("kind") != kind or raw.get("role") not in ROLES or raw.get("source") not in {"user", "capture"}:
-            raise EvidenceError(f"entries[{index}] has an invalid kind, role, or source")
+            raise StagingError(f"entries[{index}] has an invalid kind, role, or source")
         if raw.get("sha256") != sha256(path):
-            raise EvidenceError(f"{file_name} changed after it was staged")
+            raise StagingError(f"{file_name} changed after it was staged")
         if raw.get("ref") != reference_for(run_id, file_name):
-            raise EvidenceError(f"entries[{index}].ref does not match its file")
+            raise StagingError(f"entries[{index}].ref does not match its file")
         entries.append({**raw, "alt": clean_alt(str(raw.get("alt", "")))})
     if len(entries) > MAX_ATTACHMENTS:
-        raise EvidenceError(f"gh attaches at most {MAX_ATTACHMENTS} files per Pull Request")
+        raise StagingError(f"gh attaches at most {MAX_ATTACHMENTS} files per Pull Request")
     return entries
 
 
 def command_show(args: argparse.Namespace) -> dict[str, Any]:
     repo_root = resolve_repo_root(args.repo_root)
-    manifest = manifest_location(repo_root, args.manifest)
+    manifest = manifest_location(repo_root, EVIDENCE_DIR, args.manifest)
     entries = validated_entries(repo_root, manifest)
     return {"dir": str(manifest.parent), "entries": entries, "manifest": str(manifest)}
 
@@ -372,12 +255,12 @@ def strip_reference(match: re.Match[str]) -> str:
 
 def command_prepare(args: argparse.Namespace) -> dict[str, Any]:
     repo_root = resolve_repo_root(args.repo_root)
-    manifest = manifest_location(repo_root, args.manifest)
+    manifest = manifest_location(repo_root, EVIDENCE_DIR, args.manifest)
     entries = validated_entries(repo_root, manifest)
     body_path = Path(args.body_file)
     out_dir = Path(args.out_dir)
     if not out_dir.is_dir() or out_dir.is_symlink():
-        raise EvidenceError("--out-dir must be an existing directory")
+        raise StagingError("--out-dir must be an existing directory")
     body = body_path.read_text(encoding="utf-8")
 
     attachable = {entry["ref"]: entry for entry in entries}
@@ -427,7 +310,7 @@ def command_strip(args: argparse.Namespace) -> dict[str, Any]:
     stripped = REFERENCE_PATTERN.findall(body)
     out_file = Path(args.out_file)
     if out_file.is_symlink():
-        raise EvidenceError("--out-file must not be a symlink")
+        raise StagingError("--out-file must not be a symlink")
     result, dropped = drop_leftover_lines(REFERENCE_PATTERN.sub(strip_reference, body), set())
     out_file.write_text(result, encoding="utf-8")
     return {"body_file": str(out_file), "dropped_lines": dropped, "stripped_references": len(stripped)}
@@ -478,7 +361,7 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         result = COMMANDS[args.command](args)
-    except (EvidenceError, OSError, subprocess.SubprocessError) as exc:
+    except (StagingError, OSError, subprocess.SubprocessError) as exc:
         print(f"pr-evidence {args.command} failed: {exc}", file=sys.stderr)
         return 1
     print(json.dumps(result, sort_keys=True))

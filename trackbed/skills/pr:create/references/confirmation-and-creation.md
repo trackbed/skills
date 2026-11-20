@@ -2,7 +2,7 @@
 
 Use this reference for `/trackbed:pr:create` Steps 8–9 after the branch is prepared, commits are finalized, and the PR title/body have been generated.
 
-`{base-branch}` is the value captured in Steps 2–3. `{feature-branch}` is the current branch. In the fresh-remote path, `{rollback-origin-ref}` is the remote ref that Step 5 proved absent. In exact-tip recovery, `{entry-commit}` and `{observed-origin-oid}` are identical. In clean remote fast-forward mode, `{publication-commit}` equals `{entry-commit}`. In remote-append mode, `{publication-commit}` is the rewritten local tip captured after Step 6, while `{observed-origin-oid}` remains the immutable published-prefix boundary. Both publishing existing-remote modes use the endpoint encoded by `{origin-push-url-assignment}`, the byte-exact shell-quoted assignment returned by the helper for the endpoint that reported the observed OID. All are immutable values captured before description generation. `{title}` and `{description}` are validated Step 7 generator output or validated user-supplied replacements. `{linear-issue-id}` may be captured during branch handling. `EVIDENCE_MANIFEST`, `EVIDENCE_COUNT`, and `{evidence-status}` come from Step 4.6 and the Step 7.2 evidence collection in `references/evidence-attachments.md`; a manifest path never enters the PR body. `{repo-root}` is the output of `git rev-parse --show-toplevel`. Substitute literal validated values when emitting commands, but insert `{origin-push-url-assignment}` only as its own assignment line and pass `"$ORIGIN_PUSH_URL"` to Git; never insert the decoded URL into shell source.
+`{base-branch}` is the value captured in Steps 2–3. `{feature-branch}` is the current branch. In the fresh-remote path, `{rollback-origin-ref}` is the remote ref that Step 5 proved absent. In exact-tip recovery, `{entry-commit}` and `{observed-origin-oid}` are identical. In clean remote fast-forward mode, `{publication-commit}` equals `{entry-commit}`. In remote-append mode, `{publication-commit}` is the rewritten local tip captured after Step 6, while `{observed-origin-oid}` remains the immutable published-prefix boundary. Both publishing existing-remote modes use the endpoint encoded by `{origin-push-url-assignment}`, the byte-exact shell-quoted assignment returned by the helper for the endpoint that reported the observed OID. All are immutable values captured before description generation. `{title}` and `{description}` are validated Step 7 generator output or validated user-supplied replacements. `{linear-issue-id}` may be captured during branch handling. `EVIDENCE_MANIFEST`, `EVIDENCE_COUNT`, and `{evidence-status}` come from Step 4.6 and the Step 7.2 evidence collection in `references/evidence-attachments.md`; a manifest path never enters the PR body. `ARTIFACT_MANIFEST`, `ARTIFACT_COUNT`, and `{artifact-status}` come from Step 4.7 in `references/pr-artifacts.md`. `{repo-root}` is the output of `git rev-parse --show-toplevel`. Substitute literal validated values when emitting commands, but insert `{origin-push-url-assignment}` only as its own assignment line and pass `"$ORIGIN_PUSH_URL"` to Git; never insert the decoded URL into shell source.
 
 ## Step 8: Confirmation and Creation
 
@@ -21,6 +21,7 @@ Title: {title}
 Branch: {feature-branch} -> {base-branch}
 Status: Ready for review
 Evidence: {evidence-status}
+Artifacts: {artifact-status}
 
 Description Preview:
 ---
@@ -37,6 +38,7 @@ Title: {title}
 Branch: {feature-branch} -> {base-branch}
 Status: Draft
 Evidence: {evidence-status}
+Artifacts: {artifact-status}
 
 Description Preview:
 ---
@@ -58,6 +60,8 @@ Add the line matching the one active mode below the status line:
 If `AUTO_MODE=true`, skip this confirmation and proceed directly to Step 8.3.
 
 Otherwise use AskUserQuestion.
+
+If the user asks to remove a staged artifact, follow the removal instructions in `references/pr-artifacts.md`, refresh the preview, and repeat confirmation with the remaining artifacts.
 
 When `DRAFT_MODE=false`, use:
 
@@ -380,9 +384,9 @@ Always pass the validated explicit `--head` value. This prevents `gh pr create` 
    - Status zero after the retry: `skipped — upload failed before creation`, followed by the first diagnostic.
    - Non-zero with a matching query result: accept it only when `PR_CREATE_OUTPUT` holds `{pr-url}` as a standalone line and no `a pull request ... already exists` diagnostic; matching metadata alone does not prove this invocation created it. Without the retry, set `partially attached` and keep every `gh` diagnostic. After a retry that reports `already exists`, report the Pull Request the query found and stop without Step 9 or manual-creation guidance.
 
-   After any proven creation with `ATTACHMENTS_PASSED` above zero, check that no local evidence path survived, because `gh` rewrites only the references it recognizes. Read the body with `env GH_PROMPT_DISABLED=1 gh pr view {pr-url} --json body --jq .body` into a new `mktemp "/tmp/trackbed-pr-body.XXXXXX"` file. When it contains `.trackbed/pr-evidence`, run the helper's `strip` on that file, and only when it reports `stripped_references` or `dropped_lines` above zero, update the body with `env GH_PROMPT_DISABLED=1 gh pr edit {pr-url} --body-file <file>`. Remove the file afterwards. If reading, stripping, or editing fails, continue to Step 9 with a warning that the description may show broken images.
+   After any proven creation with `ATTACHMENTS_PASSED` above zero, check that no local evidence path survived, because `gh` rewrites only the references it recognizes. Read the body with `env GH_PROMPT_DISABLED=1 gh pr view {pr-url} --json body --jq .body` into a new `mktemp "/tmp/trackbed-pr-body.XXXXXX"` file. When it contains `.trackbed/pr-evidence`, run the helper's `strip` on that file, and only when it reports `stripped_references` or `dropped_lines` above zero, update the body with `env GH_PROMPT_DISABLED=1 gh pr edit {pr-url} --body-file <file>`. Remove the file afterwards. If reading, stripping, or editing fails, record a warning that the description may show broken images and include it in Step 9.
 
-   Continue to Step 8.5 only when no created Pull Request was proven.
+   After proven creation, continue to Step 8.6 even if evidence cleanup failed. Continue to Step 8.5 only when no created Pull Request was proven.
 
 ### 8.5 Handle PR Creation Failure
 
@@ -408,9 +412,15 @@ Manual creation:
 
 When evidence is staged, the description's `./.trackbed/pr-evidence/` image references cannot work in a Pull Request created by hand: dragging a file into GitHub's web form inserts a new upload URL and never rewrites an existing path. Write `{description}` to a new `mktemp "/tmp/trackbed-pr-body.XXXXXX"` file, run the helper's `strip` on it, print the stripped body in place of `{description}`, and remove the file. `strip` leaves each image's alt text in italics where the image was. If `strip` fails, print `{description}` unchanged and warn that its local image references must be replaced. Before the description, add `Screenshots and videos to drag into the PR: {evidence run directory}` and tell the user to drop each file at its italic alt text.
 
+When `ARTIFACT_COUNT` is above zero, list the explicit documents and the workflow documents marked `public_ok` available in the directory holding `ARTIFACT_MANIFEST`. Offer manual upload only if the destination exposes the control. List the other workflow documents separately as eligible only after the Pull Request destination is confirmed private or internal.
+
 If `DRAFT_MODE=true`, append a final line: `Remember to mark it as Draft before creating.`
 
 Recover the `{org}/{repo}` portion from `git remote get-url origin` (handle both SSH and HTTPS forms). If parsing fails, drop the URL line — the user can still create the PR via the GitHub UI.
+
+### 8.6 Upload Artifacts
+
+After Step 8.4 proves the created Pull Request, run Step 8.6 in `references/pr-artifacts.md` when `ARTIFACT_COUNT` is above zero. It attempts to upload the staged documents to `{pr-url}` and sets the final `{artifact-status}` from the reported outcomes.
 
 ## Step 9: Success Output
 
@@ -423,6 +433,7 @@ URL: {pr-url}
 Branch: {feature-branch} -> {base-branch}
 Status: Ready for review
 Evidence: {evidence-status}
+Artifacts: {artifact-status}
 Uncommitted work: {none | committed and included before history rewrite | committed and included as appended narrative commits | excluded from PR and restored locally | excluded from PR but restore needs manual conflict resolution}
 
 Commits included:

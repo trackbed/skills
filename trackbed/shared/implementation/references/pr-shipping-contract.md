@@ -12,7 +12,7 @@ Apply this contract only after the caller supplied `--ship`, `trackbed:pr:review
 | `{work-branch}` | The prepared local branch this invocation may publish. |
 | `{pre-publication-hook}` | Caller work that must finish before the clean-tree check and history rewriting. |
 | `{scope-proof}` | Caller proof that dirty and committed paths belong to the work item, with its disposition for paths that do not. |
-| `{create-invocation}` | The exact `trackbed:pr:create ... --require-generated-description` invocation, including caller identity, base, or history-rewrite arguments. |
+| `{create-invocation}` | The exact `trackbed:pr:create ... --require-generated-description --no-artifacts` invocation, including caller identity, base, or history-rewrite arguments. |
 | `{post-create-hook}` | Caller work that must finish after the initial shipped result is proven and before CI stabilization. |
 | `{fix-ci-invocation}` | The exact `trackbed:pr:fix-ci --no-consolidate` invocation, including caller scope arguments; also the recovery invocation for a later session, without any one-run rebase grant the caller appended. |
 | `{fix-ci-guard}` | Caller check applied before every fix commit or push made by `{fix-ci-invocation}`. |
@@ -66,6 +66,8 @@ Store the result as `{verified-tree}`. This is the exact source tree covered by 
 ## Step 5: Create the Pull Request
 
 Invoke `{create-invocation}` using the platform's skill mechanism. `--require-generated-description` makes unusable generator output a rollback-triggering blocker instead of allowing a placeholder fallback body. The delegated skill's auto mode carries the invocation through the backup-protected local reset without prompting; the delegated workflow separately requires the remote branch to be absent and creates it with an exact absence lease.
+
+Pass `--no-artifacts` and omit `--artifact`. The `--ship` grant keeps workflow documents local.
 
 The delegated skill owns pre-validation, base-branch detection, state preservation, narrative commit recreation, description generation, the sole pre-PR remote push, self-assignment, Pull Request creation, and rollback on failure. Capture its validated `{base-branch}` as `{expected-base-branch}`; if that value is unavailable, stop because the workflow cannot prove that the created Pull Request targets the intended base. Its recreate-commits delegate runs with `--no-push`, so description failure cannot publish rewritten history. Continue after it returns; do not stop at an intermediate sub-skill summary.
 

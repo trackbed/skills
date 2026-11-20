@@ -74,7 +74,7 @@ class PrEvidenceTest(unittest.TestCase):
 
     def test_init_hides_the_evidence_directory_from_git(self) -> None:
         exclude = (self.repo / ".git" / "info" / "exclude").read_text(encoding="utf-8")
-        self.assertIn(".trackbed/\n", exclude)
+        self.assertIn("/.trackbed/", exclude.splitlines())
         status = subprocess.run(
             ["git", "-C", str(self.repo), "status", "--porcelain", "--untracked-files=all"],
             capture_output=True,
