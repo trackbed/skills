@@ -1,10 +1,15 @@
 ---
 name: discovery:interview
 description: Conduct an in-depth interview about a topic, proposal, or spec to uncover requirements, priorities, and non-goals, then write a plan. Pass --ideate for divergent framing, --decision-tree or depth-first language for coupled decisions, --research for pre-interview research, or --siw (or siw/ spec paths) to interview to 90% confidence and write siw/DISCOVERY_BRIEF.md or siw/SPEC_STRENGTHENING_PLAN.md. --apply edits SIW specs only on direct user request.
-argument-hint: "[topic | file-path(s) | siw] [--siw] [--apply] [--visual] [--ideate] [--decision-tree] [--research]"
+argument-hint: "[topic | file-path(s) | siw] [--siw] [--apply] [--visual] [--ui] [--ideate] [--decision-tree] [--research]"
 disable-model-invocation: false
 user-invocable: true
 trackbed-platforms: [claude-code, codex]
+permissions:
+  - file_read
+  - file_write
+  - shell
+  - network
 ---
 
 # Deep Exploration Interview
@@ -23,7 +28,7 @@ By default this skill produces a one-off plan file. For discovery inside a track
 6. **Final Classification Check**: If Phase 0 changed the framing or the topic type is ambiguous, reclassify/confirm before research.
 7. **Phase R (optional) — Research**: When `--research` is set or the topic names external libraries, frameworks, or cross-cutting concerns, launch parallel research agents tailored to the confirmed topic classification, then run a brief check-in before the interview.
 8. **Post-Research Classification Check**: If Phase R changes the framing or classification, repeat topic classification before interviewing.
-9. **Interview**: Use the active coverage profile by default or decision-tree mode for coupled decisions.
+9. **Interview**: Use the active coverage profile by default or decision-tree mode for coupled decisions. With `--ui`, each round is a page in the user's browser instead of chat questions.
 10. **Progress Tracking**: Monitor topic coverage, evidence confidence, or resolved branches according to the active profile.
 11. **Synthesis**: Write an adaptive plan markdown file for direct use, or write SIW artifacts in SIW mode (applying a strengthening plan only on a direct user request).
 
@@ -49,6 +54,7 @@ Parse `$ARGUMENTS` as shell-style arguments so quoted paths stay intact.
 - If `--siw` is present, set `siw_mode=true` and remove from argument list.
 - If `--apply` is present, set `apply_changes=true` and remove from argument list, subject to the user-only check below.
 - If `--visual` is present, set `VISUAL_REPORT=true` and remove from argument list; otherwise set `VISUAL_REPORT=false`.
+- If `--ui` is present, set `UI_MODE=true` and remove from argument list, subject to the user-only check below; otherwise set `UI_MODE=false`.
 - Only after every flag above, including `--apply`, has been removed: if the only remaining argument is the bare keyword `siw`, set `siw_mode=true` and remove it. Also set `siw_mode=true` when every supplied file path is inside `siw/`. If some but not all paths are in `siw/` and `--siw` is absent, ask (AskUserQuestion) whether to run SIW mode.
 - If `apply_changes=true` but the run is not SIW Refinement (no SIW mode, or SIW context resolves to Greenfield), tell the user `--apply` only applies to SIW Refinement, ignore it, and continue.
 - If `VISUAL_REPORT=true` but the run is not SIW Refinement (no SIW mode, or SIW context resolves to Greenfield), reject `--visual` and stop before the interview: the visual page mirrors only `siw/SPEC_STRENGTHENING_PLAN.md`, which a standalone plan or `siw/DISCOVERY_BRIEF.md` run does not write.
@@ -58,6 +64,12 @@ Parse `$ARGUMENTS` as shell-style arguments so quoted paths stay intact.
 - If it is empty, ask the user what they want to explore using AskUserQuestion. In SIW mode, let SIW context resolution decide instead: empty input refines existing SIW artifacts or asks for a Greenfield topic.
 
 **User-only `--apply`.** This skill is model-invocable for interviews and for writing new plan or SIW discovery artifacts; `--apply` is the only path that edits existing specs and removes a file. Honor `apply_changes=true` only when the user's own message typed `--apply` or explicitly asked in this session to apply the strengthening plan. A model-initiated invocation, including a call from another skill such as `trackbed:siw:init`, must not add `--apply`; when one does without that user request, ignore the flag, say so, and stop after writing the plan. Even on a user request, the apply protocol confirms the exact edits in-session before changing any file.
+
+**User-only `--ui`.** UI mode opens a page in the user's browser and listens on a loopback port for its answers, so only the user turns it on. Honor `UI_MODE=true` only when the user's own message typed `--ui` or asked in this session to be interviewed in the browser; when they ask mid-session, switch then and keep what was collected. A model-initiated invocation, including a call from another skill, must not add `--ui`; when one does, ignore the flag, say so, and interview in chat.
+
+**`--ui` is highly experimental.** When UI mode starts, tell the user in one line that it is highly experimental and that they can ask to continue in chat at any time. When they ask, or a round fails in a way the helper cannot recover, switch to chat and keep what was collected.
+
+Read `references/ui-mode.md` as soon as UI mode is selected. It governs the browser rounds in Phase 0, Phase R, and Step 4 and calls `${CLAUDE_PLUGIN_ROOT}/skills/discovery:interview/scripts/interview-ui.py` `<helper>`. It embeds local screenshots through `${CLAUDE_PLUGIN_ROOT}/scripts/visual_evidence_images.py`. Use the round to show the evidence behind a consequential choice: capture the current experience, chart measured trade-offs, or compare proposed designs. Keep all other questions and confirmations in chat.
 
 **SIW mode.** When `siw_mode=true`, read `references/siw-mode.md` now and resolve SIW context (Greenfield, Refinement, or Realignment), pending-plan state, prior rejections, audit evidence, and the Work Context profile before Step 1. SIW mode uses the evidence-confidence profile at a 90% target and replaces Step 5's standalone plan with the SIW synthesis in that reference. In SIW mode, `--research` runs Phase R as usual and `--ideate` runs Phase 0 only in Greenfield; in Refinement or Realignment, skip Phase 0 (including auto-detection) and tell the user when `--ideate` was ignored, so divergent framing never reframes away from the target spec.
 
@@ -138,7 +150,7 @@ Do not start generating variations until the user has answered. If they pick "Ju
 
 ### Generate, converge, and pick a framing
 
-Read `references/variation-lenses.md` and follow it to generate 5–8 candidate variations (4–7 lenses), converge with the three stress-test axes, and run the convergence protocol. When presenting the strongest variations via AskUserQuestion, reserve one option slot for `None of these — let's iterate.` and keep the total within AskUserQuestion's 2-4 option limit. Emit the `FRAMING:` marker on the chosen framing. If the user keeps rejecting candidates, fall back to the original framing and proceed.
+Read `references/variation-lenses.md` and follow it to generate 5–8 candidate variations (4–7 lenses), converge with the three stress-test axes, and run the convergence protocol. When `UI_MODE=true`, present the framing pick in a browser round using `references/ui-mode.md`. Otherwise present it via AskUserQuestion. Reserve one option slot for `None of these — let's iterate.` and keep the total at 2–4 options. Emit the `FRAMING:` marker on the chosen framing. If the user keeps rejecting candidates, fall back to the original framing and proceed.
 
 Then feed the chosen framing into Step 2 and reclassify before Step 3. If the topic type changes, tell the user which type is now in force before you continue.
 
@@ -184,7 +196,7 @@ After agents return, summarize the key finding in 2-3 sentences and surface anyt
 - materially shifts the topic type from Step 2
 - shows the proposed solution is unnecessary, more complex than needed, or solves the wrong problem
 
-Use AskUserQuestion to present a specific choice about how to proceed — not a generic "does this make sense?". Examples:
+Present a specific choice about how to proceed. When `UI_MODE=true`, ask the post-research check-in in a browser round using `references/ui-mode.md`. Otherwise use AskUserQuestion. Examples:
 
 - "Codebase already has `useDebouncedSearch` doing 80% of this. Do you want to extend it, or build separately?"
 - "Tanstack Query v5 deprecated the API the proposal uses. Switch to suspense queries, or pin to v4?"
@@ -217,6 +229,8 @@ Select one progress profile:
 - **Evidence confidence** — use in SIW mode (90% target). Read `references/confidence-framework.md`; use the Work Context adjustments, evidence ledger, dashboard, and target threshold defined there.
 
 In **Decision-Tree mode**, read `references/decision-tree-mode.md`, identify the root decision for the topic type, map first-level dependencies, and resolve branches depth-first. Ask one question at a time by default; batch only routine independent sibling questions. When the active tree is resolved, return to the active progress profile for any remaining independent dimensions.
+
+When `UI_MODE=true`, ask each round, in either profile and in Decision-Tree mode, as a round file through the helper, as `references/ui-mode.md` describes. Round size, follow-up behavior, progress tracking, and stop rules are unchanged, and the page shows the synthesis and progress the chat would have shown.
 
 If the user requests Decision-Tree mode mid-session (for example, "walk this depth-first"), finish processing the current answer, switch the active interview mode, apply the SIW decision-tree context when SIW mode is active, and continue with the coupled decisions in flight. Do not discard evidence already collected by the coverage profile.
 

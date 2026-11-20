@@ -99,7 +99,7 @@ For each variation, state the alternative that already exists (inside the produc
 ## Convergence protocol
 
 1. List each surviving variation with: `{name} — {painkiller|vitamin} — {first-failure-mode} — {differentiator}`.
-2. Present to the user via AskUserQuestion. Options: 1-3 strongest variations plus `None of these — let's iterate.` Keep the total predefined option count between 2 and 4.
+2. Present the strongest 1–3 variations and `None of these — let's iterate.` in a browser round when `UI_MODE=true`, or via AskUserQuestion otherwise. Keep the total predefined option count between 2 and 4.
 3. When the user picks one, restate it as the concrete problem statement that feeds Step 3 (the existing interview). Use the `FRAMING` marker in the hand-off:
 
 ```text
