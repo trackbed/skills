@@ -4,7 +4,7 @@ Use it to get a review of one Markdown document outside a tracked SIW workflow: 
 
 ## Before you run it
 
-- The document is a Markdown file (`.md`, `.markdown`, `.mdown`, or `.mkd`). Convert other formats with `trackbed:docs:to-markdown` first.
+- The document is a Markdown file (`.md`, `.markdown`, `.mdown`, or `.mkd`). For other formats, provide a Markdown version first.
 
 ## Arguments
 

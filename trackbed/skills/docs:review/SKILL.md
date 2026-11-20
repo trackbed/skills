@@ -196,7 +196,7 @@ This skill reviews document quality only.
 | Missing path | Ask for one Markdown document path. |
 | Multiple paths | Ask the user to choose exactly one document. |
 | Missing or unreadable file | Stop with the exact path and say what could not be read. |
-| Non-Markdown input | Route to `/trackbed:docs:to-markdown` first, then review the resulting Markdown. |
+| Non-Markdown input | Ask the user for a Markdown version of the document, then review that file. |
 | Path under `siw/` | Route to the relevant SIW audit skill and do not run this generic review. |
 | Output path equals input path | Reject and ask for a different output path or use inline output. |
 | Source-code verification needed | Keep a costly omission from step 8 as a finding marked `UNVERIFIED`; list any other unchecked source-code claim under Residual risk. Do not inspect code as part of this skill. |

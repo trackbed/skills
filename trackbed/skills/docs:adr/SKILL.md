@@ -33,7 +33,7 @@ Route elsewhere if:
 
 - **Initiative-local decisions during SIW preparation** → record them in the specification and `siw/LOG.md` so `/trackbed:siw:transfer-to-linear` carries them into the Linear project. This skill handles repo-level ADRs that outlive any single initiative.
 - **Feature spec / scope decisions before implementation** → use `/trackbed:docs:feature-spec`.
-- **Agent-facing rules** (commit style, package manager, conventions) → use `/trackbed:docs:update-agents-md`.
+- **Agent-facing rules** (commit style, package manager, conventions) → add them to the project's agent instruction file, such as `AGENTS.md`, or use `/trackbed:code:encode-constraint` when a check can enforce the rule.
 
 ## Pre-flight: find the ADR log and its convention
 
