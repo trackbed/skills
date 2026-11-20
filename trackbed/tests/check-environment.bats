@@ -97,8 +97,6 @@ setup_all_tools_path() {
 	create_fake_tool "rtk" "rtk 0.1.0"
 	create_fake_tool "bats" "Bats 1.11.0"
 	create_fake_tool "trash" "trash 0.9.2"
-	create_fake_tool "uvx" "uvx 0.5.0"
-	create_fake_tool "markitdown" "markitdown 0.1.0"
 	create_fake_tool "surf" "surf 0.2.0"
 	create_fake_tool "codex" "codex-cli 0.162.1"
 }

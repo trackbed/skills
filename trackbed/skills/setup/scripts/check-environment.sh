@@ -778,10 +778,6 @@ if [ "$OUTPUT_FORMAT" = "json" ]; then
   printf ','
   tool_status "trash" "brew install trash (macOS) or apt install trash-cli (Linux)" "trash --version"
   printf ','
-  tool_status "uvx" "brew install uv or pipx install uv" "uvx --version"
-  printf ','
-  tool_status "markitdown" "uvx markitdown or pip install markitdown" "markitdown --version"
-  printf ','
   tool_status "surf" "install surf-cli if using visual diagram image generation" "surf --version"
   printf ','
   tool_status "codex" "npm install -g @openai/codex" "codex --version"
@@ -862,8 +858,6 @@ tool_status "bun" "brew install oven-sh/bun/bun" "bun --version"
 tool_status "rtk" "install rtk if this workspace requires it" "rtk --version"
 tool_status "bats" "brew install bats-core (macOS) or apt install bats (Linux)" "bats --version"
 tool_status "trash" "brew install trash (macOS) or apt install trash-cli (Linux)" "trash --version"
-tool_status "uvx" "brew install uv or pipx install uv" "uvx --version"
-tool_status "markitdown" "uvx markitdown or pip install markitdown" "markitdown --version"
 tool_status "surf" "install surf-cli if using visual diagram image generation" "surf --version"
 tool_status "codex" "npm install -g @openai/codex" "codex --version"
 echo
