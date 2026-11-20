@@ -85,7 +85,7 @@ If `git status --porcelain` (from Step 4.1) reported no output, continue with th
 
 If uncommitted changes are present and `AUTO_MODE=true`, do not prompt. Select **Commit and include** and execute that path below. Auto mode treats all current tracked, untracked, and unignored working-tree changes as work to include in the PR; the temporary commit makes them available to `trackbed:git:recreate-commits`. This is the only valid disposition in `REMOTE_APPEND_MODE`.
 
-If uncommitted changes are present and `AUTO_MODE=false`, do **not** silently stash, commit, or ignore them. Show the current status, then ask:
+If uncommitted changes are present and `AUTO_MODE=false`, do **not** silently stash, commit, or ignore them. Show the current status, then ask. When Step 4.7 recorded `ARTIFACT_INCLUDE_BLOCKERS`, show those paths and offer only **Exclude from PR** and **Abort**.
 
 ```yaml
 header: "Uncommitted work"
@@ -101,6 +101,8 @@ multiSelect: false
 ```
 
 #### If "Commit and include"
+
+Require `ARTIFACT_INCLUDE_BLOCKERS` to be empty before running the include-all commit. If it is non-empty, stop before staging and, if Step 5 created a feature branch, run Step 5.3 to restore the entry checkout.
 
 Before staging, run `"{pr-create-skill-dir}/scripts/verify-clean-worktree.sh" --allow-visible` to validate tracked paths hidden by `assume-unchanged` or `skip-worktree` without rejecting the visible changes that this path is about to include.
 

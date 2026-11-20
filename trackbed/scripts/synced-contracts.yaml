@@ -1830,7 +1830,7 @@
       "trackbed:pr:adversarial-review": "Get one read-only review of your branch from a different model provider than the host you are using.",
       "trackbed:pr:code-review": "Review branch changes for bugs, tests, errors, types, architecture, security, performance, and cleanup; writes `REVIEW_OVERVIEW.md`.",
       "trackbed:pr:convention-review": "Flag drift from documented rules and established codebase practice, plus overcautious code, with evidence for every finding.",
-      "trackbed:pr:create": "Publish a new PR unattended: narrative commits, a generated title and body with screenshots, and a lease-protected first push; `--manual` keeps the prompts.",
+      "trackbed:pr:create": "Publish a new PR with narrative commits, a generated title and body, screenshots, preview artifact uploads, and a lease-protected push.",
       "trackbed:pr:fix-ci": "Repair failing CI checks and reviewer feedback on an open PR with targeted pushes until checks pass; `--manual` keeps the prompts.",
       "trackbed:pr:generate-description": "Write a PR title and body from the diff, commits, and Linear context, updating an open PR unless `--manual`; `--check` reports drift.",
       "trackbed:pr:github-review": "Review someone else's GitHub PR or its whole stack, including linked Linear issues. Report-only unless you ask for a pending review.",

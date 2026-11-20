@@ -19,6 +19,8 @@ Use it when your branch is ready and has no Pull Request yet. It commits your un
 | `--linear-issue <ISSUE-ID>` | Use this Linear issue for the description and its closing line, instead of the ID read from the branch name. |
 | `--attach <file[#alt]>` | Upload this image or video with the Pull Request. Repeat it for more files. Start the alt text or file name with `Before` or `After` to show a pair side by side. A file inside the repository must be committed or ignored. |
 | `--no-capture` | Take no screenshots or recordings. `--attach` files are still uploaded. |
+| `--artifact <file[#name]>` | Stage this Markdown, text, or HTML file for a preview API upload. Repeat for more files. The text after `#` names the artifact. A file inside the repository must be ignored or committed without local changes. |
+| `--no-artifacts` | Disable automatic document collection. The workflow still attempts to upload explicit `--artifact` files. |
 | `--independent-review-line <line>` | Put this one-line record of an independent review in the description unchanged. Set by `trackbed:linear:issue-to-pr` when it delegates; you rarely need it. |
 | `--require-generated-description` | Stop when no title and body can be generated, even with `--manual`, and never skip the commit rewrite on a new branch. Set by `trackbed:linear:issue-to-pr` and `trackbed:code:plan-to-pr` when they delegate; you rarely need it. |
 | `--authorize-history-rewrite` | With `--manual`, skip the confirmation before the commit rewrite. |
@@ -40,6 +42,9 @@ Use it when your branch is ready and has no Pull Request yet. It commits your un
 
 # Attach your own before and after screenshots
 /trackbed:pr:create --attach '~/Desktop/before.png#Before: empty cart' --attach '~/Desktop/after.png#After: cart with a saved item'
+
+# Stage only your plan for artifact upload
+/trackbed:pr:create --artifact '~/notes/cart-plan.md#Implementation plan' --no-artifacts
 ```
 
 ## What you get
@@ -48,6 +53,7 @@ Use it when your branch is ready and has no Pull Request yet. It commits your un
 - The branch pushed to `origin`, with your uncommitted work committed. On a branch that is not on the remote yet, the commits are rewritten unless they are already well formed, and the old history stays on a local backup branch. Commits already on the remote are never rewritten.
 - A feature branch created for you when you start on the base branch or a detached `HEAD`.
 - For a change a reviewer can see, before and after screenshots in the description when they can be captured safely, and occasionally a short video. See [Screenshots](../shipping.md#screenshots).
-- A closing message with the Pull Request URL, what was attached or why nothing was, what happened to uncommitted work, and the commits included.
+- Results of the preview API upload attempt for any staged prototype, walkthrough page, decision record, plan, or other document. See [Artifacts](../shipping.md#artifacts).
+- A closing message with the Pull Request URL, what was attached and uploaded or why nothing was, what happened to uncommitted work, and the commits included.
 
 When a step fails before the push, your branch and uncommitted work are put back as they were when that is safe. Next, run `/trackbed:pr:fix-ci` to get the checks green. The [shipping guide](../shipping.md#publishing-a-pull-request) covers branches that already exist on the remote.

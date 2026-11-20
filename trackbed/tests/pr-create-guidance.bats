@@ -1310,3 +1310,91 @@ assert "patch ID against the full committed change" in record and "reviewed tree
 PYTEST
     [ "$status" -eq 0 ] || { echo "$output"; false; }
 }
+
+@test "PR creation stages checked documents and uploads them as artifacts after creation" {
+    run python3 - "$BATS_TEST_DIRNAME/.." <<'PYTEST'
+import pathlib
+import sys
+root = pathlib.Path(sys.argv[1])
+create = (root / "skills/pr:create/SKILL.md").read_text()
+artifacts = (root / "skills/pr:create/references/pr-artifacts.md").read_text()
+publish = (root / "skills/pr:create/references/confirmation-and-creation.md").read_text()
+state = (root / "skills/pr:create/references/state-and-rollback.md").read_text()
+
+assert "[--artifact <file[#name]>]... [--no-artifacts]" in create
+assert "`--artifact <file[#name]>` -> append one document to `ARTIFACT_SPECS`" in create
+assert "collects no documents on its own; `--artifact` files are still uploaded" in create
+assert "${CLAUDE_PLUGIN_ROOT}/scripts/pr-artifacts.py" in create
+explicit_stage = create.index('follow “Stage Explicit Artifacts”')
+rebase_invocation = create.index('Then invoke `trackbed:pr:rebase` with `--force-push')
+assert explicit_stage < rebase_invocation < create.index("### Step 4.7")
+assert "Stop on any rejection." in create[explicit_stage:rebase_invocation]
+assert "an upload failure never fails or rolls back the Pull Request" in create
+assert "such as a prototype, a walkthrough page, or a decision record, and at most one QA, review, or audit report" in create
+
+staging, upload = artifacts.split("## Step 8.6: Upload Artifacts")
+assert "before Step 5 can commit anything" in staging
+explicit, automatic = staging.split("## Step 4.7: Stage Artifacts")
+assert "Any rejection of a `--artifact` file is a hard blocker before rebase or publication" in explicit
+assert "--source user" in explicit and "--source user" not in automatic
+assert "An exit of 3 means the original may enter Git's include set" in automatic
+assert "Before rejecting one based on its content, call `inspect` on its original path" in automatic
+assert "If add exits 3, record the diagnostic in `ARTIFACT_INCLUDE_BLOCKERS`" in automatic
+assert "continue checking originals for exit 3" in automatic
+assert "Skip documents intended for the PR diff before running `inspect`" in automatic
+assert "In auto mode, stop before Step 5" in automatic
+assert "In manual mode, carry the blockers into Step 5.2" in automatic
+assert "offer only **Exclude from PR** and **Abort**" in state
+include = state.split('#### If "Commit and include"')[1].split('#### If "Exclude from PR"')[0]
+assert include.index("Require `ARTIFACT_INCLUDE_BLOCKERS` to be empty") < include.index("git add -A")
+assert "--check-source '{artifact-spec}'" in automatic
+assert "each original `ARTIFACT_SPECS` value, including when `NO_ARTIFACTS=true`" in automatic
+assert "Never search the rest of the repository or the home directory for candidates." in staging
+assert "Keep archived review reports local: every `.context/<workflow>/reviews/` directory" in staging
+qualify, order = staging.split("### What To Stage First")
+order = order.split("### Check Before Staging")[0]
+assert "Pages under `~/.trackbed/diagrams/` and `~/.trackbed/decisions/` that this session generated." in qualify
+assert order.index("A prototype or mockup page") < order.index("A decision record or decision page") < order.index("The plan or specification") < order.index("Review output, one document at most")
+assert "One QA, review, or audit report, and only when it tells a reviewer what the diff and the description do not" in order
+assert "A report whose findings are all fixed does not qualify." in order
+assert "Screenshots and recordings are not artifacts." in order
+assert "Eligible archived plans elsewhere in `.context/code-plan-to-pr/` can still be collected." in staging
+assert "a review or audit report with a finding that is neither fixed nor explicitly accepted" in staging
+assert "Read every successful inspection in full before staging it" in staging
+assert "Skip a candidate whose inspection result was truncated" in automatic
+assert "a security weakness this Pull Request does not fix" in staging
+assert "Skip a document when unsure" in staging
+assert "a file name is not trusted text" in staging
+assert "--file '{path}' --name '{name}' --source workflow --reviewed-sha256 '{sha256}'" in staging
+assert "a document that describes a security weakness at all, fixed or not" in staging
+assert "Add `--public-ok` only when the document also passes the public repository checks" in staging
+assert "exact repository named by the verified Pull Request URL" in staging
+assert "gh repo view" not in staging
+assert "Never edit the manifest or a staged file by hand" in staging
+assert "Run `show` after removal and recompute `ARTIFACT_COUNT` and `{artifact-status}`" in staging
+assert "An empty list sets `ARTIFACT_COUNT=0` and skips Step 8.6" in staging
+assert "show the refreshed Step 8.1 preview and obtain confirmation again before publishing" in staging
+assert "upload --repo-root" not in staging
+
+assert "only after Step 8.4 proved the created Pull Request and captured `{pr-url}`" in upload
+assert 'upload --repo-root "{repo-root}" --manifest "{ARTIFACT_MANIFEST}" --pr-url "{pr-url}"' in upload
+assert "Never rerun `upload` automatically" in upload
+assert "It never sends an `unconfirmed` document again" in upload
+assert "Any are in `skipped_visibility`" in upload
+assert "zero confirmed and zero unconfirmed uploads" in upload
+assert "run `show` on the same manifest" in upload
+assert "report the upload outcome as unknown" in upload
+assert "including any returned artifact URLs on the verified GitHub host" in upload
+assert "only if that destination exposes the control" in upload
+assert "An upload failure is not a Pull Request creation failure." in upload
+
+assert publish.count("Artifacts: {artifact-status}") == 3
+confirm = publish.split("### 8.2 Confirm Creation")[1].split("### 8.3 Revalidate and Publish the Branch")[0]
+assert "refresh the preview, and repeat confirmation with the remaining artifacts" in confirm
+create_pr = publish.split("### 8.4")[1].split("### 8.5")[0]
+assert "record a warning that the description may show broken images and include it in Step 9" in create_pr
+assert "continue to Step 8.6 even if evidence cleanup failed" in create_pr
+assert publish.index("### 8.5 Handle PR Creation Failure") < publish.index("### 8.6 Upload Artifacts") < publish.index("## Step 9: Success Output")
+PYTEST
+    [ "$status" -eq 0 ] || { echo "$output"; false; }
+}

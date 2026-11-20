@@ -180,6 +180,24 @@ For a change a reviewer can see, `/trackbed:pr:create` tries to put before and a
 
 A failed capture or upload never blocks the Pull Request; the closing message says what was attached or why nothing was. Capture uses only an app served from this checkout, and it reports any file it leaves in the worktree. Pass `--no-capture` to skip it. Files are staged under `.trackbed/pr-evidence/`, which Git ignores locally; `trackbed:workflow:cleanup-artifacts` removes them.
 
+### Artifacts
+
+`/trackbed:pr:create` can attempt to attach Markdown, text, and HTML documents through [GitHub's preview issue artifacts API](https://docs.github.com/en/rest/issues/artifacts#create-an-issue-artifact). GitHub documents this API for issues. Successful creation and display on Pull Requests are unverified.
+
+- **What is uploaded.** Documents about this change that a reviewer looks at or decides from, in this order: a prototype or a page that explains the change, such as a walkthrough or diagram; a decision record or decision page; then the plan or specification, research notes, or a root-cause analysis.
+- **Review output.** At most one QA, review, or audit report, and only when it adds what the diff and description lack: what was tested and the result, or a finding accepted instead of fixed. Archived review reports under `.context/<workflow>/reviews/` are never collected.
+- **Screenshots.** Artifacts are text documents. Images and videos travel as attachments; see [Screenshots](#screenshots).
+- **What is not.** Logs, drafts, and other working state, anything you supplied as input, files Git already tracks, plans the change no longer follows, decision pages that do not show what was chosen, and review or audit reports with a finding that is neither fixed nor accepted.
+- **The check.** The workflow stages the exact bytes it inspects and skips documents containing credentials, personal or customer data, internal addresses, or unfixed security weaknesses. Private excerpts and security write-ups require a confirmed private or internal destination.
+- **Local reports.** If the include-all commit would pick up a local-only report, auto mode stops and manual mode offers to stash and exclude uncommitted work. Move untracked reports outside the checkout or make Git ignore them. Documentation intended for the diff stays part of the normal commit flow.
+- **Your own files.** Pass `--artifact plan.md`, adding `#name` to name the artifact. The workflow validates explicit files before any rebase. A file inside the repository must be ignored or committed without local changes.
+
+The upload attempt happens after the Pull Request exists. The closing message distinguishes confirmed and uncertain results and includes any returned artifact links. Pass `--no-artifacts` to collect only the files you name. `trackbed:workflow:cleanup-artifacts` removes local copies from `.trackbed/pr-artifacts/`.
+
+`trackbed:linear:issue-to-pr --ship` and `trackbed:code:plan-to-pr --ship` disable automatic document uploads. The Linear workflow also deletes its review reports and other disposable files before creating the Pull Request.
+
+Review archives stay local during automatic collection. A direct `/trackbed:pr:create` invocation can still collect eligible archived plans. Pass `--artifact` to attach an archived report yourself.
+
 ## Shaping Up an Open Pull Request
 
 `/trackbed:pr:shape-up` gets the current branch's open Pull Request ready to merge in one run. It reads the Pull Request first and runs only the passes it needs; a Pull Request that is already in shape gets a report and nothing else.
