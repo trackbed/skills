@@ -141,7 +141,7 @@ PY
 }
 
 @test "the shape-up delegations are recorded and documented" {
-  grep -qE '^- Amended: .*2026-11-10$' "$ADR"
+  grep -qE '^- Amended: .*2026-11-10(,|$)' "$ADR"
   grep -qF '### Pull Request shape-up delegations' "$ADR"
   grep -qF 'which passes exactly `--rebase --no-consolidate` in its first round and exactly `--no-rebase --no-consolidate` in each later round' "$ADR"
   grep -qF 'so a run rebases at most once' "$ADR"

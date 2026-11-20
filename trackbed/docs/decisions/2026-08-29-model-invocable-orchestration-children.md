@@ -2,7 +2,7 @@
 
 - Status: ACCEPTED
 - Date: 2026-08-29
-- Amended: 2026-10-15, 2026-10-21, 2026-10-27, 2026-10-31, 2026-11-02, 2026-11-09, 2026-11-10
+- Amended: 2026-10-15, 2026-10-21, 2026-10-27, 2026-10-31, 2026-11-02, 2026-11-09, 2026-11-10, 2026-11-20
 - Deciders: repository maintainers
 - First safety review: 2026-11-29
 
@@ -75,6 +75,16 @@ Shape-up delegates instead of answering comments itself for the reason given und
 ### Linear issue base-drift flags
 
 Amended 2026-11-12. `trackbed:linear:issue-to-pr` passes `--rebase` or `--no-rebase` to `trackbed:pr:fix-ci` after `--no-consolidate`, and only when its user typed that flag with `--ship`. `--rebase` lets that run rebase the Pull Request it opened once, through the existing `trackbed:pr:fix-ci` to `trackbed:pr:rebase --force-push` edge with every rebase gate. Without either flag, the parent's `--no-consolidate` run keeps unrelated base drift and asks about drift that can affect the Pull Request; it never rebases on its own. The [unattended-default decision](2026-10-31-unattended-default-for-shipping-skills.md#amendment-2026-11-12) records why. Focused tests pin both invocations.
+
+### Linear breakdown draft approval
+
+Amended 2026-11-20. `trackbed:linear:issue-define` is already model-invocable because every write it makes waits for the user's approval of the draft. `trackbed:linear:breakdown-findings` delegates each of its issues to it, so a batch of ten themes asked ten approval questions after the user had already confirmed the grouping. This amendment lets that one parent skip the per-draft question.
+
+- `trackbed:linear:issue-define` accepts `--no-draft-approval` only with `--auto` and a `LINEAR BREAKDOWN BATCH` payload, and rejects it otherwise before any Linear lookup. Under it, each entry is created without a draft preview or approval question. Duplicate decisions, clarifying or `--ask` questions, the one-PR check, the content check, and the structured results are unchanged.
+- `trackbed:linear:breakdown-findings` passes `--no-draft-approval` by default and omits it when its user gives `--review-each`, which restores the full-draft approval of each issue. No other caller passes the flag, and a model never adds it on its own initiative.
+- The authorization comes from the user's direct invocation of the model-disabled parent and its clustering confirmation, which names every theme before any write. With the parent's `--auto`, the user has opted out of that confirmation too, so the printed grouping is the only preview. The parent's relation approval is unchanged.
+
+Focused tests pin the parent's default flag, the `--review-each` opt-out, and the child's batch-only restriction.
 
 ## Consequences
 
