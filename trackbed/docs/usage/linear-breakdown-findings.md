@@ -1,6 +1,6 @@
 # linear:breakdown-findings
 
-Use it after a review, audit, scan, or QA run to turn the findings into Linear issues that each fit one Pull Request. It checks the findings against the repository, groups them into themes, orders them by dependency, and hands each theme to `trackbed:linear:issue-define`, which creates the issue only after you approve its full draft. It writes to Linear and never edits repository files. For local `PR_PLAN_*.md` files instead, use `trackbed:code:breakdown-findings`.
+Use it after a review, audit, scan, or QA run to turn the findings into Linear issues that each fit one Pull Request. It checks the findings against the repository, groups them into themes, orders them by dependency, and hands each theme to `trackbed:linear:issue-define`, which creates the issue without asking you to approve each draft. Pass `--review-each` to approve every draft first. It writes to Linear and never edits repository files. For local `PR_PLAN_*.md` files instead, use `trackbed:code:breakdown-findings`.
 
 ## Before you run it
 
@@ -19,10 +19,11 @@ Use it after a review, audit, scan, or QA run to turn the findings into Linear i
 
 | Option | Effect |
 | --- | --- |
-| `--auto` | Continue with the proposed grouping without asking you to confirm it. You still approve every issue and the dependency links. |
+| `--auto` | Continue with the proposed grouping without asking you to confirm it. You still answer duplicate decisions and approve the dependency links. |
 | `--ask` | Ask every relevant interview question for each issue, instead of only clarifying what is missing. |
+| `--review-each` | Show each issue's full draft and ask you to approve, refine, or cancel it before it is created. Without it, issues are created as soon as they are drafted. |
 | `--dry-run` | Show the planned issues, then stop. Nothing is created in Linear. Cannot be combined with `--resume`. |
-| `--resume <partial-report-path>` | Continue a stopped run from the partial report you saved to this file. Repeat the original sources and the same `--ask`, team, project, and label options. |
+| `--resume <partial-report-path>` | Continue a stopped run from the partial report you saved to this file. Repeat the original sources and the same `--ask`, team, project, and label options. Add `--review-each` to approve the remaining drafts. |
 | `--team <team>` | Create the issues in this Linear team. Without it, the only team is used, or you are asked. |
 | `--project <project>` | Add the issues to this existing project. A missing project is not created. |
 | `--label <label>` | Label every issue with this existing label. Repeat the flag for more labels. |
@@ -46,7 +47,7 @@ Use it after a review, audit, scan, or QA run to turn the findings into Linear i
 ## What you get
 
 - The proposed grouping first: each theme with its size, impact, and dependencies, and the findings left out with the reason.
-- One Linear issue per theme you approve. When you pick an existing issue as a match, the theme is recorded against it and no copy is created.
+- One Linear issue per theme in the grouping you confirmed, created without a per-draft question unless you pass `--review-each`. When you pick an existing issue as a match, the theme is recorded against it and no copy is created.
 - After one more approval, blocked-by relations between the issues, where the Linear tools support them.
 - A closing report: each theme with its issue, which issues can run in parallel, and the first ones that are ready to start.
 - If the run stops partway, a `PARTIAL LINEAR FINDINGS BATCH` block and the exact command to resume. Save the block to a file yourself; the skill writes no files.
