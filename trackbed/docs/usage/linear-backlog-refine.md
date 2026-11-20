@@ -1,6 +1,6 @@
 # linear:backlog-refine
 
-Use it to groom a Linear team's backlog before planning. It grades every open backlog issue for clarity, size, freshness, and whether an agent could implement it unattended, groups related issues, flags issues that contradict each other, and proposes one action per issue: complete, cancel, merge, split, rewrite, ask, or keep. Nothing changes in Linear unless you pass `--apply` and approve each batch. To pick an issue to work on, use `trackbed:linear:next`; to refine one issue through an interview, use `trackbed:linear:issue-define`.
+Use it to groom a Linear team's backlog before planning. It grades the issues it collects for clarity, size, freshness, and whether an agent could implement them unattended. It groups related issues, flags conflicts, and proposes an action for each issue. Nothing changes in Linear unless you pass `--apply` and approve each batch. Use `trackbed:linear:next` to pick work or `trackbed:linear:issue-define` to refine one issue through an interview.
 
 ## Before you run it
 
@@ -20,13 +20,17 @@ Use it to groom a Linear team's backlog before planning. It grades every open ba
 | `--label <name>` | Grade only issues with this label. |
 | `--stale-days <n>` | Flag an issue as stale after this many days without an update. The default is 90. |
 | `--limit <n>` | Collect at most this many backlog issues, least recently updated first. The default is 200 and the maximum is 400. |
+| `--all` | Grade every matching backlog issue without a cap. Project and label filters still apply. Cannot be combined with `--limit`. |
 | `--apply` | After the report, present the proposed changes one batch at a time and write the ones you confirm to Linear. |
 
 ## Examples
 
 ```text
-# Grade the backlog of the ENG team and report the proposed actions
+# Grade up to 200 backlog issues from the ENG team
 /trackbed:linear:backlog-refine ENG
+
+# Grade the full matching backlog for one project
+/trackbed:linear:backlog-refine ENG --project "Checkout" --all
 
 # Look at one project only, and treat 60 days without an update as stale
 /trackbed:linear:backlog-refine ENG --project "Checkout" --stale-days 60
@@ -37,7 +41,8 @@ Use it to groom a Linear team's backlog before planning. It grades every open ba
 
 ## What you get
 
-- A report in the conversation: a count per action, a table of the issues with their grades and the reason for each action, conflicts between issues that need a decision, drafts for every rewrite, split, and merge, and the questions that keep an issue from being ready.
+- An inline report for capped runs. With `--all`, the conversation gives the coverage and counts and links to a local report saved in batches. The detailed report includes issue grades, proposed actions, conflicts, drafts, and open questions.
+- With `--all`, full coverage requires fetching every matching page, checking for conflicts across batches, and verifying a report entry for every collected issue. If the run stops early, it reports the gap and links to any saved results.
 - Without `--apply`, no change in Linear.
 - With `--apply`, the batches you confirm are written. Completed and canceled issues get a comment and move to the team's completed or canceled status. Rewrites replace the title and description. Splits create sub-issues under the original. Duplicates hand their unique detail to the issue that stays, then move to the team's duplicate or canceled status with a comment. No issue is deleted, and each one is reported as applied, partially applied, skipped, or failed.
 

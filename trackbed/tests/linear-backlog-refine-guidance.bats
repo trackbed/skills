@@ -26,6 +26,42 @@
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
+@test "Linear backlog refine --all exhausts matching backlog pages" {
+	run bash -c '
+    set -e
+    cd "'"$BATS_TEST_DIRNAME"'/.."
+    skill="skills/linear:backlog-refine/SKILL.md"
+
+    grep -qF -- "[--limit <n>|--all]" "$skill"
+    grep -qF "Default 200, maximum 400." "$skill"
+    grep -qF "Reject \`--all\` combined with \`--limit\`" "$skill"
+    grep -qF "Follow every cursor for every selected backlog state" "$skill"
+    grep -qF "The team, backlog state, project, and label filters still apply." "$skill"
+    grep -qF "Full coverage requires exhausting every matching backlog page and grading and recording every collected match." "$skill"
+    grep -qF "read \`references/full-backlog-report.md\` before fetching" "$skill"
+  '
+
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
+@test "Linear backlog refine --all verifies saved report coverage across batches" {
+	run bash -c '
+    set -e
+    cd "'"$BATS_TEST_DIRNAME"'/.."
+    report="skills/linear:backlog-refine/references/full-backlog-report.md"
+
+    grep -qF "before loading another batch" "$report"
+    grep -qF "including issues in different batch files" "$report"
+    grep -qF "every collected issue has exactly one readable final row" "$report"
+    grep -qF "required evidence and drafts are present" "$report"
+    grep -qF "Claim full coverage only when all matching pages were exhausted, the cross-batch conflict search is complete, and all collected identifiers reconcile with the saved final rows." "$report"
+    grep -qF "report partial coverage with the reason and affected scope" "$report"
+    grep -qF "Keep the detailed rows, drafts, evidence, and conflict identifiers in the files." "$report"
+  '
+
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
 @test "Linear backlog refine rubric guards cancel and split decisions" {
 	run bash -c '
     set -e
