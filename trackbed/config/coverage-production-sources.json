@@ -178,6 +178,7 @@
       "trackbed/scripts/risk_classification.py",
       "trackbed/scripts/risk_patterns.py",
       "trackbed/scripts/resolve-stack-context.py",
+      "trackbed/scripts/pr-artifacts.py",
       "trackbed/scripts/pr-evidence.py",
       "trackbed/scripts/summarize-semantic-scan.py",
       "trackbed/scripts/visual-report.py",

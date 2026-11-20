@@ -621,6 +621,14 @@
       "producer": "trackbed:code:copy-review"
     },
     {
+      "id": "pr-artifacts",
+      "path": ".trackbed/pr-artifacts/",
+      "type": "dir",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:pr:create"
+    },
+    {
       "id": "verify-understanding",
       "path": ".context/verify-understanding/",
       "type": "dir",

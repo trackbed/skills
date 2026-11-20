@@ -1695,6 +1695,7 @@
         "DEPRECATION_PLAN_*.md",
         ".context/demo-reels/",
         ".trackbed/pr-evidence/",
+        ".trackbed/pr-artifacts/",
         ".context/github-review-drafts/",
         ".context/github-review-replies/",
         ".context/session-search/",
