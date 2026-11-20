@@ -489,7 +489,7 @@ Requirements discovery, primary-source research, and checks that you understand 
 | --- | --- | --- | --- |
 | `/trackbed:research` | User, Auto | `[research question or topic] [--output <path>]` | Answer a question from primary sources, such as official docs, specs, or source code, and save one cited Markdown artifact. |
 | `/trackbed:discovery:wayfinder` | User | `[initiative description \| map-path [ticket-id]]` | Chart a huge or foggy initiative as a local decision map and resolve one open question per session until it is ready for planning. |
-| `/trackbed:discovery:interview` | User, Auto | `[topic \| file-path(s) \| siw] [--siw] [--apply] [--visual] [--ideate] [--decision-tree] [--research]` | Interview you about a topic, proposal, or spec to uncover requirements, priorities, and non-goals, then write a plan; `--siw` feeds an SIW spec. |
+| `/trackbed:discovery:interview` | User, Auto | `[topic \| file-path(s) \| siw] [--siw] [--apply] [--visual] [--ui] [--ideate] [--decision-tree] [--research]` | Interview you about a topic, proposal, or spec to uncover requirements, priorities, and non-goals, then write a plan; `--siw` feeds an SIW spec. |
 | `/trackbed:discovery:strategic-inquiry` | User | `[focus, e.g. 'onboarding', src/auth, or omit for whole repo] [--max-questions N] [--output <path>] [--inline] [--visual]` | Generate ranked strategic questions about hidden assumptions, contradictions, and load-bearing decisions in a codebase or area. |
 | `/trackbed:learn:verify-understanding` | User | `[topic: PR, branch, feature, document, spec, etc.] [--answer-options\|--choices]` | Confirm that you understand a PR, feature, spec, or other topic through questions and a checklist before calling it done. |
 

@@ -1,0 +1,704 @@
+{
+  "now": "2026-01-16T10:00:00.000Z",
+  "catalog": {
+    "session": "email-2fa-login",
+    "round": 2,
+    "fingerprint": "72922f5e2e3216f5",
+    "questions": [
+      {
+        "id": "code-step",
+        "kind": "choice",
+        "options": ["inline", "second-screen"],
+        "multiple": false,
+        "other": true
+      },
+      {
+        "id": "friction",
+        "kind": "scale",
+        "steps": 5
+      },
+      {
+        "id": "edge-order",
+        "kind": "rank",
+        "items": ["late-email", "lost-inbox", "wrong-code", "two-tabs"]
+      },
+      {
+        "id": "scope",
+        "kind": "matrix",
+        "rows": ["trusted-devices", "backup-codes", "admin-enforce", "sms"],
+        "columns": ["now", "later", "never"]
+      },
+      {
+        "id": "effort",
+        "kind": "allocate",
+        "items": ["flow", "recovery", "abuse", "settings"],
+        "total": 100,
+        "step": 5,
+        "unit": "points"
+      },
+      {
+        "id": "session-column",
+        "kind": "confirm"
+      },
+      {
+        "id": "worry",
+        "kind": "text"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "every kind answered",
+      "drafts": {
+        "code-step": {
+          "selected": ["second-screen"]
+        },
+        "friction": {
+          "stop": 4
+        },
+        "edge-order": {
+          "order": ["lost-inbox", "late-email", "wrong-code", "two-tabs"],
+          "confirmed": true
+        },
+        "scope": {
+          "cells": {
+            "trusted-devices": "now",
+            "backup-codes": "now",
+            "admin-enforce": "later",
+            "sms": "never"
+          }
+        },
+        "effort": {
+          "amounts": {
+            "flow": 40,
+            "recovery": 30,
+            "abuse": 20,
+            "settings": 10
+          }
+        },
+        "session-column": {
+          "verdict": "correct",
+          "correction": "  The mobile API writes to it already.  "
+        },
+        "worry": {
+          "text": "That recovery becomes the easy way in."
+        }
+      },
+      "meta": {
+        "note": " Legal wants a say on SMS. ",
+        "wrapUp": false
+      },
+      "payload": {
+        "format": "trackbed-interview-answers",
+        "schemaVersion": 1,
+        "session": "email-2fa-login",
+        "round": 2,
+        "fingerprint": "72922f5e2e3216f5",
+        "submittedAt": "2026-01-16T10:00:00.000Z",
+        "next": "continue",
+        "note": "Legal wants a say on SMS.",
+        "answers": [
+          {
+            "id": "code-step",
+            "status": "answered",
+            "value": {
+              "selected": ["second-screen"],
+              "other": ""
+            },
+            "note": ""
+          },
+          {
+            "id": "friction",
+            "status": "answered",
+            "value": {
+              "value": 4
+            },
+            "note": ""
+          },
+          {
+            "id": "edge-order",
+            "status": "answered",
+            "value": {
+              "order": ["lost-inbox", "late-email", "wrong-code", "two-tabs"]
+            },
+            "note": ""
+          },
+          {
+            "id": "scope",
+            "status": "answered",
+            "value": {
+              "cells": {
+                "trusted-devices": "now",
+                "backup-codes": "now",
+                "admin-enforce": "later",
+                "sms": "never"
+              }
+            },
+            "note": ""
+          },
+          {
+            "id": "effort",
+            "status": "answered",
+            "value": {
+              "amounts": {
+                "flow": 40,
+                "recovery": 30,
+                "abuse": 20,
+                "settings": 10
+              }
+            },
+            "note": ""
+          },
+          {
+            "id": "session-column",
+            "status": "answered",
+            "value": {
+              "verdict": "correct",
+              "correction": "The mobile API writes to it already."
+            },
+            "note": ""
+          },
+          {
+            "id": "worry",
+            "status": "answered",
+            "value": {
+              "text": "That recovery becomes the easy way in."
+            },
+            "note": ""
+          }
+        ]
+      }
+    },
+    {
+      "name": "nothing touched",
+      "drafts": {},
+      "meta": {
+        "note": "",
+        "wrapUp": false
+      },
+      "payload": {
+        "format": "trackbed-interview-answers",
+        "schemaVersion": 1,
+        "session": "email-2fa-login",
+        "round": 2,
+        "fingerprint": "72922f5e2e3216f5",
+        "submittedAt": "2026-01-16T10:00:00.000Z",
+        "next": "continue",
+        "note": "",
+        "answers": [
+          {
+            "id": "code-step",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "friction",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "edge-order",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "scope",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "effort",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "session-column",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "worry",
+            "status": "open",
+            "value": null,
+            "note": ""
+          }
+        ]
+      }
+    },
+    {
+      "name": "not sure wins over what was entered, and its note is kept",
+      "drafts": {
+        "code-step": {
+          "selected": ["second-screen"]
+        },
+        "friction": {
+          "stop": 4,
+          "unsure": true,
+          "note": "Depends on what legal says."
+        },
+        "edge-order": {
+          "order": ["lost-inbox", "late-email", "wrong-code", "two-tabs"],
+          "confirmed": true
+        },
+        "scope": {
+          "cells": {
+            "trusted-devices": "now",
+            "backup-codes": "now",
+            "admin-enforce": "later",
+            "sms": "never"
+          }
+        },
+        "effort": {
+          "amounts": {
+            "flow": 40,
+            "recovery": 30,
+            "abuse": 20,
+            "settings": 10
+          }
+        },
+        "session-column": {
+          "verdict": "correct",
+          "correction": "  The mobile API writes to it already.  "
+        },
+        "worry": {
+          "text": "That recovery becomes the easy way in."
+        }
+      },
+      "meta": {
+        "note": "",
+        "wrapUp": true
+      },
+      "payload": {
+        "format": "trackbed-interview-answers",
+        "schemaVersion": 1,
+        "session": "email-2fa-login",
+        "round": 2,
+        "fingerprint": "72922f5e2e3216f5",
+        "submittedAt": "2026-01-16T10:00:00.000Z",
+        "next": "wrap-up",
+        "note": "",
+        "answers": [
+          {
+            "id": "code-step",
+            "status": "answered",
+            "value": {
+              "selected": ["second-screen"],
+              "other": ""
+            },
+            "note": ""
+          },
+          {
+            "id": "friction",
+            "status": "unsure",
+            "value": null,
+            "note": "Depends on what legal says."
+          },
+          {
+            "id": "edge-order",
+            "status": "answered",
+            "value": {
+              "order": ["lost-inbox", "late-email", "wrong-code", "two-tabs"]
+            },
+            "note": ""
+          },
+          {
+            "id": "scope",
+            "status": "answered",
+            "value": {
+              "cells": {
+                "trusted-devices": "now",
+                "backup-codes": "now",
+                "admin-enforce": "later",
+                "sms": "never"
+              }
+            },
+            "note": ""
+          },
+          {
+            "id": "effort",
+            "status": "answered",
+            "value": {
+              "amounts": {
+                "flow": 40,
+                "recovery": 30,
+                "abuse": 20,
+                "settings": 10
+              }
+            },
+            "note": ""
+          },
+          {
+            "id": "session-column",
+            "status": "answered",
+            "value": {
+              "verdict": "correct",
+              "correction": "The mobile API writes to it already."
+            },
+            "note": ""
+          },
+          {
+            "id": "worry",
+            "status": "answered",
+            "value": {
+              "text": "That recovery becomes the easy way in."
+            },
+            "note": ""
+          }
+        ]
+      }
+    },
+    {
+      "name": "an answer of the person's own stands in for an option",
+      "drafts": {
+        "code-step": {
+          "selected": ["inline"],
+          "otherOn": true,
+          "other": "A magic link instead of a code"
+        }
+      },
+      "meta": {
+        "note": "",
+        "wrapUp": false
+      },
+      "payload": {
+        "format": "trackbed-interview-answers",
+        "schemaVersion": 1,
+        "session": "email-2fa-login",
+        "round": 2,
+        "fingerprint": "72922f5e2e3216f5",
+        "submittedAt": "2026-01-16T10:00:00.000Z",
+        "next": "continue",
+        "note": "",
+        "answers": [
+          {
+            "id": "code-step",
+            "status": "answered",
+            "value": {
+              "selected": [],
+              "other": "A magic link instead of a code"
+            },
+            "note": ""
+          },
+          {
+            "id": "friction",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "edge-order",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "scope",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "effort",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "session-column",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "worry",
+            "status": "open",
+            "value": null,
+            "note": ""
+          }
+        ]
+      }
+    },
+    {
+      "name": "incomplete answers stay open",
+      "drafts": {
+        "code-step": {
+          "otherOn": true,
+          "other": "   "
+        },
+        "edge-order": {
+          "order": ["two-tabs", "late-email", "lost-inbox", "wrong-code"]
+        },
+        "scope": {
+          "cells": {
+            "sms": "never"
+          }
+        },
+        "effort": {
+          "amounts": {
+            "flow": 40,
+            "recovery": 30
+          }
+        },
+        "session-column": {
+          "verdict": "correct"
+        },
+        "worry": {
+          "text": "  "
+        }
+      },
+      "meta": {
+        "note": "",
+        "wrapUp": false
+      },
+      "payload": {
+        "format": "trackbed-interview-answers",
+        "schemaVersion": 1,
+        "session": "email-2fa-login",
+        "round": 2,
+        "fingerprint": "72922f5e2e3216f5",
+        "submittedAt": "2026-01-16T10:00:00.000Z",
+        "next": "continue",
+        "note": "",
+        "answers": [
+          {
+            "id": "code-step",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "friction",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "edge-order",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "scope",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "effort",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "session-column",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "worry",
+            "status": "open",
+            "value": null,
+            "note": ""
+          }
+        ]
+      }
+    },
+    {
+      "name": "stored drafts that no longer fit the round are dropped",
+      "drafts": {
+        "code-step": {
+          "selected": ["retired-option", "inline", "second-screen"]
+        },
+        "friction": {
+          "stop": 9
+        },
+        "edge-order": {
+          "order": ["late-email", "gone"],
+          "confirmed": true
+        },
+        "scope": {
+          "cells": {
+            "sms": "maybe",
+            "gone": "now",
+            "backup-codes": "later"
+          }
+        },
+        "effort": {
+          "amounts": {
+            "flow": 70,
+            "recovery": 70,
+            "abuse": -5,
+            "settings": "x"
+          }
+        },
+        "session-column": {
+          "verdict": "shrug"
+        },
+        "retired-question": {
+          "text": "left over"
+        }
+      },
+      "meta": {
+        "note": "",
+        "wrapUp": false
+      },
+      "payload": {
+        "format": "trackbed-interview-answers",
+        "schemaVersion": 1,
+        "session": "email-2fa-login",
+        "round": 2,
+        "fingerprint": "72922f5e2e3216f5",
+        "submittedAt": "2026-01-16T10:00:00.000Z",
+        "next": "continue",
+        "note": "",
+        "answers": [
+          {
+            "id": "code-step",
+            "status": "answered",
+            "value": {
+              "selected": ["inline"],
+              "other": ""
+            },
+            "note": ""
+          },
+          {
+            "id": "friction",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "edge-order",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "scope",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "effort",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "session-column",
+            "status": "open",
+            "value": null,
+            "note": ""
+          },
+          {
+            "id": "worry",
+            "status": "open",
+            "value": null,
+            "note": ""
+          }
+        ]
+      }
+    }
+  ],
+  "refused": [
+    {
+      "name": "an option the round never offered",
+      "path": ["answers", 0, "value", "selected"],
+      "value": ["retired-option"],
+      "problem": "option ids from this question"
+    },
+    {
+      "name": "two options where the question takes one",
+      "path": ["answers", 0, "value", "selected"],
+      "value": ["inline", "second-screen"],
+      "problem": "more options than this question takes"
+    },
+    {
+      "name": "a stop past the end of the scale",
+      "path": ["answers", 1, "value", "value"],
+      "value": 6,
+      "problem": "whole number from 1 to 5"
+    },
+    {
+      "name": "an order that leaves an item out",
+      "path": ["answers", 2, "value", "order"],
+      "value": ["lost-inbox", "late-email", "wrong-code"],
+      "problem": "every item of this question once"
+    },
+    {
+      "name": "a row given a column the question does not have",
+      "path": ["answers", 3, "value", "cells", "sms"],
+      "value": "maybe",
+      "problem": "one column of this question for every row"
+    },
+    {
+      "name": "amounts that do not add up",
+      "path": ["answers", 4, "value", "amounts", "flow"],
+      "value": 45,
+      "problem": "must add up to 100"
+    },
+    {
+      "name": "amounts that add up but do not match the step",
+      "path": ["answers", 4, "value", "amounts"],
+      "value": { "flow": 41, "recovery": 29, "abuse": 20, "settings": 10 },
+      "problem": "must be multiples of 5"
+    },
+    {
+      "name": "a correction with nothing in it",
+      "path": ["answers", 5, "value", "correction"],
+      "value": " ",
+      "problem": "must say what is right"
+    },
+    {
+      "name": "an answered question with no value",
+      "path": ["answers", 6, "value"],
+      "value": null,
+      "problem": "must be an object"
+    },
+    {
+      "name": "a status the page never sends",
+      "path": ["answers", 6, "status"],
+      "value": "skipped",
+      "problem": "must be one of answered, unsure, open"
+    },
+    {
+      "name": "answers for another round",
+      "path": ["round"],
+      "value": 3,
+      "problem": "not round 2"
+    },
+    {
+      "name": "answers for another session",
+      "path": ["session"],
+      "value": "other-session",
+      "problem": "not round 2"
+    },
+    {
+      "name": "answers to an earlier version of the round",
+      "path": ["fingerprint"],
+      "value": "0000000000000000",
+      "problem": "earlier version of this round"
+    },
+    {
+      "name": "a next step the page never sends",
+      "path": ["next"],
+      "value": "apply",
+      "problem": "must be one of continue, wrap-up"
+    },
+    {
+      "name": "another format",
+      "path": ["format"],
+      "value": "trackbed-decisions",
+      "problem": "must have \"format\""
+    }
+  ]
+}

@@ -58,6 +58,9 @@
       "trackbed/skills/visual:decisions/assets/decisions.js": [
         "trackbed/tests/visual-decisions-guidance.bats"
       ],
+      "trackbed/skills/discovery:interview/assets/interview-ui.js": [
+        "trackbed/tests/interview-ui-guidance.bats"
+      ],
       "trackbed/evals/refactor-opportunities/_project/src/channels/api.js": [
         "trackbed/tests/skill-eval-suites.bats"
       ],
@@ -181,10 +184,17 @@
       "trackbed/skills/visual:decisions/scripts/decisions_choices.py",
       "trackbed/skills/visual:decisions/scripts/decisions_content.py",
       "trackbed/skills/visual:decisions/scripts/decisions_evidence.py",
-      "trackbed/skills/visual:decisions/scripts/decisions_images.py",
+      "trackbed/scripts/visual_evidence_images.py",
       "trackbed/skills/visual:decisions/scripts/decisions_item.py",
       "trackbed/skills/visual:decisions/scripts/decisions_model.py",
       "trackbed/skills/visual:decisions/scripts/decisions_page.py",
+      "trackbed/skills/discovery:interview/scripts/interview-ui.py",
+      "trackbed/skills/discovery:interview/scripts/interview_ui_answers.py",
+      "trackbed/skills/discovery:interview/scripts/interview_ui_fields.py",
+      "trackbed/skills/discovery:interview/scripts/interview_ui_figures.py",
+      "trackbed/skills/discovery:interview/scripts/interview_ui_page.py",
+      "trackbed/skills/discovery:interview/scripts/interview_ui_round.py",
+      "trackbed/skills/discovery:interview/scripts/interview_ui_server.py",
       "trackbed/scripts/lint_skill_contracts/checks/suite_references.py"
     ],
     "contract_only": {
@@ -424,6 +434,19 @@
       "kind": "guidance",
       "suite": "trackbed/tests/docs-update-agents-md-guidance.bats",
       "skills": ["trackbed/skills/docs:update-agents-md/SKILL.md"]
+    },
+    {
+      "kind": "guidance",
+      "suite": "trackbed/tests/interview-ui-guidance.bats",
+      "skills": [
+        "trackbed/skills/discovery:interview/SKILL.md",
+        "trackbed/skills/siw:init/SKILL.md"
+      ]
+    },
+    {
+      "kind": "executable",
+      "suite": "trackbed/tests/python/test_interview_ui.py",
+      "skills": ["trackbed/skills/discovery:interview/SKILL.md"]
     },
     {
       "kind": "guidance",

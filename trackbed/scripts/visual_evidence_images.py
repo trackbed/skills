@@ -10,7 +10,6 @@ import base64
 import re
 import struct
 from pathlib import Path
-from typing import Optional
 
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 SVG_VIEWBOX_RE = re.compile(
@@ -33,14 +32,19 @@ class ImageProblem(Exception):
         self.missing = missing
 
 
-def embed_image(path: Path) -> tuple[str, int, int]:
+def embed_image(path: Path, *, screenshot: bool = False) -> tuple[str, int, int]:
     """The image as a data URL, with its pixel size when the header gives one (0 otherwise)."""
     try:
-        data = path.read_bytes()
+        with path.open("rb") as stream:
+            data = stream.read(MAX_IMAGE_BYTES + 1)
     except OSError as error:
         raise ImageProblem(f"cannot be read ({error.strerror or error})", missing=True) from error
     if len(data) > MAX_IMAGE_BYTES:
         raise ImageProblem(f"is larger than {MAX_IMAGE_BYTES // (1024 * 1024)} MB")
+    if screenshot and not (
+        data.startswith((b"\x89PNG\r\n\x1a\n", b"\xff\xd8\xff")) or (data[:4] == b"RIFF" and data[8:12] == b"WEBP")
+    ):
+        raise ImageProblem("the file contents must be PNG, JPEG or WebP")
     sniffed = sniff_image(data)
     if sniffed is None:
         raise ImageProblem("is not a PNG, JPEG, GIF, WebP, AVIF, or SVG image")
@@ -50,7 +54,7 @@ def embed_image(path: Path) -> tuple[str, int, int]:
     return f"data:{mime};base64,{base64.b64encode(data).decode('ascii')}", width, height
 
 
-def sniff_image(data: bytes) -> Optional[tuple[str, int, int]]:
+def sniff_image(data: bytes) -> tuple[str, int, int] | None:
     """The image type by its leading bytes, with its pixel size when the header gives one cheaply."""
     if data.startswith(b"\x89PNG\r\n\x1a\n") and len(data) >= 24:
         width, height = struct.unpack(">II", data[16:24])

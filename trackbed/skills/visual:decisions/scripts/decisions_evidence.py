@@ -8,11 +8,14 @@ from __future__ import annotations
 
 import math
 import re
+import sys
 from pathlib import Path
 from typing import Any, Optional, Protocol
 
-from decisions_images import ImageProblem, embed_image
 from decisions_model import Evidence
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
+from visual_evidence_images import ImageProblem, embed_image  # noqa: E402
 
 EVIDENCE_TYPES = ("image", "table", "excerpt", "chart")
 ORIGINS = ("source", "added")

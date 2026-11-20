@@ -41,7 +41,7 @@ assert SPEC is not None
 assert SPEC.loader is not None
 builder = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(builder)
-images = importlib.import_module("decisions_images")
+images = importlib.import_module("visual_evidence_images")
 page = importlib.import_module("decisions_page")
 evidence_module = importlib.import_module("decisions_evidence")
 
