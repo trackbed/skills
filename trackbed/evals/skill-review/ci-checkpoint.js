@@ -309,7 +309,6 @@ if (require.main === module) {
 }
 
 module.exports = {
-  checkpointPath,
   stageCheckpoint,
   trustedRun,
   restoreArchive,

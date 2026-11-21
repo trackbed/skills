@@ -2,7 +2,7 @@ import { USAGE_DIR } from "./config.mjs";
 import { nodeText, parseMarkdown, walk } from "./markdown.mjs";
 
 /** The `##` sections a usage guide may hold, in the order it must hold them. */
-export const USAGE_SECTIONS = [
+const USAGE_SECTIONS = [
   "Before you run it",
   "Arguments",
   "Options",
