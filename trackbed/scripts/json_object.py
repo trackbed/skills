@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+
+JsonObject = dict[str, object]
 
 
-def load_json_object(path: Path, label: str) -> dict[str, Any]:
+def load_json_object(path: Path, label: str) -> JsonObject:
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:
