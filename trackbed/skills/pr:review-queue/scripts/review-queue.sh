@@ -13,9 +13,12 @@
 #                report, whatever their repository
 #
 # Prints {checkedAt, me, prs: [...]} with one summarised object per PR, and
-# warnings on stderr. Exits 2 on a usage error, including no --repo or
+# warnings on stderr. Each PR carries how long it has waited on you, an estimate
+# of whether it is ready for review, its linked issue, and the command that
+# starts a review of it. Exits 2 on a usage error, including no --repo or
 # --all-repos outside a GitHub repository, and nonzero when a search fails; an
-# unreadable ref or an unlistable set of workflow runs only warns. Needs an
+# unreadable ref, an unlistable set of workflow runs, or unreadable required
+# checks only warns. Needs an
 # authenticated gh and jq. Runs under the Bash 3.2 that macOS ships, so guard
 # empty-array expansions under set -u and do not use mapfile.
 
@@ -83,13 +86,24 @@ done
 
 FRAGMENT='
 fragment PR on PullRequest {
-  number title url isDraft state mergedAt mergedBy { login }
+  number title url body isDraft state createdAt mergedAt mergedBy { login }
   repository { nameWithOwner defaultBranchRef { name } }
   author { login }
-  baseRefName headRefOid additions deletions changedFiles
+  baseRefName headRefName headRefOid additions deletions changedFiles
+  baseRef {
+    associatedPullRequests(states: OPEN, first: 10) { nodes { number url isDraft headRepository { nameWithOwner } } }
+    refUpdateRule { pattern } rules(first: 1) { totalCount }
+  }
   mergeable mergeStateStatus reviewDecision
+  labels(first: 20) { nodes { name } }
   reviewRequests(first: 20) { nodes { requestedReviewer { ... on User { login } ... on Team { slug } } } }
   latestReviews(first: 20) { nodes { author { login } state } }
+  latestOpinionatedReviews(first: 20) { nodes { author { login } state commit { oid } } }
+  timelineItems(itemTypes: [REVIEW_REQUESTED_EVENT, READY_FOR_REVIEW_EVENT], last: 50) { nodes {
+    __typename
+    ... on ReviewRequestedEvent { createdAt requestedReviewer { ... on User { login } } }
+    ... on ReadyForReviewEvent { createdAt }
+  } }
   myReviews: reviews(author: $me, last: 20) { nodes { state submittedAt commit { oid } comments { totalCount } } }
   reviewThreads(first: 100) { nodes { isResolved comments(first: 1) { nodes { author { login } pullRequestReview { state } } } } }
   commits(last: 1) { nodes { commit { committedDate statusCheckRollup { state contexts(first: 100) { totalCount nodes {
@@ -164,6 +178,30 @@ superseded_runs() {
   fi
 }
 
+# A failing check counts against readiness only when branch protection requires
+# it. GitHub reports BLOCKED ahead of UNSTABLE while a required approval is
+# missing, so the merge state cannot say which checks are required. Print the
+# names of the required checks on the PR's head. isRequired needs the PR number,
+# so this is one query per PR.
+REQUIRED_QUERY='query($owner: String!, $name: String!, $number: Int!) {
+  repository(owner: $owner, name: $name) { pullRequest(number: $number) { commits(last: 1) { nodes { commit {
+    statusCheckRollup { contexts(first: 100) { nodes {
+      ... on CheckRun { name isRequired(pullRequestNumber: $number) }
+      ... on StatusContext { context isRequired(pullRequestNumber: $number) }
+    } } }
+  } } } } }
+}'
+required_checks() {
+  local slug=$1 number=$2 names
+  if names=$(gh api graphql -f query="$REQUIRED_QUERY" -f owner="${slug%%/*}" -f name="${slug#*/}" \
+    -F number="$number" --jq '[.data.repository.pullRequest.commits.nodes[0].commit.statusCheckRollup.contexts.nodes[]
+      | select(.isRequired) | .name // .context] | unique'); then
+    jq -n --arg key "$slug#$number" --argjson names "$names" '{key: $key, value: $names}'
+  else
+    echo "warning: cannot read the required checks for $slug#$number" >&2
+  fi
+}
+
 # A failed search fails the run; an unreadable ref only warns.
 collect_prs() {
   search "is:pr is:open archived:false user-review-requested:@me$scope" || return
@@ -201,11 +239,35 @@ superseded=$(jq -r '.[]
     superseded_runs "$slug" "$sha"
   done | jq -s 'from_entries')
 
+required=$(jq -r '.[]
+    | select(.state == "OPEN" and ((.commits.nodes[0].commit.statusCheckRollup.state // "") | IN("FAILURE", "ERROR")))
+    | "\(.repository.nameWithOwner) \(.number)"' <<< "$prs" \
+  | while read -r slug number; do
+    required_checks "$slug" "$number"
+  done | jq -s 'from_entries')
+
 SUMMARY='
 def result: .conclusion // .state;
 def failed: result | IN("FAILURE", "ERROR", "TIMED_OUT", "STARTUP_FAILURE", "ACTION_REQUIRED");
 def running: (.status // "COMPLETED") != "COMPLETED" or ((.state // "") | IN("PENDING", "EXPECTED"));
 def rollup_ci: if IN("FAILURE", "ERROR") then "failing" elif IN("PENDING", "EXPECTED") then "running" else null end;
+# A label that says the author is not done, such as "WIP" or "do-not-merge".
+def unfinished_label: test("\\b(wip|dnm|work[ -]in[ -]progress|not[ -]ready|do[ -]not[ -](merge|review)|don.?t[ -](merge|review))\\b"; "i");
+# A title says so only with a marker: a prefix that ends in a colon, a bracketed
+# tag, or the words in capitals. A title such as "fix: do not merge duplicate
+# rows" describes the change instead.
+def unfinished_title:
+  "wip|dnm|draft|work in progress|do not (merge|review)" as $marker
+  | test("^\\s*\\[?(\($marker))\\]?:|\\[(\($marker))\\]"; "i")
+    or test("\\b(WIP|DNM|DO NOT (MERGE|REVIEW))\\b");
+def elapsed: if . < 3600 then "\(. / 60 | floor)m"
+  elif . < 86400 then "\(. / 3600 | floor)h"
+  elif . < 7 * 86400 then "\(. / 86400 | floor)d \((. % 86400) / 3600 | floor)h"
+  else "\(. / 86400 | floor)d" end;
+# A check still pending after this many seconds is a gate, such as a sign-off, or
+# is stuck. It is not CI in progress.
+def gate_after: 7200;
+($checkedAt | fromdateiso8601) as $now |
 {checkedAt: $checkedAt, me: $me, prs: (sort_by(.repository.nameWithOwner, .number) | map(
   .commits.nodes[0].commit as $c
   | ($c.statusCheckRollup.contexts.nodes // []) as $all
@@ -219,36 +281,121 @@ def rollup_ci: if IN("FAILURE", "ERROR") then "failing" elif IN("PENDING", "EXPE
   # so a reply must not hide an earlier approval or changes request.
   | [.myReviews.nodes[] | select(.state != "PENDING")] as $submitted
   | ([$submitted[] | select(.state != "COMMENTED")] | last // ($submitted | last)) as $mine
+  | any(.reviewRequests.nodes[]; .requestedReviewer.login == $me) as $requested
+  # A reviewer who approves or requests changes and then comments has COMMENTED
+  # as their latest review, so read their latest approval or changes request
+  # first and their latest review only when they have neither.
+  | (.latestOpinionatedReviews.nodes // []) as $decisive
+  | ($decisive + [.latestReviews.nodes[] | select(.author.login as $login | all($decisive[]; .author.login != $login))]) as $reviews
+  # The first issue key in the title, else the first Linear link in the
+  # description, else the first key the description names after a linking word,
+  # as in "Fixes WID-42", else a key that starts a segment of the branch name, as
+  # in "ana/wid-42-cache-lookups".
+  | ([(.body // "") | match("https://linear\\.app/[A-Za-z0-9_-]+/issue/([A-Za-z][A-Za-z0-9]*-[0-9]+)[A-Za-z0-9/_-]*"; "g")
+      | {key: (.captures[0].string | ascii_upcase), url: .string}]) as $links
+  | ([.title | scan("\\b[A-Z][A-Z0-9]+-[0-9]+\\b")] | first) as $titleKey
+  | ([(.body // "") | match("\\b(?i:close[sd]?|closing|fix(?:e[sd])?|fixing|resolve[sd]?|resolving|complete[sd]?|completing|refs?|references|part of|related to|contributes to|towards?):? +\\[?([A-Z][A-Z0-9]*-[0-9]+)\\b"; "g")
+      | .captures[0].string] | first) as $namedKey
+  # A dependency bot names its branch after the package and version, as in
+  # "dependabot/github_actions/actions/checkout-4", so its branch names no issue.
+  | ([(.headRefName // "") | select(test("^(dependabot|renovate)/") | not)
+      | match("(?:^|/)([A-Za-z][A-Za-z0-9]*-[0-9]+)(?=$|[/_-])"; "g")
+      | .captures[0].string | ascii_upcase] | first) as $branchKey
+  | (if $titleKey then {key: $titleKey, source: "title"}
+     elif $links[0] then {key: $links[0].key, source: "description"}
+     elif $namedKey then {key: $namedKey, source: "description"}
+     elif $branchKey then {key: $branchKey, source: "branch"}
+     else null end) as $issue
+  # You have waited since the author last requested you, or since the PR left
+  # draft after that. The creation time stands in when the request is older than
+  # the events read.
+  | ([.timelineItems.nodes[]? | select(.__typename == "ReviewRequestedEvent" and .requestedReviewer.login == $me) | .createdAt] | last) as $requestedAt
+  | ([.timelineItems.nodes[]? | select(.__typename == "ReadyForReviewEvent") | .createdAt] | last) as $readyAt
+  | (if ($requested and .state == "OPEN") | not then null
+     elif $requestedAt == null then {since: .createdAt, from: "opened"}
+     elif $readyAt != null and $readyAt > $requestedAt then {since: $readyAt, from: "marked ready"}
+     else {since: $requestedAt, from: "requested"} end) as $waiting
+  | ((if ($checks | length) == 0 then "none"
+      elif any($checks[]; failed) then "failing"
+      elif any($checks[]; running) then "running"
+      elif any($checks[]; result == "CANCELLED") then "cancelled"
+      else "green" end) as $read
+     | if $rollupCi == "failing" or ($rollupCi == "running" and $read != "failing") then $rollupCi
+       else $read end) as $ci
+  | ([.reviewThreads.nodes[] | select((.isResolved | not) and .comments.nodes[0].author.login != $me)] | length) as $otherThreads
+  | [$checks[] | select(running) | (.startedAt // .createdAt)] as $pendingSince
+  | ($ci == "running" and (($pendingSince | length) == 0
+      or any($pendingSince[]; . == null or $now - fromdateiso8601 < gate_after))) as $ciInMotion
+  # The open PR whose branch this PR targets. GitHub also lists fork PRs from a
+  # branch of the same name, and a long-lived branch such as development can be
+  # the head of a release PR, so skip fork PRs, the default branch, and branches
+  # that branch protection or a ruleset covers.
+  | (if .baseRefName == .repository.defaultBranchRef.name
+        or .baseRef.refUpdateRule != null or (.baseRef.rules.totalCount // 0) > 0 then null
+     else .repository.nameWithOwner as $repo
+       | first(.baseRef.associatedPullRequests.nodes[]? | select(.headRepository.nameWithOwner == $repo)) // null
+     end) as $basePr
+  # Whether a failing check is one that branch protection requires. Without the
+  # required checks, UNSTABLE is the only sign that none is, and a failure that
+  # no check read names counts as required.
+  | [$checks[] | select(failed) | .name // .context] as $failedNames
+  | $required["\(.repository.nameWithOwner)#\(.number)"] as $requiredNames
+  | ($ci == "failing" and (if $requiredNames == null then .mergeStateStatus != "UNSTABLE"
+      elif ($failedNames | length) == 0 then true
+      else any($failedNames[]; IN($requiredNames[])) end)) as $requiredFailing
+  | ([if .isDraft then "draft" else empty end,
+      if .title | unfinished_title then "title says unfinished" else empty end,
+      (.labels.nodes[]?.name | select(unfinished_label) | "label \(.)"),
+      if .mergeStateStatus == "DIRTY" or .mergeable == "CONFLICTING" then "merge conflicts" else empty end,
+      if $requiredFailing then "CI failing" else empty end,
+      (.headRefOid as $head | $decisive[]
+        | select(.author.login != $me and .state == "CHANGES_REQUESTED" and .commit.oid == $head)
+        | "changes requested by \(.author.login), no push since")]) as $blockers
+  | ([if $ci == "failing" and ($requiredFailing | not) then "a check that is not required is failing"
+      elif $ciInMotion then "CI running"
+      elif $ci == "cancelled" then "CI cancelled"
+      elif $ci == "none" and .mergeStateStatus != "DIRTY" then "no CI checks"
+      else empty end,
+      if $otherThreads == 1 then "1 unresolved thread from others"
+      elif $otherThreads > 1 then "\($otherThreads) unresolved threads from others"
+      else empty end,
+      if $basePr then "stacked on #\($basePr.number)" else empty end,
+      if (.body // "") | test("\\S") | not then "no description" else empty end,
+      if .mergeStateStatus == "UNKNOWN" then "merge state unknown" else empty end]) as $cautions
   | {
       pr: "\(.repository.nameWithOwner)#\(.number)", url, title,
-      issue: ([.title | scan("\\b[A-Z][A-Z0-9]+-[0-9]+\\b")] | first),
+      issue: $issue.key, issueSource: $issue.source,
+      issueUrl: (first($links[] | select(.key == $issue.key) | .url) // null),
       author: .author.login, state, mergedAt, mergedBy: .mergedBy.login, draft: .isDraft,
       size: "+\(.additions)/-\(.deletions) in \(.changedFiles) files",
       base: .baseRefName, defaultBranch: .repository.defaultBranchRef.name,
-      head: .headRefOid, lastCommitAt: $c.committedDate,
-      requestedOfMe: any(.reviewRequests.nodes[]; .requestedReviewer.login == $me),
+      basePr: (if $basePr then {number: $basePr.number, url: $basePr.url, draft: $basePr.isDraft} else null end),
+      headBranch: .headRefName, head: .headRefOid, lastCommitAt: $c.committedDate,
+      requestedOfMe: $requested,
+      waitingSince: $waiting.since, waitingFrom: $waiting.from,
+      waiting: (if $waiting then [$now - ($waiting.since | fromdateiso8601), 0] | max | elapsed else null end),
+      readiness: (if .state != "OPEN" then null else {
+        verdict: (if ($blockers | length) > 0 then "not-ready" elif ($cautions | length) > 0 then "check" else "ready" end),
+        blockers: $blockers, cautions: $cautions} end),
       requestedTeams: [.reviewRequests.nodes[].requestedReviewer.slug // empty],
       myPendingComments: ([.myReviews.nodes[] | select(.state == "PENDING") | .comments.totalCount] | add // 0),
       myLastReview: (if $mine then {state: $mine.state, at: $mine.submittedAt, onHead: ($mine.commit.oid == .headRefOid)} else null end),
       myOpenThreads: [.reviewThreads.nodes[] | select((.isResolved | not)
         and .comments.nodes[0].author.login == $me
         and .comments.nodes[0].pullRequestReview.state != "PENDING")] | length,
-      otherOpenThreads: [.reviewThreads.nodes[] | select((.isResolved | not) and .comments.nodes[0].author.login != $me)] | length,
-      otherReviews: [.latestReviews.nodes[] | select(.author.login != $me) | "\(.author.login): \(.state)"],
+      otherOpenThreads: $otherThreads,
+      otherReviews: [$reviews[] | select(.author.login != $me) | "\(.author.login): \(.state)"],
       reviewDecision, mergeable, mergeStateStatus,
-      ci: ((if ($checks | length) == 0 then "none"
-            elif any($checks[]; failed) then "failing"
-            elif any($checks[]; running) then "running"
-            elif any($checks[]; result == "CANCELLED") then "cancelled"
-            else "green" end) as $read
-           | if $rollupCi == "failing" or ($rollupCi == "running" and $read != "failing") then $rollupCi
-             else $read end),
+      ci: $ci,
       failing: [$checks[] | select(failed) | {name: (.name // .context), run: .checkSuite.workflowRun.databaseId}] | unique,
       running: [$checks[] | select(running) | {name: (.name // .context), since: (.startedAt // .createdAt)}] | unique,
       cancelled: [$checks[] | select(result == "CANCELLED") | .name] | unique,
       supersededChecks: (($all | length) - ($checks | length)),
-      unreadChecks: $unread
+      unreadChecks: $unread,
+      # The first message of a chat that reviews this PR, for each host that can run it.
+      reviewCommand: {claude: "/trackbed:pr-github-review \(.url)", codex: "$trackbed:pr:github-review \(.url)"}
     }
 ))}'
 
-jq --arg me "$me" --arg checkedAt "$checked_at" --argjson superseded "$superseded" "$SUMMARY" <<< "$prs"
+jq --arg me "$me" --arg checkedAt "$checked_at" --argjson superseded "$superseded" --argjson required "$required" \
+  "$SUMMARY" <<< "$prs"

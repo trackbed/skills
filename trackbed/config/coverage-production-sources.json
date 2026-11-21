@@ -775,7 +775,10 @@
     {
       "kind": "executable",
       "suite": "trackbed/tests/pr-review-queue.bats",
-      "skills": ["trackbed/skills/pr:review-queue/SKILL.md"]
+      "skills": [
+        "trackbed/skills/pr:github-review/SKILL.md",
+        "trackbed/skills/pr:review-queue/SKILL.md"
+      ]
     },
     {
       "kind": "guidance",
