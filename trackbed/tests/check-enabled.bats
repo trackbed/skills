@@ -29,10 +29,10 @@ run_exit_if_hook_disabled() {
 	local hook_name="$1"
 	local mode="${2:-}"
 	if [ -n "$mode" ]; then
-		run env CLAUDE_PLUGIN_ROOT="$TEST_PLUGIN_ROOT" XDG_STATE_HOME="$TEST_XDG_STATE_HOME" bash -c \
+		run env CLAUDE_PLUGIN_ROOT="$TEST_PLUGIN_ROOT" XDG_STATE_HOME="$TEST_XDG_STATE_HOME" bash -uc \
 			'source "$1"; exit_if_hook_disabled "$2" "$3"; echo continued' _ "$LIB" "$hook_name" "$mode"
 	else
-		run env CLAUDE_PLUGIN_ROOT="$TEST_PLUGIN_ROOT" XDG_STATE_HOME="$TEST_XDG_STATE_HOME" bash -c \
+		run env CLAUDE_PLUGIN_ROOT="$TEST_PLUGIN_ROOT" XDG_STATE_HOME="$TEST_XDG_STATE_HOME" bash -uc \
 		'source "$1"; exit_if_hook_disabled "$2"; echo continued' _ "$LIB" "$hook_name"
 	fi
 }

@@ -108,9 +108,7 @@ Capture as `artifact_lifecycle` for use in Phase 5.
 1. Read the naming conventions from `references/naming-conventions.md`.
 
 2. If Phase 1 produced a candidate skill name, validate it against the rules:
-   - Format: `{domain}:{action}` with optional qualifier segments when they represent separate concepts; users invoke it as `/trackbed:{domain}:{action}`. Prefer flags such as `--team` for execution modes.
-   - 1-64 characters total
-   - Each segment uses lowercase letters, numbers, and hyphens only (no consecutive hyphens)
+   - Apply the reference's segment and length rules to the source name after removing any invocation prefix. For Trackbed, require exactly `{domain}:{action}` unless an accepted ADR grants an exception.
    - On any format violation, stop and ask for a corrected name (see the Error Handling section).
    - Check for collision: list the skills directory (e.g., `ls skills/` or a glob over `skills/*/SKILL.md`) to verify the name is not taken.
    - On collision, stop and ask for a different name. Do not overwrite.
@@ -336,7 +334,7 @@ Next steps:
 
 ## Error Handling
 
-- **Invalid skill name** (segments contain uppercase letters, `--`, exceed 55 chars, or include the `trackbed:` prefix) — stop, display the rules from `references/naming-conventions.md`, and ask for a corrected name.
+- **Invalid skill name** — identify the failed rule in `references/naming-conventions.md` and ask for a corrected name.
 - **Name collision** (`skills/{skill-name}/` already exists) — stop and ask for a different name. Do not overwrite.
 - **Pre-existing target files** during Phase 5 — abort and report the conflicting path. To regenerate, the user must remove the existing skill directory first. Do not partially overwrite.
 - **Missing `skills/` parent** — the working directory does not look like a plugin repo. Stop and ask the user to confirm the target plugin root before retrying.

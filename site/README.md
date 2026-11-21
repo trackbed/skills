@@ -29,7 +29,7 @@ Links to files on GitHub point at the commit Vercel is building, so they keep wo
 
 ## Usage guides
 
-Every skill a person can start has a usage guide at `trackbed/docs/usage/<name>.md`, where `<name>` is the skill's name with `:` replaced by `-`. It is written for someone who has not read the skill: when to use it, what each argument and option does, a few examples, and what comes back. The site puts it on the skill's page, and it reads as a normal Markdown file on GitHub.
+Every shipped skill a person can start has a usage guide at `trackbed/docs/usage/<name>.md`, where `<name>` is the skill's name with `:` replaced by `-`. It is written for someone who has not read the skill: when to use it, what each argument and option does, a few examples, and what comes back. The site puts it on the skill's page, and it reads as a normal Markdown file on GitHub.
 
 ```markdown
 # pr:create
