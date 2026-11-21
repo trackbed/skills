@@ -157,9 +157,9 @@ test-bootstrap: check-bats-deps
 check-bats-assertions: check-python-deps
 	@python3 tests/test_helper/check_bats_assertions.py
 
-# Run all Bats integration tests
+# Run all Bats integration tests; BATS_JOBS=N runs N suites at a time (needs GNU parallel).
 test-bats: check-bats-deps check-bats-assertions
-	@./tests/run-tests.sh
+	@$(if $(BATS_JOBS),TRACKBED_BATS_JOBS='$(BATS_JOBS)' )./tests/run-tests.sh
 
 # Run one Bats integration test file.
 test-bats-file: check-bats-deps

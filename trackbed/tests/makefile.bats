@@ -108,6 +108,8 @@ JSON
 
 setup_bats_runner_repo() {
   bats_require_minimum_version 1.5.0
+  # A timed or parallel outer run exports these; each test sets its own mode.
+  unset TRACKBED_BATS_TIMINGS TRACKBED_BATS_JOBS
   setup_makefile_contract_repo
   cp "$BATS_TEST_DIRNAME/run-tests.sh" "$MAKEFILE_CONTRACT_REPO/plugin/tests/run-tests.sh"
   mkdir -p "$MAKEFILE_CONTRACT_REPO/plugin/tests/test_helper/mocks" \
@@ -192,6 +194,134 @@ All tests passed!" ]
     [[ "$output" == *$'argc=4\narg=--tap\narg=a suite.bats\narg=example.bats\narg=z.bats'* ]] || false
     [ -z "$stderr" ]
   done
+}
+
+create_fake_parallel() {
+  local version="$1"
+  printf '#!/bin/sh\nprintf "%%s\\n" "%s"\n' "$version" >"$MAKEFILE_CONTRACT_BIN/parallel"
+  chmod +x "$MAKEFILE_CONTRACT_BIN/parallel"
+}
+
+@test "Bats parallel mode runs every suite in one parallel batch when none is marked" {
+  setup_bats_runner_repo
+  create_fake_parallel 'GNU parallel 20261022'
+
+  run --separate-stderr env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" LC_ALL=C TRACKBED_BATS_JOBS=4 \
+    bash "$MAKEFILE_CONTRACT_REPO/plugin/tests/run-tests.sh"
+
+  [ "$status" -eq 0 ]
+  [ "$output" = "Running hook tests...
+============================================
+argc=7
+arg=--tap
+arg=--jobs
+arg=4
+arg=--no-parallelize-within-files
+arg=a suite.bats
+arg=example.bats
+arg=z.bats
+============================================
+All tests passed!" ]
+  [ -z "$stderr" ]
+}
+
+@test "Bats parallel mode runs unmarked suites in parallel, then marked suites serially" {
+  setup_bats_runner_repo
+  create_fake_parallel 'GNU parallel 20261022'
+  printf '# trackbed-bats: serial (fixture shares state)\n' >"$MAKEFILE_CONTRACT_REPO/plugin/tests/z.bats"
+
+  run --separate-stderr env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" LC_ALL=C TRACKBED_BATS_JOBS=4 \
+    bash "$MAKEFILE_CONTRACT_REPO/plugin/tests/run-tests.sh"
+
+  [ "$status" -eq 0 ]
+  [ "$output" = "Running hook tests...
+============================================
+argc=6
+arg=--tap
+arg=--jobs
+arg=4
+arg=--no-parallelize-within-files
+arg=a suite.bats
+arg=example.bats
+argc=2
+arg=--tap
+arg=z.bats
+============================================
+All tests passed!" ]
+  [ -z "$stderr" ]
+}
+
+@test "Bats parallel mode runs the serial suites after a parallel failure and keeps the first failure" {
+  setup_bats_runner_repo
+  create_fake_parallel 'GNU parallel 20261022'
+  printf '# trackbed-bats: serial (fixture shares state)\n' >"$MAKEFILE_CONTRACT_REPO/plugin/tests/z.bats"
+  local failing
+  for failing in --jobs z.bats; do
+    run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" LC_ALL=C TRACKBED_BATS_JOBS=4 FAIL_SUITE="$failing" \
+      bash "$MAKEFILE_CONTRACT_REPO/plugin/tests/run-tests.sh"
+
+    [ "$status" -eq 7 ]
+    [[ "$output" == *$'argc=2\narg=--tap\narg=z.bats'* ]] || false
+    [[ "$output" != *'All tests passed!'* ]] || false
+  done
+}
+
+@test "Bats parallel mode refuses to start without GNU parallel" {
+  setup_bats_runner_repo
+  # Shadows any parallel in /usr/bin; moreutils ships a different tool of that name.
+  create_fake_parallel 'parallel from moreutils'
+
+  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" TRACKBED_BATS_JOBS=4 \
+    bash "$MAKEFILE_CONTRACT_REPO/plugin/tests/run-tests.sh"
+
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"TRACKBED_BATS_JOBS=4 needs GNU parallel,"* ]] || false
+  [[ "$output" != *"argc="* ]] || false
+
+  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" TRACKBED_BATS_JOBS=4 \
+    bash "$MAKEFILE_CONTRACT_REPO/plugin/tests/run-tests.sh" 'a suite.bats'
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *$'argc=2\narg=--tap\narg=a suite.bats'* ]] || false
+}
+
+@test "Bats runner keeps the serial default for one job and rejects invalid job counts" {
+  setup_bats_runner_repo
+  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" LC_ALL=C TRACKBED_BATS_JOBS=1 \
+    bash "$MAKEFILE_CONTRACT_REPO/plugin/tests/run-tests.sh"
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *$'argc=4\narg=--tap\narg=a suite.bats\narg=example.bats\narg=z.bats'* ]] || false
+
+  local jobs
+  for jobs in -2 1.5 many; do
+    run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" TRACKBED_BATS_JOBS="$jobs" \
+      bash "$MAKEFILE_CONTRACT_REPO/plugin/tests/run-tests.sh"
+
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"TRACKBED_BATS_JOBS must be a whole number, got '$jobs'"* ]] || false
+  done
+
+  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" TRACKBED_BATS_JOBS=4 TRACKBED_BATS_TIMINGS=1 \
+    bash "$MAKEFILE_CONTRACT_REPO/plugin/tests/run-tests.sh"
+
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"unset TRACKBED_BATS_JOBS"* ]] || false
+  [[ "$output" != *"argc="* ]] || false
+}
+
+@test "test-bats forwards BATS_JOBS to the runner only when set" {
+  # An outer `make test BATS_JOBS=N` passes the value down through MAKEFLAGS.
+  unset BATS_JOBS MAKEFLAGS MFLAGS MAKELEVEL
+  run make -C "$BATS_TEST_DIRNAME/.." --no-print-directory --dry-run test-bats
+
+  [ "$status" -eq 0 ]
+  [ "$(printf '%s\n' "$output" | tail -n 1)" = "./tests/run-tests.sh" ]
+
+  run make -C "$BATS_TEST_DIRNAME/.." --no-print-directory --dry-run test-bats BATS_JOBS=6
+
+  [ "$status" -eq 0 ]
+  [ "$(printf '%s\n' "$output" | tail -n 1)" = "TRACKBED_BATS_JOBS='6' ./tests/run-tests.sh" ]
 }
 
 create_fake_node_coverage_tool() {

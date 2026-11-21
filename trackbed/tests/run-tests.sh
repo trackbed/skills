@@ -22,6 +22,29 @@ if ! command -v jq &> /dev/null; then
   exit 1
 fi
 
+# TRACKBED_BATS_JOBS=N (N > 1) runs the full suite N files at a time. Tests
+# within a file stay serial. A suite with a line starting
+# `# trackbed-bats: serial` runs serially after the parallel batch; the rest of
+# that line says why it is not safe to run alongside other suites.
+jobs="${TRACKBED_BATS_JOBS:-1}"
+case "$jobs" in
+  '' | *[!0-9]*)
+    echo "ERROR: TRACKBED_BATS_JOBS must be a whole number, got '$jobs'."
+    exit 2
+    ;;
+esac
+if [ "$jobs" -gt 1 ] && [ "${TRACKBED_BATS_TIMINGS:-}" = 1 ]; then
+  echo "ERROR: TRACKBED_BATS_TIMINGS=1 times suites serially; unset TRACKBED_BATS_JOBS to use it."
+  exit 2
+fi
+if [ "$jobs" -gt 1 ] && [ -z "$1" ] \
+  && ! { parallel --version 2> /dev/null | grep -q '^GNU parallel'; }; then
+  echo "ERROR: TRACKBED_BATS_JOBS=$jobs needs GNU parallel, which Bats uses to run suites in parallel."
+  echo "Install with: brew install parallel (or apt-get install parallel)"
+  echo "Or unset TRACKBED_BATS_JOBS to run the suites serially."
+  exit 1
+fi
+
 # Make mock scripts executable
 chmod +x test_helper/mocks/*
 
@@ -29,7 +52,29 @@ chmod +x test_helper/mocks/*
 echo "Running hook tests..."
 echo "============================================"
 
-if [ "${TRACKBED_BATS_TIMINGS:-}" = 1 ]; then
+if [ "$jobs" -gt 1 ] && [ -z "$1" ]; then
+  parallel_suites=()
+  serial_suites=()
+  for suite in *.bats; do
+    if grep -q '^# trackbed-bats: serial' "$suite"; then
+      serial_suites+=("$suite")
+    else
+      parallel_suites+=("$suite")
+    fi
+  done
+  result=0
+  bats --tap --jobs "$jobs" --no-parallelize-within-files "${parallel_suites[@]}" || result=$?
+  if [ "${#serial_suites[@]}" -gt 0 ]; then
+    status=0
+    bats --tap "${serial_suites[@]}" || status=$?
+    if [ "$result" -eq 0 ]; then
+      result=$status
+    fi
+  fi
+  if [ "$result" -ne 0 ]; then
+    exit "$result"
+  fi
+elif [ "${TRACKBED_BATS_TIMINGS:-}" = 1 ]; then
   if [ -n "$1" ]; then
     suites=("$1")
   else
