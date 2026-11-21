@@ -91,6 +91,7 @@ check-python-static-inventory: check-python-deps
 lint-js: check-js-deps
 	@"$(TSC)" -p jsconfig.json && \
 		"$(TSC)" --allowJs --checkJs --noEmit --skipLibCheck --strict true \
+			--noUnusedLocals --noUnusedParameters --noFallthroughCasesInSwitch \
 			--ignoreDeprecations 6.0 --target ES2022 --module commonjs --moduleResolution node10 \
 			--lib ES2022,DOM --types node \
 			skills/pr:walkthrough/assets/walkthrough-types.d.ts $(JAVASCRIPT_BROWSER_ASSETS)
