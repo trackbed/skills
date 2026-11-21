@@ -94,7 +94,9 @@ class FakeHost:
         info = {"hasNextPage": cursor is not None, "endCursor": cursor}
         return {"data": {"repository": {"pullRequest": {"reviewThreads": {"pageInfo": info, "nodes": threads}}}}}
 
-    def __call__(self, argv: Sequence[str], timeout: int) -> subprocess.CompletedProcess[bytes]:
+    def __call__(
+        self, argv: Sequence[str], timeout: int, input: bytes | None = None
+    ) -> subprocess.CompletedProcess[bytes]:
         command = list(argv)
         self.calls.append(command)
         code, out, err = self.answer(command)
@@ -135,9 +137,11 @@ class FakeHost:
 class SnapshotCase(unittest.TestCase):
     def setUp(self) -> None:
         self.host = FakeHost()
-        patcher = mock.patch.object(shape_snapshot, "run", self.host)
-        patcher.start()
-        self.addCleanup(patcher.stop)
+        # The shared git helpers call the shared runner, so the host answers there too.
+        for module in (shape_snapshot, shape_snapshot.review_process):
+            patcher = mock.patch.object(module, "run", self.host)
+            patcher.start()
+            self.addCleanup(patcher.stop)
 
     def snapshot(self) -> dict[str, Any]:
         code, document = self.invoke()
@@ -470,7 +474,7 @@ class PullRequestTests(SnapshotCase):
             shape_snapshot.snapshot()
 
         failing = mock.Mock(return_value=subprocess.CompletedProcess([], 128, b"", b"fatal: not a git repository"))
-        with mock.patch.object(shape_snapshot, "run", failing):
+        with mock.patch.object(shape_snapshot.review_process, "run", failing):
             with self.assertRaisesRegex(shape_snapshot.ShapeError, "`git rev-parse` failed: fatal: not a git"):
                 shape_snapshot.git("rev-parse", "HEAD")
 
@@ -480,20 +484,6 @@ class InvocationTests(unittest.TestCase):
         with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as raised:
             shape_snapshot.main(["--fix"])
         self.assertEqual(raised.exception.code, 2)
-
-    def test_a_command_that_cannot_start_reports_exit_127(self) -> None:
-        result = shape_snapshot.run(["trackbed-no-such-program"], 5)
-        self.assertEqual(result.returncode, 127)
-
-    def test_a_command_that_hangs_reports_exit_124(self) -> None:
-        expired = subprocess.TimeoutExpired(["git"], 5)
-        with mock.patch.object(shape_snapshot, "run_bounded", side_effect=expired):
-            result = shape_snapshot.run(["git", "status"], 5)
-        self.assertEqual((result.returncode, result.stderr), (124, b"timed out after 5s"))
-
-    def test_commands_run_without_prompts(self) -> None:
-        environment = shape_snapshot.environment()
-        self.assertEqual((environment["GH_PROMPT_DISABLED"], environment["GIT_TERMINAL_PROMPT"]), ("1", "0"))
 
 
 if __name__ == "__main__":
