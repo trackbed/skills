@@ -5,6 +5,7 @@ const skillsDir = path.resolve(
   process.argv[2] || path.join(__dirname, "../skills"),
 );
 const pluginRoot = path.dirname(skillsDir);
+/** @type {string[]} */
 const failures = [];
 const fileTailPattern =
   "[A-Za-z0-9._~:/?#\\[\\]@!$&()+,;=%-]+\\.(?:md|sh|js|ts|mjs|cjs|py|json|ya?ml|txt|html|css|png|jpe?g|gif|svg|webp)";
@@ -38,7 +39,35 @@ const resourceListItemPattern = new RegExp(
   `^\\s*(?:[-*]|\\|)\\s*\`?${resourceReferencePathPattern}`,
 );
 
+/**
+ * @typedef {object} MarkdownLine
+ * @property {string} fenceContext The paragraph before the enclosing fence.
+ * @property {string} fenceLanguage The enclosing fence's info-string language.
+ * @property {boolean} inFence Whether the line is inside a fenced block.
+ * @property {string} text The line, or "" for a fence delimiter.
+ */
+
+/**
+ * @typedef {object} TextRange
+ * @property {number} start
+ * @property {number} end
+ */
+
+/**
+ * @typedef {object} ResolvedResource
+ * @property {string} allowedRoot The directory the reference must stay inside.
+ * @property {string} resourcePath The reference with trailing punctuation,
+ *   fragment, query, and plugin-root prefix removed.
+ * @property {"skill" | "shared" | "scripts"} scope
+ * @property {string} targetPath The absolute path the reference resolves to.
+ */
+
+/**
+ * @param {string} dir
+ * @returns {string[]} Markdown files under dir, skipping sources-snapshot.
+ */
 function walkMarkdownFiles(dir) {
+  /** @type {string[]} */
   const files = [];
 
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -56,8 +85,14 @@ function walkMarkdownFiles(dir) {
   return files;
 }
 
+/**
+ * @param {string} raw
+ * @returns {MarkdownLine[]}
+ */
 function markdownLines(raw) {
+  /** @type {{ context: string, language: string, length: number, marker: string } | null} */
   let activeFence = null;
+  /** @type {string[]} */
   let precedingParagraph = [];
   let paragraphBreak = false;
 
@@ -128,6 +163,7 @@ function markdownLines(raw) {
   });
 }
 
+/** @param {string} text */
 function hasLoadInstruction(text) {
   const proseOnly = text.replace(referencePattern, (match, resourcePath) =>
     match.slice(0, -resourcePath.length),
@@ -136,10 +172,15 @@ function hasLoadInstruction(text) {
   return loadInstructionPattern.test(proseOnly);
 }
 
+/** @param {string} text */
 function maskInlineCode(text) {
   return text.replace(/(`+)(.*?)\1/g, (match) => " ".repeat(match.length));
 }
 
+/**
+ * @param {RegExpExecArray} match A match whose group 1 is the resource path.
+ * @returns {TextRange}
+ */
 function resourcePathRange(match) {
   const start = match.index + match[0].lastIndexOf(match[1]);
 
@@ -149,6 +190,10 @@ function resourcePathRange(match) {
   };
 }
 
+/**
+ * @param {string} text
+ * @returns {TextRange[]}
+ */
 function markdownResourceLinkRanges(text) {
   const renderedText = maskInlineCode(text);
 
@@ -158,6 +203,10 @@ function markdownResourceLinkRanges(text) {
   ].map(resourcePathRange);
 }
 
+/**
+ * @param {RegExpExecArray} match
+ * @param {TextRange[]} linkRanges
+ */
 function isMarkdownResourceLink(match, linkRanges) {
   const matchRange = resourcePathRange(match);
 
@@ -167,10 +216,16 @@ function isMarkdownResourceLink(match, linkRanges) {
   );
 }
 
+/** @param {string} language */
 function isMarkdownFenceLanguage(language) {
   return language === "markdown" || language === "md";
 }
 
+/**
+ * @param {MarkdownLine[]} lines
+ * @param {number} index
+ * @param {TextRange[]} linkRanges
+ */
 function hasInstructionContext(lines, index, linkRanges) {
   const { fenceContext, fenceLanguage, inFence, text } = lines[index];
 
@@ -192,6 +247,12 @@ function hasInstructionContext(lines, index, linkRanges) {
   );
 }
 
+/**
+ * @param {string} skillDir
+ * @param {string} resourcePath
+ * @param {string} [referenceBase] The directory a relative path resolves from.
+ * @returns {ResolvedResource}
+ */
 function resolveResourcePath(skillDir, resourcePath, referenceBase = skillDir) {
   const pluginRooted = /^\$\{(?:CLAUDE_)?PLUGIN_ROOT\}\//.test(resourcePath);
   const cleanedPath = resourcePath
@@ -232,7 +293,12 @@ function resolveResourcePath(skillDir, resourcePath, referenceBase = skillDir) {
 
 // Claude Code substitutes ${CLAUDE_PLUGIN_ROOT} only in a skill's SKILL.md body,
 // so every plugin-level path a reference file uses must also appear there.
+/**
+ * @param {string} skillFile
+ * @returns {Set<string>} Absolute targets of the plugin-rooted paths it names.
+ */
 function pluginPathsNamedIn(skillFile) {
+  /** @type {Set<string>} */
   const named = new Set();
   const pattern = new RegExp(rootedResourcePathPattern, "g");
 
@@ -245,6 +311,10 @@ function pluginPathsNamedIn(skillFile) {
   return named;
 }
 
+/**
+ * @param {string} allowedRoot
+ * @param {string} targetPath
+ */
 function isWithin(allowedRoot, targetPath) {
   const relativePath = path.relative(allowedRoot, targetPath);
 
