@@ -9,7 +9,7 @@ const {
   filesystemErrorCode,
   isJsonObject,
   pathExists,
-  readJson,
+  readJsonObject,
   readText,
   resolveManagedChild,
   writeJson,
@@ -30,12 +30,6 @@ const {
 
 const LEGACY_STATE_FILE = ".kramme-install-state.json";
 const LEGACY_MANIFESTS_DIR = ".kramme-install-manifests";
-const LEGACY_ARTIFACT_DIRS = [
-  ".kramme-install-lock",
-  LEGACY_MANIFESTS_DIR,
-  ".kramme-install-staging",
-  ".kramme-install-transactions",
-];
 const AGENTS_BLOCK_START = "<!-- BEGIN KRAMME CODEX TOOL MAP -->";
 const AGENTS_BLOCK_END = "<!-- END KRAMME CODEX TOOL MAP -->";
 const UNSAFE_HELPER_PATH = /[\\:\u0000-\u001f\u007f]/;
@@ -54,78 +48,6 @@ function legacyManifestPath(codexHome, pluginName) {
   );
 }
 
-/** @param {string} codexHome @param {string} [pluginName] */
-async function hasLegacyInstall(codexHome, pluginName) {
-  const state = legacyStatePath(codexHome);
-  if (
-    pluginName &&
-    (await pathExists(legacyManifestPath(codexHome, pluginName)))
-  ) {
-    return true;
-  }
-  if (!(await pathExists(state))) return false;
-  if (!pluginName) return true;
-  try {
-    const parsed = await readJson(state);
-    if (!isJsonObject(parsed)) return true;
-    const plugins = isJsonObject(parsed.plugins) ? parsed.plugins : {};
-    return isJsonObject(plugins[pluginName]);
-  } catch {
-    // An unreadable state file is still a legacy install; fail closed below.
-    return true;
-  }
-}
-
-/**
- * Read the entries recorded for one plugin from the state file, unioned with
- * the per-plugin manifest so a damaged state file still yields the manifest.
- *
- * @param {string} codexHome @param {string} pluginName
- * @returns {Promise<LegacyInstallEntries>}
- */
-async function readLegacyInstallEntries(codexHome, pluginName) {
-  const sources = [
-    legacyStatePath(codexHome),
-    legacyManifestPath(codexHome, pluginName),
-  ];
-  const merged = emptyEntries();
-  for (const file of sources) {
-    const record = await readLegacyRecord(file, pluginName);
-    if (!record) continue;
-    for (const key of /** @type {const} */ ([
-      "agentSkills",
-      "hookMarketplaces",
-      "pluginCaches",
-      "prompts",
-      "skills",
-    ])) {
-      merged[key] = union(merged[key], sanitizeEntryList(record[key]));
-    }
-    Object.assign(
-      merged.sharedHelperFiles,
-      sanitizeSharedHelperFiles(record.sharedHelperFiles),
-    );
-  }
-  return merged;
-}
-
-/** @param {string} file @param {string} pluginName @returns {Promise<Record<string, unknown> | null>} */
-async function readLegacyRecord(file, pluginName) {
-  let parsed;
-  try {
-    parsed = await readJson(file);
-  } catch (error) {
-    if (filesystemErrorCode(error) === "ENOENT") return null;
-    console.warn(`Ignoring unreadable legacy install record ${file}.`);
-    return null;
-  }
-  if (!isJsonObject(parsed)) return null;
-  if (path.basename(file) !== LEGACY_STATE_FILE) return parsed;
-  const plugins = isJsonObject(parsed.plugins) ? parsed.plugins : {};
-  const plugin = isJsonObject(plugins[pluginName]) ? plugins[pluginName] : {};
-  return isJsonObject(plugin.codex) ? plugin.codex : null;
-}
-
 /**
  * Remove the recorded legacy output after confirmation.
  *
@@ -140,12 +62,10 @@ async function cleanupLegacyInstall({
   preservePaths = [],
   log = console.log,
 }) {
-  if (!(await hasLegacyInstall(codexHome, pluginName))) {
-    return { status: "absent" };
-  }
-  const entries = await readLegacyInstallEntries(codexHome, pluginName);
+  const records = await readLegacyInstall(codexHome, pluginName);
+  if (!records.present) return { status: "absent" };
+  const { entries } = records;
 
-  const records = await inspectLegacyRecords(codexHome, pluginName);
   if (records.unreadable && !hasEntries(entries)) {
     throw new Error(
       `Cannot safely clean legacy Codex output in ${codexHome}: install records are unreadable and no owned paths were recovered.`,
@@ -198,10 +118,9 @@ async function cleanupLegacyInstall({
     codexHome,
     entries.sharedHelperFiles,
   );
-  const otherPlugins =
-    isJsonObject(records.state) && isJsonObject(records.state.plugins)
-      ? Object.keys(records.state.plugins).filter((name) => name !== pluginName)
-      : [];
+  const otherPlugins = Object.keys(records.state?.plugins ?? {}).filter(
+    (name) => name !== pluginName,
+  );
   if (
     otherPlugins.length === 0 &&
     !records.unreadable &&
@@ -239,49 +158,77 @@ function hasEntries(entries) {
 }
 
 /** @param {string} codexHome @param {string} pluginName */
-async function inspectLegacyRecords(codexHome, pluginName) {
+async function readLegacyInstall(codexHome, pluginName) {
   const stateFile = legacyStatePath(codexHome);
   const manifestFile = legacyManifestPath(codexHome, pluginName);
-  let state = null;
-  let stateUnreadable = false;
-  try {
-    state = await readJson(stateFile);
-    if (
-      !isJsonObject(state) ||
-      !isJsonObject(state.plugins) ||
-      (Object.hasOwn(state.plugins, pluginName) &&
-        (!isJsonObject(state.plugins[pluginName]) ||
-          !isJsonObject(state.plugins[pluginName].codex)))
-    ) {
-      stateUnreadable = true;
-      state = null;
-    }
-  } catch (error) {
-    if (filesystemErrorCode(error) !== "ENOENT") stateUnreadable = true;
+  let unreadable = false;
+
+  /** @param {string} file */
+  function markUnreadable(file) {
+    unreadable = true;
+    console.warn(`Ignoring unreadable legacy install record ${file}.`);
   }
-  let manifest = null;
-  try {
-    manifest = await readJson(manifestFile);
-    if (!isJsonObject(manifest)) {
-      stateUnreadable = true;
-      manifest = null;
+
+  /** @param {string} file */
+  async function readRecord(file) {
+    try {
+      return await readJsonObject(file);
+    } catch (error) {
+      const code = filesystemErrorCode(error);
+      if (code === "ENOENT") return null;
+      // Keep manifest path lookup failures ahead of any cleanup writes.
+      if (code && file === manifestFile) await pathExists(file);
+      markUnreadable(file);
+      return null;
     }
-  } catch (error) {
-    if (filesystemErrorCode(error) !== "ENOENT") stateUnreadable = true;
+  }
+
+  const rawState = await readRecord(stateFile);
+  const plugins = rawState?.plugins;
+  const plugin =
+    isJsonObject(plugins) && Object.hasOwn(plugins, pluginName)
+      ? plugins[pluginName]
+      : undefined;
+  const codex =
+    isJsonObject(plugin) && isJsonObject(plugin.codex) ? plugin.codex : null;
+  const state =
+    rawState && isJsonObject(plugins) && (plugin === undefined || codex)
+      ? { ...rawState, plugins }
+      : null;
+  if (rawState && !state) markUnreadable(stateFile);
+  const manifest = await readRecord(manifestFile);
+  const merged = emptyEntries();
+  for (const record of [codex, manifest]) {
+    if (!record) continue;
+    for (const key of /** @type {const} */ ([
+      "agentSkills",
+      "hookMarketplaces",
+      "pluginCaches",
+      "prompts",
+      "skills",
+    ])) {
+      merged[key] = union(merged[key], sanitizeEntryList(record[key]));
+    }
+    Object.assign(
+      merged.sharedHelperFiles,
+      sanitizeSharedHelperFiles(record.sharedHelperFiles),
+    );
   }
   return {
-    manifest,
-    manifestFile,
+    present: unreadable || codex !== null || manifest !== null,
+    entries: merged,
     state,
     stateFile,
-    unreadable: stateUnreadable,
+    manifest,
+    manifestFile,
+    unreadable,
   };
 }
 
-/** @param {string} pluginName @param {{ manifest: unknown, manifestFile: string, state: unknown, stateFile: string, unreadable: boolean }} records */
+/** @param {string} pluginName @param {Awaited<ReturnType<typeof readLegacyInstall>>} records */
 async function removeLegacyRecords(pluginName, records) {
   let removed = 0;
-  if (isJsonObject(records.state) && isJsonObject(records.state.plugins)) {
+  if (records.state) {
     const plugins = { ...records.state.plugins };
     delete plugins[pluginName];
     if (Object.keys(plugins).length === 0) {
@@ -290,10 +237,7 @@ async function removeLegacyRecords(pluginName, records) {
       await writeJson(records.stateFile, { ...records.state, plugins });
     }
   }
-  if (
-    isJsonObject(records.manifest) &&
-    (await removePath(records.manifestFile))
-  ) {
+  if (records.manifest && (await removePath(records.manifestFile))) {
     removed += 1;
   }
   const manifestsDir = path.dirname(records.manifestFile);
@@ -438,8 +382,4 @@ function union(left, right) {
   return Array.from(new Set([...left, ...right]));
 }
 
-module.exports = {
-  cleanupLegacyInstall,
-  hasLegacyInstall,
-  readLegacyInstallEntries,
-};
+module.exports = { cleanupLegacyInstall };

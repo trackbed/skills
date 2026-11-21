@@ -12,7 +12,6 @@ const {
 } = require("../../scripts/convert-plugin/codex-plugin-builder");
 const {
   codexPluginRootExpression,
-  hasClaudePluginRootReference,
   rewriteCodexPluginRootReferences,
 } = require("../../scripts/convert-plugin/codex-shared-scripts");
 const {
@@ -21,6 +20,7 @@ const {
 const { loadClaudePlugin } = require("../../scripts/convert-plugin/loader");
 
 const {
+  hasClaudePluginRootReference,
   emptyCodexBundle,
   fixtureCodexPluginPackage,
   pathExists,

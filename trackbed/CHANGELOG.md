@@ -8,6 +8,10 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 
 ## Unreleased
 
+### Removed
+
+- Remove the Codex converter aliases `--codexHome`, `--agentsHome`, and `--nonInteractive`. Use `--codex-home`, `--agents-home`, and `--non-interactive`.
+
 ## [1.1.1] - 2026-11-18
 
 ### Added

@@ -14,8 +14,8 @@ This directory contains the implementation behind `scripts/convert-plugin.js`. T
 | `codex-shared-scripts.js` | Builds the plugin cache root expression and rewrites `CLAUDE_PLUGIN_ROOT` references in converted Markdown. |
 | `codex-markdown-resources.js` | Rewrites copied Markdown resource files with Codex instruction text and the plugin root expression. |
 | `codex-cli.js` | Runs the Codex CLI to register the marketplace, install the plugin, verify the reported install path, and remove both again. |
-| `legacy-install-cleanup.js` | Removes skills, agent skills, helpers, hook marketplaces, cache entries, and the AGENTS.md tool map recorded by earlier converter releases. |
-| `filesystem.js` | Shared safe filesystem helpers for path containment, JSON/text I/O, copies, and directory listing. |
+| `legacy-install-cleanup.js` | Reads legacy state and manifest records once per cleanup, then removes the owned output they describe. |
+| `filesystem.js` | Shared safe filesystem helpers for path containment, JSON/text I/O, and copies. |
 | `contracts.d.ts` | Shared converter input/output declarations used by loader, transformer, and builder boundaries. |
 | `frontmatter.js` | Parses and renders frontmatter, normalizes names, and sanitizes descriptions. |
 | `confirm.js` | Handles interactive and non-interactive confirmations for legacy cleanup. |

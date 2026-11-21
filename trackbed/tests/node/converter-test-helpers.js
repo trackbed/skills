@@ -157,11 +157,45 @@ function assertFilesystemError(error, { cause, code, message, path: file }) {
   assert.match(filesystemError.message, message);
 }
 
+/** @param {string} text */
+function hasClaudePluginRootReference(text) {
+  return /\$\{CLAUDE_PLUGIN_ROOT(?::-[^}]*)?\}|\$CLAUDE_PLUGIN_ROOT\b/.test(
+    text,
+  );
+}
+
+/** @param {string} rootDir @returns {Promise<string[]>} */
+async function listRelativeFiles(rootDir) {
+  if (!(await pathExists(rootDir))) return [];
+  return walkRelativeFiles(rootDir);
+}
+
+/** @param {string} rootDir @param {string} [prefix] @returns {Promise<string[]>} */
+async function walkRelativeFiles(rootDir, prefix = "") {
+  const entries = await fs.readdir(rootDir, { withFileTypes: true });
+  entries.sort((left, right) => left.name.localeCompare(right.name));
+
+  /** @type {string[]} */
+  const files = [];
+  for (const entry of entries) {
+    const fullPath = path.join(rootDir, entry.name);
+    const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      files.push(...(await walkRelativeFiles(fullPath, relativePath)));
+    } else if (entry.isFile()) {
+      files.push(relativePath);
+    }
+  }
+  return files;
+}
+
 module.exports = {
   assertFilesystemError,
   createFixturePlugin,
   emptyCodexBundle,
   fixtureCodexPluginPackage,
+  hasClaudePluginRootReference,
+  listRelativeFiles,
   pathExists,
   readMarkdownTree,
   readText,

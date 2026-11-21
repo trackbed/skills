@@ -24,7 +24,6 @@ const {
 } = require("../../scripts/convert-plugin/frontmatter");
 
 const {
-  listRelativeFiles,
   readJson: readConverterJson,
   readJsonObject,
   pathExists: converterPathExists,
@@ -40,6 +39,7 @@ const {
 const { skillContracts } = require("../../scripts/schemas/skill-contracts");
 
 const {
+  listRelativeFiles,
   withTempDir,
   writeJson,
   createFixturePlugin,

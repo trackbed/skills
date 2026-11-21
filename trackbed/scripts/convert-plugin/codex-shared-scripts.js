@@ -23,13 +23,7 @@ function rewriteCodexPluginRootReferences(text, pluginRootExpression) {
   return text.replace(CLAUDE_PLUGIN_ROOT_PATTERN, () => pluginRootExpression);
 }
 
-/** @param {string} text */
-function hasClaudePluginRootReference(text) {
-  return new RegExp(CLAUDE_PLUGIN_ROOT_PATTERN.source).test(text);
-}
-
 module.exports = {
   codexPluginRootExpression,
-  hasClaudePluginRootReference,
   rewriteCodexPluginRootReferences,
 };

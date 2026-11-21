@@ -16,8 +16,8 @@ function legacyPluginNames(pluginName) {
   return [pluginName, ...(FORMER_PLUGIN_NAMES.get(pluginName) ?? [])];
 }
 const COMMON_OPTIONS = ["to"];
-const HOME_OPTIONS = ["codex-home", "codexHome", "agents-home", "agentsHome"];
-const CONFIRM_OPTIONS = ["yes", "y", "non-interactive", "nonInteractive"];
+const HOME_OPTIONS = ["codex-home", "agents-home"];
+const CONFIRM_OPTIONS = ["yes", "y", "non-interactive"];
 const COMMAND_OPTIONS = {
   build: ["out"],
   install: [...HOME_OPTIONS, ...CONFIRM_OPTIONS, "marketplace-dir"],
@@ -317,10 +317,9 @@ function readOptionValue(parsed, kebabKey, aliasKeys = []) {
 /**
  * @param {ParsedArgs} parsed
  * @param {string} kebabKey
- * @param {string[]} [aliasKeys]
  */
-function readPathOption(parsed, kebabKey, aliasKeys = []) {
-  const value = readOptionValue(parsed, kebabKey, aliasKeys);
+function readPathOption(parsed, kebabKey) {
+  const value = readOptionValue(parsed, kebabKey);
   if (value === undefined) return undefined;
   if (typeof value !== "string" || !value.trim()) {
     throw new Error(`--${kebabKey} requires a directory.`);
@@ -350,17 +349,15 @@ function readBooleanOption(parsed, kebabKey, aliasKeys = []) {
 function readConfirmOptions(parsed) {
   return {
     yes: readBooleanOption(parsed, "yes", ["y"]),
-    nonInteractive: readBooleanOption(parsed, "non-interactive", [
-      "nonInteractive",
-    ]),
+    nonInteractive: readBooleanOption(parsed, "non-interactive"),
   };
 }
 
 /** @param {ParsedArgs} parsed */
 function resolveHomeRoots(parsed) {
   const { defaultCodexHome } = require("./convert-plugin/codex-cli");
-  const codexHome = readPathOption(parsed, "codex-home", ["codexHome"]);
-  const agentsHome = readPathOption(parsed, "agents-home", ["agentsHome"]);
+  const codexHome = readPathOption(parsed, "codex-home");
+  const agentsHome = readPathOption(parsed, "agents-home");
   return {
     codexHome: codexHome
       ? path.resolve(expandHome(codexHome))
