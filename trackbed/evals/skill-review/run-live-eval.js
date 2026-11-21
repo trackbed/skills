@@ -425,4 +425,4 @@ function main() {
 }
 if (require.main === module) main();
 
-module.exports = { parseOptions, runLive, reportForRun };
+module.exports = { parseOptions, runLive };
