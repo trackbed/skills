@@ -110,7 +110,27 @@ def load(state_file: Path) -> dict[str, Any]:
     return dict(state)
 
 
-def prepare(state: dict[str, Any]) -> None:
+def save(state_file: Path, state: dict[str, Any]) -> None:
+    temporary = state_file.with_name(f".{state_file.name}.{os.getpid()}.tmp")
+    with os.fdopen(os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w", encoding="utf-8") as output:
+        json.dump(state, output, indent=2)
+        output.write("\n")
+    os.replace(temporary, state_file)
+
+
+def prepare(state_file: Path, state: dict[str, Any]) -> None:
+    """Record whether preparation succeeded, so publish can refuse an unprepared stack."""
+    if state.get("phase") == "prepared":
+        raise ValueError("Preparation already succeeded for this snapshot; do not prepare again")
+    state["phase"] = "prepare_failed"
+    try:
+        state["prepared"] = fast_forward(state)
+        state["phase"] = "prepared"
+    finally:
+        save(state_file, state)
+
+
+def fast_forward(state: dict[str, Any]) -> dict[str, str]:
     """Integrate behind-only remote work before local rebasing, never publish."""
     worktrees = command("git", "worktree", "list", "--porcelain", "-z").split("\0")
     locations: dict[str, str] = {}
@@ -144,6 +164,21 @@ def prepare(state: dict[str, Any]) -> None:
             command("git", "merge", "--ff-only", "--no-overwrite-ignore", expected, cwd=target_worktree)
         else:
             command("git", "update-ref", ref, expected, local)
+    return {
+        name: oid(command("git", "rev-parse", "--verify", f"refs/heads/{name}^{{commit}}"))
+        for name in state["branches"]
+    }
+
+
+def require_prepared(state: dict[str, Any]) -> None:
+    """A lease taken while local and remote differed may still match after a skipped or failed prepare."""
+    names = state["branches"]
+    differing = [name for name in names if state["expected"][name] not in ("", state["local"][name])]
+    if differing and state.get("phase") != "prepared":
+        raise ValueError(
+            f"{', '.join(differing)} differed from the remote at capture and preparation has not succeeded "
+            f"(phase: {state.get('phase', 'none')}); publishing could drop remote-only commits"
+        )
 
 
 def publish(state: dict[str, Any]) -> None:
@@ -151,6 +186,7 @@ def publish(state: dict[str, Any]) -> None:
     if not names:
         print("No active branches to publish")
         return
+    require_prepared(state)
     tips = {name: oid(command("git", "rev-parse", "--verify", f"refs/heads/{name}^{{commit}}")) for name in names}
     leases = [f"--force-with-lease=refs/heads/{name}:{state['expected'][name]}" for name in names]
     refs = [f"{tips[name]}:refs/heads/{name}" for name in names]
@@ -183,7 +219,7 @@ def main() -> int:
                 raise ValueError("capture requires --remote")
             capture(args.state, args.remote)
         elif args.operation == "prepare":
-            prepare(load(args.state))
+            prepare(args.state, load(args.state))
         else:
             publish(load(args.state))
     except (ValueError, KeyError, TypeError, OSError) as error:

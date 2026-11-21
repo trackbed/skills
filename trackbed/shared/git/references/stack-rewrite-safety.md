@@ -47,7 +47,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py" prepare
   --state "$STACK_PUBLICATION_STATE" || exit 1
 ```
 
-Preparation fetches the captured objects, fast-forwards behind-only branches in their clean worktrees (or uses expected-old-OID ref updates for branches without a checkout), and rejects local movement since capture. A failure can leave earlier safe fast-forwards applied; report them and retain the snapshot, never claim rollback. Do not run preparation again after rewriting.
+Preparation fetches the captured objects, fast-forwards behind-only branches in their clean worktrees (or uses expected-old-OID ref updates for branches without a checkout), and rejects local movement since capture. It records its result in the snapshot: `phase: prepared` and, under `prepared`, every branch's tip after preparation, only after every fast-forward succeeds; `phase: prepare_failed` otherwise. A failure can leave earlier safe fast-forwards applied; report them and retain the snapshot, never claim rollback. Do not run preparation again after rewriting; a snapshot already recorded as `prepared` refuses a second run.
 
 After the owning skill's local rewrite, validation, inventory recheck, and separate publication authorization, publish the already-restacked chain once:
 
@@ -56,7 +56,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py" publish
   --state "$STACK_PUBLICATION_STATE" || exit 1
 ```
 
-The publisher rechecks the active inventory and uses explicit local commit IDs, exact original per-ref leases, `--atomic`, and `--no-follow-tags` at the frozen endpoint. It does not fetch or derive leases from tracking refs. An intervening remote update rejects the entire push even if a fetch ran after capture. Unsupported atomic push, stale lease, inventory change, and Git/API errors stop publication; retain the snapshot and local result. Never retry with refreshed leases, `--no-atomic`, or a single-branch push.
+The publisher refuses to push when any captured remote head differs from its captured local head and the snapshot does not record `phase: prepared`, because the capture-time lease would still match a branch that was only behind and the push would drop its remote-only commits. A branch absent from the remote at capture does not count as differing, so a stack whose existing remote heads all equalled their local heads at capture publishes without preparation. It rechecks the active inventory and uses explicit local commit IDs, exact original per-ref leases, `--atomic`, and `--no-follow-tags` at the frozen endpoint. It does not fetch or derive leases from tracking refs. An intervening remote update rejects the entire push even if a fetch ran after capture. Unsupported atomic push, stale lease, inventory change, and Git/API errors stop publication; retain the snapshot and local result. Never retry with refreshed leases, `--no-atomic`, or a single-branch push.
 
 Do not use `gh stack push`, `gh stack sync`, or `gh stack submit` to publish rewritten branches: their internal fetch can widen the lease. Initial submission of entirely new, unrewritten branches remains the owning skill's existing path. A branch rename changes the frozen inventory: stop and start a new authorized operation after preserving and reconciling all original tips; never silently extend an existing snapshot.
 
