@@ -3286,3 +3286,57 @@ EOF
   [[ "$output" == *"::warning::mechanical: test code size baseline: trackbed/tests/growing.bats has 7 lines (1 line above baseline 6; warn at 5)"* ]] || false
   [[ "$output" == *"skill contract lint passed."* ]] || false
 }
+
+@test "--skill checks only the named SKILL.md and skips repository-wide checks" {
+  write_file "$TMP_ROOT/trackbed/skills/a/SKILL.md" <<'EOF'
+---
+name: a
+description: Skill a
+disable-model-invocation: false
+user-invocable: true
+---
+# A
+line
+line
+EOF
+  write_file "$TMP_ROOT/trackbed/skills/b/SKILL.md" <<'EOF'
+---
+name: b
+description: Skill b
+---
+# B
+EOF
+  write_file "$TMP_ROOT/registry.yaml" <<'EOF'
+{
+  "required_file_contracts": [
+    {"name": "missing", "paths": ["does/not/exist.md"]}
+  ],
+  "mechanical": {
+    "skill_glob": "trackbed/skills/*/SKILL.md",
+    "max_skill_lines": 500,
+    "warn_skill_lines": 5,
+    "max_description_chars": 1024,
+    "required_frontmatter": [
+      "name",
+      "description",
+      "disable-model-invocation",
+      "user-invocable"
+    ],
+    "allow_line_count_over": []
+  }
+}
+EOF
+
+  run python3 "$SCRIPT" --repo-root "$TMP_ROOT" --registry "$TMP_ROOT/registry.yaml" --skill "$TMP_ROOT/trackbed/skills/a/SKILL.md"
+
+  [ "$status" -eq 0 ]
+  [ "$output" = "skill contract lint passed." ]
+
+  run python3 "$SCRIPT" --repo-root "$TMP_ROOT" --registry "$TMP_ROOT/registry.yaml" --skill "$TMP_ROOT/trackbed/skills/b/SKILL.md"
+
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"::error::mechanical: trackbed/skills/b/SKILL.md is missing frontmatter field 'disable-model-invocation'"* ]] || false
+  [[ "$output" == *"::error::mechanical: trackbed/skills/b/SKILL.md is missing frontmatter field 'user-invocable'"* ]] || false
+  [[ "$output" != *"skills/a/SKILL.md"* ]] || false
+  [[ "$output" != *"does/not/exist.md"* ]] || false
+}

@@ -5,6 +5,7 @@ node_modules/
 trackbed/hooks/hook-state.json
 trackbed/evals/results/
 .claude/scheduled_tasks.lock
+.claude/settings.local.json
 __pycache__/
 *.pyc
 

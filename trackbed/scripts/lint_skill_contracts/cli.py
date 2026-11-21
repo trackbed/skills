@@ -6,7 +6,7 @@ from typing import Any
 
 from json_object import load_json_object
 
-from .checks import run
+from .checks import run, run_single_skill
 
 
 def add_arguments(parser: argparse.ArgumentParser, defaults: argparse.Namespace) -> argparse.ArgumentParser:
@@ -21,6 +21,14 @@ def add_arguments(parser: argparse.ArgumentParser, defaults: argparse.Namespace)
         type=Path,
         default=defaults.registry,
         help="Path to synced-contracts.yaml.",
+    )
+    parser.add_argument(
+        "--skill",
+        type=Path,
+        help=(
+            "Check only this SKILL.md's frontmatter and line budget, skipping every "
+            "repository-wide check and burndown warning. Used by the skill-edit hook."
+        ),
     )
     return parser
 
@@ -43,7 +51,10 @@ def main() -> int:
     args = parse_cli()
     root = args.repo_root.resolve()
     registry = load_registry(args.registry.resolve())
-    failures, warnings = run(root, registry)
+    if args.skill is not None:
+        failures, warnings = run_single_skill(root, registry, args.skill.resolve())
+    else:
+        failures, warnings = run(root, registry)
     if warnings:
         print("skill contract lint warnings:")
         for warning in warnings:
