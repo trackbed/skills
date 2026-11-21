@@ -736,7 +736,8 @@ assert_context_value() {
 }
 
 @test "reads worktree local settings from the main checkout without changing either copy" {
-	local real_git="$(command -v git)"
+	local real_git
+	real_git="$(command -v git)"
 	setup_all_tools_path
 	ln -sf "$REAL_JQ" "$FAKE_BIN/jq"
 	ln -sf "$real_git" "$FAKE_BIN/git"
@@ -771,7 +772,8 @@ assert_context_value() {
 }
 
 @test "keeps local and shared settings together outside Git" {
-	local real_git="$(command -v git)"
+	local real_git
+	real_git="$(command -v git)"
 	setup_all_tools_path
 	ln -sf "$REAL_JQ" "$FAKE_BIN/jq"
 	ln -sf "$real_git" "$FAKE_BIN/git"
@@ -844,7 +846,8 @@ assert_context_value() {
 	local settings_dir="$BATS_TEST_TMPDIR/repo/.claude"
 	local record="$CLAUDE_CONFIG_DIR/plugins/known_marketplaces.json"
 	mkdir -p "$settings_dir" "${record%/*}"
-	local resolved_settings_dir="$(cd "$settings_dir" && pwd -P)"
+	local resolved_settings_dir
+	resolved_settings_dir="$(cd "$settings_dir" && pwd -P)"
 	printf '{"trackbed":{"autoUpdate":true}}\n' >"$record"
 	for content in 'invalid json' '{"extraKnownMarketplaces":{"trackbed":{"autoUpdate":"false"}}}'; do
 		printf '%s\n' "$content" >"$settings_dir/settings.local.json"

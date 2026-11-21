@@ -1121,7 +1121,7 @@ PY
 	git -C "$REPO" add tracked.txt
 	git -C "$REPO" commit -m "implement fixture" >/dev/null
 	head="$(git -C "$REPO" rev-parse HEAD)"
-	tree="$(git -C "$REPO" rev-parse HEAD^{tree})"
+	tree="$(git -C "$REPO" rev-parse 'HEAD^{tree}')"
 	git -C "$REPO" switch main >/dev/null
 	cat >>"$archive/PR_PLAN_A01A_VALIDATE_PLAN_STATE.md" <<EOF
 
@@ -1192,7 +1192,7 @@ EOF
 	git -C "$REPO" add tracked.txt extra.txt
 	git -C "$REPO" commit -m "implement extra fixture" >/dev/null
 	head="$(git -C "$REPO" rev-parse HEAD)"
-	tree="$(git -C "$REPO" rev-parse HEAD^{tree})"
+	tree="$(git -C "$REPO" rev-parse 'HEAD^{tree}')"
 	git -C "$REPO" switch main >/dev/null
 	cat >>"$archive/PR_PLAN_A01A_VALIDATE_PLAN_STATE.md" <<EOF
 
@@ -1230,7 +1230,7 @@ EOF
 	git -C "$REPO" mv tracked.txt renamed.txt
 	git -C "$REPO" commit -m "rename fixture outside scope" >/dev/null
 	head="$(git -C "$REPO" rev-parse HEAD)"
-	tree="$(git -C "$REPO" rev-parse HEAD^{tree})"
+	tree="$(git -C "$REPO" rev-parse 'HEAD^{tree}')"
 	git -C "$REPO" switch main >/dev/null
 	cat >>"$archive/PR_PLAN_A01A_VALIDATE_PLAN_STATE.md" <<EOF
 
@@ -1267,7 +1267,7 @@ EOF
 	git -C "$REPO" mv outside.txt allowed.txt
 	git -C "$REPO" commit -m "rename fixture into scope" >/dev/null
 	head="$(git -C "$REPO" rev-parse HEAD)"
-	tree="$(git -C "$REPO" rev-parse HEAD^{tree})"
+	tree="$(git -C "$REPO" rev-parse 'HEAD^{tree}')"
 	git -C "$REPO" switch main >/dev/null
 	cat >>"$archive/PR_PLAN_A01A_VALIDATE_PLAN_STATE.md" <<EOF
 
@@ -1322,7 +1322,7 @@ PY
 	git -C "$REPO" add src/a.py
 	git -C "$REPO" commit -m "implement containment fixture" >/dev/null
 	head="$(git -C "$REPO" rev-parse HEAD)"
-	tree="$(git -C "$REPO" rev-parse HEAD^{tree})"
+	tree="$(git -C "$REPO" rev-parse 'HEAD^{tree}')"
 	git -C "$REPO" switch main >/dev/null
 	cat >>"$archive/PR_PLAN_W01A_VALIDATE_PLAN_STATE.md" <<EOF
 

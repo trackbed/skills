@@ -280,10 +280,11 @@ MD
 	[ -x "$plugin_root/skills/trackbed:pr:adversarial-review/scripts/run-adversarial-review.sh" ]
 	[ -f "$plugin_root/skills/trackbed:a11y-auditor/SKILL.md" ]
 
-	eval "$(node "$SCRIPT" stats "$REPO_ROOT" | sed 's/^/EXPECTED_/')"
-	local skill_count
+	local stats expected_skill_count skill_count
+	stats="$(node "$SCRIPT" stats "$REPO_ROOT" --json)"
+	expected_skill_count="$(jq -e '.codex_skills + .agent_skills' <<< "$stats")"
 	skill_count="$(find "$plugin_root/skills" -name SKILL.md | wc -l | tr -d '[:space:]')"
-	[ "$skill_count" -eq $((EXPECTED_codex_skills + EXPECTED_agent_skills)) ]
+	[ "$skill_count" -eq "$expected_skill_count" ]
 
 	run grep -rl '\${CLAUDE_PLUGIN_ROOT' "$plugin_root/skills" --include='*.md'
 	[ "$status" -eq 1 ]
@@ -319,7 +320,9 @@ MD
 	[ ! -e "$CODEX_HOME_DIR/skills" ]
 	[ ! -e "$AGENTS_HOME_DIR/skills" ]
 	[ ! -e "$CODEX_HOME_DIR/AGENTS.md" ]
-	[ ! -e "$MARKETPLACE_ROOT.build-"* ]
+	for build_dir in "$MARKETPLACE_ROOT.build-"*; do
+		[ ! -e "$build_dir" ] && [ ! -L "$build_dir" ] || false
+	done
 	[ "$(cat "$FAKE_LOG")" = "plugin marketplace add $MARKETPLACE_ROOT
 plugin add trackbed@trackbed --json" ]
 

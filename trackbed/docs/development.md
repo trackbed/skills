@@ -197,6 +197,16 @@ At comparable load, 8 jobs cut the Bats run from about 13.5 minutes to about 3.5
 
 The one parallel failure was `commit-conventions-guidance.bats` "this repository exposes its explicit plain-English branch rule above history", which passed when rerun alone. It compares `git for-each-ref` before and after a read-only block, so a ref that another worktree sharing the same `.git` writes in that window fails it, in serial runs too. That cannot happen in a fresh CI clone, so the suite is not marked serial.
 
+#### Linting Bats suites
+
+Install ShellCheck 0.11 or newer for Bats parsing. The development requirements pin a compatible version. Run the shell lint target with:
+
+```bash
+make -C trackbed lint-shell
+```
+
+The target checks Bats suites at warning severity and checks the shell helpers, mocks, and runner with the regular shell lint settings. The Bats invocation skips SC2164 because standalone `cd` failures already fail a Bats test. Guard `cd` explicitly in contexts that can suppress that behavior, such as a conditional or a helper invoked by one. Use two spaces to indent Bats code as you edit it.
+
 #### Measuring Bats suite cost
 
 Set `TRACKBED_BATS_TIMINGS=1` to run each selected top-level suite serially in its own Bats process and report `suite`, `elapsed_seconds`, and numeric exit `status` to stderr. Use `LC_ALL=C` for repeatable filename ordering:

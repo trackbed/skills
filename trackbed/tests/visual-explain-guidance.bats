@@ -21,6 +21,8 @@ setup() {
 	grep -qF 'references/onboarding-explore-agent.md' "$MODE"
 	test -f "skills/visual:explain/references/onboarding-exploration-dimensions.md"
 	test -f "skills/visual:explain/references/onboarding-explore-agent.md"
+	# The guidance shows a literal tilde.
+	# shellcheck disable=SC2088
 	grep -qF '~/.trackbed/diagrams/onboarding-{project-name}.html' "$MODE"
 	grep -qF 'Launch **2-3 Explore agents**' "$MODE"
 	grep -qF 'cite `source: file:line`' "$MODE"

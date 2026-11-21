@@ -34,7 +34,7 @@ stop_walkthrough_chrome() {
 
 remove_walkthrough_tmp_dir() {
   local attempt
-  for attempt in $(seq 1 100); do
+  for ((attempt = 0; attempt < 100; attempt++)); do
     rm -rf "$TMP_DIR" 2>/dev/null && return 0
     sleep 0.05
   done

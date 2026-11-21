@@ -70,7 +70,7 @@ teardown() {
 	init_test_git_repo "$WORK" --origin "$ORIGIN"
 
 	[ "$(git -C "$ORIGIN" rev-parse --is-bare-repository)" = "true" ]
-	[ "$(git -C "$WORK" rev-parse --abbrev-ref main@{upstream})" = "origin/main" ]
+	[ "$(git -C "$WORK" rev-parse --abbrev-ref 'main@{upstream}')" = "origin/main" ]
 	[ "$(git -C "$ORIGIN" rev-parse refs/heads/main)" = "$(git -C "$WORK" rev-parse HEAD)" ]
 }
 

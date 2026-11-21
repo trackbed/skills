@@ -1028,7 +1028,7 @@ EOF
 }
 
 @test "siw issue reservation cleans catchable interruptions and recovers post-link kills" {
-  local helper_pid siw_dir stale_temp
+  local siw_dir stale_temp
   siw_dir="$TMP_ROOT/siw"
   mkdir -p "$siw_dir/issues" "$TMP_ROOT/term-bin" "$TMP_ROOT/kill-bin"
   printf '# Open Issues\n' >"$siw_dir/OPEN_ISSUES_OVERVIEW.md"
