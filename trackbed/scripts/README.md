@@ -67,10 +67,10 @@ Each file below stays out of `sharedRuntimeFor`. No shipped skill, agent, or hoo
 | --- | --- | --- |
 | `convert-plugin/` | Maintainer: the Codex converter behind `convert-plugin.js` | [README](convert-plugin/README.md) |
 | `dev-server/` | Runtime: shared dev-server detection for browser and visual workflows | [README](dev-server/README.md) |
-| `git-rewrite/` | Runtime: guarded history-rewrite helpers | none |
+| `git-rewrite/` | Runtime: `stack-publication.py` freezes stack leases before a rewrite and publishes the stack atomically; `sources.yaml` records its external sources | none |
 | `lib/` | Runtime: shell, Python, and Node helpers that other scripts source or import | [README](lib/README.md) |
 | `lint_skill_contracts/` | Maintainer: the skill-contract linter package | [README](lint_skill_contracts/README.md) |
-| `schemas/` | Maintainer: the contract schema shared by the converter and the linter | none |
+| `schemas/` | Maintainer: the contract schema in `skill-contracts.json`, loaded for the converter by `skill-contracts.js` and read by the linter | none |
 
 ## Adding a Script
 
