@@ -29,6 +29,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Type-check the page rendering scripts
+        run: npm run typecheck
+
       - name: Test the content sync
         run: npm test
 

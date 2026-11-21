@@ -75,6 +75,7 @@ Run these from `site/`. They need the Node.js version in `package.json`.
 
 ```bash
 npm ci
+npm run typecheck # page and component rendering scripts
 npm test         # content sync and link routing tests
 npm run dev      # sync, then serve with live reload
 npm run build    # sync, build to dist/, and validate links
