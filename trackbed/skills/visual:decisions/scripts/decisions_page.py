@@ -7,31 +7,24 @@ keeps the reader's record.
 
 from __future__ import annotations
 
-import base64
-import hashlib
 import json
 from typing import Any
 
 from decisions_item import esc, inline, item_href, label_chips, paragraphs, render_item
-from decisions_model import STATUSES, Model, squash
+from decisions_model import STATUSES, Document, Item, Model, squash
+from inline_page import csp_meta, json_script
 
 
-def safe_json(value: Any) -> str:
-    """JSON for a data block: no `<`, so nothing in it can close the element."""
-    return json.dumps(value, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
+STATUS_OPTIONS = "".join(f'<option value="{value}">{label}</option>' for value, label in STATUSES.items())
 
 
-def render_page(model: Model, seed: dict[str, Any], css: str, script: str) -> str:
-    document = model.document
-    total = len(model.items)
-    noun = document.noun_one if total == 1 else document.noun_many
-    by_id = {item.id: item for item in model.items}
-
+def render_sidebar(document: Document, items: list[Item]) -> str:
+    total = len(items)
     nav_items = "".join(
         f'<a class="td-nav-item" href="{item_href(item.id)}" data-route>'
         f'<span class="td-mono">{esc(item.id)}</span><span class="td-nav-title">{inline(item.title)}</span>'
         f'<span class="td-nav-state" data-nav-state="{esc(item.id)}" hidden></span></a>'
-        for item in model.items
+        for item in items
     )
     primary = [("overview", "Overview")]
     if document.order:
@@ -46,6 +39,19 @@ def render_page(model: Model, seed: dict[str, Any], css: str, script: str) -> st
         for key, label in primary
     )
 
+    return (
+        '<aside class="td-sidebar" data-sidebar>'
+        f'<nav class="td-primary-nav" aria-label="Sections"><div class="td-primary-links">{primary_nav}</div>'
+        f'<button type="button" class="td-browse" data-browse aria-controls="td-item-nav" aria-expanded="false" '
+        f'aria-label="Browse {esc(document.noun_many)}">{esc(document.noun_many.capitalize())}</button></nav>'
+        f'<p class="td-nav-label"><span>{esc(document.noun_many.capitalize())}</span><span>{total}</span></p>'
+        f'<nav class="td-item-nav" id="td-item-nav" aria-label="{esc(document.noun_many.capitalize())}">{nav_items}</nav></aside>'
+    )
+
+
+def render_overview(document: Document, items: list[Item], by_id: dict[str, Item]) -> str:
+    total = len(items)
+    noun = document.noun_one if total == 1 else document.noun_many
     metrics = ""
     if document.metrics:
         metrics = (
@@ -66,8 +72,8 @@ def render_page(model: Model, seed: dict[str, Any], css: str, script: str) -> st
             if item_id in by_id
         )
         start = f'<section class="td-start"><h2>Start here</h2><div class="td-cards">{cards}</div></section>'
-    first = model.items[0].id
-    overview = (
+    first = items[0].id
+    return (
         '<section class="td-view" id="overview" data-view="overview"><div class="td-hero">'
         + (f'<p class="td-kicker">{esc(document.kicker)}</p>' if document.kicker else "")
         + f'<h1 tabindex="-1" data-heading>{inline(document.title)}</h1>'
@@ -88,30 +94,36 @@ def render_page(model: Model, seed: dict[str, Any], css: str, script: str) -> st
         '<a class="td-button" href="#choices" data-route>Your choices <span data-progress-short></span></a></p></section></section>'
     )
 
-    order = ""
-    if document.order:
-        groups = "".join(
-            '<section class="td-group"><div>'
-            + (f'<p class="td-kicker">{esc(group.label)}</p>' if group.label else "")
-            + f"<h2>{inline(group.title)}</h2></div><div>{paragraphs(group.summary)}"
-            + (f'<p class="td-why"><strong>Why here:</strong> {inline(group.why)}</p>' if group.why else "")
-            + '<ul class="td-group-items">'
-            + "".join(
-                f'<li><a href="{item_href(member)}" data-route><span class="td-mono">{esc(member)}</span> {inline(by_id[member].title)}</a></li>'
-                for member in group.items
-                if member in by_id
-            )
-            + "</ul></div></section>"
-            for group in document.order
-        )
-        order = (
-            '<section class="td-view" id="order" data-view="order"><header class="td-page-head">'
-            '<h1 tabindex="-1" data-heading>Suggested order</h1>'
-            "<p>An order to decide and act in. It is a suggestion; every item can be decided on its own.</p></header>"
-            f"{groups}</section>"
-        )
 
-    label_names = sorted({label.text for item in model.items for label in item.labels})
+def render_order(document: Document, by_id: dict[str, Item]) -> str:
+    if not document.order:
+        return ""
+    groups = "".join(
+        '<section class="td-group"><div>'
+        + (f'<p class="td-kicker">{esc(group.label)}</p>' if group.label else "")
+        + f"<h2>{inline(group.title)}</h2></div><div>{paragraphs(group.summary)}"
+        + (f'<p class="td-why"><strong>Why here:</strong> {inline(group.why)}</p>' if group.why else "")
+        + '<ul class="td-group-items">'
+        + "".join(
+            f'<li><a href="{item_href(member)}" data-route><span class="td-mono">{esc(member)}</span> {inline(by_id[member].title)}</a></li>'
+            for member in group.items
+            if member in by_id
+        )
+        + "</ul></div></section>"
+        for group in document.order
+    )
+    return (
+        '<section class="td-view" id="order" data-view="order"><header class="td-page-head">'
+        '<h1 tabindex="-1" data-heading>Suggested order</h1>'
+        "<p>An order to decide and act in. It is a suggestion; every item can be decided on its own.</p></header>"
+        f"{groups}</section>"
+    )
+
+
+def render_index(document: Document, items: list[Item]) -> str:
+    total = len(items)
+    noun = document.noun_one if total == 1 else document.noun_many
+    label_names = sorted({label.text for item in items for label in item.labels})
     label_filter = ""
     if label_names:
         label_filter = (
@@ -120,7 +132,6 @@ def render_page(model: Model, seed: dict[str, Any], css: str, script: str) -> st
             + "".join(f'<option value="{esc(name)}">{esc(name)}</option>' for name in label_names)
             + "</select></div>"
         )
-    status_options = "".join(f'<option value="{value}">{label}</option>' for value, label in STATUSES.items())
     index_rows = "".join(
         f'<tr data-index-row="{esc(item.id)}" data-labels="{esc(json.dumps([label.text for label in item.labels]))}" '
         f'data-search="{esc(" ".join([item.id, item.title, *item.summary, item.recommendation, *[label.text for label in item.labels]]).lower())}">'
@@ -129,9 +140,9 @@ def render_page(model: Model, seed: dict[str, Any], css: str, script: str) -> st
         f'<td data-label="Summary">{inline(item.summary[0])}</td>'
         f'<td data-label="Recommendation">{inline(item.recommendation)}</td>'
         f'<td data-label="Your choice" data-index-choice="{esc(item.id)}"></td></tr>'
-        for item in model.items
+        for item in items
     )
-    index = (
+    return (
         '<section class="td-view" id="items" data-view="items"><header class="td-page-head">'
         f'<h1 tabindex="-1" data-heading>All {total} {esc(noun)}</h1>'
         "<p>Open one for its evidence, options, and recommendation. The last column shows what you have recorded.</p></header>"
@@ -139,7 +150,7 @@ def render_page(model: Model, seed: dict[str, Any], css: str, script: str) -> st
         '<input id="td-filter-search" type="search" data-filter="search" autocomplete="off"></div>'
         f"{label_filter}"
         '<div class="td-field"><label for="td-filter-status">Your decision</label><select id="td-filter-status" data-filter="status">'
-        f'<option value="">Any status</option>{status_options}</select></div></div>'
+        f'<option value="">Any status</option>{STATUS_OPTIONS}</select></div></div>'
         '<p class="td-filter-status"><span data-filter-count role="status"></span>'
         '<button type="button" class="td-button" data-filter-clear>Clear filters</button></p>'
         '<div class="td-scroll" data-index-table><table class="td-index"><thead><tr>'
@@ -149,6 +160,10 @@ def render_page(model: Model, seed: dict[str, Any], css: str, script: str) -> st
         f'<p class="td-empty" data-filter-empty hidden>Nothing matches these filters.</p></section>'
     )
 
+
+def render_choices(document: Document, items: list[Item]) -> str:
+    total = len(items)
+    noun = document.noun_one if total == 1 else document.noun_many
     choice_rows = "".join(
         f'<tr data-choice-row="{esc(item.id)}"><th scope="row"><a href="{item_href(item.id)}" data-route>'
         f'<span class="td-mono">{esc(item.id)}</span><strong>{inline(item.title)}</strong></a></th>'
@@ -158,13 +173,13 @@ def render_page(model: Model, seed: dict[str, Any], css: str, script: str) -> st
         f'<td class="td-row-links"><a href="{item_href(item.id, "evidence" if item.evidence else "")}" data-route>'
         f"{'Evidence' if item.evidence else 'Summary'}</a>"
         f'<a href="{item_href(item.id, "options")}" data-route>Options</a></td></tr>'
-        for item in model.items
+        for item in items
     )
     counters = "".join(
         f'<div><strong data-status-count="{value}">0</strong><span>{STATUSES[value].lower()}</span></div>'
         for value in ("decided", "discuss", "deferred", "open")
     )
-    choices = (
+    return (
         '<section class="td-view" id="choices" data-view="choices"><header class="td-page-head">'
         '<h1 tabindex="-1" data-heading>Your choices</h1>'
         f"<p>What you have decided so far, across all {total} {esc(noun)}. The recommendations stay on each item for reference.</p></header>"
@@ -183,7 +198,7 @@ def render_page(model: Model, seed: dict[str, Any], css: str, script: str) -> st
         "<div><dt>Import choices</dt><dd>Restores choices from an export or a saved copy of this document.</dd></div></dl>"
         '<p class="td-message" data-message role="status"></p></section>'
         '<div class="td-table-head"><h2>All your choices</h2><label>Show <select data-choice-filter>'
-        f'<option value="">All {total}</option>{status_options}<option value="review">Needs review</option></select></label></div>'
+        f'<option value="">All {total}</option>{STATUS_OPTIONS}<option value="review">Needs review</option></select></label></div>'
         '<div class="td-scroll"><table class="td-choices"><thead><tr>'
         f'<th scope="col">{esc(document.noun_one.capitalize())}</th><th scope="col">Your approach</th><th scope="col">Status</th>'
         '<th scope="col" class="td-notes-cell">Your notes</th><th scope="col">Go to</th></tr></thead>'
@@ -194,16 +209,20 @@ def render_page(model: Model, seed: dict[str, Any], css: str, script: str) -> st
         "and nothing here is carried out until you ask for it.</p></section>"
     )
 
-    viewer = (
+
+def render_viewer(document: Document, items: list[Item]) -> str:
+    return (
         '<section class="td-view" id="viewer" data-view="item"><div class="td-pager">'
         '<span class="td-mono" data-pager-count></span><span class="td-pager-actions">'
         f'<a class="td-button" href="#items" data-route>All {esc(document.noun_many)}</a>'
         '<button type="button" class="td-button" data-previous>Previous</button>'
         '<button type="button" class="td-button" data-next>Next</button></span></div>'
-        + "".join(render_item(item, index) for index, item in enumerate(model.items))
+        + "".join(render_item(item, index) for index, item in enumerate(items))
         + "</section>"
     )
 
+
+def render_about(document: Document) -> str:
     sections = "".join(
         f"<section><h2>{inline(section.title)}</h2>{paragraphs(section.paragraphs)}"
         + (
@@ -227,7 +246,7 @@ def render_page(model: Model, seed: dict[str, Any], css: str, script: str) -> st
     facts = [("Document id", document.id), ("Content version", document.fingerprint), ("Built", document.generated)]
     if document.producer:
         facts.insert(0, ("Produced by", document.producer))
-    about = (
+    return (
         '<section class="td-view" id="about" data-view="about"><header class="td-page-head">'
         '<h1 tabindex="-1" data-heading>Evidence and scope</h1>'
         "<p>What this document rests on, and what it does not establish.</p></header>"
@@ -242,6 +261,33 @@ def render_page(model: Model, seed: dict[str, Any], css: str, script: str) -> st
         + "</dl></section></div></section>"
     )
 
+
+def render_dialogs() -> str:
+    return (
+        '<dialog class="td-dialog td-zoom-dialog" data-zoom-dialog aria-labelledby="td-zoom-title">'
+        '<div class="td-dialog-head"><h2 id="td-zoom-title">Evidence</h2>'
+        '<button type="button" class="td-button" data-close autofocus>Close</button></div>'
+        '<p class="td-dialog-tools"><button type="button" class="td-button" data-fit aria-pressed="true">Fit to width</button>'
+        '<button type="button" class="td-button" data-actual aria-pressed="false">Original size</button></p>'
+        '<div class="td-zoom-scroll" tabindex="0"><img alt="" data-zoom-image></div>'
+        '<p class="td-dialog-caption" data-zoom-caption></p></dialog>\n'
+        '<dialog class="td-dialog td-import-dialog" data-import-dialog aria-labelledby="td-import-title">'
+        '<div class="td-dialog-head"><h2 id="td-import-title">Import choices</h2>'
+        '<button type="button" class="td-button" data-close>Cancel</button></div>'
+        '<div class="td-dialog-body"><p data-import-description></p>'
+        '<fieldset class="td-fieldset"><legend>What should happen to choices you already have here?</legend>'
+        '<div class="td-other"><input type="radio" id="td-import-keep" name="td-import-mode" value="keep" checked>'
+        '<label for="td-import-keep">Keep mine<span>Import only into items where you have recorded nothing.</span></label></div>'
+        '<div class="td-other"><input type="radio" id="td-import-replace" name="td-import-mode" value="replace">'
+        '<label for="td-import-replace">Replace mine<span>Use the imported choice and notes wherever the file has one.</span></label></div>'
+        '</fieldset><p class="td-help" data-import-preview></p>'
+        '<button type="button" class="td-button td-primary" data-import-confirm>Import</button></div></dialog>\n'
+    )
+
+
+def render_page(model: Model, seed: dict[str, Any], css: str, script: str) -> str:
+    document = model.document
+    by_id = {item.id: item for item in model.items}
     catalog = {
         "documentId": document.id,
         "title": document.title,
@@ -261,18 +307,13 @@ def render_page(model: Model, seed: dict[str, Any], css: str, script: str) -> st
             for item in model.items
         ],
     }
-    script_hash = base64.b64encode(hashlib.sha256(script.encode("utf-8")).digest()).decode("ascii")
-    policy = (
-        f"default-src 'none'; script-src 'sha256-{script_hash}'; style-src 'unsafe-inline'; "
-        "img-src data:; base-uri 'none'; form-action 'none'"
-    )
     description = squash(document.summary[0])[:300] if document.summary else document.title
     return (
         "<!doctype html>\n"
         f'<html lang="en" class="no-js" data-document="{esc(document.id)}">\n<head>\n<meta charset="utf-8">\n'
         "<!-- Decision document built by trackbed:visual:decisions (scripts/build-decisions.py). A working artifact, "
         "not project source: do not review it as code, edit it by hand, or commit it. -->\n"
-        f'<meta http-equiv="Content-Security-Policy" content="{policy}">\n'
+        f"{csp_meta(script)}\n"
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         '<meta name="color-scheme" content="light dark">\n'
         f'<meta name="description" content="{esc(description)}">\n'
@@ -283,35 +324,16 @@ def render_page(model: Model, seed: dict[str, Any], css: str, script: str) -> st
         '<p class="td-actions"><a class="td-button" href="#choices" data-route>Your choices <span data-progress-short></span></a>'
         '<button type="button" class="td-button td-primary" data-save-copy>Save a copy</button>'
         '<button type="button" class="td-button" data-print>Print</button></p></header>\n'
-        '<div class="td-layout"><aside class="td-sidebar" data-sidebar>'
-        f'<nav class="td-primary-nav" aria-label="Sections"><div class="td-primary-links">{primary_nav}</div>'
-        f'<button type="button" class="td-browse" data-browse aria-controls="td-item-nav" aria-expanded="false" '
-        f'aria-label="Browse {esc(document.noun_many)}">{esc(document.noun_many.capitalize())}</button></nav>'
-        f'<p class="td-nav-label"><span>{esc(document.noun_many.capitalize())}</span><span>{total}</span></p>'
-        f'<nav class="td-item-nav" id="td-item-nav" aria-label="{esc(document.noun_many.capitalize())}">{nav_items}</nav></aside>\n'
-        f'<main class="td-main" id="main" tabindex="-1">\n{overview}\n{order}\n{index}\n{choices}\n{viewer}\n{about}\n'
+        f'<div class="td-layout">{render_sidebar(document, model.items)}\n'
+        f'<main class="td-main" id="main" tabindex="-1">\n'
+        f"{render_overview(document, model.items, by_id)}\n{render_order(document, by_id)}\n"
+        f"{render_index(document, model.items)}\n{render_choices(document, model.items)}\n"
+        f"{render_viewer(document, model.items)}\n{render_about(document)}\n"
         f'<footer class="td-footer"><span>{inline(document.title)} · built {esc(document.generated)}</span>'
         "<span>One file · works offline · sends nothing</span></footer></main></div>\n"
-        '<dialog class="td-dialog td-zoom-dialog" data-zoom-dialog aria-labelledby="td-zoom-title">'
-        '<div class="td-dialog-head"><h2 id="td-zoom-title">Evidence</h2>'
-        '<button type="button" class="td-button" data-close autofocus>Close</button></div>'
-        '<p class="td-dialog-tools"><button type="button" class="td-button" data-fit aria-pressed="true">Fit to width</button>'
-        '<button type="button" class="td-button" data-actual aria-pressed="false">Original size</button></p>'
-        '<div class="td-zoom-scroll" tabindex="0"><img alt="" data-zoom-image></div>'
-        '<p class="td-dialog-caption" data-zoom-caption></p></dialog>\n'
-        '<dialog class="td-dialog td-import-dialog" data-import-dialog aria-labelledby="td-import-title">'
-        '<div class="td-dialog-head"><h2 id="td-import-title">Import choices</h2>'
-        '<button type="button" class="td-button" data-close>Cancel</button></div>'
-        '<div class="td-dialog-body"><p data-import-description></p>'
-        '<fieldset class="td-fieldset"><legend>What should happen to choices you already have here?</legend>'
-        '<div class="td-other"><input type="radio" id="td-import-keep" name="td-import-mode" value="keep" checked>'
-        '<label for="td-import-keep">Keep mine<span>Import only into items where you have recorded nothing.</span></label></div>'
-        '<div class="td-other"><input type="radio" id="td-import-replace" name="td-import-mode" value="replace">'
-        '<label for="td-import-replace">Replace mine<span>Use the imported choice and notes wherever the file has one.</span></label></div>'
-        '</fieldset><p class="td-help" data-import-preview></p>'
-        '<button type="button" class="td-button td-primary" data-import-confirm>Import</button></div></dialog>\n'
+        f"{render_dialogs()}"
         '<p class="td-toast" data-toast role="status" hidden></p>\n'
-        f'<script type="application/json" id="trackbed-decisions-catalog">{safe_json(catalog)}</script>\n'
-        f'<script type="application/json" id="trackbed-decisions-state">{safe_json(seed)}</script>\n'
+        f'<script type="application/json" id="trackbed-decisions-catalog">{json_script(catalog)}</script>\n'
+        f'<script type="application/json" id="trackbed-decisions-state">{json_script(seed)}</script>\n'
         f"<script>{script}</script>\n</body>\n</html>\n"
     )

@@ -6,9 +6,14 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import sys
 import textwrap
 from pathlib import Path
 from typing import Any
+
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts" / "lib"))
+from inline_page import csp_meta, fill_template, json_script, read_inline_asset, write_page  # noqa: E402
 
 D3_ASSET_PATH = Path(__file__).resolve().parents[1] / "assets" / "d3.v7.9.0.min.js"
 RUNTIME_ASSET_PATH = Path(__file__).resolve().parents[1] / "assets" / "walkthrough-runtime.js"
@@ -37,21 +42,6 @@ def read_data(path: Path) -> dict[str, Any]:
     return data
 
 
-def read_d3_asset() -> str:
-    try:
-        return D3_ASSET_PATH.read_text(encoding="utf-8").replace("</", "<\\/")
-    except OSError as exc:
-        raise SystemExit(f"{D3_ASSET_PATH}: cannot read vendored D3 asset: {exc}") from exc
-
-
-def read_runtime_asset() -> str:
-    try:
-        source = RUNTIME_ASSET_PATH.read_text(encoding="utf-8").rstrip("\n")
-    except OSError as exc:
-        raise SystemExit(f"{RUNTIME_ASSET_PATH}: cannot read walkthrough runtime: {exc}") from exc
-    return textwrap.indent(source, "    ").replace("</script", "<\\/script")
-
-
 def validate_minimum(data: dict[str, Any]) -> None:
     graphs = data.get("graphs")
     if not isinstance(graphs, list):
@@ -66,16 +56,19 @@ def html_document(data: dict[str, Any], d3_js: str, runtime_js: str) -> str:
     meta: dict[str, Any] = meta_value if isinstance(meta_value, dict) else {}
     title = str(meta.get("title") or "PR Walkthrough")
     summary = str(meta.get("summary") or "Interactive pull request walkthrough.")
-    data_json = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
-    return (
-        HTML_TEMPLATE.replace("__RUNTIME_JS__", runtime_js)
-        .replace("__TITLE__", html.escape(title))
-        .replace(
-            "__SUMMARY__",
-            html.escape(summary),
-        )
-        .replace("__D3_JS__", d3_js)
-        .replace("__DATA_JSON__", data_json)
+    # Hash the exact text placed between the script tags.
+    runtime_body = "\n" + runtime_js + "\n  "
+    media_sources = "'self' data: file:"
+    return fill_template(
+        HTML_TEMPLATE,
+        {
+            "__CSP__": csp_meta(d3_js, runtime_body, image_sources=media_sources, media_sources=media_sources),
+            "__TITLE__": html.escape(title),
+            "__SUMMARY__": html.escape(summary),
+            "__D3_JS__": d3_js,
+            "__DATA_JSON__": json_script(data, compact=False),
+            "__RUNTIME_JS__": runtime_body,
+        },
     )
 
 
@@ -83,17 +76,21 @@ def main() -> None:
     args = parse_args()
     data = read_data(args.data)
     validate_minimum(data)
-    d3_js = read_d3_asset()
-    runtime_js = read_runtime_asset()
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(html_document(data, d3_js, runtime_js), encoding="utf-8")
-    print(args.output.resolve())
+    try:
+        d3_js = read_inline_asset(D3_ASSET_PATH, "</script")
+        runtime_js = textwrap.indent(read_inline_asset(RUNTIME_ASSET_PATH, "</script").rstrip("\n"), "    ")
+        output = args.output.resolve()
+        write_page(output, html_document(data, d3_js, runtime_js))
+    except (OSError, ValueError) as exc:
+        raise SystemExit(str(exc)) from exc
+    print(output)
 
 
 HTML_TEMPLATE = r"""<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  __CSP__
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>__TITLE__</title>
   <style>
@@ -338,9 +335,7 @@ HTML_TEMPLATE = r"""<!doctype html>
     <aside class="detail" id="detail" aria-live="polite"></aside>
   </div>
   <script id="d3-vendor" data-vendor="d3">__D3_JS__</script>
-  <script id="pr-walkthrough-runtime">
-__RUNTIME_JS__
-  </script>
+  <script id="pr-walkthrough-runtime">__RUNTIME_JS__</script>
 </body>
 </html>
 """

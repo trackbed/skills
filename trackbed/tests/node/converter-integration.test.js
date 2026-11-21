@@ -185,6 +185,7 @@ test("canonical plugin build preserves runtime path dependency closure", async (
       ["scripts", "siw-issue-reservation.sh"],
       ["scripts", "list-stack-worktrees.sh"],
       ["scripts", "review-artifact-patterns.sh"],
+      ["scripts", "lib", "inline_page.py"],
       ["scripts", "lib", "review-artifacts.sh"],
       ["scripts", "git-rewrite", "stack-publication.py"],
       ["scripts", "git-rewrite", "sources.yaml"],

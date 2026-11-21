@@ -620,7 +620,7 @@ JS
   [[ "$output" == *"FrameRequestCallback"* ]] || false
 }
 
-@test "PR walkthrough renderer preserves runtime placeholder text in graph data" {
+@test "PR walkthrough renderer preserves placeholder text, protects scripts, and replaces the page atomically" {
   if ! command -v python3 >/dev/null 2>&1; then
     skip "python3 is required for PR walkthrough tests"
   fi
@@ -635,32 +635,56 @@ from pathlib import Path
 
 path = Path(sys.argv[1])
 data = json.loads(path.read_text(encoding="utf-8"))
-token = "__RUNTIME_JS__"
-data["meta"]["title"] = f"Review {token}"
-data["meta"]["summary"] = f"Summary {token}"
-data["graphs"][1]["nodes"][0]["summary"] = f"Node {token}"
+data["meta"]["title"] = "Review __SUMMARY__"
+data["meta"]["summary"] = "Summary __DATA_JSON__ and <details>"
+data["graphs"][1]["nodes"][0]["summary"] = "Node __RUNTIME_JS__"
 path.write_text(json.dumps(data), encoding="utf-8")
 PY
 
-  python3 "$RENDERER" --data "$graph" --output "$html"
-  run python3 - "$html" <<'PY'
+  run python3 - "$RENDERER" "$graph" "$html" <<'PY'
+import base64
+import hashlib
 import json
+import re
+import subprocess
 import sys
 from pathlib import Path
 
-html = Path(sys.argv[1]).read_text(encoding="utf-8")
+renderer, graph, output = map(Path, sys.argv[1:])
+output.write_text("Previous page", encoding="utf-8")
+output.chmod(0o640)
+alias = output.with_name("latest.html")
+alias.symlink_to(output.name)
+with output.open(encoding="utf-8") as previous:
+    subprocess.run([sys.executable, str(renderer), "--data", str(graph), "--output", str(alias)], check=True)
+    assert previous.read() == "Previous page"
+assert alias.is_symlink()
+assert alias.resolve() == output.resolve()
+assert output.stat().st_mode & 0o777 == 0o640
+html = output.read_text(encoding="utf-8")
+assert "<title>Review __SUMMARY__</title>" in html
+assert '<p class="summary" id="page-summary">Summary __DATA_JSON__ and &lt;details&gt;</p>' in html
 marker = '<script id="pr-walkthrough-data" type="application/json">'
 data_json = html.split(marker, 1)[1].split("</script>", 1)[0]
-data = json.loads(data_json)
-token = "__RUNTIME_JS__"
-assert data["meta"]["title"] == f"Review {token}"
-assert data["meta"]["summary"] == f"Summary {token}"
-assert data["graphs"][1]["nodes"][0]["summary"] == f"Node {token}"
-print("runtime placeholder preserved")
+assert "<" not in data_json
+assert json.loads(data_json) == json.loads(graph.read_text(encoding="utf-8"))
+
+policy = re.search(r'<meta http-equiv="Content-Security-Policy" content="([^"]+)">', html)
+assert policy and policy.start() < html.index("<style>")
+directives = dict(directive.split(" ", 1) for directive in policy[1].split("; "))
+assert directives["default-src"] == "'none'"
+expected_hashes = []
+for script_id in ("d3-vendor", "pr-walkthrough-runtime"):
+    script = re.search(rf'<script id="{script_id}"[^>]*>(.*?)</script>', html, re.S)
+    assert script
+    digest = base64.b64encode(hashlib.sha256(script[1].encode("utf-8")).digest()).decode("ascii")
+    expected_hashes.append(f"'sha256-{digest}'")
+assert directives["script-src"].split() == expected_hashes
+print("walkthrough protections verified")
 PY
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *"runtime placeholder preserved"* ]] || false
+  [[ "$output" == *"walkthrough protections verified"* ]] || false
 }
 
 @test "PR walkthrough tests do not kill an inherited CHROME_PID" {
@@ -733,6 +757,16 @@ BATS
   html="$TMP_DIR/index.html"
   chrome_log="$TMP_DIR/chrome.log"
   write_valid_graph "$graph"
+  mkdir -p "$TMP_DIR/assets"
+  python3 - "$TMP_DIR/assets/diagram.png" <<'PY'
+import base64
+import sys
+from pathlib import Path
+
+Path(sys.argv[1]).write_bytes(base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGPgD5gPAAFwAP+ODzSUAAAAAElFTkSuQmCC"
+))
+PY
   python3 "$RENDERER" --data "$graph" --output "$html"
 
   "$chrome" \
@@ -879,6 +913,8 @@ async function main() {
   if (switched.activeGraph !== "data-flow" || switched.nodes !== 2) {
     throw new Error(`Tab switch failed: ${JSON.stringify(switched)}`);
   }
+  await evaluate('selectNode("input")');
+  await waitFor('document.querySelector("#detail .media-list img")?.naturalWidth > 0');
 
   const searched = await evaluate(`(() => {
     const search = document.getElementById("search");
