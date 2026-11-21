@@ -41,11 +41,13 @@ import shutil
 import subprocess
 import sys
 from collections.abc import Sequence
+from functools import partial
 from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
-from review_process import noninteractive_environment, run_bounded  # noqa: E402
+import review_process  # noqa: E402
+from review_process import run, tail  # noqa: E402
 
 RESOLVE_BASE = Path(__file__).resolve().with_name("resolve-base.sh")
 SCHEMA_VERSION = 1
@@ -68,36 +70,21 @@ class Ambiguous(Unknown):
     """More than one Pull Request could represent the reviewed branch."""
 
 
-def environment() -> dict[str, str]:
-    return dict(noninteractive_environment(), NO_COLOR="1")
+gh_json = partial(review_process.gh_json, error=Unknown, timeout=NETWORK_TIMEOUT, verb="query")
+is_ancestor = partial(review_process.is_ancestor, timeout=LOCAL_TIMEOUT)
+valid_branch = partial(review_process.valid_branch, timeout=LOCAL_TIMEOUT)
 
 
-def run(argv: Sequence[str], timeout: int) -> subprocess.CompletedProcess[str]:
-    """Run without a shell; a timeout or launch failure becomes exit 124 or 127 with the reason on stderr."""
+def git_output(*args: str) -> str | None:
+    """The command's trimmed output, or None when it fails: here a failed read is an answer, not an error."""
     try:
-        return run_bounded(list(argv), env=environment(), text=True, timeout=timeout)
-    except subprocess.TimeoutExpired:
-        return subprocess.CompletedProcess(list(argv), 124, "", f"timed out after {timeout}s")
-    except OSError as error:
-        return subprocess.CompletedProcess(list(argv), 127, "", str(error))
+        return review_process.git(*args, error=Unknown, timeout=LOCAL_TIMEOUT).strip()
+    except Unknown:
+        return None
 
 
-def git(*args: str) -> str | None:
-    result = run(["git", *args], LOCAL_TIMEOUT)
-    return result.stdout.strip() if result.returncode == 0 else None
-
-
-def gh(*args: str) -> subprocess.CompletedProcess[str]:
+def gh(*args: str) -> subprocess.CompletedProcess[bytes]:
     return run(["gh", *args], NETWORK_TIMEOUT)
-
-
-def tail(text: str) -> str:
-    return " ".join(text.split())[-300:]
-
-
-def valid_branch(name: Any) -> bool:
-    # `check-ref-format --branch` expands `@{-N}`, so require it to echo the name unchanged.
-    return isinstance(name, str) and bool(name) and git("check-ref-format", "--branch", name) == name
 
 
 def object_id(value: Any) -> str | None:
@@ -105,11 +92,7 @@ def object_id(value: Any) -> str | None:
 
 
 def commit_of(ref: str) -> str | None:
-    return git("rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}")
-
-
-def is_ancestor(ancestor: str, descendant: str) -> bool:
-    return run(["git", "merge-base", "--is-ancestor", ancestor, descendant], LOCAL_TIMEOUT).returncode == 0
+    return git_output("rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}")
 
 
 def readable_ref(branch: str, pr_head: str | None = None) -> str | None:
@@ -126,26 +109,16 @@ def layer(branch: str, pr: int | None, pr_head: str | None = None) -> Json:
 
 
 def has_github_remote() -> bool:
-    remotes = git("remote")
+    remotes = git_output("remote")
     if remotes is None:
         raise Unknown("could not list Git remotes")
     for name in remotes.split():
-        urls = git("remote", "get-url", "--all", "--", name)
+        urls = git_output("remote", "get-url", "--all", "--", name)
         if urls is None:
             raise Unknown(f"could not read remote `{name}`")
         if GITHUB_URL_RE.search(urls):
             return True
     return False
-
-
-def gh_json(*args: str, what: str) -> Any:
-    result = gh(*args)
-    if result.returncode != 0:
-        raise Unknown(f"could not query {what}: {tail(result.stderr) or f'gh exited {result.returncode}'}")
-    try:
-        return json.loads(result.stdout or "null")
-    except ValueError as error:
-        raise Unknown(f"could not parse {what}: {error}") from error
 
 
 def open_pull_requests(*, head: str = "", base: str = "", unique_head: bool = False) -> list[Json]:
@@ -210,7 +183,7 @@ def stack_view(head: str, notes: list[str]) -> Json | None:
     if result.returncode != 0:
         notes.append(f"gh stack view failed ({tail(result.stderr) or f'exit {result.returncode}'}); used Pull Requests")
         return None
-    text = result.stdout.strip()
+    text = result.stdout.decode("utf-8", "replace").strip()
     if not text or UNTRACKED_RE.search(text):
         return None
     try:
@@ -248,7 +221,8 @@ def newest_downstack_commit(parent: str, recorded: str | None, head_oid: str, no
     candidates = []
     if recorded and is_ancestor(recorded, head_oid):
         candidates.append(recorded)
-    merge_base = git("merge-base", f"refs/heads/{parent}", head_oid) if commit_of(f"refs/heads/{parent}") else None
+    parent_ref = f"refs/heads/{parent}"
+    merge_base = git_output("merge-base", parent_ref, head_oid) if commit_of(parent_ref) else None
     if merge_base:
         candidates.append(merge_base)
     if len(candidates) < 2:
@@ -455,7 +429,7 @@ def result(
 def resolve(head_arg: str | None) -> Json:
     notes: list[str] = []
     head_oid = commit_of("HEAD")
-    current = git("symbolic-ref", "--quiet", "--short", "HEAD")
+    current = git_output("symbolic-ref", "--quiet", "--short", "HEAD")
     head = head_arg or current
     if not head_oid:
         return result("unknown", head, reason="HEAD does not resolve to a commit")
