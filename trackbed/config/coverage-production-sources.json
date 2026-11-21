@@ -134,6 +134,7 @@
       "trackbed/hooks/lib/command_safety/syntax.py",
       "trackbed/hooks/lib/command_safety/vocabulary.py",
       "trackbed/hooks/lib/git_command_parser.py",
+      "trackbed/scripts/changed-tests.py",
       "trackbed/scripts/changelog.py",
       "trackbed/scripts/code-outline.py",
       "trackbed/scripts/check-doc-citations.py",
@@ -1706,6 +1707,12 @@
       "suite": "trackbed/tests/python/test_lint_skill_contracts.py",
       "skill": "trackbed/skills/setup/SKILL.md",
       "reason": "Uses a setup path string as a synthetic reference-parser fixture; does not read the real skill.",
+      "kind": "incidental"
+    },
+    {
+      "suite": "trackbed/tests/python/test_changed_tests.py",
+      "skill": "trackbed/skills/pr:create/SKILL.md",
+      "reason": "Passes the skill path as a changed-file input to the suite selector against the real inventory; does not read or execute the skill.",
       "kind": "incidental"
     }
   ]

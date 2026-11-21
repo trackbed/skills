@@ -30,6 +30,9 @@ Start with the closest single-file target in [code-map.md](code-map.md#source-to
 # Run the representative cross-language smoke loop (budget: under 30 seconds)
 make -C trackbed test-smoke
 
+# Run the suites mapped to the files changed against origin/main
+make -C trackbed test-changed
+
 # Run the complete Node, Python, and Bats suite
 make -C trackbed test
 
@@ -91,6 +94,15 @@ Production sources are registered in `trackbed/config/coverage-production-source
 Put JavaScript and Python files in `measured` when the native coverage report includes them consistently across supported runtimes; otherwise put them in `contract_only` and map each source to one or more top-level `trackbed/tests/*.bats` contracts. A contract-only source may still appear incidentally in a native report, but the coverage gate does not require it there or include its Python result in the measured aggregate. Vendored JavaScript assets that are intentionally outside coverage may instead be registered in `javascript.excluded` with a non-empty rationale. Shell sources, including skill assets, use `contract_only`. The Bats runner does not recurse into nested test directories, so mapped contracts must be top-level files. Update the inventory whenever a production source is added, moved, removed, or changes coverage mode.
 
 The optional `python.measured_floors` map records accepted debt against the per-file floor by mapping a measured Python source to the lower percentage it currently holds. Keys must name measured sources, and values must be non-negative numbers below the stale-floor threshold (`PYTHON_FILE_COVERAGE_MIN + PYTHON_FILE_COVERAGE_STALE_MARGIN`); invalid entries fail every coverage target that consumes the map.
+
+`test-changed` runs the Node, Python, and Bats suites mapped to every file changed against `FORMAT_BASE` (`origin/main` locally), including staged, unstaged, and untracked files, so the fast loop follows the change. Each changed file selects suites by these rules:
+
+- A top-level `tests/*.bats` suite, a `tests/node/*.test.js` or `tests/python/test_*.py` file, or a maintenance-skill `test_*.py` selects itself.
+- A file anywhere in a skill directory selects the suites `skill_contracts` registers for that skill's `SKILL.md`.
+- A source in a `contract_only` map selects its Bats contracts.
+- A JavaScript or Python source in the plugin or a maintenance skill also selects the unit test that shares its name: `tests/node/<name>.test.js` for JavaScript, `tests/python/test_<name>.py` for Python with hyphens read as underscores, and for a maintenance-skill script, `test_<name>.py` beside it.
+
+The target prints each selected suite with the files that selected it, then lists changed files with no mapped suite so you can pick one from [code-map.md](code-map.md#source-to-test-map). With no changes, or none that map, it reports that no tests ran and exits 0. The helper is `trackbed/scripts/changed-tests.py`. It narrows the loop, not the gates: CI and `pr-verify` still run the full suite.
 
 For Node changes, `test-node-watch` uses the [built-in test runner's dependency watching](https://nodejs.org/docs/latest-v20.x/api/test.html#watch-mode). For a focused change-to-test loop, use `test-node-file` with the closest mapping in [code-map.md](code-map.md); the equivalent npm command is `npm run test:node:file -- trackbed/tests/node/<file>.test.js` from the repository root.
 
