@@ -1196,6 +1196,184 @@ EOF
   [ ! -e "$1" ]
 }
 
+# Helper B's ln shim logs every claim path it tries to link and, while holding the
+# operation lock, pauses before claiming publication, then records whether its lock
+# was taken from it.
+write_recovery_hold_ln_shim() {
+  mkdir -p "$1"
+  cat >"$1/ln" <<'EOF'
+#!/bin/sh
+printf '%s\n' "$2" >>"$SIW_RECOVERY_BARRIER/b-links"
+case "$2" in
+  */.issue-publication.lock)
+    : >"$SIW_RECOVERY_BARRIER/b-holding"
+    i=0
+    while [ ! -e "$SIW_RECOVERY_BARRIER/b-go" ] && [ "$i" -lt 1000 ]; do i=$((i + 1)); sleep 0.01; done
+    if [ "$(sed -n '1p' "${2%/*}/.issue-reservation-operation.lock" 2>/dev/null)" != owner-b ]; then
+      : >"$SIW_RECOVERY_BARRIER/b-lost-lock"
+    fi
+    ;;
+esac
+exec /bin/ln "$@"
+EOF
+  chmod +x "$1/ln"
+}
+
+@test "siw stale operation lock recovery never deletes a live lock" {
+  local a_pid a_status b_held_during_recovery b_pid b_status barrier dead_pid operation_lock siw_dir tries
+  siw_dir="$TMP_ROOT/siw"
+  barrier="$TMP_ROOT/recovery-barrier"
+  operation_lock="$siw_dir/.issue-reservation-operation.lock"
+  mkdir -p "$siw_dir/issues" "$TMP_ROOT/recover-bin" "$barrier"
+  printf '# Open Issues\n' >"$siw_dir/OPEN_ISSUES_OVERVIEW.md"
+  sh -c 'exit 0' &
+  dead_pid=$!
+  wait "$dead_pid"
+  printf 'owner-x\noperation:%s:stale-nonce\n' "$dead_pid" >"$operation_lock"
+
+  # Helper A pauses once at its first unlink of the operation lock, which runs inside the
+  # recovery guard after the re-check (without the guard, right after the liveness check).
+  cat >"$TMP_ROOT/recover-bin/unlink" <<'EOF'
+#!/bin/sh
+case "$1" in
+  */.issue-reservation-operation.lock)
+    if [ ! -e "$SIW_RECOVERY_BARRIER/a-paused" ]; then
+      : >"$SIW_RECOVERY_BARRIER/a-paused"
+      i=0
+      while [ ! -e "$SIW_RECOVERY_BARRIER/a-go" ] && [ "$i" -lt 1000 ]; do i=$((i + 1)); sleep 0.01; done
+    fi
+    ;;
+esac
+exec /bin/unlink "$@"
+EOF
+  write_recovery_hold_ln_shim "$TMP_ROOT/hold-bin"
+  chmod +x "$TMP_ROOT/recover-bin/unlink"
+
+  env PATH="$TMP_ROOT/recover-bin:$PATH" SIW_RECOVERY_BARRIER="$barrier" SIW_OPERATION_MAX_ATTEMPTS=500 \
+    sh "$ISSUE_DEFINE_RESERVATION_HELPER" acquire "$siw_dir" owner-a 1 >"$TMP_ROOT/a-output" 2>&1 &
+  a_pid=$!
+  tries=0
+  while [ ! -e "$barrier/a-paused" ] && [ "$tries" -lt 1000 ]; do tries=$((tries + 1)); sleep 0.01; done
+  [ -e "$barrier/a-paused" ]
+
+  env PATH="$TMP_ROOT/hold-bin:$PATH" SIW_RECOVERY_BARRIER="$barrier" SIW_OPERATION_MAX_ATTEMPTS=500 \
+    sh "$ISSUE_DEFINE_RESERVATION_HELPER" acquire "$siw_dir" owner-b 1 >"$TMP_ROOT/b-output" 2>&1 &
+  b_pid=$!
+  # Wait until B either holds the operation lock or has been refused the recovery guard
+  # twice, which shows it retries instead of going ahead.
+  tries=0
+  while [ ! -e "$barrier/b-holding" ] \
+    && [ "$(cat "$barrier/b-links" 2>/dev/null | grep -c '/\.issue-reservation-operation\.guard$')" -lt 2 ] \
+    && [ "$tries" -lt 1000 ]; do
+    tries=$((tries + 1))
+    sleep 0.01
+  done
+  b_held_during_recovery=
+  [ ! -e "$barrier/b-holding" ] || b_held_during_recovery=1
+
+  : >"$barrier/a-go"
+  tries=0
+  while kill -0 "$a_pid" 2>/dev/null && [ ! -e "$barrier/b-holding" ] && [ "$tries" -lt 1000 ]; do
+    tries=$((tries + 1))
+    sleep 0.01
+  done
+  : >"$barrier/b-go"
+  a_status=0
+  wait "$a_pid" || a_status=$?
+  b_status=0
+  wait "$b_pid" || b_status=$?
+
+  [ -z "$b_held_during_recovery" ]
+  [ "$(grep -c '/\.issue-reservation-operation\.guard$' "$barrier/b-links")" -ge 2 ]
+  [ ! -e "$barrier/b-lost-lock" ]
+  if [ "$a_status" -eq 0 ]; then
+    [ "$b_status" -ne 0 ]
+    grep -q 'publication is owned by another writer' "$TMP_ROOT/b-output"
+    [ "$(sed -n '1p' "$siw_dir/.issue-publication.lock")" = owner-a ]
+  else
+    [ "$b_status" -eq 0 ]
+    grep -q 'publication is owned by another writer' "$TMP_ROOT/a-output"
+    [ "$(sed -n '1p' "$siw_dir/.issue-publication.lock")" = owner-b ]
+  fi
+  [ ! -e "$operation_lock" ]
+  [ ! -e "$siw_dir/.issue-reservation-operation.guard" ]
+}
+
+@test "siw stale operation lock recovery leaves a lock recreated before its guard in place" {
+  local a_pid a_status b_pid b_status barrier dead_pid operation_guard operation_lock siw_dir tries
+  siw_dir="$TMP_ROOT/siw"
+  barrier="$TMP_ROOT/recovery-barrier"
+  operation_lock="$siw_dir/.issue-reservation-operation.lock"
+  operation_guard="$siw_dir/.issue-reservation-operation.guard"
+  mkdir -p "$siw_dir/issues" "$TMP_ROOT/guard-bin" "$barrier"
+  printf '# Open Issues\n' >"$siw_dir/OPEN_ISSUES_OVERVIEW.md"
+  sh -c 'exit 0' &
+  dead_pid=$!
+  wait "$dead_pid"
+  printf 'owner-x\noperation:%s:stale-nonce\n' "$dead_pid" >"$operation_lock"
+
+  # Helper A pauses once after judging the lock stale, before it takes the guard.
+  cat >"$TMP_ROOT/guard-bin/ln" <<'EOF'
+#!/bin/sh
+case "$2" in
+  */.issue-reservation-operation.guard)
+    if [ ! -e "$SIW_RECOVERY_BARRIER/a-paused" ]; then
+      : >"$SIW_RECOVERY_BARRIER/a-paused"
+      i=0
+      while [ ! -e "$SIW_RECOVERY_BARRIER/a-go" ] && [ "$i" -lt 1000 ]; do i=$((i + 1)); sleep 0.01; done
+      link_status=0
+      /bin/ln "$@" || link_status=$?
+      : >"$SIW_RECOVERY_BARRIER/a-linked"
+      exit "$link_status"
+    fi
+    ;;
+esac
+exec /bin/ln "$@"
+EOF
+  chmod +x "$TMP_ROOT/guard-bin/ln"
+  write_recovery_hold_ln_shim "$TMP_ROOT/hold-bin"
+
+  env PATH="$TMP_ROOT/guard-bin:$PATH" SIW_RECOVERY_BARRIER="$barrier" SIW_OPERATION_MAX_ATTEMPTS=500 \
+    sh "$ISSUE_DEFINE_RESERVATION_HELPER" acquire "$siw_dir" owner-a 1 >"$TMP_ROOT/a-output" 2>&1 &
+  a_pid=$!
+  tries=0
+  while [ ! -e "$barrier/a-paused" ] && [ "$tries" -lt 1000 ]; do tries=$((tries + 1)); sleep 0.01; done
+  [ -e "$barrier/a-paused" ]
+
+  # B recovers the stale lock, creates its own, and pauses while holding it.
+  env PATH="$TMP_ROOT/hold-bin:$PATH" SIW_RECOVERY_BARRIER="$barrier" SIW_OPERATION_MAX_ATTEMPTS=500 \
+    sh "$ISSUE_DEFINE_RESERVATION_HELPER" acquire "$siw_dir" owner-b 1 >"$TMP_ROOT/b-output" 2>&1 &
+  b_pid=$!
+  tries=0
+  while [ ! -e "$barrier/b-holding" ] && [ "$tries" -lt 1000 ]; do tries=$((tries + 1)); sleep 0.01; done
+  [ -e "$barrier/b-holding" ]
+
+  # A now takes the guard and re-reads the lock, which names B instead of the dead holder.
+  : >"$barrier/a-go"
+  tries=0
+  while { [ ! -e "$barrier/a-linked" ] || [ -e "$operation_guard" ]; } && [ "$tries" -lt 1000 ]; do
+    tries=$((tries + 1))
+    sleep 0.01
+  done
+  [ -e "$barrier/a-linked" ]
+  [ ! -e "$operation_guard" ]
+  [ "$(sed -n '1p' "$operation_lock")" = owner-b ]
+
+  : >"$barrier/b-go"
+  b_status=0
+  wait "$b_pid" || b_status=$?
+  a_status=0
+  wait "$a_pid" || a_status=$?
+
+  [ ! -e "$barrier/b-lost-lock" ]
+  [ "$b_status" -eq 0 ]
+  [ "$a_status" -ne 0 ]
+  grep -q 'publication is owned by another writer' "$TMP_ROOT/a-output"
+  [ "$(sed -n '1p' "$siw_dir/.issue-publication.lock")" = owner-b ]
+  [ ! -e "$operation_lock" ]
+  [ ! -e "$operation_guard" ]
+}
+
 @test "siw publication state keeps hashes paired when the issue set changes mid-batch" {
   local baseline_file expected_hash_1 expected_hash_3 hash_backend hash_backend_path issue_path_1 issue_path_2 issue_path_3 mock_bin siw_dir
   siw_dir="$TMP_ROOT/siw"
