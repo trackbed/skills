@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Decision: trackbed/docs/decisions/2026-09-28-pr-risk-triage.md
 """Deterministic risk signals for trackbed:pr:triage-risk.
 
 Classify the paths changed between a merge base and a head commit, scan added

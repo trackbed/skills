@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // @ts-check
+// Decision: trackbed/docs/decisions/2026-11-02-cold-reader-isolation.md
 "use strict";
 
 // Live check of the trackbed:cold-reader isolation contract. Each variant runs a

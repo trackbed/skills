@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Decision: trackbed/docs/decisions/2026-09-08-review-execution-evidence.md
 /* Local execution evidence, not a trusted host attestation. No shell evaluation. */
 "use strict";
 const fs = require("node:fs");

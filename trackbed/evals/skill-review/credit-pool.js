@@ -1,4 +1,5 @@
 // @ts-check
+// Decision: trackbed/docs/decisions/2026-10-24-sequential-credit-evals.md
 "use strict";
 
 const crypto = require("node:crypto");
