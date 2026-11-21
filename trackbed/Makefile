@@ -8,6 +8,7 @@ SHELLCHECK ?= $(call dev_tool,shellcheck)
 SHELLCHECK_SEVERITY ?= warning
 RUFF ?= $(call dev_tool,ruff)
 MYPY ?= $(call dev_tool,mypy)
+ESLINT ?= $(ROOT_DIR)/node_modules/.bin/eslint
 PRETTIER ?= $(ROOT_DIR)/node_modules/.bin/prettier
 PYTHON38 ?= python3.8
 TSC ?= $(ROOT_DIR)/node_modules/.bin/tsc
@@ -94,7 +95,8 @@ lint-js: check-js-deps
 			--noUnusedLocals --noUnusedParameters --noFallthroughCasesInSwitch \
 			--ignoreDeprecations 6.0 --target ES2022 --module commonjs --moduleResolution node10 \
 			--lib ES2022,DOM --types node \
-			skills/pr:walkthrough/assets/walkthrough-types.d.ts $(JAVASCRIPT_BROWSER_ASSETS)
+			skills/pr:walkthrough/assets/walkthrough-types.d.ts $(JAVASCRIPT_BROWSER_ASSETS) && \
+		"$(ESLINT)" .
 
 format: FORMAT_PRETTIER_MODE = --write
 format: FORMAT_RUFF_MODE =
@@ -338,6 +340,7 @@ check-mypy-deps:
 check-js-deps:
 	@command -v node >/dev/null 2>&1 || { echo "node not found. Install Node.js before running lint-js or verify."; exit 1; }
 	@command -v "$(TSC)" >/dev/null 2>&1 || { echo "TypeScript not found at $(TSC). Run 'npm ci' from the repository root or set TSC to an executable command."; exit 1; }
+	@command -v "$(ESLINT)" >/dev/null 2>&1 || { echo "ESLint not found at $(ESLINT). Run 'npm ci' from the repository root or set ESLINT to an executable command."; exit 1; }
 
 check-static-deps: check-python-deps check-shell-deps check-ruff-deps check-mypy-deps check-js-deps
 
