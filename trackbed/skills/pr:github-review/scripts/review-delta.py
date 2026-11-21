@@ -38,14 +38,15 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import subprocess
 import sys
 from collections.abc import Callable, Sequence
+from functools import partial
 from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts" / "lib"))
-from review_process import noninteractive_environment, run_bounded  # noqa: E402
+import review_process  # noqa: E402
+from review_process import run  # noqa: E402
 
 SCHEMA_VERSION = 1
 LOCAL_TIMEOUT = 120
@@ -80,42 +81,13 @@ class Fallback(Exception):
     """The changes since the last review cannot be isolated; the message is the reason."""
 
 
-def environment() -> dict[str, str]:
-    return dict(noninteractive_environment(), NO_COLOR="1")
-
-
-def run(argv: Sequence[str], timeout: int, data: bytes | None = None) -> subprocess.CompletedProcess[bytes]:
-    """Run without a shell; a timeout or launch failure becomes exit 124 or 127 with the reason on stderr."""
-    try:
-        return run_bounded(list(argv), env=environment(), input=data or b"", timeout=timeout)
-    except subprocess.TimeoutExpired:
-        return subprocess.CompletedProcess(list(argv), 124, b"", f"timed out after {timeout}s".encode())
-    except OSError as error:
-        return subprocess.CompletedProcess(list(argv), 127, b"", str(error).encode())
-
-
-def tail(data: bytes) -> str:
-    return " ".join(data.decode("utf-8", "replace").split())[-300:]
-
-
-def git(*args: str, data: bytes | None = None) -> str:
-    result = run(["git", *args], LOCAL_TIMEOUT, data)
-    if result.returncode != 0:
-        command = next((arg for arg in args if not arg.startswith("-") and "=" not in arg), "command")
-        raise Fallback(f"`git {command}` failed: {tail(result.stderr) or f'exit {result.returncode}'}")
-    return result.stdout.decode("utf-8", "replace")
-
-
-def succeeds(*args: str) -> bool:
-    return run(["git", *args], LOCAL_TIMEOUT).returncode == 0
+git = partial(review_process.git, error=Fallback, timeout=LOCAL_TIMEOUT)
+gh_json = partial(review_process.gh_json, error=Fallback, timeout=NETWORK_TIMEOUT)
+is_ancestor = partial(review_process.is_ancestor, timeout=LOCAL_TIMEOUT)
 
 
 def has_commit(oid: str) -> bool:
-    return succeeds("cat-file", "-e", f"{oid}^{{commit}}")
-
-
-def is_ancestor(ancestor: str, descendant: str) -> bool:
-    return succeeds("merge-base", "--is-ancestor", ancestor, descendant)
+    return run(["git", "cat-file", "-e", f"{oid}^{{commit}}"], LOCAL_TIMEOUT).returncode == 0
 
 
 def merge_base(first: str, second: str) -> str | None:
@@ -143,7 +115,7 @@ def patch_ids(start: str, end: str) -> dict[str, str]:
     if not log.strip():
         return {}
     ids = {}
-    for line in git("patch-id", "--verbatim", data=log.encode("utf-8")).splitlines():
+    for line in git("patch-id", "--verbatim", input=log.encode("utf-8")).splitlines():
         parts = line.split()
         if len(parts) == 2:
             ids[parts[1]] = parts[0]
@@ -151,13 +123,7 @@ def patch_ids(start: str, end: str) -> dict[str, str]:
 
 
 def gh_items(path: str, what: str) -> list[Any]:
-    result = run(["gh", "api", "--paginate", "--slurp", path], NETWORK_TIMEOUT)
-    if result.returncode != 0:
-        raise Fallback(f"could not read {what}: {tail(result.stderr) or f'gh exited {result.returncode}'}")
-    try:
-        pages = json.loads(result.stdout or b"null")
-    except ValueError as error:
-        raise Fallback(f"could not parse {what}: {error}") from error
+    pages = gh_json("api", "--paginate", "--slurp", path, what=what)
     if not isinstance(pages, list) or not all(isinstance(page, list) for page in pages):
         raise Fallback(f"could not parse {what}: expected pages of lists")
     return [item for page in pages for item in page]

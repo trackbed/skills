@@ -26,14 +26,15 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import subprocess
 import sys
 from collections.abc import Sequence
+from functools import partial
 from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts" / "lib"))
-from review_process import noninteractive_environment, run_bounded  # noqa: E402
+import review_process  # noqa: E402
+from review_process import run, tail  # noqa: E402
 
 SCHEMA_VERSION = 1
 LOCAL_TIMEOUT = 60
@@ -75,40 +76,9 @@ class ShapeError(Exception):
     """The Pull Request could not be read; the message says why."""
 
 
-def environment() -> dict[str, str]:
-    return dict(noninteractive_environment(), NO_COLOR="1")
-
-
-def run(argv: Sequence[str], timeout: int) -> subprocess.CompletedProcess[bytes]:
-    """Run without a shell; a timeout or launch failure becomes exit 124 or 127 with the reason on stderr."""
-    try:
-        return run_bounded(list(argv), env=environment(), timeout=timeout)
-    except subprocess.TimeoutExpired:
-        return subprocess.CompletedProcess(list(argv), 124, b"", f"timed out after {timeout}s".encode())
-    except OSError as error:
-        return subprocess.CompletedProcess(list(argv), 127, b"", str(error).encode())
-
-
-def tail(data: bytes) -> str:
-    return " ".join(data.decode("utf-8", "replace").split())[-300:]
-
-
-def git(*args: str) -> str:
-    result = run(["git", *args], LOCAL_TIMEOUT)
-    if result.returncode != 0:
-        raise ShapeError(f"`git {args[0]}` failed: {tail(result.stderr) or f'exit {result.returncode}'}")
-    return result.stdout.decode("utf-8", "replace").strip()
-
-
-def succeeds(*argv: str) -> bool:
-    return run(argv, LOCAL_TIMEOUT).returncode == 0
-
-
-def valid_branch(name: Any) -> bool:
-    if not isinstance(name, str) or not name:
-        return False
-    checked = run(["git", "check-ref-format", "--branch", name], LOCAL_TIMEOUT)
-    return checked.returncode == 0 and checked.stdout.decode("utf-8", "replace").strip() == name
+git = partial(review_process.git, error=ShapeError, timeout=LOCAL_TIMEOUT)
+is_ancestor = partial(review_process.is_ancestor, timeout=LOCAL_TIMEOUT)
+valid_branch = partial(review_process.valid_branch, timeout=LOCAL_TIMEOUT)
 
 
 def pull_request() -> Json:
@@ -150,22 +120,22 @@ def pull_request() -> Json:
 
 def local_state(pr_head: str) -> Json:
     """How the checkout relates to the Pull Request head: equal, ahead, behind, diverged, or unknown."""
-    head = git("rev-parse", "HEAD")
+    head = git("rev-parse", "HEAD").strip()
     if head == pr_head:
         relation = "equal"
-    elif not succeeds("git", "cat-file", "-e", f"{pr_head}^{{commit}}"):
+    elif run(["git", "cat-file", "-e", f"{pr_head}^{{commit}}"], LOCAL_TIMEOUT).returncode != 0:
         relation = "unknown"
-    elif succeeds("git", "merge-base", "--is-ancestor", pr_head, head):
+    elif is_ancestor(pr_head, head):
         relation = "ahead"
-    elif succeeds("git", "merge-base", "--is-ancestor", head, pr_head):
+    elif is_ancestor(head, pr_head):
         relation = "behind"
     else:
         relation = "diverged"
     return {
-        "branch": git("branch", "--show-current") or None,
+        "branch": git("branch", "--show-current").strip() or None,
         "head_oid": head,
         "relation": relation,
-        "dirty": bool(git("status", "--porcelain")),
+        "dirty": bool(git("status", "--porcelain").strip()),
     }
 
 

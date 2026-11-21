@@ -8,8 +8,10 @@ script; keep behavior shared by multiple scripts here.
 
 | File | Responsibility |
 | --- | --- |
+| `branch-roles.sh` | Selects the workbench branch and decides which branches are protected, from `trackbed.baseBranch`, the pre-1.0.0 `kramme.baseBranch`, and the remote default branch; used by `resolve-base.sh` and `pr:rebase` batch mode. |
+| `inline_page.py` | Builds self-contained HTML pages: reads inline assets that cannot close their element, encodes JSON script data, pins scripts with a hash-based Content Security Policy, fills templates, and writes the page; used by the visual report, decisions, and walkthrough generators. |
 | `pr_staging.py` | Opens run directories below `.trackbed/` that Git's local exclude file hides, and reads, writes, and locates their manifests, for the helpers that stage Pull Request files; callers own what a staged file may be. |
-| `review_process.py` | Runs bounded Python review commands with noninteractive environments and process-group cleanup; callers own exception mapping and deadlines. |
+| `review_process.py` | Runs bounded Python review commands with noninteractive environments and process-group cleanup, and provides the `run`, `tail`, `git`, `gh_json`, `is_ancestor`, and `valid_branch` helpers; callers supply deadlines, and `git` and `gh_json` raise the caller's exception type. |
 | `review-artifacts.sh` | Provides `load_review_artifact_patterns` to read a protected review-report pattern list under a missing-or-empty policy, and `untracked_paths_without_visual_pages` to drop generated visual report pages from a NUL-delimited untracked path list. Shared by `confirm-review-responses.sh`, `collect-review-diff.sh`, and `review-artifact-patterns.sh`. |
 | `review-scope.sh` | Provides `collect_review_scope` to load repository scope and normalize the caller directory, and `review_untracked_paths` to emit the raw NUL-delimited untracked subset for content handoffs. |
 | `shell-helpers.sh` | Provides required-argument validation, shell assignment quoting, JSON object emit/decode with a single Python guard, bounded command execution, signal cleanup, and a noninteractive review command environment. |
