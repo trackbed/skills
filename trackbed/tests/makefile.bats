@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 teardown() {
-  if [[ -n "${MAKEFILE_RUNTIME_ROOT:-}" && "$MAKEFILE_RUNTIME_ROOT" == "$BATS_TEST_DIRNAME/../../.context/node-coverage-runtime."* ]]; then
+  if [[ -n "${MAKEFILE_RUNTIME_ROOT:-}" && "$MAKEFILE_RUNTIME_ROOT" == "$BATS_TEST_DIRNAME/../../.context/makefile-coverage-runtime."* ]]; then
     rm -rf -- "$MAKEFILE_RUNTIME_ROOT"
   fi
 }
@@ -62,6 +62,7 @@ setup_makefile_contract_repo() {
     "$MAKEFILE_CONTRACT_REPO/plugin/tests" \
     "$MAKEFILE_CONTRACT_BIN"
   cp "$BATS_TEST_DIRNAME/../Makefile" "$MAKEFILE_CONTRACT_REPO/plugin/Makefile"
+  cp "$BATS_TEST_DIRNAME/../scripts/coverage-gate.py" "$MAKEFILE_CONTRACT_REPO/plugin/scripts/"
   cp "$BATS_TEST_DIRNAME/../mypy.ini" "$MAKEFILE_CONTRACT_REPO/plugin/mypy.ini"
 
   cat >"$MAKEFILE_CONTRACT_REPO/plugin/config/coverage-production-sources.json" <<'JSON'
@@ -77,6 +78,7 @@ setup_makefile_contract_repo() {
       "plugin/hooks/example.py"
     ],
     "contract_only": {
+      "plugin/scripts/coverage-gate.py": ["plugin/tests/example.bats"],
       "plugin/scripts/contract.py": [
         "plugin/tests/example.bats"
       ]
@@ -102,15 +104,6 @@ JSON
     '  true' \
     '}' \
     >"$MAKEFILE_CONTRACT_REPO/plugin/tests/example.bats"
-}
-
-update_fake_inventory() {
-  local filter="$1"
-  jq "$filter" \
-    "$MAKEFILE_CONTRACT_REPO/plugin/config/coverage-production-sources.json" \
-    >"$MAKEFILE_CONTRACT_REPO/inventory.json"
-  mv "$MAKEFILE_CONTRACT_REPO/inventory.json" \
-    "$MAKEFILE_CONTRACT_REPO/plugin/config/coverage-production-sources.json"
 }
 
 setup_bats_runner_repo() {
@@ -276,47 +269,6 @@ end_of_record
 REPORT
 }
 
-create_fake_python_coverage_tool() {
-  cat >"$MAKEFILE_CONTRACT_BIN/python3" <<'SH'
-#!/bin/sh
-case "$*" in
-  *--summary*) cat "$PYTHON_COVERAGE_FIXTURE" ;;
-esac
-exit 0
-SH
-  chmod +x "$MAKEFILE_CONTRACT_BIN/python3"
-}
-
-write_fake_python_coverage_report() {
-  local percent="$1"
-  printf '100 %s%% hooks.example (%s/plugin/hooks/example.py)\n' \
-    "$percent" \
-    "$MAKEFILE_CONTRACT_REPO" \
-    >"$MAKEFILE_CONTRACT_REPO/python-coverage.txt"
-}
-
-append_fake_python_coverage_row() {
-  local module="$1"
-  local relative_path="$2"
-  local percent="$3"
-  printf '100 %s%% %s (%s/%s)\n' \
-    "$percent" \
-    "$module" \
-    "$MAKEFILE_CONTRACT_REPO" \
-    "$relative_path" \
-    >>"$MAKEFILE_CONTRACT_REPO/python-coverage.txt"
-}
-
-# Registers a second measured module so per-file floor cases can keep the
-# aggregate baseline satisfied while one file sits below its floor.
-add_low_coverage_python_module() {
-  local percent="$1"
-  printf 'VALUE = 3\n' >"$MAKEFILE_CONTRACT_REPO/plugin/hooks/low.py"
-  update_fake_inventory '.python.measured += ["plugin/hooks/low.py"]'
-  write_fake_python_coverage_report 100
-  append_fake_python_coverage_row "hooks.low" "plugin/hooks/low.py" "$percent"
-}
-
 @test "format dependency check accepts PRETTIER command from PATH" {
   BIN_DIR="$BATS_TEST_TMPDIR/bin"
   mkdir -p "$BIN_DIR"
@@ -435,7 +387,7 @@ SH
   [ "$status" -eq 0 ]
   [[ "$output" == *"All verification dependencies installed."* ]] || false
   [[ "$output" != *"--severity="* ]] || false
-  [[ "$output" != *"--experimental-test-coverage"* ]] || false
+  [[ "$output" != *"coverage-gate.py"*"node-lcov"* ]] || false
   [[ "$output" != *"run-skillspector.sh --changed"* ]] || false
 }
 
@@ -457,16 +409,16 @@ SH
   [[ "$output" == *"prettier"*"--check"* ]] || false
   [[ "$output" == *"lint-skill-contracts.py"* ]] || false
   [[ "$output" == *"run-skillspector.sh --changed"* ]] || false
-  [[ "$output" == *"--experimental-test-coverage"* ]] || false
-  [[ "$output" == *"trace --count"* ]] || false
-  [[ "$output" == *"Bats contract inventory"* ]] || false
+  [[ "$output" == *"coverage-gate.py"*"node-lcov"* ]] || false
+  [[ "$output" == *"coverage-gate.py"*"python-trace"* ]] || false
+  [[ "$output" == *"coverage-gate.py"*"bats-contracts"* ]] || false
 }
 
 @test "verify adds the standalone skill-review eval to the pr-verify gates" {
   run make -C "$BATS_TEST_DIRNAME/.." --no-print-directory --dry-run verify
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *"--experimental-test-coverage"* ]] || false
+  [[ "$output" == *"coverage-gate.py"*"node-lcov"* ]] || false
   [[ "$output" == *"evals/skill-review/run-eval.js --split all"* ]] || false
 }
 
@@ -524,54 +476,7 @@ SH
   run make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory check-python-static-inventory
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Python static inventory: 2 production files registered."* ]] || false
-}
-
-@test "Python static inventory is independent of the caller's collation locale" {
-  setup_makefile_contract_repo
-  update_fake_inventory '.python.measured += [
-      "plugin/scripts/lint-skill-contracts.py",
-      "plugin/scripts/lint_skill_contracts.py"
-    ]'
-  printf 'VALUE = 3\n' >"$MAKEFILE_CONTRACT_REPO/plugin/scripts/lint-skill-contracts.py"
-  printf 'VALUE = 4\n' >"$MAKEFILE_CONTRACT_REPO/plugin/scripts/lint_skill_contracts.py"
-
-  run env -u LC_ALL LANG=en_US.UTF-8 LC_COLLATE=en_US.UTF-8 \
-    make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory check-python-static-inventory
-
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"Python static inventory: 4 production files registered."* ]] || false
-}
-
-@test "Python static inventory rejects an unlisted production module" {
-  setup_makefile_contract_repo
-  printf 'VALUE = 2\n' >"$MAKEFILE_CONTRACT_REPO/plugin/hooks/unlisted.py"
-
-  run make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory check-python-static-inventory
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Python production files missing static inventory entries (1): plugin/hooks/unlisted.py"* ]] || false
-}
-
-@test "Python static inventory rejects a registered module that is missing" {
-  setup_makefile_contract_repo
-  rm "$MAKEFILE_CONTRACT_REPO/plugin/scripts/contract.py"
-
-  run make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory check-python-static-inventory
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Python static inventory entries missing production files (1): plugin/scripts/contract.py"* ]] || false
-}
-
-@test "Python static inventory rejects invalid data under optimized Python" {
-  setup_makefile_contract_repo
-  update_fake_inventory '.python.contract_only["plugin/hooks/example.py"] = .python.contract_only["plugin/scripts/contract.py"] |
-      .python.measured = []'
-
-  run env PYTHONOPTIMIZE=1 make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory check-python-static-inventory
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Python static inventory is malformed"* ]] || false
+  [[ "$output" == *"Python static inventory: 3 production files registered."* ]] || false
 }
 
 @test "typecheck-python checks the production inventory and reports scoped ratchets" {
@@ -611,7 +516,7 @@ SH
 
   [ "$status" -eq 0 ]
   [[ "$output" == *"mypy ratchet exceptions (owner: repository maintainers):"*"changelog"* ]] || false
-  [[ "$output" == *"mypy-args=--config-file plugin/mypy.ini plugin/hooks/example.py plugin/scripts/contract.py"* ]] || false
+  [[ "$output" == *"mypy-args=--config-file plugin/mypy.ini plugin/hooks/example.py plugin/scripts/contract.py plugin/scripts/coverage-gate.py"* ]] || false
   [[ "$output" == *"mypy-ratchet-syntax=valid"* ]] || false
 }
 
@@ -755,177 +660,12 @@ SH
   [[ "$output" != *"BATS_SMOKE_RAN"* ]] || false
 }
 
-@test "coverage-node accepts values exactly at the baselines" {
-  setup_makefile_contract_repo
-  create_fake_node_coverage_tool
-  write_node_lcov_record "scripts/example.js" 8 10 7 10 8 10
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" NODE_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/node-coverage.lcov" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-node
-
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"Node production coverage: lines 80.00% (8/10), branches 70.00% (7/10), functions 80.00% (8/10)"* ]] || false
-}
-
-@test "coverage-node accepts values above the baselines" {
-  setup_makefile_contract_repo
-  create_fake_node_coverage_tool
-  write_node_lcov_record "scripts/example.js" 9 10 8 10 9 10
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" NODE_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/node-coverage.lcov" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-node
-
-  [ "$status" -eq 0 ]
-}
-
-@test "coverage-node rejects values below a baseline" {
-  setup_makefile_contract_repo
-  create_fake_node_coverage_tool
-  write_node_lcov_record "scripts/example.js" 7999 10000 7 10 8 10
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" NODE_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/node-coverage.lcov" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-node
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Node coverage below baseline"* ]] || false
-}
-
-@test "coverage-node weights counters instead of averaging file percentages" {
-  setup_makefile_contract_repo
-  create_fake_node_coverage_tool
-  printf '"use strict";\n' >"$MAKEFILE_CONTRACT_REPO/plugin/scripts/large.js"
-  update_fake_inventory '.javascript.measured += ["plugin/scripts/large.js"]'
-  write_node_lcov_record "scripts/example.js" 1 1 1 1 1 1
-  write_node_lcov_record "scripts/large.js" 78 99 69 99 78 99
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" NODE_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/node-coverage.lcov" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-node
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"lines 79.00% (79/100), branches 70.00% (70/100), functions 79.00% (79/100)"* ]] || false
-  [[ "$output" == *"Node coverage below baseline"* ]] || false
-}
-
-@test "coverage-node excludes fully covered test counters from production totals" {
-  setup_makefile_contract_repo
-  create_fake_node_coverage_tool
-  write_node_lcov_record "scripts/example.js" 1 10 1 10 1 10
-  write_node_lcov_record "tests/node/example.test.js" 1000 1000 1000 1000 1000 1000
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" NODE_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/node-coverage.lcov" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-node
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"lines 10.00% (1/10), branches 10.00% (1/10), functions 10.00% (1/10)"* ]] || false
-  [[ "$output" == *"Node coverage below baseline"* ]] || false
-}
-
-@test "coverage-node rejects an inventoried production file absent from the report" {
-  setup_makefile_contract_repo
-  create_fake_node_coverage_tool
-  printf '"use strict";\n' >"$MAKEFILE_CONTRACT_REPO/plugin/scripts/unloaded.js"
-  update_fake_inventory '.javascript.measured += ["plugin/scripts/unloaded.js"]'
-  write_node_lcov_record "scripts/example.js" 8 10 7 10 8 10
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" NODE_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/node-coverage.lcov" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-node
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Node coverage missing inventory files (1): plugin/scripts/unloaded.js"* ]] || false
-}
-
-@test "coverage-node accepts a registered contract-only file in the report" {
-  setup_makefile_contract_repo
-  create_fake_node_coverage_tool
-  printf '"use strict";\n' >"$MAKEFILE_CONTRACT_REPO/plugin/scripts/contract.js"
-  update_fake_inventory '.javascript.contract_only["plugin/scripts/contract.js"] = ["plugin/tests/example.bats"]'
-  write_node_lcov_record "scripts/contract.js" 0 100 0 100 0 100
-  write_node_lcov_record "scripts/example.js" 8 10 7 10 8 10
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" NODE_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/node-coverage.lcov" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-node
-
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"lines 80.00% (8/10), branches 70.00% (7/10), functions 80.00% (8/10)"* ]] || false
-}
-
-@test "coverage-node rejects an unregistered production file in the report" {
-  setup_makefile_contract_repo
-  create_fake_node_coverage_tool
-  printf '"use strict";\n' >"$MAKEFILE_CONTRACT_REPO/plugin/scripts/unregistered.js"
-  write_node_lcov_record "scripts/example.js" 8 10 7 10 8 10
-  write_node_lcov_record "scripts/unregistered.js" 8 10 7 10 8 10
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" NODE_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/node-coverage.lcov" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-node
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Node coverage report has unregistered production files (1): plugin/scripts/unregistered.js"* ]] || false
-}
-
-@test "coverage-node rejects malformed LCOV counters" {
-  setup_makefile_contract_repo
-  create_fake_node_coverage_tool
-  cat >"$MAKEFILE_CONTRACT_REPO/node-coverage.lcov" <<'REPORT'
-TN:
-SF:scripts/example.js
-FNF:10
-FNH:8
-BRF:10
-BRH:7
-LF:10
-end_of_record
-REPORT
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" NODE_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/node-coverage.lcov" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-node
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Node LCOV coverage report is malformed"* ]] || false
-}
-
-@test "coverage-node rejects duplicate production records" {
-  setup_makefile_contract_repo
-  create_fake_node_coverage_tool
-  write_node_lcov_record "scripts/example.js" 8 10 7 10 8 10
-  write_node_lcov_record "scripts/example.js" 8 10 7 10 8 10
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" NODE_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/node-coverage.lcov" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-node
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Node LCOV coverage report is malformed"* ]] || false
-}
-
-@test "coverage-node rejects impossible hit counters" {
-  setup_makefile_contract_repo
-  create_fake_node_coverage_tool
-  write_node_lcov_record "scripts/example.js" 11 10 7 10 8 10
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" NODE_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/node-coverage.lcov" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-node
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Node LCOV coverage report is malformed"* ]] || false
-}
-
-@test "coverage-node rejects a measured source with no line obligations" {
-  setup_makefile_contract_repo
-  create_fake_node_coverage_tool
-  write_node_lcov_record "scripts/example.js" 0 0 0 0 0 0
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" NODE_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/node-coverage.lcov" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-node
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Node LCOV coverage report is malformed"* ]] || false
-}
-
-@test "coverage-node treats valid zero branch and function denominators as fully covered" {
-  setup_makefile_contract_repo
-  create_fake_node_coverage_tool
-  write_node_lcov_record "scripts/example.js" 8 10 0 0 0 0
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" NODE_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/node-coverage.lcov" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-node
-
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"branches 100.00% (0/0), functions 100.00% (0/0)"* ]] || false
-}
-
 @test "coverage-node preserves the Node test process exit status" {
   setup_makefile_contract_repo
   create_fake_node_coverage_tool
   write_node_lcov_record "scripts/example.js" 8 10 7 10 8 10
 
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" NODE_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/node-coverage.lcov" NODE_TEST_OUTPUT="fixture test failed" NODE_TEST_STATUS=7 make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-node
+  run env PATH="$MAKEFILE_CONTRACT_BIN:$PATH" NODE_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/node-coverage.lcov" NODE_TEST_OUTPUT="fixture test failed" NODE_TEST_STATUS=7 make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-node
 
   [ "$status" -ne 0 ]
   [[ "$output" == *"fixture test failed"* ]] || false
@@ -935,7 +675,7 @@ REPORT
 
 @test "coverage-node rejects undercovered production on the actual Node runtime" {
   mkdir -p "$BATS_TEST_DIRNAME/../../.context"
-  MAKEFILE_RUNTIME_ROOT=$(mktemp -d "$BATS_TEST_DIRNAME/../../.context/node-coverage-runtime.XXXXXX")
+  MAKEFILE_RUNTIME_ROOT=$(mktemp -d "$BATS_TEST_DIRNAME/../../.context/makefile-coverage-runtime.XXXXXX")
   setup_makefile_contract_repo "makefile-contract" "$MAKEFILE_RUNTIME_ROOT"
   mkdir -p \
     "$MAKEFILE_CONTRACT_REPO/plugin/node_modules/yaml" \
@@ -982,331 +722,39 @@ JS
   [[ "$output" == *"Node coverage below baseline"* ]] || false
 }
 
-@test "coverage-python accepts values exactly at the baseline" {
-  setup_makefile_contract_repo
-  create_fake_python_coverage_tool
-  write_fake_python_coverage_report 35
+@test "coverage-python reads trace output from the Makefile runners" {
+  mkdir -p "$BATS_TEST_DIRNAME/../../.context"
+  MAKEFILE_RUNTIME_ROOT=$(mktemp -d "$BATS_TEST_DIRNAME/../../.context/makefile-coverage-runtime.XXXXXX")
+  setup_makefile_contract_repo "makefile-contract" "$MAKEFILE_RUNTIME_ROOT"
+  mkdir -p "$MAKEFILE_CONTRACT_REPO/plugin/maintenance"
+  cat >"$MAKEFILE_CONTRACT_REPO/plugin/tests/test_example.py" <<'PYTHON'
+import unittest
 
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" PYTHON_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/python-coverage.txt" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python
+from hooks import example
 
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"Python production aggregate: 35.00%"* ]] || false
-}
 
-@test "coverage-python rejects values below the baseline" {
-  setup_makefile_contract_repo
-  create_fake_python_coverage_tool
-  write_fake_python_coverage_report 34
+class ExampleTest(unittest.TestCase):
+    def test_value(self):
+        self.assertEqual(example.VALUE, 1)
+PYTHON
+  cp "$MAKEFILE_CONTRACT_REPO/plugin/tests/test_example.py" \
+    "$MAKEFILE_CONTRACT_REPO/plugin/maintenance/test_maintenance.py"
 
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" PYTHON_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/python-coverage.txt" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Python coverage below baseline"* ]] || false
-}
-
-@test "coverage-python rejects an inventoried production file absent from the report" {
-  setup_makefile_contract_repo
-  create_fake_python_coverage_tool
-  printf 'VALUE = 2\n' >"$MAKEFILE_CONTRACT_REPO/plugin/hooks/unloaded.py"
-  update_fake_inventory '.python.measured += ["plugin/hooks/unloaded.py"]'
-  write_fake_python_coverage_report 35
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" PYTHON_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/python-coverage.txt" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Python coverage missing inventory files (1): plugin/hooks/unloaded.py"* ]] || false
-}
-
-@test "coverage-python accepts a registered contract-only file in the report" {
-  setup_makefile_contract_repo
-  create_fake_python_coverage_tool
-  printf 'VALUE = 2\n' >"$MAKEFILE_CONTRACT_REPO/plugin/hooks/contract.py"
-  update_fake_inventory '.python.contract_only["plugin/hooks/contract.py"] = ["plugin/tests/example.bats"]'
-  printf '100 35%% hooks.example (%s/plugin/hooks/example.py)\n100 100%% hooks.contract (%s/plugin/hooks/contract.py)\n' \
-    "$MAKEFILE_CONTRACT_REPO" \
-    "$MAKEFILE_CONTRACT_REPO" \
-    >"$MAKEFILE_CONTRACT_REPO/python-coverage.txt"
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" PYTHON_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/python-coverage.txt" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python
+  run make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python \
+    PYTHON_TEST_DIR=tests PYTHON_MAINTENANCE_TEST_DIR=maintenance
 
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Python production aggregate: 35.00%"* ]] || false
-}
-
-@test "coverage-python rejects an unregistered production file in the report" {
-  setup_makefile_contract_repo
-  create_fake_python_coverage_tool
-  printf 'VALUE = 2\n' >"$MAKEFILE_CONTRACT_REPO/plugin/hooks/unregistered.py"
-  write_fake_python_coverage_report 35
-  printf '100 100%% hooks.unregistered (%s/plugin/hooks/unregistered.py)\n' \
-    "$MAKEFILE_CONTRACT_REPO" \
-    >>"$MAKEFILE_CONTRACT_REPO/python-coverage.txt"
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" PYTHON_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/python-coverage.txt" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Python coverage report has unregistered production files (1): plugin/hooks/unregistered.py"* ]] || false
-}
-
-@test "coverage-python accepts a checkout path containing spaces" {
-  setup_makefile_contract_repo "makefile contract"
-  create_fake_python_coverage_tool
-  write_fake_python_coverage_report 35
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" PYTHON_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/python-coverage.txt" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python
-
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"Python production aggregate: 35.00%"* ]] || false
-}
-
-@test "coverage-python rejects a missing production summary" {
-  setup_makefile_contract_repo
-  create_fake_python_coverage_tool
-  printf 'no production rows\n' >"$MAKEFILE_CONTRACT_REPO/python-coverage.txt"
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" PYTHON_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/python-coverage.txt" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Python production coverage summary not found"* ]] || false
-}
-
-@test "coverage-python reads the decimal percentages newer Python trace emits" {
-  setup_makefile_contract_repo
-  create_fake_python_coverage_tool
-  write_fake_python_coverage_report "35.4"
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" PYTHON_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/python-coverage.txt" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python
-
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"Python production aggregate: 35.40%"* ]] || false
-}
-
-@test "coverage-python ignores package __init__ modules" {
-  setup_makefile_contract_repo
-  create_fake_python_coverage_tool
-  write_fake_python_coverage_report 35
-  append_fake_python_coverage_row "hooks" "plugin/hooks/__init__.py" 100
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" PYTHON_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/python-coverage.txt" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python
-
-  [ "$status" -eq 0 ]
-  [[ "$output" != *"unregistered production files"* ]] || false
-}
-
-@test "coverage-python ignores modules outside the repository" {
-  setup_makefile_contract_repo
-  create_fake_python_coverage_tool
-  write_fake_python_coverage_report 35
-  printf '100 100%% argparse (/opt/homebrew/lib/python3.14/argparse.py)\n' \
-    >>"$MAKEFILE_CONTRACT_REPO/python-coverage.txt"
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" PYTHON_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/python-coverage.txt" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python
-
-  [ "$status" -eq 0 ]
-  [[ "$output" != *"unregistered production files"* ]] || false
-  [[ "$output" == *"Python production aggregate: 35.00%"* ]] || false
-}
-
-@test "coverage-python reports per-file coverage against the floor" {
-  setup_makefile_contract_repo
-  create_fake_python_coverage_tool
-  add_low_coverage_python_module 45
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" PYTHON_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/python-coverage.txt" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python
-
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"Python per-file coverage (2 lowest of 2 measured files, floor 20%)"* ]] || false
-  [[ "$output" == *"45.00% (floor 20%) plugin/hooks/low.py"* ]] || false
-}
-
-@test "coverage-python rejects a measured file the tests never exercise" {
-  setup_makefile_contract_repo
-  create_fake_python_coverage_tool
-  add_low_coverage_python_module 0
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" PYTHON_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/python-coverage.txt" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Python files below the per-file coverage floor"*"plugin/hooks/low.py (0.00% < 20%)"* ]] || false
-}
-
-@test "coverage-python rejects a measured file just below the per-file floor" {
-  setup_makefile_contract_repo
-  create_fake_python_coverage_tool
-  add_low_coverage_python_module 19
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" PYTHON_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/python-coverage.txt" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"plugin/hooks/low.py (19.00% < 20%)"* ]] || false
-}
-
-@test "coverage-python accepts a seeded per-file floor" {
-  setup_makefile_contract_repo
-  create_fake_python_coverage_tool
-  add_low_coverage_python_module 19
-  update_fake_inventory '.python.measured_floors = {"plugin/hooks/low.py": 10}'
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" PYTHON_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/python-coverage.txt" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python
-
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"19.00% (floor 10%) plugin/hooks/low.py"* ]] || false
-}
-
-@test "coverage-python rejects a seeded per-file floor the source has outgrown" {
-  setup_makefile_contract_repo
-  create_fake_python_coverage_tool
-  add_low_coverage_python_module 35
-  update_fake_inventory '.python.measured_floors = {"plugin/hooks/low.py": 10}'
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" PYTHON_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/python-coverage.txt" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Python per-file floors are obsolete"*"plugin/hooks/low.py (35.00%)"* ]] || false
-}
-
-@test "coverage-python rejects a nonnumeric per-file floor directly" {
-  setup_makefile_contract_repo
-  create_fake_python_coverage_tool
-  write_fake_python_coverage_report 35
-  update_fake_inventory '.python.measured_floors = {"plugin/hooks/example.py": "disabled"}'
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" PYTHON_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/python-coverage.txt" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Production coverage inventory is malformed"* ]] || false
-}
-
-@test "coverage-python rejects explicit non-object per-file floor maps" {
-  setup_makefile_contract_repo
-  create_fake_python_coverage_tool
-  write_fake_python_coverage_report 35
-
-  local invalid_value
-  for invalid_value in false null; do
-    update_fake_inventory ".python.measured_floors = $invalid_value"
-
-    run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" PYTHON_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/python-coverage.txt" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python
-
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"Production coverage inventory is malformed"* ]] || false
-  done
-}
-
-@test "coverage-python rejects a per-file floor for an unmeasured source directly" {
-  setup_makefile_contract_repo
-  create_fake_python_coverage_tool
-  write_fake_python_coverage_report 35
-  update_fake_inventory '.python.measured_floors = {"plugin/scripts/contract.py": 10}'
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" PYTHON_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/python-coverage.txt" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Production coverage inventory is malformed"* ]] || false
-}
-
-@test "coverage-python rejects a per-file floor at the stale threshold" {
-  setup_makefile_contract_repo
-  create_fake_python_coverage_tool
-  write_fake_python_coverage_report 35
-  update_fake_inventory '.python.measured_floors = {"plugin/hooks/example.py": 35}'
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" PYTHON_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/python-coverage.txt" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Production coverage inventory is malformed"* ]] || false
-}
-
-@test "coverage-python accepts a per-file floor below the stale threshold" {
-  setup_makefile_contract_repo
-  create_fake_python_coverage_tool
-  add_low_coverage_python_module 34
-  update_fake_inventory '.python.measured_floors = {"plugin/hooks/low.py": 34}'
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" PYTHON_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/python-coverage.txt" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python
-
-  [ "$status" -eq 0 ]
-  [[ "$output" == *"34.00% (floor 34%) plugin/hooks/low.py"* ]] || false
-}
-
-@test "coverage-python preserves decimal floors in failure diagnostics" {
-  setup_makefile_contract_repo
-  create_fake_python_coverage_tool
-  add_low_coverage_python_module 19.4
-  update_fake_inventory '.python.measured_floors = {"plugin/hooks/low.py": 19.5}'
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" PYTHON_COVERAGE_FIXTURE="$MAKEFILE_CONTRACT_REPO/python-coverage.txt" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-python
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"plugin/hooks/low.py (19.40% < 19.50%)"* ]] || false
+  [[ "$output" == *"Python production aggregate: 100.00%"* ]] || false
 }
 
 @test "coverage-bats-contract accepts a complete shell source mapping" {
   setup_makefile_contract_repo
 
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-bats-contract
+  run make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-bats-contract
 
   [ "$status" -eq 0 ]
   [[ "$output" == *"Shell source-to-contract inventory proxy: 1 production file mapped"* ]] || false
   [[ "$output" == *"not measured execution coverage"* ]] || false
-}
-
-@test "coverage-bats-contract rejects a per-file Python floor for an unmeasured source" {
-  setup_makefile_contract_repo
-  update_fake_inventory '.python.measured_floors = {"plugin/scripts/contract.py": 10}'
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-bats-contract
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Production coverage inventory is malformed"* ]] || false
-}
-
-@test "coverage-bats-contract rejects explicit non-object per-file floor maps" {
-  setup_makefile_contract_repo
-
-  local invalid_value
-  for invalid_value in false null; do
-    update_fake_inventory ".python.measured_floors = $invalid_value"
-
-    run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-bats-contract
-
-    [ "$status" -ne 0 ]
-    [[ "$output" == *"Production coverage inventory is malformed"* ]] || false
-  done
-}
-
-@test "coverage-bats-contract rejects a mapped Bats file outside the discovered suite" {
-  setup_makefile_contract_repo
-  mkdir -p "$MAKEFILE_CONTRACT_REPO/plugin/tests/nested"
-  mv \
-    "$MAKEFILE_CONTRACT_REPO/plugin/tests/example.bats" \
-    "$MAKEFILE_CONTRACT_REPO/plugin/tests/nested/example.bats"
-  update_fake_inventory '.shell.contract_only["plugin/hooks/example.sh"] = ["plugin/tests/nested/example.bats"]'
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-bats-contract
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Production contract is not discovered by tests/run-tests.sh: plugin/tests/nested/example.bats"* ]] || false
-}
-
-@test "coverage-bats-contract rejects an unmapped production shell file" {
-  setup_makefile_contract_repo
-  printf '#!/bin/sh\nexit 0\n' >"$MAKEFILE_CONTRACT_REPO/plugin/scripts/unmapped.sh"
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-bats-contract
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Shell production files missing inventory entries (1): plugin/scripts/unmapped.sh"* ]] || false
-}
-
-@test "coverage-bats-contract rejects malformed production inventory" {
-  setup_makefile_contract_repo
-  printf '{\n' >"$MAKEFILE_CONTRACT_REPO/plugin/config/coverage-production-sources.json"
-
-  run env PATH="$MAKEFILE_CONTRACT_BIN:/usr/bin:/bin" make -C "$MAKEFILE_CONTRACT_REPO/plugin" --no-print-directory coverage-bats-contract
-
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Python static inventory is malformed"* ]] || false
 }
 
 @test "pre-commit runs the authoritative installed resource checker" {

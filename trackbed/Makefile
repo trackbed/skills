@@ -42,11 +42,8 @@ PYTHON_COVERAGE_MIN ?= 35
 # python.measured_floors for legacy debt instead of lowering this value.
 PYTHON_FILE_COVERAGE_MIN ?= 20
 PYTHON_FILE_COVERAGE_STALE_MARGIN ?= 15
-# Include the resolved stdlib locations too: package managers such as Homebrew
-# report a symlinked sysconfig path while trace reports the real one.
-PYTHON_TRACE_IGNORE_DIRS := $(shell python3 -c 'import os, sysconfig; paths = {sysconfig.get_path("stdlib"), sysconfig.get_path("platstdlib")}; paths |= {os.path.realpath(path) for path in paths if path}; print(os.pathsep.join(sorted(path for path in paths if path)))' 2>/dev/null)
-PYTHON_TRACE_IGNORE_ARGS = $(if $(PYTHON_TRACE_IGNORE_DIRS),--ignore-dir '$(PYTHON_TRACE_IGNORE_DIRS)',)
 COVERAGE_PRODUCTION_INVENTORY = config/coverage-production-sources.json
+COVERAGE_GATE = python3 scripts/coverage-gate.py --root "$(ROOT_DIR)" --plugin "$(PLUGIN_REL)" --inventory "$(COVERAGE_PRODUCTION_INVENTORY)" --file-minimum "$(PYTHON_FILE_COVERAGE_MIN)" --stale-margin "$(PYTHON_FILE_COVERAGE_STALE_MARGIN)"
 
 FORMAT_BASE ?= $(if $(GITHUB_BASE_REF),origin/$(GITHUB_BASE_REF),origin/main)
 FORMAT_FILE_PATTERNS = '*.js' '*.mjs' '*.json' '*.md' '*.sh' '*.yaml' '*.yml'
@@ -77,42 +74,14 @@ lint-shell: check-shell-deps
 lint-python: check-python-deps check-ruff-deps typecheck-python
 	@"$(RUFF)" check --config "$(PYTHON_RUFF_CONFIG)" . ../.agents/skills/trackbed:skill:audit-sources/scripts
 
-typecheck-python: check-python-deps check-mypy-deps check-python-static-inventory
-	@files=$$(python3 -c 'import json, sys; data = json.load(open(sys.argv[1], encoding="utf-8"))["python"]; print(" ".join(sorted([*data["measured"], *data["contract_only"]])))' "$(COVERAGE_PRODUCTION_INVENTORY)"); \
+typecheck-python: check-python-deps check-mypy-deps
+	@files=$$($(COVERAGE_GATE) inventory --list) || exit $$?; \
 		ratchets=$$(sed -n 's/^\[mypy-\(.*\)\]$$/\1/p' "$(PYTHON_MYPY_CONFIG)" | awk '{ printf "%s%s", (NR > 1 ? ", " : ""), $$0 }'); \
 		if test -n "$$ratchets"; then echo "mypy ratchet exceptions (owner: repository maintainers): $$ratchets"; fi; \
 		cd "$(ROOT_DIR)" && "$(MYPY)" --config-file "$(PLUGIN_REL)/$(PYTHON_MYPY_CONFIG)" $$files
 
 check-python-static-inventory: check-python-deps
-	@tmpdir=$$(mktemp -d); inventory="$(CURDIR)/$(COVERAGE_PRODUCTION_INVENTORY)"; root="$(ROOT_DIR)"; \
-		LC_ALL=C; export LC_ALL; \
-		trap 'rm -rf "$$tmpdir"' EXIT; \
-		if ! python3 -c 'import json, sys; data = json.load(open(sys.argv[1], encoding="utf-8"))["python"]; measured = data["measured"]; contracts = data["contract_only"]; valid = isinstance(measured, list) and bool(measured) and all(isinstance(path, str) and path for path in measured) and isinstance(contracts, dict) and all(isinstance(path, str) and path for path in contracts); sys.exit(1) if not valid else None; paths = [*measured, *contracts]; sys.exit(1) if len(paths) != len(set(paths)) else None; print(*sorted(paths), sep="\n")' "$$inventory" >"$$tmpdir/python.registered" 2>/dev/null; then \
-			echo "Python static inventory is malformed: $(COVERAGE_PRODUCTION_INVENTORY)"; exit 1; \
-		fi; \
-		cd "$$root"; \
-		{ \
-			for directory in "$(PLUGIN_REL)/evals" "$(PLUGIN_REL)/hooks" "$(PLUGIN_REL)/scripts"; do \
-				test ! -d "$$directory" || find "$$directory" -type f -name '*.py' ! -name '__init__.py' ! -name 'test_*.py'; \
-			done; \
-			for directory in "$(PLUGIN_REL)/skills" ".agents/skills"; do \
-				test ! -d "$$directory" || find "$$directory" -type f -path '*/scripts/*.py' ! -name '__init__.py' ! -name 'test_*.py'; \
-			done; \
-		} | sort -u >"$$tmpdir/python.discovered"; \
-		report_paths() { \
-			label="$$1"; file="$$2"; count=$$(wc -l <"$$file" | tr -d ' '); \
-			sample=$$(awk 'NR <= 10 { printf "%s%s", (NR > 1 ? ", " : ""), $$0 }' "$$file"); \
-			if test "$$count" -gt 10; then sample="$$sample, ... (+$$((count - 10)) more)"; fi; \
-			echo "$$label ($$count): $$sample"; \
-		}; \
-		comm -23 "$$tmpdir/python.discovered" "$$tmpdir/python.registered" >"$$tmpdir/python.missing"; \
-		comm -13 "$$tmpdir/python.discovered" "$$tmpdir/python.registered" >"$$tmpdir/python.stale"; \
-		failed=0; \
-		if test -s "$$tmpdir/python.missing"; then report_paths "Python production files missing static inventory entries" "$$tmpdir/python.missing"; failed=1; fi; \
-		if test -s "$$tmpdir/python.stale"; then report_paths "Python static inventory entries missing production files" "$$tmpdir/python.stale"; failed=1; fi; \
-		test "$$failed" -eq 0 || exit 1; \
-		file_count=$$(wc -l <"$$tmpdir/python.registered" | tr -d ' '); file_noun=files; test "$$file_count" -ne 1 || file_noun=file; \
-		echo "Python static inventory: $$file_count production $$file_noun registered."
+	@$(COVERAGE_GATE) inventory
 
 lint-js: check-js-deps
 	@"$(TSC)" -p jsconfig.json && \
@@ -309,230 +278,13 @@ unit-coverage: coverage-node coverage-python
 # Native coverage thresholds were added after the Node 20 version used in CI,
 # so aggregate its LCOV counters here. See https://nodejs.org/api/test.html#coverage-reporters
 coverage-node: check-node-deps check-coverage-inventory-deps
-	@tmpdir=$$(mktemp -d); report="$$tmpdir/node-tests.txt"; coverage_report="$$tmpdir/node-coverage.lcov"; inventory_rows="$$tmpdir/node-inventory.tsv"; \
-		jq -er '.javascript as $$language | select(($$language.measured | type) == "array" and ($$language.measured | length) > 0 and ($$language.contract_only | type) == "object") | (($$language.measured[] | ["measured", .]), ($$language.contract_only | keys[] | ["registered", .])) | @tsv' "$(COVERAGE_PRODUCTION_INVENTORY)" >"$$inventory_rows" || { echo "Production coverage inventory is malformed"; rm -rf "$$tmpdir"; exit 1; }; \
-		node --test --experimental-test-coverage --test-reporter=spec --test-reporter=lcov --test-reporter-destination="$$report" --test-reporter-destination="$$coverage_report" $(NODE_TEST_FILES); status=$$?; \
-		cat "$$report"; \
-		if [ $$status -ne 0 ]; then rm -rf "$$tmpdir"; exit $$status; fi; \
-		awk -v root="$(ROOT_DIR)" -v plugin="$(PLUGIN_REL)" -v min_lines="$(NODE_COVERAGE_LINES)" -v min_branches="$(NODE_COVERAGE_BRANCHES)" -v min_functions="$(NODE_COVERAGE_FUNCTIONS)" ' \
-			NR == FNR { \
-				split($$0, inventory_entry, "\t"); registered[inventory_entry[2]]=1; \
-				if (inventory_entry[1] == "measured") { expected[inventory_entry[2]]=1; order[++expected_count]=inventory_entry[2] } \
-				next \
-			} \
-			function trim(value) { gsub(/^[[:space:]]+|[[:space:]]+$$/, "", value); return value } \
-			function normalize_path(value) { \
-				value=trim(value); gsub(/\\/, "/", value); sub(/^\.\//, "", value); \
-				if (index(value, root "/") == 1) value=substr(value, length(root) + 2); \
-				if (index(value, plugin "/") != 1) value=plugin "/" value; \
-				return value \
-			} \
-			function print_paths(label, count, values,    position, limit) { \
-				limit=count < 10 ? count : 10; \
-				printf "%s (%d): ", label, count > "/dev/stderr"; \
-				for (position=1; position <= limit; position++) printf "%s%s", (position > 1 ? ", " : ""), values[position] > "/dev/stderr"; \
-				if (count > limit) printf ", ... (+%d more)", count - limit > "/dev/stderr"; \
-				print "" > "/dev/stderr" \
-			} \
-			function malformed() { malformed_report=1 } \
-			function reset_record(    counter_key) { \
-				for (counter_key in counter) delete counter[counter_key]; \
-				active=0; ignored=0; path="" \
-			} \
-			function finish_record(    position, key) { \
-				if (!active) { malformed(); return } \
-				if (!ignored) { \
-					required[1]="LF"; required[2]="LH"; required[3]="BRF"; required[4]="BRH"; required[5]="FNF"; required[6]="FNH"; \
-					for (position=1; position <= 6; position++) { \
-						key=required[position]; \
-						if (!(key in counter)) malformed() \
-					} \
-					if (("LF" in counter) && ("LH" in counter) && counter["LH"] > counter["LF"]) malformed(); \
-					if (("BRF" in counter) && ("BRH" in counter) && counter["BRH"] > counter["BRF"]) malformed(); \
-					if (("FNF" in counter) && ("FNH" in counter) && counter["FNH"] > counter["FNF"]) malformed(); \
-					if (path in seen) malformed(); \
-					seen[path]=1; \
-					if (!(path in registered)) { \
-						unexpected_order[++unexpected_count]=path \
-					} else if (path in expected) { \
-						if (counter["LF"] == 0) malformed(); \
-						line_total+=counter["LF"]; line_hit+=counter["LH"]; \
-						branch_total+=counter["BRF"]; branch_hit+=counter["BRH"]; \
-						function_total+=counter["FNF"]; function_hit+=counter["FNH"] \
-					} \
-				} \
-				reset_record() \
-			} \
-			{ \
-				record=$$0; sub(/\r$$/, "", record); \
-				if (record ~ /^SF:/) { \
-					if (active) malformed(); \
-					path=normalize_path(substr(record, 4)); active=1; ignored=(path ~ /(^|\/)tests\//); \
-					if (path == plugin "/") malformed(); \
-					next \
-				} \
-				if (record == "end_of_record") { finish_record(); next } \
-				if (record ~ /^(LF|LH|BRF|BRH|FNF|FNH):/) { \
-					if (!active) { malformed(); next } \
-					field_count=split(record, field, ":"); key=field[1]; value=field[2]; \
-					if (field_count != 2 || value !~ /^[0-9]+$$/ || (key in counter)) malformed(); \
-					else counter[key]=value + 0 \
-				} \
-			} \
-			END { \
-				if (active) malformed(); \
-				for (position=1; position <= expected_count; position++) if (!(order[position] in seen)) missing[++missing_count]=order[position]; \
-				if (missing_count) { print_paths("Node coverage missing inventory files", missing_count, missing); failed=1 } \
-				if (unexpected_count) { print_paths("Node coverage report has unregistered production files", unexpected_count, unexpected_order); failed=1 } \
-				if (malformed_report) { print "Node LCOV coverage report is malformed" > "/dev/stderr"; failed=1 } \
-				lines=line_total ? (100 * line_hit / line_total) : 100; \
-				branches=branch_total ? (100 * branch_hit / branch_total) : 100; \
-				functions=function_total ? (100 * function_hit / function_total) : 100; \
-				printf "Node production coverage: lines %.2f%% (%d/%d), branches %.2f%% (%d/%d), functions %.2f%% (%d/%d)\n", lines, line_hit, line_total, branches, branch_hit, branch_total, functions, function_hit, function_total; \
-				if (lines < min_lines || branches < min_branches || functions < min_functions) { \
-					printf "Node coverage below baseline: lines %.2f/%.2f, branches %.2f/%.2f, functions %.2f/%.2f\n", lines, min_lines, branches, min_branches, functions, min_functions > "/dev/stderr"; \
-					failed=1 \
-				} \
-				exit failed \
-			}' "$$inventory_rows" "$$coverage_report"; \
-		status=$$?; rm -rf "$$tmpdir"; exit $$status
+	@$(COVERAGE_GATE) node-lcov --minimums $(NODE_COVERAGE_LINES) $(NODE_COVERAGE_BRANCHES) $(NODE_COVERAGE_FUNCTIONS) $(NODE_TEST_FILES)
 
-coverage-python: check-python-deps check-coverage-inventory-deps test-python
-	@tmpdir=$$(mktemp -d); counts="$$tmpdir/counts"; coverdir="$$tmpdir/report-files"; report="$$tmpdir/python-coverage.txt"; inventory_rows="$$tmpdir/python-inventory.tsv"; \
-		jq -er --argjson file_minimum "$(PYTHON_FILE_COVERAGE_MIN)" --argjson stale_margin "$(PYTHON_FILE_COVERAGE_STALE_MARGIN)" 'def floors($$measured): type == "object" and all(to_entries[]; (.key | type) == "string" and (.key | length) > 0 and (.value | type) == "number" and .value >= 0 and .value < ($$file_minimum + $$stale_margin)) and ((keys - $$measured) | length == 0); def optional_floors($$language): if ($$language | has("measured_floors")) then $$language.measured_floors else {} end; .python as $$language | (optional_floors($$language)) as $$floor_map | select(($$language.measured | type) == "array" and ($$language.measured | length) > 0 and ($$language.contract_only | type) == "object" and ($$floor_map | floors($$language.measured))) | (($$language.measured[] | ["measured", .]), ($$language.contract_only | keys[] | ["registered", .]), ($$floor_map | to_entries[] | ["floor", .key, (.value | tostring)])) | @tsv' "$(COVERAGE_PRODUCTION_INVENTORY)" >"$$inventory_rows" || { echo "Production coverage inventory is malformed"; rm -rf "$$tmpdir"; exit 1; }; \
-		python3 -c 'import pickle, sys; pickle.dump(({}, {}, {}), open(sys.argv[1], "wb"), 1)' "$$counts"; \
-		python3 -m trace --count --file "$$counts" --coverdir "$$coverdir" $(PYTHON_TRACE_IGNORE_ARGS) --module unittest discover -s $(PYTHON_TEST_DIR) -p '$(PYTHON_TEST_PATTERN)' || { status=$$?; rm -rf "$$tmpdir"; exit $$status; }; \
-		python3 -m trace --count --file "$$counts" --missing --summary --coverdir "$$coverdir" $(PYTHON_TRACE_IGNORE_ARGS) --module unittest discover -s $(PYTHON_MAINTENANCE_TEST_DIR) -p '$(PYTHON_TEST_PATTERN)' >"$$report" 2>&1; status=$$?; \
-		cat "$$report"; \
-		if [ $$status -ne 0 ]; then rm -rf "$$tmpdir"; exit $$status; fi; \
-		awk -v root="$(ROOT_DIR)" -v plugin="$(PLUGIN_REL)" -v minimum="$(PYTHON_COVERAGE_MIN)" -v file_minimum="$(PYTHON_FILE_COVERAGE_MIN)" -v stale_margin="$(PYTHON_FILE_COVERAGE_STALE_MARGIN)" ' \
-			NR == FNR { \
-				split($$0, inventory_entry, "\t"); \
-				if (inventory_entry[1] == "floor") { floor_value[inventory_entry[2]]=inventory_entry[3] + 0; next } \
-				registered[inventory_entry[2]]=1; \
-				if (inventory_entry[1] == "measured") { expected[inventory_entry[2]]=1; order[++expected_count]=inventory_entry[2] } \
-				next \
-			} \
-			function required_floor(path) { return (path in floor_value) ? floor_value[path] : file_minimum } \
-			function format_floor(value) { return value == int(value) ? sprintf("%d", value) : sprintf("%.2f", value) } \
-			function report_lowest(    remaining, printed, candidate, best, best_path) { \
-				remaining=0; for (candidate in file_percent) remaining++; \
-				if (remaining == 0) return; \
-				printed=remaining < 10 ? remaining : 10; \
-				printf "Python per-file coverage (%d lowest of %d measured files, floor %s%%):\n", printed, remaining, format_floor(file_minimum); \
-				while (printed-- > 0) { \
-					best_path=""; \
-					for (candidate in file_percent) { \
-						if (candidate in file_reported) continue; \
-						if (best_path == "" || file_percent[candidate] < best || (file_percent[candidate] == best && candidate < best_path)) { best=file_percent[candidate]; best_path=candidate } \
-					} \
-					if (best_path == "") break; \
-					file_reported[best_path]=1; \
-					printf "  %6.2f%% (floor %s%%) %s\n", file_percent[best_path], format_floor(required_floor(best_path)), best_path \
-				} \
-			} \
-			function print_paths(label, count, values,    position, limit) { \
-				limit=count < 10 ? count : 10; \
-				printf "%s (%d): ", label, count > "/dev/stderr"; \
-				for (position=1; position <= limit; position++) printf "%s%s", (position > 1 ? ", " : ""), values[position] > "/dev/stderr"; \
-				if (count > limit) printf ", ... (+%d more)", count - limit > "/dev/stderr"; \
-				print "" > "/dev/stderr" \
-			} \
-			function normalize_path(path) { \
-				gsub(/\\/, "/", path); \
-				if (index(path, root "/") == 1) return substr(path, length(root) + 2); \
-				if (index(path, "/.agents/")) { sub("^.*/[.]agents/", ".agents/", path); return path } \
-				if (index(path, "/" plugin "/")) { sub("^.*/" plugin "/", plugin "/", path); return path } \
-				if (index(path, "/") == 1) return ""; \
-				if (index(path, plugin "/") != 1 && index(path, ".agents/") != 1) return plugin "/" path; \
-				return path \
-			} \
-			$$1 ~ /^[0-9]+$$/ && $$2 ~ /^[0-9]+([.][0-9]+)?%$$/ && $$0 ~ /\(.*[.]py\)[[:space:]]*$$/ { \
-				path=$$0; sub(/^[^(]*\(/, "", path); sub(/\)[[:space:]]*$$/, "", path); path=normalize_path(path); \
-				if (path == "") next; \
-				if (path ~ /(^|\/)tests\// || path ~ /(^|\/)test_[^\/]*[.]py$$/ || path ~ /(^|\/)__init__[.]py$$/) next; \
-				seen[path]=1; \
-				if (!(path in registered) && !(path in unexpected)) unexpected_order[++unexpected_count]=path; \
-				unexpected[path]=1; \
-				if (path in expected) { percent=$$2; sub(/%/, "", percent); file_percent[path]=percent + 0; lines += $$1; weighted += $$1 * percent } \
-			} \
-			END { \
-				for (position=1; position <= expected_count; position++) if (!(order[position] in seen)) missing[++missing_count]=order[position]; \
-				if (missing_count) { print_paths("Python coverage missing inventory files", missing_count, missing); failed=1 } \
-				if (unexpected_count) { print_paths("Python coverage report has unregistered production files", unexpected_count, unexpected_order); failed=1 } \
-				for (position=1; position <= expected_count; position++) { \
-					path=order[position]; \
-					if (!(path in file_percent)) continue; \
-					if (file_percent[path] < required_floor(path)) { below[++below_count]=sprintf("%s (%.2f%% < %s%%)", path, file_percent[path], format_floor(required_floor(path))) } \
-					else if ((path in floor_value) && file_percent[path] >= file_minimum + stale_margin) { stale[++stale_count]=sprintf("%s (%.2f%%)", path, file_percent[path]) } \
-				} \
-				if (below_count) { print_paths("Python files below the per-file coverage floor; add tests or seed python.measured_floors", below_count, below); failed=1 } \
-				if (stale_count) { print_paths("Python per-file floors are obsolete; delete them from python.measured_floors", stale_count, stale); failed=1 } \
-				report_lowest(); \
-				if (!lines) { print "Python production coverage summary not found" > "/dev/stderr"; failed=1 } \
-				else { \
-					coverage=weighted / lines; printf "Python production aggregate: %.2f%% (%d executable lines)\n", coverage, lines; \
-					if (coverage < minimum) { printf "Python coverage below baseline: %.2f/%.2f\n", coverage, minimum > "/dev/stderr"; failed=1 } \
-				} \
-				exit failed \
-			}' "$$inventory_rows" "$$report"; \
-		status=$$?; rm -rf "$$tmpdir"; exit $$status
+coverage-python: check-coverage-inventory-deps test-python
+	@$(COVERAGE_GATE) python-trace --minimum "$(PYTHON_COVERAGE_MIN)" --test-dir "$(PYTHON_TEST_DIR)" --maintenance-dir "$(PYTHON_MAINTENANCE_TEST_DIR)" --test-pattern '$(PYTHON_TEST_PATTERN)'
 
-coverage-bats-contract: check-coverage-inventory-deps check-python-static-inventory
-	@tmpdir=$$(mktemp -d); inventory="$(CURDIR)/$(COVERAGE_PRODUCTION_INVENTORY)"; root="$(ROOT_DIR)"; \
-		trap 'rm -rf "$$tmpdir"' EXIT; \
-		if ! jq -e --argjson file_minimum "$(PYTHON_FILE_COVERAGE_MIN)" --argjson stale_margin "$(PYTHON_FILE_COVERAGE_STALE_MARGIN)" 'def string_array: type == "array" and length > 0 and all(.[]; type == "string" and length > 0); def mappings: type == "object" and all(to_entries[]; (.key | type == "string" and length > 0) and (.value | string_array)); def exclusions: type == "object" and all(to_entries[]; (.key | type == "string" and length > 0) and (.value | type == "string" and length > 0)); def floors: type == "object" and all(to_entries[]; (.key | type == "string" and length > 0) and (.value | type == "number" and . >= 0 and . < ($$file_minimum + $$stale_margin))); def optional_floors: if has("measured_floors") then .measured_floors else {} end; (.python | optional_floors) as $$floor_map | (.javascript | type == "object") and (.javascript.measured | string_array) and (.javascript.contract_only | mappings) and ((.javascript.excluded // {}) | exclusions) and (.python | type == "object") and (.python.measured | string_array) and (.python.contract_only | mappings) and ($$floor_map | floors) and (((($$floor_map | keys) - .python.measured) | length) == 0) and (.shell | type == "object") and (.shell.contract_only | mappings) and ([.javascript.measured[], (.javascript.contract_only | keys[]), ((.javascript.excluded // {}) | keys[])] | length == (unique | length)) and ([.python.measured[], (.python.contract_only | keys[])] | length == (unique | length))' "$$inventory" >/dev/null 2>&1; then \
-			echo "Production coverage inventory is malformed"; exit 1; \
-		fi; \
-		jq -r '.javascript.measured[], (.javascript.contract_only | keys[]), ((.javascript.excluded // {}) | keys[])' "$$inventory" | sort >"$$tmpdir/javascript.registered"; \
-		jq -r '.shell.contract_only | keys[]' "$$inventory" | sort >"$$tmpdir/shell.registered"; \
-		jq -r '.javascript.contract_only, .python.contract_only, .shell.contract_only | to_entries[] | .key as $$source | .value[] | [$$source, .] | @tsv' "$$inventory" >"$$tmpdir/mappings.tsv"; \
-		cd "$$root"; \
-		for bats_contract in "$(PLUGIN_REL)"/tests/*.bats; do \
-			test ! -f "$$bats_contract" || printf '%s\n' "$$bats_contract"; \
-		done | sort -u >"$$tmpdir/bats.discovered"; \
-		{ \
-			for directory in "$(PLUGIN_REL)/evals" "$(PLUGIN_REL)/hooks" "$(PLUGIN_REL)/scripts"; do \
-				test ! -d "$$directory" || find "$$directory" -type f -name '*.js'; \
-			done; \
-			test ! -d "$(PLUGIN_REL)/skills" || find "$(PLUGIN_REL)/skills" -type f \( -path '*/scripts/*.js' -o -path '*/assets/*.js' \); \
-			test ! -d "$(PLUGIN_REL)/shared" || find "$(PLUGIN_REL)/shared" -type f -path '*/assets/*.js'; \
-			test ! -d ".agents/skills" || find ".agents/skills" -type f -path '*/scripts/*.js'; \
-		} | sort -u >"$$tmpdir/javascript.discovered"; \
-		{ \
-			for directory in "$(PLUGIN_REL)/evals" "$(PLUGIN_REL)/hooks" "$(PLUGIN_REL)/scripts"; do \
-				test ! -d "$$directory" || find "$$directory" -type f -name '*.sh'; \
-			done; \
-			test ! -d "$(PLUGIN_REL)/skills" || find "$(PLUGIN_REL)/skills" -type f \( -path '*/scripts/*.sh' -o -path '*/assets/*.sh' \); \
-			test ! -d ".agents/skills" || find ".agents/skills" -type f -path '*/scripts/*.sh'; \
-		} | sort -u >"$$tmpdir/shell.discovered"; \
-		report_paths() { \
-			label="$$1"; file="$$2"; count=$$(wc -l <"$$file" | tr -d ' '); \
-			sample=$$(awk 'NR <= 10 { printf "%s%s", (NR > 1 ? ", " : ""), $$0 }' "$$file"); \
-			if test "$$count" -gt 10; then sample="$$sample, ... (+$$((count - 10)) more)"; fi; \
-			echo "$$label ($$count): $$sample"; \
-		}; \
-		failed=0; \
-		for language in javascript shell; do \
-			case "$$language" in javascript) label=JavaScript ;; shell) label=Shell ;; esac; \
-			comm -23 "$$tmpdir/$$language.discovered" "$$tmpdir/$$language.registered" >"$$tmpdir/$$language.missing"; \
-			comm -13 "$$tmpdir/$$language.discovered" "$$tmpdir/$$language.registered" >"$$tmpdir/$$language.stale"; \
-			if test -s "$$tmpdir/$$language.missing"; then report_paths "$$label production files missing inventory entries" "$$tmpdir/$$language.missing"; failed=1; fi; \
-			if test -s "$$tmpdir/$$language.stale"; then report_paths "$$label inventory entries missing production files" "$$tmpdir/$$language.stale"; failed=1; fi; \
-		done; \
-		while IFS="$$(printf '\t')" read -r source contract; do \
-			if test ! -f "$$source"; then echo "Production contract source not found: $$source"; failed=1; fi; \
-			if test ! -f "$$contract"; then echo "Production contract file not found: $$contract"; failed=1; \
-			elif ! grep -Fqx "$$contract" "$$tmpdir/bats.discovered"; then echo "Production contract is not discovered by tests/run-tests.sh: $$contract"; failed=1; \
-			elif ! grep -q '^@test ' "$$contract"; then echo "Production contract has no Bats tests: $$contract"; failed=1; fi; \
-		done <"$$tmpdir/mappings.tsv"; \
-		test "$$failed" -eq 0 || exit 1; \
-		file_count=$$(wc -l <"$$tmpdir/bats.discovered" | tr -d ' '); \
-		test_count=$$(while IFS= read -r bats_contract; do grep -h '^@test ' "$$bats_contract"; done <"$$tmpdir/bats.discovered" | wc -l | tr -d ' '); \
-		test "$$file_count" -gt 0 && test "$$test_count" -gt 0 || { echo "Bats contract inventory is empty"; exit 1; }; \
-		shell_count=$$(wc -l <"$$tmpdir/shell.registered" | tr -d ' '); shell_noun=files; test "$$shell_count" -ne 1 || shell_noun=file; \
-		echo "Shell source-to-contract inventory proxy: $$shell_count production $$shell_noun mapped to Bats contracts (not measured execution coverage)."; \
-		echo "Bats contract inventory: $$file_count files, $$test_count tests (all top-level tests/*.bats are discovered by tests/run-tests.sh)."
+coverage-bats-contract: check-coverage-inventory-deps
+	@$(COVERAGE_GATE) bats-contracts
 
 # Portable development setup. Check mode is read-only; install mode is explicit.
 bootstrap-check:
@@ -560,8 +312,7 @@ check-node-deps:
 check-python-deps:
 	@command -v python3 >/dev/null 2>&1 || { echo "python3 not found."; exit 1; }
 
-check-coverage-inventory-deps:
-	@command -v jq >/dev/null 2>&1 || { echo "jq not found. Run 'make install-test-deps'"; exit 1; }
+check-coverage-inventory-deps: check-python-deps
 
 check-shell-deps:
 	@command -v "$(SHELLCHECK)" >/dev/null 2>&1 || { echo "$(SHELLCHECK) not found. Install shellcheck before running lint or verify."; exit 1; }
