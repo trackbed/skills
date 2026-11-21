@@ -10,11 +10,11 @@ synced-contracts.yaml. Pass --write to update both in place.
 from __future__ import annotations
 
 import argparse
-import sys
 from pathlib import Path
-from typing import Any
 
-from json_object import load_json_object
+from lint_skill_contracts.catalog import render_component_catalog
+from lint_skill_contracts.cli import load_registry
+from lint_skill_contracts.readme import readme_relative_for_component_sync, render_readme_component_sync
 
 
 def parse_cli() -> argparse.Namespace:
@@ -46,20 +46,6 @@ def parse_cli() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_lint_module(script_dir: Path) -> Any:
-    script_dir_text = str(script_dir)
-    if script_dir_text not in sys.path:
-        sys.path.insert(0, script_dir_text)
-
-    import lint_skill_contracts
-
-    return lint_skill_contracts
-
-
-def load_registry(path: Path) -> dict[str, Any]:
-    return load_json_object(path, "registry")
-
-
 def report_failures(header: str, failures: list[str]) -> None:
     print(header)
     for failure in failures:
@@ -77,9 +63,8 @@ def main() -> int:
     root = args.repo_root.resolve()
     registry_path = args.registry.resolve()
     registry = load_registry(registry_path)
-    lint_module = load_lint_module(Path(__file__).resolve().parent)
 
-    rendered, failures = lint_module.render_readme_component_sync(root, registry)
+    rendered, failures = render_readme_component_sync(root, registry)
     if failures:
         report_failures("component reference sync failed:", failures)
         return 1
@@ -91,7 +76,7 @@ def main() -> int:
         return 1
 
     path_failures: list[str] = []
-    readme_relative = lint_module.readme_relative_for_component_sync(registry, path_failures)
+    readme_relative = readme_relative_for_component_sync(registry, path_failures)
     if readme_relative is None:
         report_failures(
             "component reference sync failed:",
@@ -101,14 +86,14 @@ def main() -> int:
     readme_path = (root / readme_relative).resolve()
     current = readme_path.read_text(encoding="utf-8")
 
-    catalog_relative, catalog_rendered, catalog_failures = lint_module.render_component_catalog(root, registry)
+    catalog_relative, catalog_rendered, catalog_failures = render_component_catalog(root, registry)
     if catalog_failures:
         report_failures("component reference sync failed:", catalog_failures)
         return 1
 
     catalog_path = None
     catalog_current = None
-    if catalog_rendered is not None:
+    if catalog_relative is not None and catalog_rendered is not None:
         catalog_path = (root / catalog_relative).resolve()
         catalog_current = read_if_present(catalog_path)
 
@@ -130,7 +115,7 @@ def main() -> int:
     stale: list[str] = []
     if current != rendered:
         stale.append(readme_relative)
-    if catalog_path is not None and catalog_current != catalog_rendered:
+    if catalog_relative is not None and catalog_path is not None and catalog_current != catalog_rendered:
         stale.append(catalog_relative)
     if stale:
         print("component reference sync check failed:")
