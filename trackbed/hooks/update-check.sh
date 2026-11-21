@@ -1,4 +1,5 @@
 #!/bin/bash
+# Decision: trackbed/docs/decisions/2026-10-28-plugin-update-notices.md
 set -uo pipefail
 # Policy: -u/-pipefail only. No -e: every failure must end in a silent `{}`, never a hook error.
 # Hook: Tell the user when a newer plugin version is available, and name the new

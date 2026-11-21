@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Decision: trackbed/docs/decisions/README.md
 """Check that line citations in maintainer guides still point at what they claim.
 
   python3 check-doc-citations.py [path-to-guide.md ...]

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Decision: trackbed/docs/decisions/README.md
 #
 # Run SkillSpector against repository skills with stable local defaults.
 

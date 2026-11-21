@@ -1,4 +1,5 @@
 // @ts-check
+// Decision: trackbed/docs/decisions/2026-11-05-trackbed-plugin-namespace.md
 "use strict";
 
 const path = require("path");
