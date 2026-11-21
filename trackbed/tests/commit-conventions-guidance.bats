@@ -387,6 +387,6 @@ MD
 @test "this repository exposes its explicit plain-English branch rule above history" {
   collect_signals "$REPOSITORY_ROOT" auto
 
-  instruction=$(grep '^INSTRUCTION=AGENTS.md:' <<<"$output")
-  [[ "$instruction" == *'plain-English branch commit messages'* ]] || false
+  instruction=$(grep '^INSTRUCTION=CONTRIBUTING\.md:' <<<"$output")
+  [[ "$instruction" == *'plain-English commit messages on branches'* ]] || false
 }
