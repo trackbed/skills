@@ -4,6 +4,10 @@ description: "Converge a clean committed branch: ordered quality gates, bounded 
 argument-hint: "[--subagent-model <model>] [--strict] [--rounds <1-5>] [--depth <balanced|full>] [--adversarial-review [--adversarial-provider claude|codex] [--adversarial-model <id>]] [--derive | LINEAR-ISSUE | --requirements <authoritative requirements>]"
 disable-model-invocation: false
 user-invocable: true
+permissions:
+  - shell
+  - file_read
+  - file_write
 ---
 
 # Converge Prepared Pull Request Work

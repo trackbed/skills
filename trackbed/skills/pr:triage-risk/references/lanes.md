@@ -17,7 +17,7 @@ Add `--emphasize` with every dimension that an undiscounted signal maps to, in t
 | Signals | Dimension |
 | --- | --- |
 | `content:secret`, `content:dangerous-sink`, `path:auth`, `path:secrets-config` | `security` |
-| `shape:untested-source`, `content:disabled-test` | `tests` |
+| `shape:untested-source`, `shape:deleted-test`, `content:disabled-test` | `tests` |
 | `path:public-interface` | `architecture` |
 | `shape:deleted-source` | `removal` |
 

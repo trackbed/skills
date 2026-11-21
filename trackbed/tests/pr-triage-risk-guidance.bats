@@ -72,7 +72,7 @@ setup() {
 }
 
 @test "triage risk checks deleted files for surviving use instead of reading their bodies" {
-  grep -qF '1. Every file named in a signal'"'"'s evidence, except a deleted file named only by `shape:deleted-source`.' "$SKILL"
+  grep -qF '1. Every file named in a signal'"'"'s evidence, except a deleted file named only by `shape:deleted-source` or `shape:deleted-test`.' "$SKILL"
   grep -qF '2. Every deleted `code` or `test` file (`status` `D`): check whether it is still used, as described below; read its hunks only when item 1 named it.' "$SKILL"
   grep -qF "git grep -n -F -e '<name>' HEAD --" "$SKILL"
   grep -qF 'Look past static imports: string references, routes or commands resolved from file names, registration that ran when the file was imported' "$SKILL"
@@ -82,6 +82,14 @@ setup() {
   grep -qF 'it does not discount `shape:deleted-source` when the file could be loaded by a directory scan or by a consumer outside the repository.' "$SKILL"
   grep -qF 'For a deleted test, also check whether the code it tested still ships.' "$SKILL"
   grep -qF 'For `shape:deleted-source`, say for each deleted file it names whether a surviving use was found, citing it as `path:line`.' "$SKILL"
+}
+
+@test "triage risk flags a deleted test and discounts it only on evidence from the diff" {
+  grep -qF '| `shape:deleted-test` | medium | yes | A `test` file was deleted' "$SIGNALS"
+  grep -qF 'A moved or renamed test does not count.' "$SIGNALS"
+  grep -qF '| `shape:untested-source`, `shape:deleted-test`, `content:disabled-test` | `tests` |' "$LANES"
+  grep -qF 'Discount `shape:deleted-test` only when the Step 4 check shows that the code the test covered no longer ships, that the branch moves the same cases into another test file, or, for a deleted fixture, mock, snapshot, or helper, that no surviving test uses it; name the removed code, the new test file, or the search that found no use.' "$SKILL"
+  grep -qF 'For `shape:deleted-test`, say for each deleted test it names whether the code it tested still ships, and for each deleted fixture, mock, snapshot, or helper whether a surviving test still uses it.' "$SKILL"
 }
 
 @test "triage risk raises the tier for changes that fail quietly" {

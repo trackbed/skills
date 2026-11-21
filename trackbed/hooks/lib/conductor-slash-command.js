@@ -14,9 +14,11 @@ const path = require("path");
 
 const {
   PLATFORM_CODEX,
+  asRecord,
   detectPlatform,
+  readSkillFolderResolver,
   stripConductorInstructions,
-} = require("../../scripts/lib/skill-usage-hosts.js");
+} = require("../../scripts/lib/trackbed-runtime.js");
 
 const CONDUCTOR_INSTRUCTION_OPEN = "<system_instruction>";
 // Claude Code accepts both the frontmatter name (`pr:github-review`) and its
@@ -100,25 +102,12 @@ function parseLeadingCommand(prompt) {
  */
 function findSkill(pluginRoot, name) {
   const skillsRoot = path.join(pluginRoot, "skills");
-  let entries;
-  try {
-    entries = fs.readdirSync(skillsRoot, { withFileTypes: true });
-  } catch {
-    return null;
-  }
-  const folders = entries.filter((entry) => entry.isDirectory());
-  let matches = folders.filter((entry) => entry.name === name);
-  if (matches.length === 0) {
-    matches = folders.filter(
-      (entry) => entry.name.replaceAll(":", "-") === name,
-    );
-  }
-  if (matches.length !== 1) return null;
-
-  const dir = path.join(skillsRoot, matches[0].name);
+  let skill;
   let source;
   try {
-    source = fs.readFileSync(path.join(dir, "SKILL.md"), "utf8");
+    skill = readSkillFolderResolver(skillsRoot)(name);
+    if (!skill) return null;
+    source = fs.readFileSync(path.join(skill.dir, "SKILL.md"), "utf8");
   } catch {
     return null;
   }
@@ -136,7 +125,7 @@ function findSkill(pluginRoot, name) {
   ) {
     return null;
   }
-  return { dir, name: matches[0].name };
+  return skill;
 }
 
 /**
@@ -159,13 +148,6 @@ function renderContext({ typed, args, skill, pluginRoot }) {
     "",
     "Do not call the Skill tool for this skill. This message is already the user's invocation, and the Skill tool may refuse a skill that only the user can start.",
   ].join("\n");
-}
-
-/** @param {unknown} value @returns {Record<string, unknown>} */
-function asRecord(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value)
-    ? /** @type {Record<string, unknown>} */ (value)
-    : {};
 }
 
 function main() {

@@ -182,7 +182,7 @@ const SHELL_LANGUAGES = new Set([null, "bash", "sh", "shell", "text"]);
 const HOST_COMMAND = /^[/$][a-z][\w:.-]*(?=\s|$)/;
 
 /** Whether every command line is typed into the host: `/plugin`, `$trackbed:setup`. */
-export function isHostCommandBlock(code) {
+function isHostCommandBlock(code) {
   const lines = code
     .split("\n")
     .map((line) => line.trim())

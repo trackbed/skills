@@ -1,12 +1,12 @@
 # Third-Party Notices
 
-The repository's MIT license covers original work in this repository. The third-party material listed below remains subject to its upstream license. Each copied source entry is also marked `usage: copied` in its skill-local `references/sources.yaml` and points to a notice that ships with that skill.
+The repository's MIT license covers original work in this repository. The third-party material listed below remains subject to its upstream license. Each copied source entry is also marked `usage: copied` in the owning skill or shared script directory's `sources.yaml` and points to a notice shipped with the plugin.
 
 Source-manifest entries marked `usage: inspiration` record ideas, facts, methods, or workflow influence only; they do not intentionally retain substantial upstream expression.
 
 ## Every — `compound-engineering-plugin`
 
-Copied or adapted scripts and support files in `trackbed:code:optimize`, `trackbed:session:automate-repeats`, and the shared dev-server detection scripts in `trackbed/scripts/dev-server/` come from [`EveryInc/compound-engineering-plugin`](https://github.com/EveryInc/compound-engineering-plugin), licensed under the MIT License. Each affected skill carries a complete copy of the upstream license in `references/EveryInc-LICENSE`, and the dev-server scripts carry one as `trackbed/scripts/dev-server/EveryInc-LICENSE`.
+Copied or adapted scripts and support files in `trackbed:code:optimize`, `trackbed:session:automate-repeats`, and the shared dev-server detection scripts in `trackbed/scripts/dev-server/` come from [`EveryInc/compound-engineering-plugin`](https://github.com/EveryInc/compound-engineering-plugin), licensed under the MIT License. The complete upstream notice is included in `trackbed/skills/code:optimize/references/EveryInc-LICENSE`, `trackbed/scripts/lib/EveryInc-LICENSE` for the session scripts, and `trackbed/scripts/dev-server/EveryInc-LICENSE` for the dev-server scripts.
 
 ## GitHub — `gh-stack`
 

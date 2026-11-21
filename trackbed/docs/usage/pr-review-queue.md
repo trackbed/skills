@@ -1,11 +1,14 @@
 # pr:review-queue
 
-Use it to see which Pull Requests are waiting on your review and where each one stands: your part, CI, merge state, and the linked issue. It reads live GitHub state and reports; it never reviews, comments, re-runs jobs, or merges. It covers the repository you run it in unless you pass `--all-repos`. Only requests made to you personally are listed, not requests to a team you belong to. To review one of the Pull Requests, use `trackbed:pr:github-review`.
+Use it to see which Pull Requests are waiting on your review and where each one stands: how long it has waited, whether it looks ready for review, your part, CI, and the linked issue. It reads live GitHub state and reports; it never reviews, comments, re-runs jobs, or merges. It covers the repository you run it in unless you pass `--all-repos`. Only requests made to you personally are listed, not requests to a team you belong to.
+
+In Conductor it also shows which Pull Requests already have a review workspace and where that review stands, and offers to start `trackbed:pr:github-review` in a new workspace for each of the others. It starts only the ones you confirm. Elsewhere, review one of the Pull Requests with `trackbed:pr:github-review`.
 
 ## Before you run it
 
 - `gh` is installed and authenticated, and `jq` is installed.
 - Run it inside a clone of a GitHub repository, or pass `--repo` or `--all-repos`.
+- The Conductor part needs a local Conductor workspace whose agent has Conductor's workspace tools. Without them the report is the same, minus the `Workspace` column and the offer.
 
 ## Arguments
 
@@ -40,8 +43,22 @@ Use it to see which Pull Requests are waiting on your review and where each one 
 ## What you get
 
 - A report in the conversation. No file is written and nothing changes on GitHub.
-- An opening sentence with the snapshot time in UTC and how many Pull Requests wait on you. On a recheck, it also says what changed since the last report.
-- A table per repository with each Pull Request and its issue, your part, CI, and merge state. Finished items go in a separate "No longer waiting on you" table.
-- Notes where the table needs them, such as a failing check that looks like a flake, and a suggested order for working through the queue.
+- An opening sentence with the snapshot time in UTC, how many Pull Requests wait on you, and how many of those look ready for review. On a recheck, it also says what changed since the last report.
+- A table per repository that always has these columns:
 
-The [review guide](../review.md#your-review-queue) explains how your part and CI are read.
+  | Column | Shows |
+  | --- | --- |
+  | PR | The number and title, linked to the Pull Request |
+  | Author | Who opened it |
+  | Linear issue | The linked issue, or "none found" |
+  | CI | Green, running, failing, cancelled, or none |
+  | Waiting | How long it has waited on you |
+  | Ready? | "Yes", "Probably", or "No", with the reasons |
+  | Your part | Not reviewed, a pending review you never submitted, your open threads, or a re-request |
+  | Workspace | In Conductor only: the review workspace and where its review stands, or "none" |
+
+- Finished items in a separate "No longer waiting on you" table.
+- Notes where the table needs them, such as a failing check that looks like a flake, and a suggested order for working through the queue.
+- In Conductor, an offer to start reviews for the Pull Requests that have no workspace, look ready, and have no pending review of yours. After you answer yes and name which, each one gets its own new workspace that runs `trackbed:pr:github-review` on it. Those reviews only report: they post nothing to GitHub without asking you in their own workspace.
+
+The [review guide](../review.md#your-review-queue) explains how the waiting time, the readiness estimate, your part, and CI are read.

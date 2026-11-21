@@ -6,6 +6,19 @@
 # trackbed/ directory. While that file does not exist yet, an existing file in
 # the pre-1.0.0 kramme-cc-workflow/ directory and then an optional legacy path
 # are used instead, so state written by earlier releases keeps working.
+# Usage: trackbed_setting TRACKBED_NAME [DEFAULT [RESULT_VAR]]
+# Assign to RESULT_VAR when the caller needs to preserve trailing newlines.
+trackbed_setting() {
+  local setting_name="$1"
+  local legacy_setting_name="KRAMME_${setting_name#TRACKBED_}"
+  local setting_value="${!setting_name:-${!legacy_setting_name:-${2:-}}}"
+  if [ -n "${3:-}" ]; then
+    printf -v "$3" '%s' "$setting_value"
+  else
+    printf '%s\n' "$setting_value"
+  fi
+}
+
 # Usage: resolve_trackbed_path OVERRIDE_VAR XDG_VAR XDG_DEFAULT_SUBDIR FILENAME [LEGACY_PATH]
 resolve_trackbed_path() {
   local override_var="$1"
@@ -13,16 +26,12 @@ resolve_trackbed_path() {
   local xdg_default_subdir="$3"
   local filename="$4"
   local legacy_path="${5:-}"
-  local legacy_override_var="KRAMME_${override_var#TRACKBED_}"
   local override_value
   local xdg_base
   local default_path
   local previous_path
 
-  override_value="${!override_var:-}"
-  if [ -z "$override_value" ]; then
-    override_value="${!legacy_override_var:-}"
-  fi
+  trackbed_setting "$override_var" "" override_value
   if [ -n "$override_value" ]; then
     printf '%s\n' "$override_value"
     return 0

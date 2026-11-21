@@ -670,6 +670,13 @@ SH
   [[ "$output" == *"bats tests/linear-issue-implement-guidance.bats"* ]] || false
 }
 
+@test "test-changed passes FORMAT_BASE to the selection helper" {
+  run make -C "$BATS_TEST_DIRNAME/.." --no-print-directory --dry-run test-changed FORMAT_BASE=origin/feature-base
+
+  [ "$status" -eq 0 ]
+  [[ "$output" == *'python3 scripts/changed-tests.py --base "origin/feature-base"'* ]] || false
+}
+
 @test "test-node-file requires NODE_TEST_FILE" {
   setup_makefile_contract_repo
   cat >"$MAKEFILE_CONTRACT_BIN/node" <<'SH'

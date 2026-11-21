@@ -117,22 +117,10 @@ def _action_is_negated(text: str, action_start: int) -> bool:
     )
 
 
-def _affirmative_action_positions(text: str, action_pattern: str) -> list[int]:
-    positions: list[int] = []
-    for match in re.finditer(action_pattern, text, re.IGNORECASE):
-        if _action_is_negated(text, match.start()):
-            continue
-        positions.append(match.start())
-    return positions
-
-
-def _affirmative_action_position(text: str, action_pattern: str) -> int | None:
-    positions = _affirmative_action_positions(text, action_pattern)
-    return positions[0] if positions else None
-
-
 def _has_affirmative_action(text: str, action_pattern: str) -> bool:
-    return _affirmative_action_position(text, action_pattern) is not None
+    return any(
+        not _action_is_negated(text, match.start()) for match in re.finditer(action_pattern, text, re.IGNORECASE)
+    )
 
 
 def _has_negated_action(text: str, action_pattern: str) -> bool:
@@ -148,64 +136,6 @@ def _explicitly_prohibits(text: str, action_pattern: str) -> bool:
         )
         is not None
     )
-
-
-def _require_drift_self_update_contract(label: str, text: str) -> None:
-    blocks = [block.strip() for block in re.split(r"(?m)\n\s*\n|(?=^\s*-\s+)", text) if block.strip()]
-    dirty_stop_pattern = (
-        r"(?:\bstop\w*\b[^.;]*\bstaged\b[^.;]*\bunstaged\b[^.;]*\buntracked\b|"
-        r"\bstaged\b[^.;]*\bunstaged\b[^.;]*\buntracked\b[^.;]*\bstop\w*\b)"
-    )
-    clean_committed_pattern = r"\bworktree\b[^.;]*\bclean\b[^.;]*\bcommitted\b[^.;]*\bdrift\b"
-    explain_pattern = r"\bexplain(?:s|ed|ing)?\b[^.;]*\baffected paths?\b"
-    offer_pattern = r"\boffer(?:s|ed|ing)?\b[^.;]*\bupdate\b[^.;]*\bin place\b"
-    approval_pattern = (
-        r"\bwait(?:s|ed|ing)?\b[^.;]*\bexplicit approval\b[^.;]*\bbefore\b"
-        r"[^.;]*\b(?:chang\w*|updat\w*|revis\w*)\b[^.;]*\b(?:it|plan|planning artifact)\b"
-    )
-    replacement_pattern = r"ask\w*\b[^.;]*(?:refreshed|updated|replacement)\b[^.;]*(?:copy|plan)\b"
-    dirty_mutation_pattern = (
-        r"\b(?:continue|updat\w*|refresh\w*|revis\w*)\b[^.;]*"
-        r"\b(?:staged|unstaged|untracked|uncommitted)\b"
-    )
-
-    for block in blocks:
-        dirty_stop = _affirmative_action_position(block, dirty_stop_pattern)
-        clean_committed = _affirmative_action_position(block, clean_committed_pattern)
-        explain = next(
-            (
-                position
-                for position in _affirmative_action_positions(block, explain_pattern)
-                if clean_committed is not None and position > clean_committed
-            ),
-            None,
-        )
-        offer = _affirmative_action_position(block, offer_pattern)
-        approval = _affirmative_action_position(block, approval_pattern)
-        if (
-            dirty_stop is not None
-            and clean_committed is not None
-            and explain is not None
-            and offer is not None
-            and approval is not None
-            and dirty_stop < clean_committed < explain < offer < approval
-            and _explicitly_prohibits(block, replacement_pattern)
-            and not _has_affirmative_action(block, replacement_pattern)
-            and not _has_affirmative_action(block, dirty_mutation_pattern)
-            and not any(
-                _has_negated_action(block, pattern)
-                for pattern in (dirty_stop_pattern, explain_pattern, offer_pattern, approval_pattern)
-            )
-        ):
-            return
-
-    raise ContractFailure(
-        f"{label} must keep the ordered approval-gated in-place update contract in one guidance block"
-    )
-
-
-def check_drift_self_update_guidance(path: pathlib.Path) -> None:
-    _require_drift_self_update_contract("drift self-update guidance", path.read_text(encoding="utf-8"))
 
 
 def _require_standalone_refresh_contract(text: str) -> None:
@@ -337,7 +267,6 @@ Check = Callable[[pathlib.Path], None]
 CHECKS: dict[str, Check] = {
     "discovery-result-schema": check_discovery_result_schema,
     "review-gate-order": check_review_gate_order,
-    "drift-self-update-guidance": check_drift_self_update_guidance,
     "standalone-refresh-guidance": check_standalone_refresh_guidance,
 }
 

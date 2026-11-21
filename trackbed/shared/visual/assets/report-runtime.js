@@ -17,7 +17,8 @@
 (function () {
   /**
    * @typedef {{ path: string, line: number | null }} ReportLocation
-   * @typedef {{ decision: "accept" | "dismiss", note: string }} Decision
+   * @typedef {{ decision: "accept" | "dismiss", note: string, updatedAt?: string }} Decision
+   * @typedef {{ decisions: Record<string, Decision>, cleared: Record<string, string> }} TriageState
    * @typedef {{
    *   id: string,
    *   title: string,
@@ -292,22 +293,107 @@
     return `trackbed-report:v1:${pathname}:${generated}`;
   }
 
+  /** @param {unknown} value @returns {value is string} */
+  function isTimestamp(value) {
+    if (typeof value !== "string" || value.length !== 24) return false;
+    const time = Date.parse(value);
+    return Number.isFinite(time) && new Date(time).toISOString() === value;
+  }
+
   /**
+   * Stored triage, reduced to well-formed decisions and the time each cleared
+   * entry was cleared. A clear is stored as a null decision with its time;
+   * runtimes from before clears were stored ignore it on read and drop it on
+   * write. A decision stored without a time is older than any edit.
    * @param {unknown} raw
-   * @returns {Record<string, Decision>}
+   * @returns {TriageState}
    */
   function sanitizeTriage(raw) {
-    /** @type {Record<string, Decision>} */
-    const clean = {};
-    if (!raw || typeof raw !== "object") return clean;
+    /** @type {TriageState} */
+    const state = { decisions: {}, cleared: {} };
+    if (!raw || typeof raw !== "object") return state;
     for (const [id, value] of Object.entries(raw)) {
       if (!value || typeof value !== "object") continue;
-      const decision = /** @type {Record<string, unknown>} */ (value).decision;
-      const note = /** @type {Record<string, unknown>} */ (value).note;
-      if (decision !== "accept" && decision !== "dismiss") continue;
-      clean[id] = { decision, note: typeof note === "string" ? note : "" };
+      const { decision, note, updatedAt } =
+        /** @type {Record<string, unknown>} */ (value);
+      if (decision === "accept" || decision === "dismiss") {
+        state.decisions[id] = {
+          decision,
+          note: typeof note === "string" ? note : "",
+          ...(isTimestamp(updatedAt) ? { updatedAt } : {}),
+        };
+      } else if (decision === null && isTimestamp(updatedAt))
+        state.cleared[id] = updatedAt;
     }
-    return clean;
+    return state;
+  }
+
+  /**
+   * Fold another copy of the triage into this one, keeping the later edit of
+   * each entry, whether a decision, a note, or a clear.
+   * @param {TriageState} current
+   * @param {TriageState} incoming
+   * @returns {TriageState}
+   */
+  function mergeTriage(current, incoming) {
+    /** @type {TriageState} */
+    const merged = {
+      decisions: { ...current.decisions },
+      cleared: { ...current.cleared },
+    };
+    /** @param {string} id */
+    const held = (id) =>
+      Object.hasOwn(merged.decisions, id) || Object.hasOwn(merged.cleared, id)
+        ? (merged.decisions[id]?.updatedAt ?? merged.cleared[id] ?? "")
+        : null;
+    for (const [id, decision] of Object.entries(incoming.decisions)) {
+      const time = held(id);
+      if (time === null || (decision.updatedAt ?? "") > time) {
+        merged.decisions[id] = decision;
+        delete merged.cleared[id];
+      }
+    }
+    for (const [id, cleared] of Object.entries(incoming.cleared)) {
+      const time = held(id);
+      if (time === null || cleared > time) {
+        merged.cleared[id] = cleared;
+        delete merged.decisions[id];
+      }
+    }
+    return merged;
+  }
+
+  /**
+   * The one way triage reaches this browser's storage. Another tab may have
+   * written since this page last looked, so read what is stored, merge both
+   * ways, write the result, and hand it back for the page to show. Storage that
+   * refuses leaves the page working for this visit.
+   * @param {Pick<Storage, "getItem" | "setItem">} storage
+   * @param {string} key
+   * @param {TriageState} state
+   * @returns {TriageState}
+   */
+  function syncTriage(storage, key, state) {
+    /** @type {unknown} */
+    let stored = null;
+    try {
+      const raw = storage.getItem(key);
+      stored = raw ? JSON.parse(raw) : null;
+    } catch {
+      // Unreadable, or storage is blocked: what this page holds stands.
+    }
+    const merged = mergeTriage(state, sanitizeTriage(stored));
+    /** @type {Record<string, unknown>} */
+    const out = {};
+    for (const [id, time] of Object.entries(merged.cleared))
+      out[id] = { decision: null, updatedAt: time };
+    Object.assign(out, merged.decisions);
+    try {
+      storage.setItem(key, JSON.stringify(out));
+    } catch {
+      // Private browsing or a full quota: the page still works for this visit.
+    }
+    return merged;
   }
 
   /**
@@ -511,6 +597,8 @@
     nextWaitingIndex,
     storageKey,
     sanitizeTriage,
+    mergeTriage,
+    syncTriage,
     buildPrompt,
     decisionLabels,
   };
@@ -645,7 +733,8 @@
       window.location.pathname,
       meta.runId || meta.generated,
     );
-    const triage = sanitizeTriage(readStore(triageKey));
+    let { decisions: triage, cleared } = sanitizeTriage(readStore(triageKey));
+    let lastStamp = 0;
     const stored = /** @type {Partial<Settings> | null} */ (
       readStore(SETTINGS_KEY)
     );
@@ -764,9 +853,46 @@
       return value;
     };
 
-    function saveTriage() {
-      writeStore(triageKey, triage);
+    function stamp() {
+      lastStamp = Math.max(Date.now(), lastStamp + 1);
+      return new Date(lastStamp).toISOString();
     }
+
+    /** @param {TriageState} state */
+    function showTriage(state) {
+      ({ decisions: triage, cleared } = state);
+      for (const item of items) item.refresh();
+      update();
+    }
+
+    // Every write goes through here, so a tab never erases what another saved.
+    function saveTriage() {
+      /** @type {Pick<Storage, "getItem" | "setItem"> | null} */
+      let storage = null;
+      try {
+        storage = window.localStorage;
+      } catch {
+        // Storage is blocked: the page still works for this visit.
+      }
+      const state = { decisions: triage, cleared };
+      showTriage(storage ? syncTriage(storage, triageKey, state) : state);
+    }
+
+    // Another tab saved. Its write already holds this page's last save, so
+    // merging is enough.
+    window.addEventListener("storage", (event) => {
+      if (event.key !== triageKey) return;
+      /** @type {unknown} */
+      let stored = null;
+      try {
+        stored = event.newValue ? JSON.parse(event.newValue) : null;
+      } catch {
+        return;
+      }
+      showTriage(
+        mergeTriage({ decisions: triage, cleared }, sanitizeTriage(stored)),
+      );
+    });
 
     // ---------- Copy blocks and locations ----------
 
@@ -1087,22 +1213,32 @@
         navLink.setAttribute("data-triage", state);
         mark.textContent = state === "accepted" ? "\u2713" : "";
         note.hidden = !decision;
-        note.value = decision?.note ?? "";
+        const text = decision?.note ?? "";
+        if (note.value !== text) note.value = text;
       };
       item.decide = (decision) => {
-        if (triage[data.id]?.decision === decision) delete triage[data.id];
-        else triage[data.id] = { decision, note: triage[data.id]?.note ?? "" };
+        const now = stamp();
+        if (triage[data.id]?.decision === decision) {
+          delete triage[data.id];
+          cleared[data.id] = now;
+        } else {
+          triage[data.id] = {
+            decision,
+            note: triage[data.id]?.note ?? "",
+            updatedAt: now,
+          };
+          delete cleared[data.id];
+        }
         // A dismissed entry closes, so what is left to read stands out.
         if (triage[data.id]?.decision === "dismiss") setOpen(false);
         saveTriage();
-        item.refresh();
-        update();
       };
       accept.addEventListener("click", () => item.decide?.("accept"));
       dismiss.addEventListener("click", () => item.decide?.("dismiss"));
       note.addEventListener("input", () => {
-        if (!triage[data.id]) return;
-        triage[data.id].note = note.value;
+        const held = triage[data.id];
+        if (!held) return;
+        triage[data.id] = { ...held, note: note.value, updatedAt: stamp() };
         saveTriage();
       });
       node.append(el("div", { class: "tr-triage" }, [accept, dismiss, note]));
@@ -1493,12 +1629,14 @@
       text: "Clear triage",
     });
     clearTriage.addEventListener("click", () => {
-      for (const id of Object.keys(triage)) delete triage[id];
-      saveTriage();
-      for (const item of items) item.refresh();
+      const now = stamp();
+      for (const id of Object.keys(triage)) {
+        delete triage[id];
+        cleared[id] = now;
+      }
       status.textContent = "";
       manual.hidden = true;
-      update();
+      saveTriage();
     });
 
     /**

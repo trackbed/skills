@@ -465,6 +465,15 @@
 }
 
 
+@test "standalone plan refresh guidance preserves approval and provenance" {
+	run python3 \
+		"$BATS_TEST_DIRNAME/test_helper/guidance_contracts.py" \
+		standalone-refresh-guidance \
+		"$BATS_TEST_DIRNAME/../skills/code:plan-to-pr/references/attachment-input.md"
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}
+
+
 @test "plan shipping binds every shared contract hook" {
 	run bash -c '
     set -e

@@ -115,26 +115,18 @@
     {
       "path": "trackbed/skills/pr:review-convergence/scripts/convergence-state.py",
       "rule_id": "AST4",
-      "reason": "Reviewed false-positive AST4 findings: both subprocess.run calls use an explicit argument vector with shell=False and captured output. The git() wrapper runs the fixed git binary with fixed subcommands, an allowlisted archive key, and paths normalized by _normalize_path. The profile subcommand runs the current interpreter on the plugin's risk-signals.py (required to be a regular, non-symlink file with that exact name) with a resolved merge-base object ID, the literal HEAD, and a policy ref taken from `git symbolic-ref` or a fixed origin/main or origin/master allowlist; no user text reaches a shell. Re-reviewed on 2026-10-20 after the profile subcommand was added.",
+      "reason": "Re-reviewed on 2026-11-21. The Git wrapper and risk-profile runner pass argument lists with Python's default shell=False. The workflow supplies the installed risk-signals.py path, and the runner rejects a symlink or non-file at that path. Git staging uses normalized paths after the -- separator, and commit messages are passed as one -m argument. The profile resolves the supplied base to a commit before computing the merge base.",
       "owner": "kramme",
       "accepted_at": "2026-10-20",
-      "review_after": "2026-11-19"
+      "review_after": "2026-12-21"
     },
     {
       "path": "trackbed/skills/pr:review-convergence/scripts/convergence-state.py",
       "rule_id": "OH1",
-      "reason": "Reviewed false-positive OH1 finding: the git() wrapper never builds a shell string. Every argument is a fixed subcommand, an allowlisted archive key, a validated repository path (no absolute, `..`, leading `-`, or control characters), a commit message passed as one argv element after `-m`, or, for the profile subcommand, a caller --base-ref rejected when it starts with `-` and passed after `rev-parse --verify --quiet --end-of-options`, a resolved object ID, or a fixed origin ref; nothing is interpolated into command text. Re-reviewed on 2026-10-20 after the profile subcommand was added.",
+      "reason": "Re-reviewed on 2026-11-21. The flagged call captures Git output for reading repository state and reporting diagnostics. Git results used in later calls are passed as individual arguments. Risk-profile output is parsed as JSON and its schema and profile values are checked before use. Review text is treated as data, and the workflow requires the fixed installed helper rather than running commands from a report.",
       "owner": "kramme",
       "accepted_at": "2026-10-20",
-      "review_after": "2026-11-19"
-    },
-    {
-      "path": "trackbed/skills/pr:review-convergence/SKILL.md",
-      "rule_id": "LP3",
-      "reason": "Reviewed intentional LP3 finding: the run-state helper writes only inside the validated, git-ignored `.context/<archive-key>/reviews/` directory, including its review-profile ledger entries, commits only paths the convergence policy already classified, and runs the plugin's read-only risk-signals helper to pick the review profile; the skill body documents those side effects and the frontmatter schema has no permissions field. Re-reviewed on 2026-10-20.",
-      "owner": "kramme",
-      "accepted_at": "2026-10-20",
-      "review_after": "2026-11-19"
+      "review_after": "2026-12-21"
     },
     {
       "path": "trackbed/skills/linear:issue-to-pr/scripts/preflight.py",

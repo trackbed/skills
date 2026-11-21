@@ -24,7 +24,7 @@
       "trackbed/scripts/convert-plugin/loader.js",
       "trackbed/scripts/lib/skill-usage-cost.js",
       "trackbed/scripts/lib/skill-usage-decision-requests.js",
-      "trackbed/scripts/lib/skill-usage-hosts.js",
+      "trackbed/scripts/lib/trackbed-runtime.js",
       "trackbed/hooks/lib/conductor-slash-command.js",
       "trackbed/scripts/probe-cold-reader-isolation.js",
       "trackbed/scripts/schemas/skill-contracts.js",
@@ -134,6 +134,7 @@
       "trackbed/hooks/lib/command_safety/syntax.py",
       "trackbed/hooks/lib/command_safety/vocabulary.py",
       "trackbed/hooks/lib/git_command_parser.py",
+      "trackbed/scripts/changed-tests.py",
       "trackbed/scripts/changelog.py",
       "trackbed/scripts/code-outline.py",
       "trackbed/scripts/check-doc-citations.py",
@@ -142,6 +143,7 @@
       "trackbed/scripts/lib/inline_page.py",
       "trackbed/scripts/lib/pr_staging.py",
       "trackbed/scripts/lib/review_process.py",
+      "trackbed/scripts/lib/transcripts.py",
       "trackbed/scripts/lint-skill-contracts.py",
       "trackbed/scripts/lint_skill_contracts/catalog.py",
       "trackbed/scripts/lint_skill_contracts/checks/base_diff_scope.py",
@@ -202,6 +204,9 @@
       "trackbed/scripts/lint_skill_contracts/checks/suite_references.py"
     ],
     "contract_only": {
+      "trackbed/skills/pr:generate-description/scripts/risk-line.py": [
+        "trackbed/tests/pr-generate-description-guidance.bats"
+      ],
       "trackbed/scripts/generate-component-reference.py": [
         "trackbed/tests/lint-skill-contracts.bats"
       ],
@@ -245,7 +250,7 @@
       "trackbed/skills/session:automate-repeats/scripts/extract-skeleton.py": [
         "trackbed/tests/session-search-scripts.bats"
       ],
-      "trackbed/skills/session:automate-repeats/scripts/session_common.py": [
+      "trackbed/skills/session:automate-repeats/scripts/session_output.py": [
         "trackbed/tests/session-search-scripts.bats"
       ]
     },
@@ -778,7 +783,10 @@
     {
       "kind": "executable",
       "suite": "trackbed/tests/pr-review-queue.bats",
-      "skills": ["trackbed/skills/pr:review-queue/SKILL.md"]
+      "skills": [
+        "trackbed/skills/pr:github-review/SKILL.md",
+        "trackbed/skills/pr:review-queue/SKILL.md"
+      ]
     },
     {
       "kind": "guidance",
@@ -1702,6 +1710,12 @@
       "suite": "trackbed/tests/python/test_lint_skill_contracts.py",
       "skill": "trackbed/skills/setup/SKILL.md",
       "reason": "Uses a setup path string as a synthetic reference-parser fixture; does not read the real skill.",
+      "kind": "incidental"
+    },
+    {
+      "suite": "trackbed/tests/python/test_changed_tests.py",
+      "skill": "trackbed/skills/pr:create/SKILL.md",
+      "reason": "Passes the skill path as a changed-file input to the suite selector against the real inventory; does not read or execute the skill.",
       "kind": "incidental"
     }
   ]
