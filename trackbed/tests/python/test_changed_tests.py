@@ -1,23 +1,18 @@
 from __future__ import annotations
 
 import contextlib
-import importlib.util
 import io
 import json
 import subprocess
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from typing import Any
 
+from tests.test_helper.script_loader import load_script
+
 SCRIPT_PATH = Path(__file__).resolve().parents[2] / "scripts" / "changed-tests.py"
-SPEC = importlib.util.spec_from_file_location("changed_tests", SCRIPT_PATH)
-assert SPEC is not None
-assert SPEC.loader is not None
-changed_tests = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = changed_tests
-SPEC.loader.exec_module(changed_tests)
+changed_tests = load_script("changed_tests", SCRIPT_PATH)
 
 SKILL = "plugin/skills/pr:create/SKILL.md"
 INVENTORY: dict[str, Any] = {
