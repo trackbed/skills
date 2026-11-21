@@ -64,7 +64,7 @@ Resolve the Claude Code home from `CLAUDE_CONFIG_DIR` (default `~/.claude`) and 
 Skip this subsection with `--no-sessions`.
 
 1. Collect session prefixes: the repository root and every `worktree` path from `git worktree list --porcelain`. When the root matches `*/conductor/workspaces/<repo>/<workspace>`, use `*/conductor/workspaces/<repo>` instead, so sessions from archived Conductor workspaces of the same repository count.
-2. Run the extractor with one `--cwd-prefix` per prefix and the window from Step 1:
+2. Run the extractor with one `--cwd-prefix` per prefix and the window from Step 1. It reads sessions through `${CLAUDE_PLUGIN_ROOT}/scripts/lib/transcripts.py`.
 
    ```bash
    python3 "${CLAUDE_PLUGIN_ROOT}/skills/code:audit-practice/scripts/session-signals.py" \

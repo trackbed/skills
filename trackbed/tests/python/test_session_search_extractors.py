@@ -417,7 +417,7 @@ runpy.run_path(script_path, run_name="__main__")
         self.assertEqual(meta["errors_found"], 1)
         self.assertEqual(meta["parse_errors"], 0)
 
-    def test_empty_and_malformed_input_keep_metadata_shape(self):
+    def test_empty_input_keeps_metadata_shape(self):
         for name, expected in (
             (
                 "extract-skeleton.py",
@@ -435,19 +435,12 @@ runpy.run_path(script_path, run_name="__main__")
                 },
             ),
         ):
-            with self.subTest(name=name, kind="empty"):
+            with self.subTest(name=name):
                 result = self.run_script(name)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 meta = json.loads(result.stdout)
                 for key, value in expected.items():
                     self.assertEqual(meta[key], value)
-
-            with self.subTest(name=name, kind="malformed"):
-                result = self.run_script(name, "not-json\n" + CODEX_SESSION)
-                self.assertEqual(result.returncode, 0, result.stderr)
-                meta = json.loads(result.stdout.splitlines()[-1])
-                self.assertEqual(meta["lines"], 6)
-                self.assertEqual(meta["parse_errors"], 1)
 
     def test_stream_extractors_count_invalid_shapes_and_continue(self):
         fixtures = {

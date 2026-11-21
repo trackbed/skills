@@ -20,29 +20,29 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import statistics
 import sys
 import time
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any, Callable, DefaultDict, Dict, Iterator, List, Optional, Sequence, Set, Tuple
+from typing import Callable, DefaultDict, Dict, Iterable, List, Optional, Sequence, Set
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts" / "lib"))
 
 import signal_patterns as patterns
-
-JsonObject = Dict[str, Any]
-
-
-def as_object(value: object) -> JsonObject:
-    return value if isinstance(value, dict) else {}
-
-
-def as_list(value: object) -> List[Any]:
-    return value if isinstance(value, list) else []
-
-
-def as_str(value: object) -> str:
-    return value if isinstance(value, str) else ""
+from transcripts import (
+    JsonObject,
+    TranscriptDiagnostics,
+    as_list,
+    as_object,
+    as_str,
+    codex_command,
+    discover,
+    iter_events,
+    message_payload,
+    tool_calls,
+    user_text,
+)
 
 
 class SessionStats:
@@ -140,33 +140,11 @@ class SessionStats:
         return self.counts["edits"] > 0 and self.last_edit_at > self.last_check_at
 
 
-def iter_records(path: Path, stats: Dict[str, int]) -> Iterator[JsonObject]:
-    with path.open(encoding="utf-8", errors="replace") as handle:
-        for line in handle:
-            if not line.strip():
-                continue
-            try:
-                record = json.loads(line)
-            except ValueError:
-                stats["unparsed_lines"] += 1
-                continue
-            if isinstance(record, dict):
-                yield record
-            else:
-                stats["unparsed_lines"] += 1
-
-
-def text_blocks(content: object) -> str:
-    if isinstance(content, str):
-        return content
-    return "\n".join(as_str(as_object(block).get("text")) for block in as_list(content))
-
-
 def result_chars(content: object) -> int:
     if isinstance(content, str):
         return len(content)
     if isinstance(content, list):
-        return len(text_blocks(content))
+        return len("\n".join(as_str(as_object(block).get("text")) for block in content))
     if isinstance(content, dict):
         return len(json.dumps(content))
     return 0
@@ -176,41 +154,43 @@ def under_prefix(cwd: str, prefixes: Sequence[str]) -> bool:
     return any(cwd == prefix or cwd.startswith(prefix + "/") for prefix in prefixes)
 
 
-def parse_claude(path: Path, stats: Dict[str, int]) -> SessionStats:
-    session = SessionStats("claude-code")
+def parse_claude(lines: Iterable[str], diagnostics: TranscriptDiagnostics) -> SessionStats:
+    session = SessionStats("claude")
     output_keys: Dict[str, str] = {}
     seen_requests: Set[str] = set()
-    for record in iter_records(path, stats):
+    for _, record in iter_events(lines, diagnostics, "claude"):
         kind = record.get("type")
         if kind not in ("user", "assistant") or record.get("isSidechain") is True:
             continue
         session.cwd = session.cwd or as_str(record.get("cwd"))
         session.see_timestamp(record.get("timestamp"))
-        message = as_object(record.get("message"))
+        message = message_payload(record, "claude", strict=False)
         content = message.get("content")
         if kind == "assistant":
             request = as_str(record.get("requestId")) or as_str(message.get("id"))
             if request not in seen_requests:
                 seen_requests.add(request)
-                if as_str(record.get("effort")):
-                    session.tallies["effort"][record["effort"]] += 1
-                if as_str(message.get("model")) and message["model"] != "<synthetic>":
-                    session.tallies["models"][message["model"]] += 1
-                if isinstance(record.get("thinkingDurationMs"), (int, float)):
-                    session.thinking_ms.append(float(record["thinkingDurationMs"]))
-            for block in map(as_object, as_list(content)):
-                if block.get("type") != "tool_use":
-                    continue
-                tool_input = as_object(block.get("input"))
+                effort = as_str(record.get("effort"))
+                if effort:
+                    session.tallies["effort"][effort] += 1
+                model = as_str(message.get("model"))
+                if model and model != "<synthetic>":
+                    session.tallies["models"][model] += 1
+                duration = record.get("thinkingDurationMs")
+                if isinstance(duration, (int, float)):
+                    session.thinking_ms.append(float(duration))
+            for call in tool_calls(record, "claude", strict=False):
+                tool_input = as_object(call.input)
                 detail = as_str(tool_input.get("skill")) or as_str(tool_input.get("subagent_type"))
-                key = session.add_tool_call(as_str(block.get("name")), as_str(tool_input.get("command")), detail)
-                output_keys[as_str(block.get("id"))] = key
+                key = session.add_tool_call(call.name, as_str(tool_input.get("command")), detail)
+                output_keys[call.call_id] = key
             continue
         decision = as_object(record.get("permissionDecision"))
         if decision:
             session.tallies["permission_decisions"][f"{decision.get('source')}:{decision.get('decision')}"] += 1
-        if as_str(record.get("permissionMode")):
-            session.tallies["permission_modes"][record["permissionMode"]] += 1
+        mode = as_str(record.get("permissionMode"))
+        if mode:
+            session.tallies["permission_modes"][mode] += 1
         results = [block for block in map(as_object, as_list(content)) if block.get("type") == "tool_result"]
         for result in results:
             key = output_keys.get(as_str(result.get("tool_use_id")), "unknown")
@@ -224,7 +204,7 @@ def parse_claude(path: Path, stats: Dict[str, int]) -> SessionStats:
             continue
         if record.get("promptSource") == "system" or record.get("turnOrigin") in ("task_notification", "scheduled"):
             continue
-        text = text_blocks(content).strip()
+        text = "\n".join(user_text(record, "claude", strict=False)).strip()
         command = patterns.COMMAND_NAME.search(text)
         if text.startswith(patterns.INTERRUPT_PREFIX):
             session.counts["interrupts"] += 1
@@ -238,23 +218,13 @@ def parse_claude(path: Path, stats: Dict[str, int]) -> SessionStats:
     return session
 
 
-def codex_command(payload: JsonObject) -> str:
-    try:
-        arguments = as_object(json.loads(as_str(payload.get("arguments")) or "{}"))
-    except ValueError:
-        arguments = {}
-    command = arguments.get("command", arguments.get("cmd", as_object(payload.get("action")).get("command")))
-    parts = [as_str(part) for part in as_list(command)]
-    if len(parts) >= 3 and os.path.basename(parts[0]) in ("bash", "sh", "zsh") and parts[1] in ("-c", "-lc"):
-        return parts[2]
-    return " ".join(parts) if parts else as_str(command)
-
-
-def parse_codex(path: Path, stats: Dict[str, int], prefixes: Sequence[str]) -> Optional[SessionStats]:
+def parse_codex(
+    lines: Iterable[str], diagnostics: TranscriptDiagnostics, stats: Dict[str, int], prefixes: Sequence[str]
+) -> Optional[SessionStats]:
     session = SessionStats("codex")
     output_keys: Dict[str, str] = {}
-    for index, record in enumerate(iter_records(path, stats)):
-        payload = as_object(record.get("payload"))
+    for index, (_, record) in enumerate(iter_events(lines, diagnostics, "codex")):
+        payload = message_payload(record, "codex", strict=False)
         kind, item = record.get("type"), payload.get("type")
         if index == 0:
             source = payload.get("source")
@@ -269,44 +239,25 @@ def parse_codex(path: Path, stats: Dict[str, int], prefixes: Sequence[str]) -> O
             session.cwd = session.cwd or as_str(payload.get("cwd"))
         elif kind == "turn_context":
             for field, tally in (("effort", "effort"), ("model", "models"), ("approval_policy", "approval_policies")):
-                if as_str(payload.get(field)):
-                    session.tallies[tally][payload[field]] += 1
+                value = as_str(payload.get(field))
+                if value:
+                    session.tallies[tally][value] += 1
         elif kind == "event_msg" and item == "turn_aborted":
             session.counts["interrupts"] += 1
         elif kind == "response_item" and item == "message" and payload.get("role") == "user":
-            text = "\n".join(as_str(as_object(block).get("text")) for block in as_list(payload.get("content")))
+            text = "\n".join(user_text(record, "codex", strict=False))
             if not text.lstrip().startswith(patterns.CODEX_INJECTED_PREFIXES):
                 session.add_prompt(text)
-        elif kind == "response_item" and item in ("function_call", "custom_tool_call", "local_shell_call"):
-            name = as_str(payload.get("name")) or "local_shell"
-            key = session.add_tool_call(name, codex_command(payload) if name in patterns.SHELL_TOOLS else "")
-            output_keys[as_str(payload.get("call_id"))] = key
         elif kind == "response_item" and item in ("function_call_output", "custom_tool_call_output"):
             key = output_keys.get(as_str(payload.get("call_id")), "unknown")
             session.add_output(key, result_chars(payload.get("output")))
+        else:
+            for call in tool_calls(record, "codex", strict=False):
+                key = session.add_tool_call(
+                    call.name, codex_command(payload) if call.name in patterns.SHELL_TOOLS else ""
+                )
+                output_keys[call.call_id] = key
     return session
-
-
-def modified_at(path: Path) -> float:
-    try:
-        return path.stat().st_mtime
-    except OSError:
-        return 0.0
-
-
-def discover(
-    prefixes: Sequence[str], claude_root: Path, codex_root: Path, cutoff: float
-) -> List[Tuple[float, str, Path]]:
-    """List candidate transcripts, newest first; Claude project directories encode their working directory."""
-    candidates: List[Tuple[float, str, Path]] = []
-    encoded = [re.sub(r"[^A-Za-z0-9]", "-", prefix) for prefix in prefixes]
-    if claude_root.is_dir():
-        for project in claude_root.iterdir():
-            if project.is_dir() and any(project.name.startswith(code) for code in encoded):
-                candidates.extend((modified_at(path), "claude-code", path) for path in project.glob("*.jsonl"))
-    if codex_root.is_dir():
-        candidates.extend((modified_at(path), "codex", path) for path in codex_root.rglob("rollout-*.jsonl"))
-    return sorted((c for c in candidates if c[0] >= cutoff), key=lambda c: c[0], reverse=True)
 
 
 def median(values: Sequence[float]) -> Optional[float]:
@@ -429,15 +380,12 @@ def normalize_prefixes(raw: Sequence[str]) -> List[str]:
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    home = Path.home()
-    claude_default = Path(os.environ.get("CLAUDE_CONFIG_DIR") or home / ".claude") / "projects"
-    codex_default = Path(os.environ.get("CODEX_HOME") or home / ".codex") / "sessions"
     parser = argparse.ArgumentParser(description="Summarize recent agent sessions as aggregate practice signals.")
     parser.add_argument("--cwd-prefix", action="append", required=True, help="repository or worktree path; repeatable")
     parser.add_argument("--days", type=bounded_int(1, 365), default=30)
     parser.add_argument("--limit", type=bounded_int(1, 200), default=30)
-    parser.add_argument("--claude-projects", type=Path, default=claude_default)
-    parser.add_argument("--codex-sessions", type=Path, default=codex_default)
+    parser.add_argument("--claude-projects", type=Path)
+    parser.add_argument("--codex-sessions", type=Path)
     args = parser.parse_args(argv)
     args.cwd_prefix = normalize_prefixes(args.cwd_prefix)
 
@@ -445,15 +393,19 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     stats = dict.fromkeys((*keys, "sessions_outside_prefix"), 0)
     sessions: List[SessionStats] = []
     cutoff = time.time() - args.days * 86400
-    for _, platform, path in discover(args.cwd_prefix, args.claude_projects, args.codex_sessions, cutoff):
+    diagnostics = TranscriptDiagnostics()
+    for _, platform, path in discover(
+        args.cwd_prefix, cutoff, claude_root=args.claude_projects, codex_root=args.codex_sessions
+    ):
         if len(sessions) >= args.limit:
             break
         stats["files_considered"] += 1
         try:
-            if platform == "claude-code":
-                session: Optional[SessionStats] = parse_claude(path, stats)
-            else:
-                session = parse_codex(path, stats, args.cwd_prefix)
+            with path.open(encoding="utf-8", errors="replace") as lines:
+                if platform == "claude":
+                    session: Optional[SessionStats] = parse_claude(lines, diagnostics)
+                else:
+                    session = parse_codex(lines, diagnostics, stats, args.cwd_prefix)
         except OSError:
             stats["unreadable_files"] += 1
             continue
@@ -463,6 +415,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             stats["sessions_outside_prefix"] += 1
             continue
         sessions.append(session)
+    stats["unparsed_lines"] = diagnostics.parse_errors
     json.dump(summarize(sessions, args, stats), sys.stdout, indent=1)
     sys.stdout.write("\n")
     return 0

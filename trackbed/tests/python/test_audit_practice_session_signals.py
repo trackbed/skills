@@ -18,6 +18,7 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 SCRIPT_PATH = Path(__file__).resolve().parents[2] / "skills" / "code:audit-practice" / "scripts" / "session-signals.py"
 SPEC = importlib.util.spec_from_file_location("session_signals", SCRIPT_PATH)
@@ -127,6 +128,10 @@ class SessionSignalsTests(unittest.TestCase):
             "./gradlew :app:test": (True, "gradlew"),
             "git commit -m 'fix tests'": (False, "git"),
             "npm install": (False, "npm"),
+            "npm install >test": (False, "npm"),
+            "go 2>log test ./...": (True, "go"),
+            "cat <<'EOF'\nThis isn't a command\nEOF\npytest": (True, "cat"),
+            "cat <<'EOF'\npytest\nEOF": (False, "cat"),
             "npm ci": (False, "npm"),
             "npm run ci": (True, "npm"),
             "make -C build-tools install": (False, "make"),
@@ -215,6 +220,21 @@ class SessionSignalsTests(unittest.TestCase):
         self.assertEqual(limited["sessions"]["analyzed"], 1)
         self.assertEqual(limited["prompts"]["median_first_prompt_chars"], len("newest work"))
 
+    def test_default_stores_report_shared_host_labels(self) -> None:
+        self.write_claude([user("Review the changes")])
+        codex = self.root / ".agents" / "sessions" / "rollout-fallback.jsonl"
+        metadata = {"type": "session_meta", "payload": {"cwd": self.repo}}
+        self.write(codex, [json.dumps(metadata)], age_days=0)
+        env = {
+            "HOME": str(self.root),
+            "CLAUDE_CONFIG_DIR": str(self.claude.parent),
+            "CODEX_HOME": str(self.codex.parent),
+        }
+        output = io.StringIO()
+        with patch.dict(os.environ, env), redirect_stdout(output):
+            self.assertEqual(signals.main(["--cwd-prefix", self.repo]), 0)
+        self.assertEqual(json.loads(output.getvalue())["sessions"]["by_platform"], {"claude": 1, "codex": 1})
+
     def test_codex_rollouts_supply_settings_prompts_and_tools(self) -> None:
         meta = {"type": "session_meta", "payload": {"id": "s1", "cwd": self.repo}}
         self.write_codex(
@@ -298,6 +318,17 @@ class SessionSignalsTests(unittest.TestCase):
         )
         _, raw = self.run_signals()
         self.assertNotIn("SENTINEL", raw)
+
+    def test_output_does_not_expose_quoted_command_words(self) -> None:
+        self.write_claude(
+            [
+                tool_use("b1", "Bash", command="'SENTINEL private shell text'"),
+                tool_result("b1", "not found"),
+            ]
+        )
+        summary, raw = self.run_signals()
+        self.assertNotIn("SENTINEL", raw)
+        self.assertEqual(summary["tool_output"]["by_shell_program"][0]["program"], "unknown")
 
     def test_malformed_lines_are_counted_without_failing(self) -> None:
         path = self.write_claude([user("Ship the fix")])

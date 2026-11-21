@@ -16,20 +16,24 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import shlex
 import sys
-from typing import Iterable, Iterator, Optional, Set, cast
+from typing import Iterator, Optional, Set
 
-from session_common import (
-    AtomicOutput,
+from pathlib import Path
+from session_output import AtomicOutput
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts" / "lib"))
+from transcripts import (
     JsonObject,
-    Platform,
     TranscriptDiagnostics,
     TranscriptShapeError,
-    iter_platform_events,
-    object_field,
-    object_list_field,
-    string_field,
+    decode_json_object,
+    iter_events,
+    object_value,
+    shell_command,
+    shell_segments,
+    tool_calls,
+    user_text,
 )
 
 
@@ -181,47 +185,15 @@ def names_from_paths(value: object) -> Set[str]:
 def checked_tool_input(tool_input: object) -> JsonObject:
     """Decode one tool input and reject malformed nested payloads."""
     if isinstance(tool_input, str):
-        try:
-            tool_input = json.loads(tool_input)
-        except (json.JSONDecodeError, ValueError) as error:
-            raise TranscriptShapeError("tool input is invalid JSON") from error
-    if not isinstance(tool_input, dict):
-        raise TranscriptShapeError("tool input is not an object")
-    return cast(JsonObject, tool_input)
+        return decode_json_object(tool_input)
+    return object_value(tool_input, "tool input")
 
 
 def shell_command_values(tool_input: JsonObject) -> Iterator[str]:
     for key in ("cmd", "command"):
-        command = tool_input.get(key)
-        if isinstance(command, str):
+        command = shell_command(tool_input.get(key))
+        if command:
             yield command
-        if isinstance(command, list):
-            parts = [part for part in command if isinstance(part, str)]
-            if parts:
-                yield " ".join(parts)
-
-
-def shell_segments(command: str) -> Iterator[list[str]]:
-    """Yield shell command segments without executing or retaining them."""
-    lexer = shlex.shlex(command, posix=True, punctuation_chars="();&|<>`\n")
-    lexer.commenters = "#"
-    lexer.whitespace = " \t\r"
-    lexer.whitespace_split = True
-    try:
-        tokens = list(lexer)
-    except ValueError:
-        return
-
-    segment: list[str] = []
-    for token in tokens:
-        if token in {";", "&", "&&", "|", "||", "(", ")", "`", "\n"}:
-            if segment:
-                yield segment
-                segment = []
-        else:
-            segment.append(token)
-    if segment:
-        yield segment
 
 
 def names_from_shell_reads(tool_input: JsonObject) -> Set[str]:
@@ -270,47 +242,6 @@ def names_from_tool(tool_name: str, raw_tool_input: object) -> Set[str]:
     return names
 
 
-def text_content(value: object, field: str) -> Iterable[str]:
-    """Yield checked user-authored text blocks, excluding tool results."""
-    if isinstance(value, str):
-        return (value,)
-    if not isinstance(value, list):
-        raise TranscriptShapeError(f"{field} is neither text nor a list")
-
-    texts = []
-    for block in value:
-        if not isinstance(block, dict):
-            raise TranscriptShapeError(f"{field}[] is not an object")
-        if block.get("type") in ("input_text", "text"):
-            texts.append(string_field(cast(JsonObject, block), "text"))
-    return texts
-
-
-def user_texts(event: JsonObject, platform: Platform) -> Iterable[str]:
-    """Return only checked user-message text for the detected platform."""
-    if platform == "claude":
-        if event.get("type") != "user":
-            return ()
-        return text_content(object_field(event, "message").get("content", ""), "content")
-
-    if platform == "cursor":
-        if event.get("role") != "user":
-            return ()
-        return text_content(object_field(event, "message").get("content", ""), "content")
-
-    if event.get("type") == "event_msg":
-        payload = object_field(event, "payload")
-        if payload.get("type") == "user_message":
-            return (string_field(payload, "message"),)
-        return ()
-
-    if event.get("type") == "response_item":
-        payload = object_field(event, "payload")
-        if payload.get("type") == "message" and payload.get("role") == "user":
-            return text_content(payload.get("content", []), "content")
-    return ()
-
-
 def names_from_user_text(text: str) -> Set[str]:
     """Extract explicit slash commands after removing injected wrapper blocks.
 
@@ -325,36 +256,6 @@ def names_from_user_text(text: str) -> Set[str]:
     return names
 
 
-def claude_or_cursor_tools(
-    event: JsonObject,
-    platform: Platform,
-) -> Iterable[tuple[str, object]]:
-    if platform == "claude":
-        if event.get("type") != "assistant":
-            return ()
-        message = object_field(event, "message")
-    else:
-        if event.get("role") != "assistant":
-            return ()
-        message = object_field(event, "message")
-
-    tools = []
-    for block in object_list_field(message, "content"):
-        if block.get("type") == "tool_use":
-            tools.append((string_field(block, "name", "unknown"), block.get("input", {})))
-    return tools
-
-
-def codex_tools(event: JsonObject) -> Iterable[tuple[str, object]]:
-    if event.get("type") != "response_item":
-        return ()
-    payload = object_field(event, "payload")
-    if payload.get("type") not in ("function_call", "custom_tool_call", "local_shell_call"):
-        return ()
-    tool_input = payload.get("arguments", payload.get("input", {}))
-    return ((string_field(payload, "name", str(payload.get("type"))), tool_input),)
-
-
 diagnostics = TranscriptDiagnostics()
 platforms: Set[str] = set()
 skills: Set[str] = set()
@@ -362,11 +263,11 @@ skill_events = 0
 unknown_skill_events = 0
 near_miss_skill_events = 0
 
-for platform, event in iter_platform_events(sys.stdin, diagnostics):
+for platform, event in iter_events(sys.stdin, diagnostics):
     platforms.add(platform)
     try:
         prompt_names: Set[str] = set()
-        for text in user_texts(event, platform):
+        for text in user_text(event, platform):
             prompt_names.update(canonical_skill_name(name) for name in names_from_user_text(text))
         if prompt_names:
             accepted = prompt_names & known_skills
@@ -379,9 +280,8 @@ for platform, event in iter_platform_events(sys.stdin, diagnostics):
                 if any(is_near_miss(name) for name in unknown_names):
                     near_miss_skill_events += 1
 
-        tools = codex_tools(event) if platform == "codex" else claude_or_cursor_tools(event, platform)
-        for tool_name, tool_input in tools:
-            detected = {canonical_skill_name(name) for name in names_from_tool(tool_name, tool_input)}
+        for call in tool_calls(event, platform):
+            detected = {canonical_skill_name(name) for name in names_from_tool(call.name, call.input)}
             if detected:
                 accepted = detected & known_skills
                 skills.update(accepted)

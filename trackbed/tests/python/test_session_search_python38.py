@@ -27,6 +27,15 @@ class SessionSearchPython38Tests(unittest.TestCase):
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_shared_transcript_interfaces(self):
+        result = subprocess.run(
+            [sys.executable, str(Path(__file__).with_name("test_transcripts.py"))],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

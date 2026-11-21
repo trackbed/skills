@@ -142,6 +142,7 @@
       "trackbed/scripts/lib/inline_page.py",
       "trackbed/scripts/lib/pr_staging.py",
       "trackbed/scripts/lib/review_process.py",
+      "trackbed/scripts/lib/transcripts.py",
       "trackbed/scripts/lint-skill-contracts.py",
       "trackbed/scripts/lint_skill_contracts/catalog.py",
       "trackbed/scripts/lint_skill_contracts/checks/base_diff_scope.py",
@@ -242,7 +243,7 @@
       "trackbed/skills/session:automate-repeats/scripts/extract-skeleton.py": [
         "trackbed/tests/session-search-scripts.bats"
       ],
-      "trackbed/skills/session:automate-repeats/scripts/session_common.py": [
+      "trackbed/skills/session:automate-repeats/scripts/session_output.py": [
         "trackbed/tests/session-search-scripts.bats"
       ]
     },

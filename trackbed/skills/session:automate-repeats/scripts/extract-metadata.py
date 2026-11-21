@@ -3,7 +3,7 @@
 # Upstream repository: https://github.com/EveryInc/compound-engineering-plugin
 # Upstream commit reviewed: 6f9ab03a031c054a8046659926251fb6c149269f
 # License: MIT, Copyright (c) 2025 Every.
-# Full notice: ../references/EveryInc-LICENSE
+# Full notice: ../../../scripts/lib/EveryInc-LICENSE
 # Local changes: a Claude cwd, a longer header window that stops once the
 # metadata is complete, path-aware --cwd-filter matching, and a separate count
 # for files without recognizable metadata.
@@ -38,7 +38,10 @@ import sys
 from datetime import datetime, timezone
 from typing import Dict, Iterable, Iterator, Optional, Sequence
 
-from session_common import (
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts" / "lib"))
+from transcripts import (
     JsonObject,
     TranscriptDiagnostics,
     TranscriptShapeError,
@@ -226,14 +229,8 @@ def _iter_user_assistant_text(
     """Yield only user/assistant text while counting malformed content shapes."""
     try:
         with open(filepath, "r", encoding="utf-8", errors="replace") as session_file:
-            for line in session_file:
-                stripped = line.strip()
-                if not stripped:
-                    continue
-                diagnostics.lines += 1
+            for obj in iter_json_objects(session_file, diagnostics):
                 try:
-                    obj = decode_json_object(stripped)
-
                     # Claude Code: type-tagged top-level
                     event_type = obj.get("type")
                     if event_type == "user":
