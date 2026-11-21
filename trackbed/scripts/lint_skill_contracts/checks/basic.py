@@ -5,10 +5,8 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from json_object import JsonObject
-
 from ..frontmatter import parse_frontmatter
-from ..io import read_text, rel, resolve, skill_paths
+from ..io import JsonObject, read_text, rel, resolve, skill_paths
 from ..registry_types import Registry
 from ..strings import normalize_value, strip_quotes
 from .types import CheckResult, LintContext, TextContract, TextContractInventory
@@ -160,8 +158,6 @@ def check_text_contract_inventory(
     name: str,
     registered_paths: list[str],
     inventory: object,
-    *,
-    _cache: _TextContractCache | None = None,
 ) -> CheckResult:
     result = CheckResult()
     normalized = _normalize_text_contract_inventory(name, inventory, result.failures)
@@ -172,7 +168,7 @@ def check_text_contract_inventory(
         name,
         tuple(registered_paths),
         normalized,
-        _cache if _cache is not None else _TextContractCache(),
+        _TextContractCache(),
     )
 
 

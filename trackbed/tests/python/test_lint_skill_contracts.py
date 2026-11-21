@@ -15,21 +15,56 @@ SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "scripts"
 SCRIPT_PATH = SCRIPTS_DIR / "lint-skill-contracts.py"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-import lint_skill_contracts  # noqa: E402
-from lint_skill_contracts.catalog import skill_catalog_entries  # noqa: E402
-from lint_skill_contracts.frontmatter import frontmatter_boolean_value, frontmatter_type_errors  # noqa: E402
+from lint_skill_contracts.catalog import (  # noqa: E402
+    check_component_catalog_drift,
+    component_catalog_document,
+    render_component_catalog,
+    skill_catalog_entries,
+)
+from lint_skill_contracts.checks.base_diff_scope import check_base_diff_scope  # noqa: E402
+from lint_skill_contracts.checks.component_catalog import check_component_catalog  # noqa: E402
+from lint_skill_contracts.checks.marker_manifest import parse_sources_manifest  # noqa: E402
+from lint_skill_contracts.checks.mechanical import check_mechanical  # noqa: E402
+from lint_skill_contracts.checks.readme_prose import check_readme_prose, readme_prose_blocks  # noqa: E402
+from lint_skill_contracts.checks.registry import CHECKS, run_checks  # noqa: E402
+from lint_skill_contracts.checks.source_provenance import check_source_provenance  # noqa: E402
+from lint_skill_contracts.checks.types import CheckResult, LintContext  # noqa: E402
+from lint_skill_contracts.checks.ui_relevance import check_ui_relevance_contracts, is_ui_relevant_path  # noqa: E402
+from lint_skill_contracts.cli import load_registry  # noqa: E402
+from lint_skill_contracts.frontmatter import (  # noqa: E402
+    expected_arguments,
+    expected_invocation,
+    frontmatter_boolean_value,
+    frontmatter_type_errors,
+    parse_frontmatter,
+)
+from lint_skill_contracts.markdown import normalize_markdown_cell, split_markdown_table_row  # noqa: E402
+from lint_skill_contracts.readme import (  # noqa: E402
+    AgentReference,
+    HookReference,
+    SkillReference,
+    load_hook_references,
+    load_skill_references,
+    render_agent_reference_row,
+    render_hook_reference_row,
+    render_readme_component_sync,
+    render_skill_reference_row,
+    skill_component_sync,
+)
+from lint_skill_contracts.readme_summaries import apply_readme_summaries  # noqa: E402
+from lint_skill_contracts.schema import DEFAULT_CONTRACT_SCHEMA  # noqa: E402
 
 
 class MarkdownTableHelpersTest(unittest.TestCase):
     def test_split_markdown_table_row_keeps_escaped_pipes_in_cells(self) -> None:
-        cells = lint_skill_contracts.split_markdown_table_row(r"| Skill | `foo\|bar` | Uses \<value\> |")
+        cells = split_markdown_table_row(r"| Skill | `foo\|bar` | Uses \<value\> |")
 
         self.assertEqual(cells, ["Skill", r"`foo\|bar`", r"Uses \<value\>"])
-        self.assertEqual(lint_skill_contracts.normalize_markdown_cell(cells[1]), "foo|bar")
-        self.assertEqual(lint_skill_contracts.normalize_markdown_cell(cells[2]), "Uses <value>")
+        self.assertEqual(normalize_markdown_cell(cells[1]), "foo|bar")
+        self.assertEqual(normalize_markdown_cell(cells[2]), "Uses <value>")
 
     def test_render_skill_reference_row_escapes_table_cells(self) -> None:
-        reference = lint_skill_contracts.SkillReference(
+        reference = SkillReference(
             name="trackbed:test",
             display_name="/trackbed:test",
             invocation="User",
@@ -38,14 +73,14 @@ class MarkdownTableHelpersTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            lint_skill_contracts.render_skill_reference_row(reference),
+            render_skill_reference_row(reference),
             r"| `/trackbed:test` | User | `[left\|right]` | Use a \| b |",
         )
 
     def test_render_agent_and_hook_reference_rows_escape_table_cells(self) -> None:
         self.assertEqual(
-            lint_skill_contracts.render_agent_reference_row(
-                lint_skill_contracts.AgentReference(
+            render_agent_reference_row(
+                AgentReference(
                     name="trackbed:reviewer",
                     description="Use a | b",
                 )
@@ -53,8 +88,8 @@ class MarkdownTableHelpersTest(unittest.TestCase):
             r"| `trackbed:reviewer` | Use a \| b |",
         )
         self.assertEqual(
-            lint_skill_contracts.render_hook_reference_row(
-                lint_skill_contracts.HookReference(
+            render_hook_reference_row(
+                HookReference(
                     name="sample-hook",
                     event="PostToolUse (Write|Edit)",
                     description="Use a | b",
@@ -100,7 +135,7 @@ class MarkdownTableHelpersTest(unittest.TestCase):
             )
             failures: list[str] = []
 
-            references = lint_skill_contracts.load_hook_references(
+            references = load_hook_references(
                 root,
                 {
                     "hooks_json": "hooks/hooks.json",
@@ -112,7 +147,7 @@ class MarkdownTableHelpersTest(unittest.TestCase):
         self.assertEqual(failures, [])
         self.assertEqual(
             references["sample-hook"],
-            lint_skill_contracts.HookReference(
+            HookReference(
                 name="sample-hook",
                 event="PreToolUse (Skill), UserPromptSubmit",
                 description="Runs a sample hook",
@@ -185,13 +220,13 @@ class FrontmatterContractHelpersTest(unittest.TestCase):
             skill_path.parent.mkdir(parents=True)
             skill_path.write_text(text, encoding="utf-8")
             failures = []
-            reference = lint_skill_contracts.load_skill_references(root, "skills", failures, schema)["trackbed:test"]
+            reference = load_skill_references(root, "skills", failures, schema)["trackbed:test"]
             catalog = skill_catalog_entries(root, {"readme_skill_sync": {"skills_dir": "skills"}}, schema, failures)
         self.assertEqual(failures, [])
         display = "/trackbed:test" if user_invocable else "trackbed:test"
         arguments = "`[path]`" if user_invocable else "—"
         self.assertEqual(
-            lint_skill_contracts.render_skill_reference_row(reference),
+            render_skill_reference_row(reference),
             f"| `{display}` | {invocation} | {arguments} | Test skill |",
         )
         self.assertEqual(catalog, [{"name": "trackbed:test", "invocation": invocation, "path": "skills/test/SKILL.md"}])
@@ -220,9 +255,9 @@ class FrontmatterContractHelpersTest(unittest.TestCase):
 
     def test_raw_parser_and_dictionary_helpers_keep_their_contract(self) -> None:
         text = '---\ndescription: "true" # prose\nuser-invocable: "true" # enabled\n---\n'
-        raw = lint_skill_contracts.parse_frontmatter(text)
+        raw = parse_frontmatter(text)
         self.assertEqual(raw, {"description": '"true" # prose', "user-invocable": '"true" # enabled'})
-        self.assertEqual(lint_skill_contracts.expected_invocation(raw), "Background")
+        self.assertEqual(expected_invocation(raw), "Background")
 
     def test_invalid_invocation_scalars_still_fail_type_validation(self) -> None:
         for value in ['"maybe" # invalid', r'"\qtrue"', "[true]", "\n  - true", "null", '"true" trailing']:
@@ -453,7 +488,7 @@ trackbed-platforms: [codex, .5]
 
     def test_expected_invocation_distinguishes_user_and_background_modes(self) -> None:
         self.assertEqual(
-            lint_skill_contracts.expected_invocation(
+            expected_invocation(
                 {
                     "user-invocable": "true",
                     "disable-model-invocation": "true",
@@ -462,13 +497,13 @@ trackbed-platforms: [codex, .5]
             "User",
         )
         self.assertEqual(
-            lint_skill_contracts.expected_invocation({"user-invocable": "false"}),
+            expected_invocation({"user-invocable": "false"}),
             "Background",
         )
 
     def test_expected_arguments_hides_non_user_invocable_skills(self) -> None:
         self.assertEqual(
-            lint_skill_contracts.expected_arguments(
+            expected_arguments(
                 {
                     "user-invocable": "false",
                     "argument-hint": "[path]",
@@ -477,7 +512,7 @@ trackbed-platforms: [codex, .5]
             "\u2014",
         )
         self.assertEqual(
-            lint_skill_contracts.expected_arguments(
+            expected_arguments(
                 {
                     "user-invocable": "true",
                     "argument-hint": "'[path]'",
@@ -488,8 +523,8 @@ trackbed-platforms: [codex, .5]
 
 
 class SourceProvenanceCheckTest(unittest.TestCase):
-    def _context(self, root: Path) -> lint_skill_contracts.LintContext:
-        return lint_skill_contracts.LintContext(
+    def _context(self, root: Path) -> LintContext:
+        return LintContext(
             root=root,
             registry={
                 "source_provenance": {
@@ -523,7 +558,7 @@ sources:
                 encoding="utf-8",
             )
 
-            result = lint_skill_contracts.check_source_provenance(self._context(root))
+            result = check_source_provenance(self._context(root))
 
         self.assertEqual(result.failures, [])
 
@@ -556,7 +591,7 @@ sources:
                 encoding="utf-8",
             )
 
-            result = lint_skill_contracts.check_source_provenance(self._context(root))
+            result = check_source_provenance(self._context(root))
 
         failures = "\n".join(result.failures)
         self.assertIn("committed upstream source bodies are forbidden", failures)
@@ -595,7 +630,7 @@ sources:
                 encoding="utf-8",
             )
 
-            result = lint_skill_contracts.check_source_provenance(self._context(root))
+            result = check_source_provenance(self._context(root))
 
         failures = "\n".join(result.failures)
         self.assertIn("must stay within the skill directory", failures)
@@ -623,7 +658,7 @@ sources:
             manifest = shared / "sources.yaml"
 
             manifest.write_text(copied_entry.format(notice="UPSTREAM-LICENSE"), encoding="utf-8")
-            accepted = lint_skill_contracts.check_source_provenance(context)
+            accepted = check_source_provenance(context)
             manifest.write_text(
                 copied_entry.format(notice="../OUTSIDE-LICENSE")
                 + """
@@ -639,7 +674,7 @@ sources:
 """,
                 encoding="utf-8",
             )
-            rejected = lint_skill_contracts.check_source_provenance(context)
+            rejected = check_source_provenance(context)
 
         prefix = "source provenance: trackbed/scripts/shared-tool/sources.yaml"
         incomplete = f"{prefix} copied entry 'incomplete'"
@@ -657,10 +692,10 @@ sources:
 
     def test_repository_registry_checks_dev_server_manifest(self) -> None:
         repo_root = SCRIPTS_DIR.parents[1]
-        registry = lint_skill_contracts.load_registry(SCRIPTS_DIR / "synced-contracts.yaml")
+        registry = load_registry(SCRIPTS_DIR / "synced-contracts.yaml")
         shared_globs = registry["source_provenance"]["shared_manifest_globs"]
         matched = {path.relative_to(repo_root).as_posix() for glob in shared_globs for path in repo_root.glob(glob)}
-        entries = lint_skill_contracts.parse_sources_manifest(repo_root / "trackbed/scripts/dev-server/sources.yaml")
+        entries = parse_sources_manifest(repo_root / "trackbed/scripts/dev-server/sources.yaml")
 
         self.assertIn("trackbed/scripts/dev-server/sources.yaml", matched)
         self.assertIn("copied", {entry.get("usage") for entry in entries})
@@ -734,15 +769,15 @@ description: Reviews code
             encoding="utf-8",
         )
 
-    def _context(self, root: Path) -> lint_skill_contracts.LintContext:
-        return lint_skill_contracts.LintContext(
+    def _context(self, root: Path) -> LintContext:
+        return LintContext(
             root=root,
             registry=COMPONENT_CATALOG_REGISTRY,
-            schema=lint_skill_contracts.DEFAULT_CONTRACT_SCHEMA,
+            schema=DEFAULT_CONTRACT_SCHEMA,
         )
 
     def test_render_returns_nothing_without_registry_config(self) -> None:
-        relative, rendered, failures = lint_skill_contracts.render_component_catalog(Path("/tmp/repo"), {}, {})
+        relative, rendered, failures = render_component_catalog(Path("/tmp/repo"), {}, {})
 
         self.assertEqual((relative, rendered, failures), (None, None, []))
 
@@ -752,10 +787,10 @@ description: Reviews code
             self._write_tree(root)
             failures: list[str] = []
 
-            document = lint_skill_contracts.component_catalog_document(
+            document = component_catalog_document(
                 root,
                 COMPONENT_CATALOG_REGISTRY,
-                lint_skill_contracts.DEFAULT_CONTRACT_SCHEMA,
+                DEFAULT_CONTRACT_SCHEMA,
                 failures,
             )
 
@@ -792,12 +827,8 @@ description: Reviews code
             root = Path(tmp_dir)
             self._write_tree(root)
 
-            first = lint_skill_contracts.render_component_catalog(
-                root, COMPONENT_CATALOG_REGISTRY, lint_skill_contracts.DEFAULT_CONTRACT_SCHEMA
-            )
-            second = lint_skill_contracts.render_component_catalog(
-                root, COMPONENT_CATALOG_REGISTRY, lint_skill_contracts.DEFAULT_CONTRACT_SCHEMA
-            )
+            first = render_component_catalog(root, COMPONENT_CATALOG_REGISTRY, DEFAULT_CONTRACT_SCHEMA)
+            second = render_component_catalog(root, COMPONENT_CATALOG_REGISTRY, DEFAULT_CONTRACT_SCHEMA)
 
         self.assertEqual(first, second)
         self.assertEqual(first[0], "catalog.json")
@@ -811,16 +842,16 @@ description: Reviews code
             self._write_tree(root)
             context = self._context(root)
 
-            missing = lint_skill_contracts.check_component_catalog(context)
+            missing = check_component_catalog(context)
 
             (root / "catalog.json").write_text("{}\n", encoding="utf-8")
-            stale = lint_skill_contracts.check_component_catalog(context)
+            stale = check_component_catalog(context)
 
-            _relative, rendered, _failures = lint_skill_contracts.render_component_catalog(
-                root, COMPONENT_CATALOG_REGISTRY, lint_skill_contracts.DEFAULT_CONTRACT_SCHEMA
+            _relative, rendered, _failures = render_component_catalog(
+                root, COMPONENT_CATALOG_REGISTRY, DEFAULT_CONTRACT_SCHEMA
             )
             (root / "catalog.json").write_text(rendered or "", encoding="utf-8")
-            synced = lint_skill_contracts.check_component_catalog(context)
+            synced = check_component_catalog(context)
 
         self.assertIn("registered path is missing: catalog.json", "\n".join(missing.failures))
         self.assertIn("catalog.json is stale", "\n".join(stale.failures))
@@ -833,7 +864,7 @@ description: Reviews code
     def test_check_requires_readme_sync_configs(self) -> None:
         failures: list[str] = []
 
-        lint_skill_contracts.check_component_catalog_drift(
+        check_component_catalog_drift(
             Path("/tmp/repo"),
             {"component_catalog": {"path": "catalog.json"}},
             {},
@@ -904,7 +935,7 @@ class ReadmeSummariesTest(unittest.TestCase):
             root = Path(tmp_dir)
             self._write_tree(root, "Sample skill")
 
-            rendered, failures = lint_skill_contracts.render_readme_component_sync(root, SUMMARY_REGISTRY)
+            rendered, failures = render_readme_component_sync(root, SUMMARY_REGISTRY)
 
         self.assertEqual(failures, [])
         assert rendered is not None
@@ -917,23 +948,19 @@ class ReadmeSummariesTest(unittest.TestCase):
             root = Path(tmp_dir)
             self._write_tree(root, "Sample skill")
             stale: list[str] = []
-            lint_skill_contracts.check_readme_skill_rows_sync(
-                root, SUMMARY_REGISTRY, lint_skill_contracts.DEFAULT_CONTRACT_SCHEMA, stale
-            )
+            skill_component_sync(root, SUMMARY_REGISTRY["readme_skill_sync"], DEFAULT_CONTRACT_SCHEMA).check(stale)
 
             self._write_readme(root, "Short sample summary")
             synced: list[str] = []
-            lint_skill_contracts.check_readme_skill_rows_sync(
-                root, SUMMARY_REGISTRY, lint_skill_contracts.DEFAULT_CONTRACT_SCHEMA, synced
-            )
+            skill_component_sync(root, SUMMARY_REGISTRY["readme_skill_sync"], DEFAULT_CONTRACT_SCHEMA).check(synced)
 
         self.assertEqual(len(stale), 1)
         self.assertIn("'trackbed:sample' description differs from source metadata", stale[0])
         self.assertEqual(synced, [])
 
     def test_summaries_cover_every_component_within_the_length_budget(self) -> None:
-        def reference(name: str) -> lint_skill_contracts.SkillReference:
-            return lint_skill_contracts.SkillReference(
+        def reference(name: str) -> SkillReference:
+            return SkillReference(
                 name=name,
                 display_name=f"/{name}",
                 invocation="User",
@@ -942,7 +969,7 @@ class ReadmeSummariesTest(unittest.TestCase):
             )
 
         failures: list[str] = []
-        summarized = lint_skill_contracts.apply_readme_summaries(
+        summarized = apply_readme_summaries(
             "readme skill sync",
             "skill",
             {"trackbed:long": reference("trackbed:long"), "trackbed:missing": reference("trackbed:missing")},
@@ -962,10 +989,10 @@ class ReadmeSummariesTest(unittest.TestCase):
         self.assertEqual(summarized["trackbed:missing"].description, "Full routing description")
 
     def test_source_descriptions_stay_without_summaries(self) -> None:
-        references = {"trackbed:reviewer": lint_skill_contracts.AgentReference("trackbed:reviewer", "Reviews code")}
+        references = {"trackbed:reviewer": AgentReference("trackbed:reviewer", "Reviews code")}
         failures: list[str] = []
 
-        result = lint_skill_contracts.apply_readme_summaries("readme agent sync", "agent", references, {}, failures)
+        result = apply_readme_summaries("readme agent sync", "agent", references, {}, failures)
 
         self.assertIs(result, references)
         self.assertEqual(failures, [])
@@ -999,7 +1026,7 @@ class ReadmeProseCheckTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            lint_skill_contracts.readme_prose_blocks(text),
+            readme_prose_blocks(text),
             [
                 (3, "First paragraph line one continues here."),
                 (6, "item one continued"),
@@ -1028,8 +1055,8 @@ class ReadmeProseCheckTest(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            result = lint_skill_contracts.check_readme_prose(
-                lint_skill_contracts.LintContext(
+            result = check_readme_prose(
+                LintContext(
                     root=root,
                     registry={"readme_prose": {"warn_paragraph_chars": 25, "report_limit": 2}},
                     schema={},
@@ -1047,9 +1074,7 @@ class ReadmeProseCheckTest(unittest.TestCase):
 
     def test_check_is_disabled_without_config_and_rejects_invalid_settings(self) -> None:
         def run(registry):
-            return lint_skill_contracts.check_readme_prose(
-                lint_skill_contracts.LintContext(root=Path("/tmp/repo"), registry=registry, schema={})
-            )
+            return check_readme_prose(LintContext(root=Path("/tmp/repo"), registry=registry, schema={}))
 
         disabled = run({})
         invalid = run({"readme_prose": {"warn_paragraph_chars": 0}})
@@ -1061,7 +1086,7 @@ class ReadmeProseCheckTest(unittest.TestCase):
 class CheckRegistryTest(unittest.TestCase):
     def test_registry_preserves_cli_check_order(self) -> None:
         self.assertEqual(
-            [name for name, _check in lint_skill_contracts.CHECKS],
+            [name for name, _check in CHECKS],
             [
                 "text_contracts",
                 "ordered_heading_contracts",
@@ -1082,25 +1107,25 @@ class CheckRegistryTest(unittest.TestCase):
         )
 
     def test_run_checks_accumulates_results_in_registry_order(self) -> None:
-        context = lint_skill_contracts.LintContext(
+        context = LintContext(
             root=Path("/tmp/repo"),
             registry={},
             schema={},
         )
 
         def first(_context):
-            return lint_skill_contracts.CheckResult(
+            return CheckResult(
                 failures=["first failure"],
                 warnings=["first warning"],
             )
 
         def second(_context):
-            return lint_skill_contracts.CheckResult(
+            return CheckResult(
                 failures=["second failure"],
                 warnings=["second warning"],
             )
 
-        result = lint_skill_contracts.run_checks(
+        result = run_checks(
             context,
             checks=(("first", first), ("second", second)),
         )
@@ -1128,16 +1153,16 @@ class BaseDiffScopeCheckTest(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            registry = lint_skill_contracts.load_registry(SCRIPTS_DIR / "synced-contracts.yaml")
+            registry = load_registry(SCRIPTS_DIR / "synced-contracts.yaml")
             config = dict(registry["base_diff_scope"])
             config["paths"] = ["skills/example/SKILL.md"]
-            context = lint_skill_contracts.LintContext(
+            context = LintContext(
                 root=root,
                 registry={"base_diff_scope": config},
                 schema={},
             )
 
-            result = lint_skill_contracts.check_base_diff_scope(context)
+            result = check_base_diff_scope(context)
 
             failures = "\n".join(result.failures)
             self.assertIn("manual-origin-head-base-detection", failures)
@@ -1156,25 +1181,25 @@ class UIRelevanceContractTest(unittest.TestCase):
             "asset_extensions": [".svg", ".webp"],
         }
 
-        self.assertTrue(lint_skill_contracts.is_ui_relevant_path("src/components/Button.tsx", matcher))
-        self.assertTrue(lint_skill_contracts.is_ui_relevant_path("tailwind.config.ts", matcher))
+        self.assertTrue(is_ui_relevant_path("src/components/Button.tsx", matcher))
+        self.assertTrue(is_ui_relevant_path("tailwind.config.ts", matcher))
         self.assertTrue(
-            lint_skill_contracts.is_ui_relevant_path(
+            is_ui_relevant_path(
                 "packages/ui/design-tokens/colors.json",
                 matcher,
             )
         )
-        self.assertTrue(lint_skill_contracts.is_ui_relevant_path("public/logo.svg", matcher))
-        self.assertTrue(lint_skill_contracts.is_ui_relevant_path("src/components/Button.TSX", matcher))
-        self.assertTrue(lint_skill_contracts.is_ui_relevant_path("src/Page.astro", matcher))
-        self.assertTrue(lint_skill_contracts.is_ui_relevant_path("docs/component.mdx", matcher))
-        self.assertTrue(lint_skill_contracts.is_ui_relevant_path("public/index.htm", matcher))
-        self.assertTrue(lint_skill_contracts.is_ui_relevant_path("src/styles/theme.styl", matcher))
-        self.assertTrue(lint_skill_contracts.is_ui_relevant_path("src/ui/Button.ts", matcher))
-        self.assertTrue(lint_skill_contracts.is_ui_relevant_path("src/component/Button.ts", matcher))
-        self.assertTrue(lint_skill_contracts.is_ui_relevant_path("public/Logo.SVG", matcher))
-        self.assertFalse(lint_skill_contracts.is_ui_relevant_path("src/assets/data.json", matcher))
-        self.assertFalse(lint_skill_contracts.is_ui_relevant_path("src/server/user.ts", matcher))
+        self.assertTrue(is_ui_relevant_path("public/logo.svg", matcher))
+        self.assertTrue(is_ui_relevant_path("src/components/Button.TSX", matcher))
+        self.assertTrue(is_ui_relevant_path("src/Page.astro", matcher))
+        self.assertTrue(is_ui_relevant_path("docs/component.mdx", matcher))
+        self.assertTrue(is_ui_relevant_path("public/index.htm", matcher))
+        self.assertTrue(is_ui_relevant_path("src/styles/theme.styl", matcher))
+        self.assertTrue(is_ui_relevant_path("src/ui/Button.ts", matcher))
+        self.assertTrue(is_ui_relevant_path("src/component/Button.ts", matcher))
+        self.assertTrue(is_ui_relevant_path("public/Logo.SVG", matcher))
+        self.assertFalse(is_ui_relevant_path("src/assets/data.json", matcher))
+        self.assertFalse(is_ui_relevant_path("src/server/user.ts", matcher))
 
     def test_ui_relevance_contract_reports_missing_terms_and_fixture_drift(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1197,7 +1222,7 @@ class UIRelevanceContractTest(unittest.TestCase):
                 "UI relevance path contract: ui-relevance-path-contract-v1\nRequired terms: *.tsx\n",
                 encoding="utf-8",
             )
-            context = lint_skill_contracts.LintContext(
+            context = LintContext(
                 root=root,
                 registry={
                     "ui_relevance_contracts": [
@@ -1224,7 +1249,7 @@ class UIRelevanceContractTest(unittest.TestCase):
                 schema={},
             )
 
-            result = lint_skill_contracts.check_ui_relevance_contracts(context)
+            result = check_ui_relevance_contracts(context)
 
         self.assertEqual(
             result.failures,
@@ -1269,7 +1294,7 @@ class MechanicalCheckTest(unittest.TestCase):
                 ),
                 encoding="utf-8",
             )
-            context = lint_skill_contracts.LintContext(
+            context = LintContext(
                 root=root,
                 registry={
                     "mechanical": {
@@ -1288,7 +1313,7 @@ class MechanicalCheckTest(unittest.TestCase):
                 schema={},
             )
 
-            result = lint_skill_contracts.check_mechanical(context)
+            result = check_mechanical(context)
 
         self.assertEqual(
             result.failures,
@@ -1326,7 +1351,7 @@ class MechanicalCheckTest(unittest.TestCase):
                 "warn_description_chars": 2,
                 "required_frontmatter": ["name", "user-invocable"],
             }
-            context = lint_skill_contracts.LintContext(root=root, registry={"mechanical": config}, schema={})
+            context = LintContext(root=root, registry={"mechanical": config}, schema={})
 
             result = check_single_skill(context, root / "skills" / "example" / "SKILL.md")
 
@@ -1360,8 +1385,8 @@ class MechanicalCheckTest(unittest.TestCase):
                 "warn_description_chars": 5,
                 "skill_description_report_limit": 6,
             }
-            context = lint_skill_contracts.LintContext(root=root, registry={"mechanical": config}, schema={})
-            result = lint_skill_contracts.check_mechanical(context)
+            context = LintContext(root=root, registry={"mechanical": config}, schema={})
+            result = check_mechanical(context)
 
         self.assertEqual(result.failures, ["mechanical: skills/over/SKILL.md description is 10 chars, exceeds 9"])
         warning_paths = [warning.split("burndown: ", 1)[1].split(" description", 1)[0] for warning in result.warnings]
@@ -1400,7 +1425,7 @@ color: blue
 """,
                 encoding="utf-8",
             )
-            context = lint_skill_contracts.LintContext(
+            context = LintContext(
                 root=root,
                 registry={
                     "mechanical": {
@@ -1412,7 +1437,7 @@ color: blue
                 schema={},
             )
 
-            result = lint_skill_contracts.check_mechanical(context)
+            result = check_mechanical(context)
 
         self.assertEqual(
             result.failures,
@@ -1424,18 +1449,17 @@ color: blue
 
 
 class CompatibilityEntryPointTest(unittest.TestCase):
-    def test_legacy_script_reexports_package_api(self) -> None:
+    def test_legacy_script_exposes_only_the_entry_point(self) -> None:
         compat = load_script("lint_skill_contracts_cli", SCRIPT_PATH)
 
-        self.assertEqual(compat.CHECKS[-1][0], "mechanical")
-        self.assertIsNotNone(compat.main)
+        self.assertTrue(callable(compat.main))
+        self.assertFalse(hasattr(compat, "CHECKS"))
 
-    def test_legacy_script_reexports_when_loaded_as_package_name(self) -> None:
-        self.addCleanup(sys.modules.__setitem__, "lint_skill_contracts", lint_skill_contracts)
+    def test_legacy_script_loads_when_loaded_as_package_name(self) -> None:
+        self.addCleanup(sys.modules.__setitem__, "lint_skill_contracts", sys.modules["lint_skill_contracts"])
         compat = load_script("lint_skill_contracts", SCRIPT_PATH)
 
-        self.assertEqual(compat.CHECKS[-1][0], "mechanical")
-        self.assertIsNotNone(compat.main)
+        self.assertTrue(callable(compat.main))
 
 
 class SuiteReferenceCoverageTest(unittest.TestCase):

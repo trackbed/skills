@@ -2,16 +2,22 @@
 
 This package implements the registry-driven checks behind
 [`../lint-skill-contracts.py`](../lint-skill-contracts.py). The compatibility
-script preserves the established CLI and import surface; this directory owns
-the parsing, validation, synchronization, and reporting behavior.
+script preserves the established CLI; this directory owns the parsing,
+validation, synchronization, and reporting behavior.
+
+The package's top-level module exports only `main`. Other consumers, including
+[`../generate-component-reference.py`](../generate-component-reference.py) and
+the tests, import from the module that owns each name. Modules in the package
+import each other relatively and never import a top-level script module, so the
+package works without the scripts folder on the import path.
 
 ## Responsibility Map
 
 | Area | Owning modules | Start here when |
 | --- | --- | --- |
-| Compatibility and public API | `../lint-skill-contracts.py`, `__init__.py`, `checks/__init__.py` | The legacy script or an importing consumer cannot reach the package API. |
+| Compatibility entry point | `../lint-skill-contracts.py`, `__init__.py` | The legacy script cannot load the package or reach `main`. |
 | CLI and reporting | `cli.py` | Arguments, registry loading, exit status, warning output, or failure output is wrong. |
-| Shared parsing and paths | `frontmatter.py`, `markdown.py`, `strings.py`, `io.py` | Frontmatter values, Markdown table cells, normalized strings, resolved paths, hashes, or skill discovery are wrong. |
+| Shared parsing and paths | `frontmatter.py`, `markdown.py`, `strings.py`, `io.py` | Frontmatter values, Markdown table cells, normalized strings, resolved paths, hashes, skill discovery, or registry JSON loading are wrong. |
 | Invocable names | `naming.py` | The `trackbed` plugin namespace or a qualified `trackbed:<name>` skill or agent name is wrong. |
 | Contract schema | `schema.py` | Schema loading, fallback behavior, required frontmatter fields, or source-manifest fields are wrong. |
 | Check orchestration | `checks/types.py`, `checks/registry.py`, `registry_types.py` | Check ordering, shared context, the registry's static type, or failure and warning aggregation is wrong. |
@@ -49,7 +55,10 @@ increments.
 - A skill-frontmatter diagnostic starts in `checks/mechanical.py`, then follows
   parsing into `frontmatter.py` and field definitions into `schema.py`.
 - A README row mismatch starts in `checks/readme_sync.py`, then follows
-  comparison and rendering into `readme.py`. The write-capable consumer is
+  comparison and rendering into `readme.py`. Each component table is one
+  `ComponentSync`, built from its registry section by `skill_component_sync`,
+  `agent_component_sync`, or `hook_component_sync`; its `check` and `render`
+  methods share the row checks. The write-capable consumer is
   [`../generate-component-reference.py`](../generate-component-reference.py).
 - A component catalog mismatch starts in `checks/component_catalog.py`, then
   follows rendering into `catalog.py`. The catalog reads its source directories

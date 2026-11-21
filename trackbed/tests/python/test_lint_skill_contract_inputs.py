@@ -11,10 +11,16 @@ from unittest.mock import patch
 SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-import json_object  # noqa: E402
-import lint_skill_contracts  # noqa: E402
+import lint_skill_contracts.schema as contract_schema  # noqa: E402
+from lint_skill_contracts import io  # noqa: E402
 from lint_skill_contracts.checks import basic  # noqa: E402
-from lint_skill_contracts.checks.types import TextContract, TextContractInventory  # noqa: E402
+from lint_skill_contracts.checks.basic import (  # noqa: E402
+    check_ordered_heading_contracts,
+    check_required_file_contracts,
+    check_text_contracts,
+)
+from lint_skill_contracts.checks.types import LintContext, TextContract, TextContractInventory  # noqa: E402
+from lint_skill_contracts.schema import load_contract_schema  # noqa: E402
 
 
 class ValidatedTextContractTest(unittest.TestCase):
@@ -259,7 +265,7 @@ class TextContractInventoryReadsTest(unittest.TestCase):
 class MalformedRegistryShapeTest(unittest.TestCase):
     def test_text_contracts_reports_malformed_entries_without_crashing(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
-            context = lint_skill_contracts.LintContext(
+            context = LintContext(
                 root=Path(tmp_dir),
                 registry={
                     "text_contracts": [
@@ -274,7 +280,7 @@ class MalformedRegistryShapeTest(unittest.TestCase):
                 schema={},
             )
 
-            result = lint_skill_contracts.check_text_contracts(context)
+            result = check_text_contracts(context)
 
         self.assertEqual(
             result.failures,
@@ -292,7 +298,7 @@ class MalformedRegistryShapeTest(unittest.TestCase):
         )
 
     def test_ordered_heading_contracts_reports_malformed_entries_without_crashing(self) -> None:
-        context = lint_skill_contracts.LintContext(
+        context = LintContext(
             root=Path("/tmp/repo"),
             registry={
                 "ordered_heading_contracts": [
@@ -303,7 +309,7 @@ class MalformedRegistryShapeTest(unittest.TestCase):
             schema={},
         )
 
-        result = lint_skill_contracts.check_ordered_heading_contracts(context)
+        result = check_ordered_heading_contracts(context)
 
         self.assertEqual(
             result.failures,
@@ -318,7 +324,7 @@ class MalformedRegistryShapeTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
             (root / "c.md").write_text("hello world", encoding="utf-8")
-            context = lint_skill_contracts.LintContext(
+            context = LintContext(
                 root=root,
                 registry={
                     "required_file_contracts": [
@@ -334,7 +340,7 @@ class MalformedRegistryShapeTest(unittest.TestCase):
                 schema={},
             )
 
-            result = lint_skill_contracts.check_required_file_contracts(context)
+            result = check_required_file_contracts(context)
 
         self.assertEqual(
             result.failures,
@@ -357,7 +363,7 @@ class JsonObjectLoaderTest(unittest.TestCase):
             path.chmod(0o000)
             try:
                 with self.assertRaises(SystemExit) as ctx:
-                    json_object.load_json_object(path, "registry")
+                    io.load_json_object(path, "registry")
             finally:
                 path.chmod(0o644)
 
@@ -369,7 +375,7 @@ class JsonObjectLoaderTest(unittest.TestCase):
 
 class DefaultContractSchemaTest(unittest.TestCase):
     def test_unreadable_default_schema_reports_error_without_crashing(self) -> None:
-        schema_module = lint_skill_contracts.schema
+        schema_module = contract_schema
         original_path = schema_module.DEFAULT_CONTRACT_SCHEMA_PATH
         with tempfile.TemporaryDirectory() as tmp_dir:
             missing_path = Path(tmp_dir) / "missing-schema.json"
@@ -385,7 +391,7 @@ class DefaultContractSchemaTest(unittest.TestCase):
         self.assertIn("cannot read", error)
 
     def test_non_object_default_schema_reports_error(self) -> None:
-        schema_module = lint_skill_contracts.schema
+        schema_module = contract_schema
         original_path = schema_module.DEFAULT_CONTRACT_SCHEMA_PATH
         with tempfile.TemporaryDirectory() as tmp_dir:
             array_path = Path(tmp_dir) / "schema.json"
@@ -400,12 +406,12 @@ class DefaultContractSchemaTest(unittest.TestCase):
         self.assertIn("must be a JSON object", error or "")
 
     def test_load_contract_schema_surfaces_default_schema_error_on_fallback(self) -> None:
-        schema_module = lint_skill_contracts.schema
+        schema_module = contract_schema
         original_error = schema_module.DEFAULT_CONTRACT_SCHEMA_ERROR
         schema_module.DEFAULT_CONTRACT_SCHEMA_ERROR = "default contract schema: sentinel failure"
         try:
             failures: list[str] = []
-            schema = lint_skill_contracts.load_contract_schema(
+            schema = load_contract_schema(
                 Path("/tmp/repo"),
                 {"contract_schema": "does-not-exist.json"},
                 failures,

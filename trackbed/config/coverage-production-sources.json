@@ -138,7 +138,6 @@
       "trackbed/scripts/changelog.py",
       "trackbed/scripts/code-outline.py",
       "trackbed/scripts/check-doc-citations.py",
-      "trackbed/scripts/json_object.py",
       "trackbed/scripts/git-rewrite/stack-publication.py",
       "trackbed/scripts/lib/inline_page.py",
       "trackbed/scripts/lib/pr_staging.py",
