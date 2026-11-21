@@ -878,6 +878,9 @@ make -C trackbed check-bats-assertions
 # Complete default suite (Node + Python + Bats)
 make -C trackbed test
 
+# Same suite, running 8 Bats files at a time (needs GNU parallel)
+make -C trackbed test BATS_JOBS=8
+
 # Ordinary Pull Request gate
 make -C trackbed pr-verify
 

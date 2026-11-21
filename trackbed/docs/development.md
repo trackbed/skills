@@ -149,7 +149,41 @@ Historical runtimes measured locally on an Apple silicon laptop, for choosing th
 | `coverage` | 51s | Includes its own `test-python` run |
 | `pr-verify` | 28m | Dominated by `test-bats`; coverage adds roughly 36s on top of `test` |
 
-In that historical sample, the coverage gates were cheap relative to the suite they joined: `coverage-python` reuses the `test-python` run that `pr-verify` already performs, so adding `coverage` was estimated to cost about 36 seconds in that sample. Current gate duration and any speedup have not been measured. Run `make -C trackbed coverage` on its own when only the inventory or floors are in question.
+In that historical sample, the coverage gates were cheap relative to the suite they joined: `coverage-python` reuses the `test-python` run that `pr-verify` already performs, so adding `coverage` was estimated to cost about 36 seconds in that sample. The Bats suite was re-measured on 2026-11-21; see [the parallel measurement](#measured-on-2026-11-21). Run `make -C trackbed coverage` on its own when only the inventory or floors are in question.
+
+#### Running Bats suites in parallel
+
+`BATS_JOBS=N` runs the full Bats suite N files at a time through `bats --jobs N --no-parallelize-within-files`. Tests inside one file still run in order. It works with any target that includes `test-bats`, and the runner reads the same value from `TRACKBED_BATS_JOBS`:
+
+```bash
+make -C trackbed test BATS_JOBS=8
+make -C trackbed pr-verify BATS_JOBS=8
+TRACKBED_BATS_JOBS=8 bash trackbed/tests/run-tests.sh
+```
+
+Bats needs [GNU parallel](https://www.gnu.org/software/parallel/) (`brew install parallel` or `apt-get install parallel`) for this. The runner refuses to start when GNU parallel is not on `PATH`, including when `parallel` is the unrelated moreutils tool. Without `BATS_JOBS` the run stays serial and needs no parallel tool, and CI still runs serially. A named suite, as in `run-tests.sh makefile.bats`, always runs on its own, and timing mode (`TRACKBED_BATS_TIMINGS=1`) refuses a job count because it times suites one at a time.
+
+A suite that is not safe to run alongside others carries a line starting `# trackbed-bats: serial` followed by the reason. The runner runs those suites serially after the parallel batch finishes, keeps going when the parallel batch fails, and exits with the first failure. Mark a suite when it shares state outside its own temporary directories or fails only under concurrent load; prefer fixing a shared path when that is a small change.
+
+Bats prints each file's results in file order. When a suite is marked serial, the marked suites follow in a second TAP stream with its own plan line, so compare runs by counting `ok` and `not ok` lines rather than by diffing the output.
+
+No suite carries the serial marker yet. Three full parallel runs found no suite that fails only alongside others; the one failure seen came from outside the suite, as described below.
+
+##### Measured on 2026-11-21
+
+Host: Apple M5 Pro, 48 GiB RAM, macOS 26.5.1 arm64, Bash 5.3.20, Bats 1.14.0, GNU parallel 20261022, Node 26.13.1, and Python 3.15.2, on commit `5815d458` plus the SKILLS-131 runner change. All 130 top-level suites, 2,332 tests. Other Conductor workspaces were running agents and tests on the same host throughout, so load was not controlled; the load average is given for each run. Durations are wall-clock seconds for `bash trackbed/tests/run-tests.sh`.
+
+| Run | Duration | Load average | Result |
+| --- | --: | --: | --- |
+| Serial with `TRACKBED_BATS_TIMINGS=1` | 1,397s (23m 17s) | about 75 | 2,328 passed; the 4 failures were `makefile.bats` runner tests that inherited the outer `TRACKBED_BATS_TIMINGS`, which `setup_bats_runner_repo` now unsets |
+| Serial (default) | 808s (13m 28s) | 12–31 | 2,332 passed |
+| `TRACKBED_BATS_JOBS=8` | 234s (3m 54s) | 17–31 | 2,331 passed, 1 failed (see below) |
+| `TRACKBED_BATS_JOBS=8` | 206s (3m 26s) | 12–14 | 2,332 passed |
+| `TRACKBED_BATS_JOBS=16` | 251s (4m 11s) | 13–14 | 2,332 passed |
+
+At comparable load, 8 jobs cut the Bats run from about 13.5 minutes to about 3.5, roughly a 3.9× speedup; 16 jobs was slower than 8 on this host. The slowest suites in the timed serial run were `check-environment.bats` (269s), `adversarial-review-runner.bats` (110s), `confirm-review-responses.bats` (80s), `plan-to-pr-validation.bats` (78s), and `resolve-base.bats` (74s). Those per-suite times come from the run at load average about 75 and are inflated compared with the other rows; under the same load, the longest suite sets a floor for a parallel run. Neither the serial nor the parallel numbers are a measurement of the whole `pr-verify` gate.
+
+The one parallel failure was `commit-conventions-guidance.bats` "this repository exposes its explicit plain-English branch rule above history", which passed when rerun alone. It compares `git for-each-ref` before and after a read-only block, so a ref that another worktree sharing the same `.git` writes in that window fails it, in serial runs too. That cannot happen in a fresh CI clone, so the suite is not marked serial.
 
 #### Measuring Bats suite cost
 
