@@ -869,6 +869,9 @@ make -C trackbed test-bats-file BATS_TEST_FILE=tests/repository-instructions.bat
 npm run format
 npm run format:check
 
+# Suites mapped to the files changed against origin/main, including uncommitted ones
+make -C trackbed test-changed
+
 # Representative cross-language feedback
 make -C trackbed test-smoke
 
