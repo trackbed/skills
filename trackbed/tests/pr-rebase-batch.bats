@@ -433,13 +433,28 @@ run_apply() {
 	git -C "$MAIN" push origin remote-only >/dev/null 2>&1
 	git -C "$MAIN" branch develop main
 	git -C "$MAIN" worktree add "$TMP_DIR/wt-develop" develop >/dev/null 2>&1
-	pr_rows $'31\tremote-only\tmain\tfalse' $'32\tfork-topic\tmain\ttrue' $'33\tdevelop\tmain\tfalse'
+	git -C "$MAIN" branch workbench main
+	git -C "$MAIN" worktree add "$TMP_DIR/wt-workbench" workbench >/dev/null 2>&1
+	add_pr_branch later
+	advance_main
+	git -C "$MAIN" config --local trackbed.baseBranch refs/heads/workbench
+	pr_rows $'31\tremote-only\tmain\tfalse' $'32\tfork-topic\tmain\ttrue' $'33\tdevelop\tmain\tfalse' $'34\tworkbench\tmain\tfalse' $'35\tlater\tmain\tfalse'
 
 	run_plan
 	[ "$(plan_field remote-only 8)" = "not checked out in a local worktree" ]
 	[ "$(plan_field fork-topic 8)" = "fork head" ]
 	[ "$(plan_field develop 8)" = "protected branch" ]
-	[ "$(grep -c $'\trebase\t' "$PLAN")" -eq 0 ]
+	[ "$(plan_field workbench 8)" = "protected branch" ]
+	[ "$(plan_field later 7)" = "rebase" ]
+
+	local old_head
+	old_head=$(remote_head later)
+	git -C "$MAIN" config --local trackbed.baseBranch refs/heads/later
+	run_apply
+	[ "$(result_field later 4)" = "skipped" ]
+	[ "$(result_field later 7)" = "protected branch" ]
+	[ "$(git -C "$TMP_DIR/wt-later" rev-parse HEAD)" = "$old_head" ]
+	[ "$(remote_head later)" = "$old_head" ]
 }
 
 @test "skips agent isolation worktrees" {

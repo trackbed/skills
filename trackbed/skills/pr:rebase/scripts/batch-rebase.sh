@@ -17,6 +17,12 @@
 
 set -euo pipefail
 
+SCRIPT_LIB=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../../scripts/lib" && pwd -P)
+# shellcheck source=../../../scripts/lib/shell-helpers.sh
+source "$SCRIPT_LIB/shell-helpers.sh"
+# shellcheck source=../../../scripts/lib/branch-roles.sh
+source "$SCRIPT_LIB/branch-roles.sh"
+
 PLAN_HEADER=$'#pr\tbranch\tbase\tworktree\thead\tbase_oid\taction\treason'
 PLAN_PUSH_URL_PREFIX=$'#push-url\t'
 RESULT_HEADER=$'#pr\tbranch\tworktree\tresult\told_head\tnew_head\tdetail'
@@ -223,24 +229,6 @@ find_worktree() {
   return 1
 }
 
-load_protected() {
-  local configured origin_head
-  PROTECTED=(main master develop)
-  configured=$(git config --get trackbed.baseBranch || git config --get kramme.baseBranch || true)
-  [ -z "$configured" ] || PROTECTED+=("$configured")
-  [ -z "${CONDUCTOR_DEFAULT_BRANCH:-}" ] || PROTECTED+=("$CONDUCTOR_DEFAULT_BRANCH")
-  origin_head=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD || true)
-  [ -z "$origin_head" ] || PROTECTED+=("${origin_head#origin/}")
-}
-
-is_protected() {
-  local name
-  for name in "${PROTECTED[@]}"; do
-    [ "$name" = "$1" ] && return 0
-  done
-  return 1
-}
-
 # True when any named marker exists in the worktree's Git directory. Fails
 # closed: a marker that cannot be located counts as present.
 markers_present() {
@@ -266,7 +254,7 @@ rebase_in_progress() {
 location_reason() {
   case "$2" in
     */.claude/worktrees/*) echo "agent isolation worktree" ;;
-    *) if is_protected "$1"; then echo "protected branch"; fi ;;
+    *) if branch_is_protected "$1"; then echo "protected branch"; fi ;;
   esac
 }
 
@@ -428,7 +416,7 @@ run_plan() {
     die "gh returned at least $pr_limit open Pull Request heads; the batch limit was reached, so nothing was planned."
   fi
   load_worktrees
-  load_protected
+  load_branch_roles 1 "$ORIGIN_PUSH_URL" || die "Could not resolve protected branches."
 
   # Local classification that needs no network access.
   for ((index = 0; index < ${#numbers[@]}; index++)); do
@@ -631,7 +619,7 @@ run_apply() {
   done < "$PLAN_FILE"
   resolve_origin_repo
   load_worktrees
-  load_protected
+  load_branch_roles 1 "$ORIGIN_PUSH_URL" || die "Could not resolve protected branches."
 
   printf '%s\n' "$RESULT_HEADER"
   for ((index = 0; index < ${#rows[@]}; index++)); do

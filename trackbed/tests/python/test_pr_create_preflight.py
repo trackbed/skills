@@ -419,26 +419,15 @@ class BranchTests(PreflightCase):
         self.assertEqual(payload["facts"]["changed_paths"], ["src/feature.txt"])
         self.assert_status(self.invoke("--feature-branch", "main"), "blocked", "feature_branch_protected")
 
-    def test_protected_branch_that_differs_from_the_base_blocks(self) -> None:
-        for name, setup in (
-            ("master", None),
-            ("release", "trackbed.baseBranch"),
-            ("legacy", "kramme.baseBranch"),
-            ("prod", "conductor"),
-        ):
-            with self.subTest(name=name):
-                git(self.repo, "checkout", "-q", "-B", name, "main")
-                self.commit(f"Work on {name}")
-                if setup and setup.endswith(".baseBranch"):
-                    git(self.repo, "config", "--local", setup, name)
-                    payload = self.invoke("--base", "main")
-                    git(self.repo, "config", "--local", "--unset", setup)
-                elif setup == "conductor":
-                    with mock.patch.dict(os.environ, {"CONDUCTOR_DEFAULT_BRANCH": name}):
-                        payload = self.invoke()
-                else:
-                    payload = self.invoke()
-                self.assert_status(payload, "blocked", "protected_branch_conflict")
+    def test_shared_protected_branch_that_differs_from_the_base_blocks(self) -> None:
+        git(self.repo, "checkout", "-q", "-b", "workbench")
+        git(self.repo, "config", "--local", "trackbed.baseBranch", "refs/heads/workbench")
+        self.commit("Work on the workbench")
+
+        payload = self.invoke("--base", "main")
+
+        self.assert_status(payload, "blocked", "protected_branch_conflict")
+        self.assertIn("workbench", payload["facts"]["protected_branches"])
 
     def test_hostile_names_are_rejected_without_execution(self) -> None:
         self.commit("Work on main")

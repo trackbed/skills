@@ -34,7 +34,9 @@ if TYPE_CHECKING:
 JsonDict = Dict[str, Any]
 Codes = Tuple[int, ...]
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts" / "lib"))
+PLUGIN_SCRIPTS = Path(__file__).resolve().parents[3] / "scripts"
+RESOLVE_BASE = PLUGIN_SCRIPTS / "resolve-base.sh"
+sys.path.insert(0, str(PLUGIN_SCRIPTS / "lib"))
 from review_process import noninteractive_environment, run_bounded  # noqa: E402
 
 SCHEMA_VERSION = 1
@@ -402,42 +404,24 @@ def require_absent_remote_branch(root: Path, branch: str, object_id: re.Pattern[
 
 
 def resolve_base(root: Path) -> str:
-    key = "trackbed.baseBranch"
-    configured = git(root, "config", "--local", "--get", key, reason="base_unresolved", ok=(0, 1))
-    if configured.returncode == 1:  # kramme.baseBranch is the setting's name before 1.0.0.
-        key = "kramme.baseBranch"
-        configured = git(root, "config", "--local", "--get", key, reason="base_unresolved", ok=(0, 1))
-    if configured.returncode == 0:
-        base = decode(configured.stdout, "base_unresolved").strip()
-        if not base:
-            raise Stop("base_unresolved", f"{key} is empty.")
-        git(root, "check-ref-format", "--branch", base, reason="base_unresolved")
-        return base
-    conductor_base = os.environ.get("CONDUCTOR_DEFAULT_BRANCH", "")
-    if conductor_base and git(root, "check-ref-format", "--branch", conductor_base, ok=(0, 1)).returncode == 0:
-        if git(root, "show-ref", "--verify", "--quiet", f"{ORIGIN_PREFIX}{conductor_base}", ok=(0, 1)).returncode == 0:
-            return conductor_base
-    symbolic = git(root, "symbolic-ref", "--quiet", "refs/remotes/origin/HEAD", reason="base_unresolved", ok=(0, 1))
-    if symbolic.returncode == 0:
-        target = decode(symbolic.stdout, "base_unresolved").strip()
-        if not target.startswith(ORIGIN_PREFIX) or target == ORIGIN_PREFIX:
-            raise Stop("base_unresolved", f"refs/remotes/origin/HEAD points to {target!r}, not an origin branch.")
-        base = target[len(ORIGIN_PREFIX) :]
-        git(root, "check-ref-format", "--branch", base, reason="base_unresolved")
-        return base
-    for candidate in ("main", "master"):
-        verified = git(root, "rev-parse", "--quiet", "--verify", f"{ORIGIN_PREFIX}{candidate}^{{commit}}", ok=(0, 1))
-        if verified.returncode == 0:
-            return candidate
-    raise Stop("base_unresolved", "No configured, Conductor, or remote default base branch is available.")
+    argv = [str(RESOLVE_BASE), "--strict", "--base-only", "--workbench", "--format", "json"]
+    result = run(argv, root, "base_unresolved", NETWORK_TIMEOUT)
+    if result.returncode != 0:
+        reason = "base_fetch_failed" if result.returncode == 3 else "base_unresolved"
+        raise failure(reason, argv, result, "Base resolution failed.")
+    try:
+        resolved = json.loads(decode(result.stdout, "base_unresolved"))
+        base, ref = resolved["base_branch"], resolved["base_ref"]
+    except (ValueError, KeyError, TypeError) as error:
+        raise Stop("base_unresolved", "resolve-base.sh returned malformed JSON.") from error
+    if not isinstance(base, str) or not base or ref != ORIGIN_PREFIX + base:
+        raise Stop("base_unresolved", "resolve-base.sh did not return an origin base branch.")
+    return base
 
 
 def prove_continuation(root: Path, captured: JsonDict, object_id: re.Pattern[str]) -> JsonDict:
     base = resolve_base(root)
     remote_ref = f"{ORIGIN_PREFIX}{base}"
-    refspec = f"+refs/heads/{base}:{remote_ref}"
-    git(root, "fetch", "--quiet", "origin", refspec, reason="base_fetch_failed", timeout=NETWORK_TIMEOUT)
-    git(root, "rev-parse", "--quiet", "--verify", f"{remote_ref}^{{commit}}", reason="base_fetch_failed")
     current = snapshot(root, object_id)
     changed = [key for key in SNAPSHOT_KEYS if current[key] != captured[key]]
     if changed:

@@ -1335,6 +1335,9 @@
         "trackbed/tests/check-environment.bats",
         "trackbed/tests/update-check.bats"
       ],
+      "trackbed/scripts/lib/branch-roles.sh": [
+        "trackbed/tests/resolve-base.bats"
+      ],
       "trackbed/scripts/lib/shell-helpers.sh": [
         "trackbed/tests/dev-server-scripts.bats",
         "trackbed/tests/resolve-base.bats",
