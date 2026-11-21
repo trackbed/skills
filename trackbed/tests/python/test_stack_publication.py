@@ -126,13 +126,39 @@ class StackPublicationTests(unittest.TestCase):
         self.run_helper("capture", success=False)
         self.assertEqual(self.state.read_bytes(), original)
 
-    def test_preparation_integrates_behind_only_branch_in_its_worktree(self):
+    def advance_remote_lower(self):
         self.git("commit", "--allow-empty", "-m", "Remote", cwd=self.other)
         self.git("push", "origin", "lower", cwd=self.other)
+        return self.git("rev-parse", "HEAD", cwd=self.other)
+
+    def assert_remote_unchanged(self, lower, upper):
+        self.assertEqual(self.git("rev-parse", "lower", cwd=self.remote), lower)
+        self.assertEqual(self.git("rev-parse", "upper", cwd=self.remote), upper)
+        self.assertTrue(self.state.exists())
+
+    def test_preparation_integrates_behind_only_branch_in_its_worktree(self):
+        remote = self.advance_remote_lower()
         self.run_helper("capture")
         self.run_helper("prepare")
-        self.assertEqual(self.git("rev-parse", "HEAD"), self.git("rev-parse", "HEAD", cwd=self.other))
+        self.assertEqual(self.git("rev-parse", "HEAD"), remote)
+        snapshot = json.loads(self.state.read_text())
+        self.assertEqual(snapshot["phase"], "prepared")
+        self.assertEqual(snapshot["prepared"]["lower"], remote)
+        self.assertIn("already succeeded", self.run_helper("prepare", success=False).stderr)
+        self.assertEqual(json.loads(self.state.read_text())["phase"], "prepared")
+        self.rewrite()
         self.run_helper("publish")
+        self.assertEqual(self.git("rev-parse", "lower", cwd=self.remote), self.git("rev-parse", "lower"))
+
+    def test_publish_without_prepare_refuses_behind_only_branch(self):
+        remote = self.advance_remote_lower()
+        upper = self.git("rev-parse", "upper", cwd=self.remote)
+        self.run_helper("capture")
+        self.rewrite()
+        result = self.run_helper("publish", success=False)
+        self.assertIn("lower differed from the remote at capture", result.stderr)
+        self.assertIn("phase: none", result.stderr)
+        self.assert_remote_unchanged(remote, upper)
 
     def test_preparation_refuses_divergence(self):
         self.git("commit", "--allow-empty", "-m", "Remote", cwd=self.other)
@@ -205,6 +231,11 @@ class StackPublicationTests(unittest.TestCase):
         self.assertEqual((self.repo / "local.env").read_text(), "unpublished local config\n")
         self.assertEqual(self.git("rev-parse", "HEAD"), old)
         self.assertTrue(self.state.exists())
+        self.assertEqual(json.loads(self.state.read_text())["phase"], "prepare_failed")
+        remote = self.git("rev-parse", "lower", cwd=self.remote)
+        self.rewrite()
+        self.assertIn("phase: prepare_failed", self.run_helper("publish", success=False).stderr)
+        self.assert_remote_unchanged(remote, old)
 
     def test_merged_and_queued_branches_remain_untouched(self):
         original = self.git("rev-parse", "HEAD")
