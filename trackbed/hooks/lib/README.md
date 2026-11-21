@@ -12,7 +12,7 @@ cross-hook parsing and toggle behavior here.
 | `git_command_parser.py` | Executable entry point for the command-safety parser. Holds no parsing logic; it re-exports the dispatcher from `command_safety/` so both `python3 -m git_command_parser` and the direct script path keep working. The module form is the hook-facing one and the only form that works under `PYTHONSAFEPATH=1`, because `safety-hook-parser.sh` passes an explicit `PYTHONPATH=.`. |
 | `command_safety/` | The parser itself. Handles shell wrappers, environment propagation, command substitutions, heredocs, and git subcommands, then emits JSON with allow/block details. See the module map below. |
 | `safety-hook-parser.sh` | Provides fail-closed dependency checks, hook input extraction, parser invocation, and parser-output validation for command-safety hook wrappers. |
-| `conductor-slash-command.js` | Node logic behind the `conductor-slash-command.sh` UserPromptSubmit hook: when Conductor's `<system_instruction>` block hides a `/trackbed:<skill>` command at the start of the first message, it tells the model which skill the user typed and how to run it. |
+| `conductor-slash-command.js` | Node logic behind the `conductor-slash-command.sh` UserPromptSubmit hook: when Conductor's `<system_instruction>` block hides a `/trackbed:<skill>` command at the start of the first message, it tells the model which skill the user typed and how to run it. Uses [`trackbed-runtime.js`](../../scripts/lib/trackbed-runtime.js) for host detection and skill folder resolution. |
 
 ### `command_safety/` module map
 

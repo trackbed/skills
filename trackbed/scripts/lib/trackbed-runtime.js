@@ -45,13 +45,8 @@ const CODEX_ROLLOUT_FILE_PATTERN = /^rollout-.+\.jsonl$/;
 function detectPlatform(input, env) {
   const payload = asRecord(input);
   if (isNonEmptyString(payload.platform)) return payload.platform;
-  // KRAMME_AGENT_PLATFORM is the name this override had before 1.0.0.
-  const override = isNonEmptyString(env.TRACKBED_AGENT_PLATFORM)
-    ? env.TRACKBED_AGENT_PLATFORM
-    : env.KRAMME_AGENT_PLATFORM;
-  if (isNonEmptyString(override)) {
-    return override;
-  }
+  const override = trackbedSetting(env, "TRACKBED_AGENT_PLATFORM");
+  if (override) return override;
   if (
     isNonEmptyString(payload.turn_id) ||
     (typeof payload.transcript_path === "string" &&
@@ -175,11 +170,76 @@ function asRecord(value) {
   return isRecord(value) ? value : {};
 }
 
+/**
+ * Read the installed skill folders and return a resolver for that snapshot.
+ * Exact names take precedence, and ambiguous aliases have no owner.
+ * @param {string} skillsRoot
+ * @returns {(typedName: string) => {dir: string, name: string} | null}
+ */
+function readSkillFolderResolver(skillsRoot) {
+  const folders = new Set();
+  /** @type {Map<string, string | null>} */
+  const aliases = new Map();
+  for (const entry of fs.readdirSync(skillsRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
+    folders.add(entry.name);
+    const alias = entry.name.replaceAll(":", "-");
+    aliases.set(alias, aliases.has(alias) ? null : entry.name);
+  }
+  return (typedName) => {
+    const name = folders.has(typedName) ? typedName : aliases.get(typedName);
+    return name ? { dir: path.join(skillsRoot, name), name } : null;
+  };
+}
+
+/**
+ * Resolve a TRACKBED_ setting with the same precedence as trackbed_setting.
+ * @param {NodeJS.ProcessEnv} env
+ * @param {`TRACKBED_${string}`} name
+ * @param {string} [defaultValue]
+ */
+function trackbedSetting(env, name, defaultValue = "") {
+  return (
+    env[name] || env[`KRAMME_${name.slice("TRACKBED_".length)}`] || defaultValue
+  );
+}
+
+/**
+ * Resolve state files using the same directory precedence as trackbed-paths.sh.
+ * @param {string} file
+ * @param {NodeJS.ProcessEnv} [env]
+ * @returns {string | null}
+ */
+function trackbedStatePath(file, env = process.env) {
+  const base =
+    env.XDG_STATE_HOME || (env.HOME && path.join(env.HOME, ".local", "state"));
+  if (!base) return null;
+
+  const current = path.join(base, "trackbed", file);
+  const previous = path.join(base, "kramme-cc-workflow", file);
+  if (isFile(current)) return current;
+  return isFile(previous) ? previous : current;
+}
+
+/** @param {string} file */
+function isFile(file) {
+  try {
+    return fs.statSync(file).isFile();
+  } catch {
+    return false;
+  }
+}
+
 module.exports = {
   PLATFORM_CLAUDE_CODE,
   PLATFORM_CODEX,
+  asRecord,
   detectPlatform,
   openCodexRollout,
   readPluginVersion,
+  readSkillFolderResolver,
+  stringValue,
   stripConductorInstructions,
+  trackbedSetting,
+  trackbedStatePath,
 };
