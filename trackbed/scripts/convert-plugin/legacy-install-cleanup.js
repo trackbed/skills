@@ -32,6 +32,7 @@ const LEGACY_STATE_FILE = ".kramme-install-state.json";
 const LEGACY_MANIFESTS_DIR = ".kramme-install-manifests";
 const AGENTS_BLOCK_START = "<!-- BEGIN KRAMME CODEX TOOL MAP -->";
 const AGENTS_BLOCK_END = "<!-- END KRAMME CODEX TOOL MAP -->";
+// eslint-disable-next-line no-control-regex -- rejects control characters in paths
 const UNSAFE_HELPER_PATH = /[\\:\u0000-\u001f\u007f]/;
 
 /** @param {string} codexHome */

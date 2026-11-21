@@ -771,7 +771,7 @@
 
     /** @param {string} hash */
     function parseRoute(hash) {
-      let key = "";
+      let key;
       try {
         key = decodeURIComponent(hash.replace(/^#/, ""));
       } catch {
@@ -807,7 +807,7 @@
       browse.setAttribute("aria-expanded", "false");
 
       /** @type {HTMLElement | null} */
-      let target = null;
+      let target;
       const item = byId.get(route.itemId);
       if (item) {
         const article = articles.get(item.id) ?? null;
@@ -998,7 +998,7 @@
       for (const row of all(document, "[data-index-row]", HTMLElement)) {
         const item = byId.get(row.dataset.indexRow ?? "");
         /** @type {unknown} */
-        let labels = [];
+        let labels;
         try {
           labels = JSON.parse(row.dataset.labels ?? "[]");
         } catch {
@@ -1295,13 +1295,11 @@
 
     // ---------- start ----------
 
-    let restored = 0;
     try {
       records = parsePayload(
         JSON.parse(stateBlock.textContent ?? ""),
         catalog,
       ).records;
-      restored = Object.keys(records).length;
     } catch {
       announce(
         "The choices stored inside this file could not be read, so it starts without them.",
@@ -1317,7 +1315,7 @@
       const probe = `${storageKey}:probe`;
       localStorage.setItem(probe, "1");
       localStorage.removeItem(probe);
-      restored = Object.values(records).filter(hasContent).length;
+      const restored = Object.values(records).filter(hasContent).length;
       saveStatus(
         restored
           ? `Restored your choices for ${restored} ${restored === 1 ? catalog.nounOne : catalog.nounMany}. Changes are saved in this browser.`

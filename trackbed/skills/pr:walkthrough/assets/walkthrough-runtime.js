@@ -1,3 +1,4 @@
+/* global d3 -- the page loads d3.v7.9.0.min.js first */
 /** @typedef {import("./walkthrough-types").Graph} Graph */
 /** @typedef {import("./walkthrough-types").GraphNode} GraphNode */
 
@@ -147,6 +148,7 @@ function hasExplicitScheme(value) {
 /** @param {unknown} value */
 function isSafeHref(value) {
   const text = String(value ?? "").trim();
+  // eslint-disable-next-line no-control-regex -- rejects control characters
   if (!text || /[\u0000-\u001F\u007F]/.test(text) || text.startsWith("//")) {
     return false;
   }
@@ -172,6 +174,7 @@ function isSafeAssetPath(value) {
   const text = String(value ?? "").trim();
   if (
     !text ||
+    // eslint-disable-next-line no-control-regex -- rejects control characters
     /[\u0000-\u001F\u007F]/.test(text) ||
     text.startsWith("/") ||
     text.startsWith("//")

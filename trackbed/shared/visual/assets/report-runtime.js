@@ -669,7 +669,7 @@
     area.value = text;
     document.body.append(area);
     area.select();
-    let copied = false;
+    let copied;
     try {
       copied = document.execCommand("copy");
     } catch {
@@ -883,7 +883,7 @@
     window.addEventListener("storage", (event) => {
       if (event.key !== triageKey) return;
       /** @type {unknown} */
-      let stored = null;
+      let stored;
       try {
         stored = event.newValue ? JSON.parse(event.newValue) : null;
       } catch {

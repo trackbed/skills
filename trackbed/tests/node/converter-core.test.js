@@ -371,8 +371,11 @@ Body`);
     "Body",
   );
   assert.match(formatted, /argument-hint: "\[path\]"/);
-  assert.match(formatted, /allowed-tools:\n  - Read\n  - Edit\(src\/\*\*\)/);
-  assert.match(formatted, /metadata:\n  owner: platform/);
+  assert.match(
+    formatted,
+    /allowed-tools:\n {2}- Read\n {2}- Edit\(src\/\*\*\)/,
+  );
+  assert.match(formatted, /metadata:\n {2}owner: platform/);
   assert.match(formatted, /user-invocable: true/);
 });
 
@@ -522,7 +525,7 @@ test("transformer rewrites task calls, references, and AskUserQuestion guidance"
   );
   assert.match(
     output,
-    /1\. Ask for the issue ID:\n   Ask the user directly in chat:\n   Question label: Linear issue\n   Question: Enter the Linear issue ID \(e\.g\., WAN-521\):/,
+    /1\. Ask for the issue ID:\n {3}Ask the user directly in chat:\n {3}Question label: Linear issue\n {3}Question: Enter the Linear issue ID \(e\.g\., WAN-521\):/,
   );
   assert.match(output, /^### Asking Questions in Codex$/m);
   assert.match(
