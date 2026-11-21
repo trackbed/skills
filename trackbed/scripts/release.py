@@ -26,6 +26,7 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from changelog import ChangelogHistoryError, generate_changelog
 
@@ -530,6 +531,61 @@ def report_leftover_release_branch(version: str) -> None:
     print(f"  Clear it before retrying: git branch -D {branch_name}")
 
 
+def abort_release(
+    snapshot: ReleaseStateSnapshot | None,
+    *,
+    scope: Literal["files", "release"],
+    reason: Exception | None,
+    version: str,
+) -> int:
+    """Restore the affected state and report the failure, returning its exit code."""
+    restored = True
+    if snapshot is not None:
+        if scope == "files":
+            # A late preflight refusal must preserve the staged work it protects.
+            try:
+                restore_files(snapshot.files)
+            except OSError as exc:
+                print(f"  Release file restore failed: {exc}")
+            stale = unrestored_release_files(snapshot.files)
+            restored = not stale
+            if restored:
+                print("  Restored release files to their pre-release state.")
+            else:
+                print(f"  Still holding this release's content: {', '.join(stale)}")
+                print("  Restore those files yourself; your index was not touched.")
+        else:
+            restored = restore_release_state(snapshot).succeeded
+
+    if reason is None:
+        if restored:
+            print("\nRelease verification failed. Aborting before creating release branch.")
+        else:
+            print("\nRelease verification failed and rollback was incomplete.")
+        return 1 if restored else 2
+
+    if isinstance(reason, ReleasePreflightError):
+        print(f"\nRelease preflight refused: {reason}")
+    elif isinstance(reason, ChangelogHistoryError):
+        print(f"\nRelease changelog generation failed: {reason}")
+    else:
+        report_leftover_release_branch(version)
+        if isinstance(reason, subprocess.CalledProcessError):
+            command = " ".join(str(part) for part in reason.cmd)
+            print(f"\nRelease git step failed: {command}")
+        elif restored:
+            # The caller re-raises the original exception with its traceback.
+            return 1
+        else:
+            print(f"\nRelease failed: {reason}")
+
+    if not restored:
+        print("Aborting with incomplete rollback.")
+        return 2
+    print("Aborting after restoring release files.")
+    return 1
+
+
 def run_verification(repo_root: Path) -> bool:
     """Run the full release verification gate."""
     result = subprocess.run(["make", "verify"], cwd=repo_root)
@@ -663,72 +719,19 @@ def main() -> int:
         if args.dry_run:
             print("  Would run: make verify")
         elif not run_verification(repo_root):
-            if release_snapshot is not None:
-                if not restore_release_state(release_snapshot).succeeded:
-                    print("\nRelease verification failed and rollback was incomplete.")
-                    return 2
-            print("\nRelease verification failed. Aborting before creating release branch.")
-            return 1
+            return abort_release(release_snapshot, scope="release", reason=None, version=new_version)
 
         # 4. Git commit and push branch
         print("4. Creating release branch...")
         branch_name = git_commit_and_push_branch(repo_root, new_version, args.dry_run, args.ci)
     except ReleasePreflightError as exc:
-        # This refusal precedes every branch, HEAD, and index change this attempt makes,
-        # so only the version and changelog edits need undoing. Restoring the full
-        # snapshot would rewrite .git/index and discard the staged work being protected.
-        restored = True
-        if release_snapshot is not None:
-            try:
-                restore_files(release_snapshot.files)
-            except OSError as restore_error:
-                print(f"  Release file restore failed: {restore_error}")
-                # A partial restore leaves later files untouched too; the end-state
-                # check below decides the outcome and names every one of them.
-                pass
-            stale = unrestored_release_files(release_snapshot.files)
-            restored = not stale
-            if restored:
-                print("  Restored release files to their pre-release state.")
-            else:
-                # print_manual_recovery would tell the operator to overwrite .git/index,
-                # which holds the staged work this refusal protects. Name the files
-                # instead and leave the index alone.
-                print(f"  Still holding this release's content: {', '.join(stale)}")
-                print("  Restore those files yourself; your index was not touched.")
-        print(f"\nRelease preflight refused: {exc}")
-        if not restored:
-            print("Aborting with incomplete rollback.")
-            return 2
-        print("Aborting after restoring release files.")
-        return 1
-    except ChangelogHistoryError as exc:
-        if release_snapshot is not None:
-            if not restore_release_state(release_snapshot).succeeded:
-                print(f"\nRelease changelog generation failed: {exc}")
-                print("Aborting with incomplete rollback.")
-                return 2
-        print(f"\nRelease changelog generation failed: {exc}")
-        print("Aborting after restoring release files.")
-        return 1
-    except subprocess.CalledProcessError as exc:
-        command = " ".join(str(part) for part in exc.cmd)
-        rolled_back = release_snapshot is None or restore_release_state(release_snapshot).succeeded
-        report_leftover_release_branch(new_version)
-        print(f"\nRelease git step failed: {command}")
-        if not rolled_back:
-            print("Aborting with incomplete rollback.")
-            return 2
-        print("Aborting after restoring release files.")
-        return 1
+        return abort_release(release_snapshot, scope="files", reason=exc, version=new_version)
+    except (ChangelogHistoryError, subprocess.CalledProcessError) as exc:
+        return abort_release(release_snapshot, scope="release", reason=exc, version=new_version)
     except Exception as exc:
-        if release_snapshot is not None:
-            if not restore_release_state(release_snapshot).succeeded:
-                report_leftover_release_branch(new_version)
-                print(f"\nRelease failed: {exc}")
-                print("Aborting with incomplete rollback.")
-                return 2
-        report_leftover_release_branch(new_version)
+        status = abort_release(release_snapshot, scope="release", reason=exc, version=new_version)
+        if status == 2:
+            return status
         raise
 
     if args.ci:
