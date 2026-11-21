@@ -3,10 +3,9 @@
 # Upstream repository: https://github.com/EveryInc/compound-engineering-plugin
 # Upstream commit reviewed: 6f9ab03a031c054a8046659926251fb6c149269f
 # License: MIT, Copyright (c) 2025 Every.
-# Full notice: ../references/EveryInc-LICENSE
-# Local changes: Claude project folders are chosen by encoded --cwd-prefix
-# instead of a repo-name glob, CLAUDE_CONFIG_DIR and CODEX_HOME relocate the
-# stores, and duplicate paths are printed once.
+# Full notice: ../../../scripts/lib/EveryInc-LICENSE
+# Local changes: Claude Code and Codex discovery use the shared transcript
+# module, which handles encoded cwd prefixes and relocatable stores.
 #
 # Discover session files across Claude Code, Codex, and Cursor.
 #
@@ -33,24 +32,8 @@ set -euo pipefail
 REPO_NAME="${1:?Usage: discover-sessions.sh <repo-name> <days> [--platform claude|codex|cursor]}"
 DAYS="${2:?Usage: discover-sessions.sh <repo-name> <days> [--platform claude|codex|cursor]}"
 PLATFORM="all"
-# Encoded Claude project-folder prefixes, one per line.
-ENCODED_PREFIXES=""
-
-encode_prefix() {
-  printf '%s' "$1" | sed 's/[^A-Za-z0-9]/-/g'
-}
-
-add_prefix() {
-  local prefix="${1%/}" resolved
-  [ -n "$prefix" ] || return 0
-  ENCODED_PREFIXES="${ENCODED_PREFIXES}$(encode_prefix "$prefix")
-"
-  resolved=$(CDPATH='' cd -- "$prefix" 2> /dev/null && pwd -P) || return 0
-  if [ "$resolved" != "$prefix" ]; then
-    ENCODED_PREFIXES="${ENCODED_PREFIXES}$(encode_prefix "$resolved")
-"
-  fi
-}
+SCRIPT_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+PREFIXES=()
 
 # Parse optional flags
 shift 2
@@ -61,58 +44,17 @@ while [ $# -gt 0 ]; do
       shift 2
       ;;
     --cwd-prefix)
-      add_prefix "${2:-}"
+      if [ -n "${2:-}" ]; then
+        PREFIXES+=("$2")
+      fi
       shift 2
       ;;
     *) shift ;;
   esac
 done
 
-# --- Claude Code ---
-discover_claude() {
-  local base="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects"
-  local dir name encoded matched
-  [ -d "$base" ] || return 0
-
-  for dir in "$base"/*/; do
-    [ -d "$dir" ] || continue
-    if [ -n "$ENCODED_PREFIXES" ]; then
-      name=$(basename "$dir")
-      matched=false
-      while IFS= read -r encoded; do
-        [ -n "$encoded" ] || continue
-        case "$name" in
-          "$encoded"*)
-            matched=true
-            break
-            ;;
-        esac
-      done < <(printf '%s' "$ENCODED_PREFIXES")
-      [ "$matched" = true ] || continue
-    fi
-    # Top-level transcripts only; nested subagent transcripts stay out.
-    find "$dir" -maxdepth 1 -name "*.jsonl" -mtime "-${DAYS}" 2> /dev/null
-  done
-}
-
-# --- Codex ---
-discover_codex() {
-  local base resolved seen=""
-  for base in "${CODEX_HOME:-$HOME/.codex}/sessions" "$HOME/.agents/sessions"; do
-    [ -d "$base" ] || continue
-    # CODEX_HOME can point at the fallback store; list each directory once.
-    resolved=$(CDPATH='' cd -- "$base" 2> /dev/null && pwd -P) || resolved="$base"
-    if printf '%s' "$seen" | grep -Fxq -- "$resolved"; then
-      continue
-    fi
-    seen="${seen}${resolved}
-"
-
-    # Use mtime-based discovery (consistent with Claude/Cursor) so that
-    # sessions started before the scan window but still active within it
-    # are not missed.
-    find "$base" -name "*.jsonl" -mtime "-${DAYS}" 2> /dev/null
-  done
+discover_transcripts() {
+  python3 "$SCRIPT_DIR/../../../scripts/lib/transcripts.py" "$1" "$DAYS" "${PREFIXES[@]+"${PREFIXES[@]}"}"
 }
 
 # --- Cursor ---
@@ -131,12 +73,12 @@ discover_cursor() {
 # --- Dispatch ---
 discover() {
   case "$PLATFORM" in
-    claude) discover_claude ;;
-    codex) discover_codex ;;
+    claude) discover_transcripts claude ;;
+    codex) discover_transcripts codex ;;
     cursor) discover_cursor ;;
     all)
-      discover_claude
-      discover_codex
+      discover_transcripts claude
+      discover_transcripts codex
       discover_cursor
       ;;
     *)

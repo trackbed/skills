@@ -116,3 +116,15 @@ JSONL
 	[ "$status" -eq 0 ]
 	[ "$output" = "$TEST_DIR/home/.agents/sessions/2026/rollout-1.jsonl" ]
 }
+
+@test "discover-sessions works from a relative zsh invocation with CDPATH" {
+  mkdir -p "$TEST_DIR/home/.agents/sessions"
+  touch "$TEST_DIR/home/.agents/sessions/rollout-1.jsonl"
+  cd "$SCRIPTS/.."
+
+  run env HOME="$TEST_DIR/home" CODEX_HOME="$TEST_DIR/home/.agents" CDPATH=. \
+    zsh scripts/discover-sessions.sh demo-repo 1 --platform codex
+
+  [ "$status" -eq 0 ]
+  [ "$output" = "$TEST_DIR/home/.agents/sessions/rollout-1.jsonl" ]
+}

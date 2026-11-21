@@ -11,6 +11,8 @@ import os
 import re
 from typing import List, Tuple
 
+from transcripts import shell_segments
+
 EDIT_TOOLS = frozenset({"Edit", "MultiEdit", "NotebookEdit", "Write", "apply_patch"})
 EXPLORE_TOOLS = frozenset({"Glob", "Grep", "LS", "Read"})
 EXPLORE_PROGRAMS = frozenset("cat fd find grep head ls rg sed tail tree wc".split())
@@ -37,7 +39,7 @@ CORRECTION = re.compile(
     r"why did you)\b"
 )
 
-SEGMENT_SEPARATORS = re.compile(r"&&|\|\||[;|&\n()]")
+PROGRAM_NAME = re.compile(r"[A-Za-z0-9_.+-]+")
 ENV_ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 PREFIX_COMMANDS = frozenset("bunx command env exec nice npx rtk time timeout".split())
 RUN_SUBCOMMANDS = {"bundle": "exec", "pipenv": "run", "poetry": "run", "uv": "run"}
@@ -60,11 +62,10 @@ VALUE_OPTIONS = frozenset("-C -F -f --cwd --dir --directory --file --filter --ma
 CHECK_TARGET = re.compile(r"(?:^|[-:_./])(?:build|check|ci|lint|test|tests|typecheck|type-check|verify)(?:$|[-:_.])")
 
 
-def shell_segments(command: str) -> List[List[str]]:
-    """Split a command line into argument lists, dropping env assignments and wrapper commands."""
+def command_segments(command: str) -> List[List[str]]:
+    """Remove environment assignments and wrappers from shell segments."""
     segments: List[List[str]] = []
-    for segment in SEGMENT_SEPARATORS.split(command):
-        words = segment.split()
+    for words in shell_segments(command, include_redirections=False):
         while words and ENV_ASSIGNMENT.match(words[0]):
             words.pop(0)
         while words:
@@ -114,8 +115,11 @@ def is_check(argv: List[str]) -> bool:
 
 def classify_command(command: str) -> Tuple[bool, str]:
     """Return whether a command runs a check and which program produced its output."""
-    segments = shell_segments(command)
+    segments = command_segments(command)
     producer = next((argv[0] for argv in segments if argv[0] not in NAVIGATION_PROGRAMS), "")
+    # Quoted command words can contain arbitrary text rather than a program name.
+    if producer and not PROGRAM_NAME.fullmatch(producer):
+        producer = "unknown"
     return any(is_check(argv) for argv in segments), producer
 
 
