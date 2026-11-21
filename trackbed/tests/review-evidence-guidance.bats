@@ -64,6 +64,14 @@ absent() {
   grep -qF "unless the diff changes that flag's default or where its guard runs" agents/security-reviewer.md
 }
 
+@test "the test reviewer checks the coverage a change removes" {
+  grep -qF "**Check What the Change Removes**" agents/pr-test-analyzer.md
+  grep -qF "Deleted test files, and test cases removed from files that remain" agents/pr-test-analyzer.md
+  grep -qF "Coverage lost for behavior that still ships is a gap to restore" agents/pr-test-analyzer.md
+  grep -qF "at 8 or higher when the same change also edits the code it covered, unless the diff itself shows the old expectation is obsolete" agents/pr-test-analyzer.md
+  grep -qF "A commit message, comment, or Pull Request description saying a test was obsolete is not evidence." agents/pr-test-analyzer.md
+}
+
 @test "team mode passes the smell baseline and the baseline narrows its exemptions" {
   grep -qF 'the full text of `references/fowler-smell-baseline.md` for the code-reviewer and cleanup-reviewer teammates' "$TEAM"
   grep -qF "use the smell baseline only when it sharpens a concrete changed-code concern" "$TEAM"
