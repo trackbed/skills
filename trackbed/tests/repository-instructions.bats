@@ -107,3 +107,38 @@ PYTEST
 trackbed/hooks/lib/README.md: no file-map entry for sub/unmapped.py
 trackbed/hooks/lib/README.md: no file-map entry for unmapped.sh" ]
 }
+
+@test "scripts README classifies every top-level script the way the Codex converter ships it" {
+	project_root="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
+	run python3 - "$project_root" <<'PYTEST'
+from pathlib import Path
+import re
+import sys
+
+root = Path(sys.argv[1])
+scripts = root / "trackbed/scripts"
+readme = (scripts / "README.md").read_text()
+transformer = (scripts / "convert-plugin/codex-transformer.js").read_text()
+
+body = transformer.split("function sharedRuntimeFor(", 1)[1].split("\n}\n", 1)[0]
+shipped = set(re.findall(r'sourceFile:\s*path\.join\(\s*plugin\.root,\s*"scripts",\s*"([^"/]+)"\s*,?\s*\)', body))
+assert shipped, "no top-level scripts found in sharedRuntimeFor"
+
+def rows(heading):
+    section = readme.split(f"\n## {heading}\n", 1)[1].split("\n## ", 1)[0]
+    return [re.match(r"\| `([^`]+)` \|", line).group(1) for line in section.splitlines() if re.match(r"\| `[^`]+` \|", line)]
+
+runtime = rows("Runtime Helpers")
+maintainer = rows("Maintainer Tools")
+files = {path.name for path in scripts.iterdir() if path.is_file() and path.name != "README.md" and not path.name.startswith(".")}
+
+assert len(runtime) == len(set(runtime)) and len(maintainer) == len(set(maintainer)), "duplicate rows"
+assert set(runtime) == shipped, ("runtime rows differ from sharedRuntimeFor", sorted(set(runtime) ^ shipped))
+assert set(runtime) | set(maintainer) == files, ("rows differ from files", sorted((set(runtime) | set(maintainer)) ^ files))
+assert not set(runtime) & set(maintainer), "file listed as both kinds"
+for test_path in re.findall(r"\| `(tests/[^`]+)` \|", readme):
+    assert (root / "trackbed" / test_path).is_file(), test_path
+PYTEST
+	[ "$status" -eq 0 ]
+}
+
