@@ -5,11 +5,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from ..registry_types import Registry
+
 
 @dataclass(frozen=True)
 class LintContext:
     root: Path
-    registry: dict[str, Any]
+    registry: Registry
     schema: dict[str, Any]
 
 

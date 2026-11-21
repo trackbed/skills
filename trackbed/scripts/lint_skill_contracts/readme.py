@@ -22,6 +22,7 @@ from .markdown import (
 )
 from .naming import PLUGIN_NAMESPACE, qualified_name
 from .readme_summaries import apply_readme_summaries, readme_summaries_configured
+from .registry_types import Registry
 from .schema import load_contract_schema, skill_frontmatter_field_by_loader_property
 from .strings import is_empty_value, shorten
 
@@ -515,7 +516,7 @@ def check_simple_readme_component_sync(
 
 def check_readme_skill_rows_sync(
     root: Path,
-    registry: dict[str, Any],
+    registry: Registry,
     schema: dict[str, Any],
     failures: list[str],
 ) -> None:
@@ -581,7 +582,7 @@ def check_readme_skill_rows_sync(
 
 def check_readme_agent_sync(
     root: Path,
-    registry: dict[str, Any],
+    registry: Registry,
     failures: list[str],
 ) -> None:
     config = registry.get("readme_agent_sync")
@@ -627,7 +628,7 @@ def check_readme_agent_sync(
 
 def check_readme_hook_sync(
     root: Path,
-    registry: dict[str, Any],
+    registry: Registry,
     failures: list[str],
 ) -> None:
     config = registry.get("readme_hook_sync")
@@ -674,7 +675,7 @@ def check_readme_hook_sync(
 
 def check_readme_skill_sync(
     root: Path,
-    registry: dict[str, Any],
+    registry: Registry,
     schema: dict[str, Any],
     failures: list[str],
 ) -> None:
@@ -716,7 +717,7 @@ def replace_generated_readme_block(
 
 def render_readme_skill_rows_sync(
     root: Path,
-    registry: dict[str, Any],
+    registry: Registry,
     schema: dict[str, Any],
     readme: str,
     failures: list[str],
@@ -761,7 +762,7 @@ def render_readme_skill_rows_sync(
 
 def render_readme_agent_sync(
     root: Path,
-    registry: dict[str, Any],
+    registry: Registry,
     readme: str,
     failures: list[str],
 ) -> str | None:
@@ -787,7 +788,7 @@ def render_readme_agent_sync(
 
 def render_readme_hook_sync(
     root: Path,
-    registry: dict[str, Any],
+    registry: Registry,
     readme: str,
     failures: list[str],
 ) -> str | None:
@@ -810,7 +811,7 @@ def render_readme_hook_sync(
 
 
 def readme_relative_for_component_sync(
-    registry: dict[str, Any],
+    registry: Registry,
     failures: list[str],
 ) -> str | None:
     configs = [
@@ -830,7 +831,7 @@ def readme_relative_for_component_sync(
 
 def render_readme_component_sync(
     root: Path,
-    registry: dict[str, Any],
+    registry: Registry,
 ) -> tuple[str | None, list[str]]:
     failures: list[str] = []
     schema = load_contract_schema(root, registry, failures)
@@ -853,5 +854,5 @@ def render_readme_component_sync(
     return rendered, []
 
 
-def render_readme_skill_sync(root: Path, registry: dict[str, Any]) -> tuple[str | None, list[str]]:
+def render_readme_skill_sync(root: Path, registry: Registry) -> tuple[str | None, list[str]]:
     return render_readme_component_sync(root, registry)

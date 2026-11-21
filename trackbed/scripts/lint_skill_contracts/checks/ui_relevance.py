@@ -163,7 +163,7 @@ def check_fixture_matrix(
 
 def check_ui_relevance_contracts(context: LintContext) -> CheckResult:
     result = CheckResult()
-    contracts = context.registry.get("ui_relevance_contracts", [])
+    contracts: Any = context.registry.get("ui_relevance_contracts", [])
     if not contracts:
         return result
     if not isinstance(contracts, list):

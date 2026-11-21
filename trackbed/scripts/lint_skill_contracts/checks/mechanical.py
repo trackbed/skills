@@ -17,7 +17,7 @@ SKILL_CONTRACT_KINDS = {"executable", "evaluation", "guidance", "registry"}
 
 
 def mechanical_config(context: LintContext, result: CheckResult) -> dict[str, Any] | None:
-    config = context.registry.get("mechanical", {})
+    config: Any = context.registry.get("mechanical", {})
     if not isinstance(config, dict):
         result.failures.append("mechanical: registry entry must be an object")
         return None

@@ -6,6 +6,7 @@ from typing import Any
 
 from .io import read_text, resolve
 from .readme import load_agent_references, load_hook_references, load_skill_references
+from .registry_types import Registry
 from .schema import load_contract_schema
 
 LABEL = "component catalog"
@@ -24,13 +25,13 @@ def catalog_relative_path(config: dict[str, Any]) -> str:
     return path if isinstance(path, str) and path else DEFAULT_CATALOG_PATH
 
 
-def missing_sync_configs(registry: dict[str, Any]) -> list[str]:
+def missing_sync_configs(registry: Registry) -> list[str]:
     return [key for key in REQUIRED_SYNC_CONFIGS if not isinstance(registry.get(key), dict)]
 
 
 def skill_catalog_entries(
     root: Path,
-    registry: dict[str, Any],
+    registry: Registry,
     schema: dict[str, Any] | None,
     failures: list[str],
 ) -> list[dict[str, str]]:
@@ -49,7 +50,7 @@ def skill_catalog_entries(
 
 def agent_catalog_entries(
     root: Path,
-    registry: dict[str, Any],
+    registry: Registry,
     failures: list[str],
 ) -> list[dict[str, str]]:
     config = registry["readme_agent_sync"]
@@ -62,7 +63,7 @@ def agent_catalog_entries(
 
 def hook_catalog_entries(
     root: Path,
-    registry: dict[str, Any],
+    registry: Registry,
     failures: list[str],
 ) -> list[dict[str, str]]:
     references = load_hook_references(root, registry["readme_hook_sync"], failures)
@@ -89,7 +90,7 @@ def check_catalog_entry_paths(
 
 def component_catalog_document(
     root: Path,
-    registry: dict[str, Any],
+    registry: Registry,
     schema: dict[str, Any] | None,
     failures: list[str],
 ) -> dict[str, Any] | None:
@@ -125,7 +126,7 @@ def render_component_catalog_text(document: dict[str, Any]) -> str:
 
 def render_component_catalog(
     root: Path,
-    registry: dict[str, Any],
+    registry: Registry,
     schema: dict[str, Any] | None = None,
 ) -> tuple[str | None, str | None, list[str]]:
     """Render the compact catalog as (relative path, text, failures).
@@ -148,7 +149,7 @@ def render_component_catalog(
 
 def check_component_catalog_drift(
     root: Path,
-    registry: dict[str, Any],
+    registry: Registry,
     schema: dict[str, Any] | None,
     failures: list[str],
 ) -> None:
