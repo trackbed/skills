@@ -1,7 +1,8 @@
-"""Bounded review subprocess mechanics; callers own deadlines and error mapping."""
+"""Bounded, noninteractive review subprocess helpers; callers supply deadlines and the error git and gh_json raise."""
 
 from __future__ import annotations
 
+import json
 import os
 import shlex
 import signal
@@ -100,3 +101,55 @@ def run_bounded(argv: Sequence[str], *, timeout: float, **kwargs: Any) -> subpro
                 stream.close()
         for previous_signum, handler in previous.items():
             signal.signal(previous_signum, handler)
+
+
+def run(argv: Sequence[str], timeout: float, input: bytes | None = None) -> subprocess.CompletedProcess[bytes]:
+    """Run without a shell, prompts, or color; a timeout or launch failure becomes exit 124 or 127.
+
+    The failure reason goes to stderr, so callers handle every outcome through the exit status.
+    """
+    try:
+        return run_bounded(
+            list(argv), env=dict(noninteractive_environment(), NO_COLOR="1"), input=input, timeout=timeout
+        )
+    except subprocess.TimeoutExpired:
+        return subprocess.CompletedProcess(list(argv), 124, b"", f"timed out after {timeout}s".encode())
+    except OSError as error:
+        return subprocess.CompletedProcess(list(argv), 127, b"", str(error).encode())
+
+
+def tail(data: bytes) -> str:
+    """The last 300 characters of command output, on one line."""
+    return " ".join(data.decode("utf-8", "replace").split())[-300:]
+
+
+def git(*args: str, error: type[Exception], timeout: float, input: bytes | None = None) -> str:
+    """The command's standard output; a failure raises `error` naming the git subcommand."""
+    result = run(["git", *args], timeout, input)
+    if result.returncode != 0:
+        command = next((arg for arg in args if not arg.startswith("-") and "=" not in arg), "command")
+        raise error(f"`git {command}` failed: {tail(result.stderr) or f'exit {result.returncode}'}")
+    return result.stdout.decode("utf-8", "replace")
+
+
+def gh_json(*args: str, what: str, error: type[Exception], timeout: float, verb: str = "read") -> Any:
+    """The parsed JSON output, or None for empty output; a failed or unparsable read raises `error` naming `what`."""
+    result = run(["gh", *args], timeout)
+    if result.returncode != 0:
+        raise error(f"could not {verb} {what}: {tail(result.stderr) or f'gh exited {result.returncode}'}")
+    try:
+        return json.loads(result.stdout or b"null")
+    except ValueError as problem:
+        raise error(f"could not parse {what}: {problem}") from problem
+
+
+def is_ancestor(ancestor: str, descendant: str, *, timeout: float) -> bool:
+    return run(["git", "merge-base", "--is-ancestor", ancestor, descendant], timeout).returncode == 0
+
+
+def valid_branch(name: object, *, timeout: float) -> bool:
+    if not isinstance(name, str) or not name:
+        return False
+    # `check-ref-format --branch` expands `@{-N}`, so require it to echo the name unchanged.
+    checked = run(["git", "check-ref-format", "--branch", name], timeout)
+    return checked.returncode == 0 and checked.stdout.decode("utf-8", "replace").strip() == name

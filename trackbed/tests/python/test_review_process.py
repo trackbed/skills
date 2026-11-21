@@ -12,6 +12,7 @@ from unittest import mock
 
 LIB = Path(__file__).resolve().parents[2] / "scripts" / "lib"
 sys.path.insert(0, str(LIB))
+import review_process  # noqa: E402
 from review_process import noninteractive_environment, run_bounded  # noqa: E402
 
 
@@ -205,6 +206,88 @@ class ReviewProcessTests(unittest.TestCase):
                     if proc.poll() is None:
                         proc.kill()
                     proc.wait()
+
+
+class CallerError(Exception):
+    pass
+
+
+def completed(code: int, stdout: bytes = b"", stderr: bytes = b"") -> subprocess.CompletedProcess:
+    return subprocess.CompletedProcess([], code, stdout, stderr)
+
+
+class CommandHelperTests(unittest.TestCase):
+    def test_run_reports_launch_failure_and_timeout_as_exit_codes(self):
+        self.assertEqual(review_process.run(["trackbed-no-such-program"], 5).returncode, 127)
+        expired = subprocess.TimeoutExpired(["git"], 5)
+        with mock.patch.object(review_process, "run_bounded", side_effect=expired):
+            result = review_process.run(["git", "status"], 5)
+        self.assertEqual((result.returncode, result.stdout, result.stderr), (124, b"", b"timed out after 5s"))
+
+    def test_run_disables_prompts_and_color_and_forwards_input(self):
+        report = "import os, sys; print(os.environ['GH_PROMPT_DISABLED'], os.environ['GIT_TERMINAL_PROMPT'], "
+        report += "os.environ['NO_COLOR'], sys.stdin.read())"
+        result = review_process.run([sys.executable, "-c", report], 5, b"piped")
+        self.assertEqual((result.returncode, result.stdout), (0, b"1 0 1 piped\n"))
+
+    def test_tail_keeps_the_last_300_characters_on_one_line(self):
+        self.assertEqual(review_process.tail(b"fatal:\n  bad\tref\n"), "fatal: bad ref")
+        self.assertEqual(review_process.tail(b"x" * 400 + b"\xff"), "x" * 299 + "\ufffd")
+
+    def test_git_returns_raw_output_and_forwards_input(self):
+        oid = review_process.git("hash-object", "--stdin", error=CallerError, timeout=10, input=b"hello\n")
+        self.assertEqual(oid, "ce013625030ba8dba906f756967f9e9ca394464a\n")
+
+    def test_git_failure_raises_the_callers_error_naming_the_subcommand(self):
+        cases = [
+            (
+                ("rev-parse", "HEAD"),
+                b"fatal: not a git repository\n",
+                "`git rev-parse` failed: fatal: not a git repository",
+            ),
+            (("-c", "log.showSignature=false", "log", "-p"), b"", "`git log` failed: exit 128"),
+            (("--version",), b"", "`git command` failed: exit 128"),
+        ]
+        for args, stderr, message in cases:
+            with self.subTest(args=args):
+                with mock.patch.object(review_process, "run", return_value=completed(128, stderr=stderr)):
+                    with self.assertRaises(CallerError) as raised:
+                        review_process.git(*args, error=CallerError, timeout=10)
+                self.assertEqual(str(raised.exception), message)
+
+    def test_gh_json_parses_output_and_maps_failures_to_the_callers_error(self):
+        with mock.patch.object(review_process, "run", return_value=completed(0, b'[{"number": 7}]')) as run:
+            self.assertEqual(
+                review_process.gh_json("pr", "list", what="pulls", error=CallerError, timeout=20), [{"number": 7}]
+            )
+        run.assert_called_once_with(["gh", "pr", "list"], 20)
+        with mock.patch.object(review_process, "run", return_value=completed(0)):
+            self.assertIsNone(review_process.gh_json("api", "x", what="pulls", error=CallerError, timeout=20))
+        failures = [
+            (completed(1, stderr=b"HTTP 404\n"), {}, "could not read pulls: HTTP 404"),
+            (completed(4), {"verb": "query"}, "could not query pulls: gh exited 4"),
+            (completed(0, b"{not json"), {}, "could not parse pulls: "),
+        ]
+        for result, options, message in failures:
+            with self.subTest(message=message):
+                with mock.patch.object(review_process, "run", return_value=result):
+                    with self.assertRaises(CallerError) as raised:
+                        review_process.gh_json("pr", "list", what="pulls", error=CallerError, timeout=20, **options)
+                self.assertTrue(str(raised.exception).startswith(message), str(raised.exception))
+
+    def test_is_ancestor_follows_the_merge_base_exit_status(self):
+        for code, expected in ((0, True), (1, False), (124, False)):
+            with mock.patch.object(review_process, "run", return_value=completed(code)) as run:
+                self.assertIs(review_process.is_ancestor("a", "b", timeout=30), expected)
+            run.assert_called_once_with(["git", "merge-base", "--is-ancestor", "a", "b"], 30)
+
+    def test_valid_branch_requires_git_to_echo_the_name_unchanged(self):
+        self.assertTrue(review_process.valid_branch("feature/stack-1", timeout=10))
+        for name in ("bad name", "-leading", "", None, 42):
+            with self.subTest(name=name):
+                self.assertFalse(review_process.valid_branch(name, timeout=10))
+        with mock.patch.object(review_process, "run", return_value=completed(0, b"main\n")):
+            self.assertFalse(review_process.valid_branch("@{-1}", timeout=10))
 
 
 if __name__ == "__main__":
