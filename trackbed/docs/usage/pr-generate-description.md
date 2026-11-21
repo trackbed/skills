@@ -41,6 +41,7 @@ Use it to write a Pull Request title and description from the branch diff, the c
 ## What you get
 
 - A Conventional Commits title and a description that follows your repository's Pull Request template when it has one.
+- A `Risk:` line with the committed diff's deterministic risk level and signal IDs, using the repository's default-branch policy. If the assessment is unavailable, the skill explains why and leaves the line out. Check mode flags stale lines and accepts older descriptions without one.
 - For a change a reviewer can see, before and after screenshots of the changed screen when they can be captured safely, saved under `.trackbed/pr-evidence/`. This skill cannot upload them: when it updates a Pull Request or prints the text, it lists the files for you to drag into the Pull Request. `trackbed:pr:create` uploads them for you. See [Screenshots](../shipping.md#screenshots).
 - With an open Pull Request, its title and body updated on GitHub. With `--manual`, `--no-update`, or no Pull Request, the text in the conversation to copy.
 - A `MISSING REQUIREMENT:` line when context it will not invent is missing, such as the reason for a database migration. Unless the only gap is a missing Linear issue ID, it then prints the text instead of updating the Pull Request.
