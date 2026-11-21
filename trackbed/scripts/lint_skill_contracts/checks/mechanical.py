@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from ..frontmatter import (
@@ -42,18 +44,15 @@ def mechanical_config(context: LintContext, result: CheckResult) -> dict[str, An
     return None if result.failures else config
 
 
-def check_mechanical(context: LintContext) -> CheckResult:
-    result = CheckResult()
-    config = mechanical_config(context, result)
-    if config is None:
-        return result
-    pattern = config.get("skill_glob", "trackbed/skills/*/SKILL.md")
-    max_lines = config.get("max_skill_lines", 500)
-    warn_lines = config.get("warn_skill_lines", 0)
-    report_limit = config.get("skill_line_report_limit", 20)
-    max_description = config.get("max_description_chars", 1024)
-    warn_description = config.get("warn_description_chars", 0)
-    description_report_limit = config.get("skill_description_report_limit", 20)
+@dataclass(frozen=True)
+class SkillFileLimits:
+    required_fields: tuple[str, ...]
+    line_allowlist: frozenset[str]
+    max_lines: int
+    max_description: int
+
+
+def skill_file_limits(context: LintContext, config: dict[str, Any], result: CheckResult) -> SkillFileLimits:
     if "contract_schema" in context.registry and "required_frontmatter" in config:
         result.failures.append(
             "mechanical: required_frontmatter must come from contract_schema, not synced-contracts.yaml"
@@ -61,40 +60,79 @@ def check_mechanical(context: LintContext) -> CheckResult:
     required_fields = config.get("required_frontmatter")
     if required_fields is None:
         required_fields = skill_frontmatter_required_fields(context.schema)
-    line_allowlist = set(config.get("allow_line_count_over", []))
+    return SkillFileLimits(
+        required_fields=tuple(required_fields),
+        line_allowlist=frozenset(config.get("allow_line_count_over", [])),
+        max_lines=config.get("max_skill_lines", 500),
+        max_description=config.get("max_description_chars", 1024),
+    )
+
+
+def check_skill_file(
+    context: LintContext, path: Path, limits: SkillFileLimits, result: CheckResult
+) -> tuple[int, int | None]:
+    """Check one SKILL.md and return its line count and description length."""
+    relative = rel(path, context.root)
+    text = read_text(path)
+    line_count = len(text.splitlines())
+    if line_count > limits.max_lines and relative not in limits.line_allowlist:
+        result.failures.append(
+            f"mechanical: {relative} has {line_count} lines, exceeds {limits.max_lines}; "
+            "move reference material out of SKILL.md or add a registry burndown entry"
+        )
+
+    frontmatter = parse_frontmatter(text)
+    if frontmatter is None:
+        result.failures.append(f"mechanical: {relative} is missing YAML frontmatter")
+        return line_count, None
+    for field in limits.required_fields:
+        if field not in frontmatter:
+            result.failures.append(f"mechanical: {relative} is missing frontmatter field {field!r}")
+    for field, expected_type in frontmatter_type_errors(text, context.schema):
+        result.failures.append(f"mechanical: {relative} frontmatter field {field!r} must be {expected_type}")
+    description = frontmatter_string_value(text, "description")
+    if description is None:
+        return line_count, None
+    if len(description) > limits.max_description:
+        result.failures.append(
+            f"mechanical: {relative} description is {len(description)} chars, exceeds {limits.max_description}"
+        )
+    return line_count, len(description)
+
+
+def check_single_skill(context: LintContext, path: Path) -> CheckResult:
+    """Run only the per-file SKILL.md checks, fast enough for an edit loop."""
+    result = CheckResult()
+    config = mechanical_config(context, result)
+    if config is None:
+        return result
+    check_skill_file(context, path, skill_file_limits(context, config, result), result)
+    return result
+
+
+def check_mechanical(context: LintContext) -> CheckResult:
+    result = CheckResult()
+    config = mechanical_config(context, result)
+    if config is None:
+        return result
+    pattern = config.get("skill_glob", "trackbed/skills/*/SKILL.md")
+    warn_lines = config.get("warn_skill_lines", 0)
+    report_limit = config.get("skill_line_report_limit", 20)
+    warn_description = config.get("warn_description_chars", 0)
+    description_report_limit = config.get("skill_description_report_limit", 20)
+    limits = skill_file_limits(context, config, result)
+    max_lines = limits.max_lines
+    max_description = limits.max_description
     long_skill_entries: list[tuple[int, str]] = []
     long_description_entries: list[tuple[int, str]] = []
 
     for path in skill_paths(context.root, pattern):
         relative = rel(path, context.root)
-        text = read_text(path)
-        line_count = len(text.splitlines())
+        line_count, description_length = check_skill_file(context, path, limits, result)
         if warn_lines > 0 and line_count >= warn_lines:
             long_skill_entries.append((line_count, relative))
-        if line_count > max_lines and relative not in line_allowlist:
-            result.failures.append(
-                f"mechanical: {relative} has {line_count} lines, exceeds {max_lines}; "
-                "move reference material out of SKILL.md or add a registry burndown entry"
-            )
-
-        frontmatter = parse_frontmatter(text)
-        if frontmatter is None:
-            result.failures.append(f"mechanical: {relative} is missing YAML frontmatter")
-            continue
-        for field in required_fields:
-            if field not in frontmatter:
-                result.failures.append(f"mechanical: {relative} is missing frontmatter field {field!r}")
-        for field, expected_type in frontmatter_type_errors(text, context.schema):
-            result.failures.append(f"mechanical: {relative} frontmatter field {field!r} must be {expected_type}")
-        description = frontmatter_string_value(text, "description")
-        if description is not None:
-            description_length = len(description)
-            if warn_description > 0 and description_length >= warn_description:
-                long_description_entries.append((description_length, relative))
-            if description_length > max_description:
-                result.failures.append(
-                    f"mechanical: {relative} description is {description_length} chars, exceeds {max_description}"
-                )
+        if description_length is not None and warn_description > 0 and description_length >= warn_description:
+            long_description_entries.append((description_length, relative))
 
     agent_result = check_agent_frontmatter(context)
     result.failures.extend(agent_result.failures)

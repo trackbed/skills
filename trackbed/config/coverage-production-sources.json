@@ -1311,6 +1311,9 @@
       "trackbed/scripts/bootstrap-dev.sh": [
         "trackbed/tests/bootstrap-dev.bats"
       ],
+      "trackbed/scripts/check-skill-edit.sh": [
+        "trackbed/tests/check-skill-edit.bats"
+      ],
       "trackbed/scripts/collect-review-diff.sh": [
         "trackbed/tests/review-diff-scripts.bats"
       ],

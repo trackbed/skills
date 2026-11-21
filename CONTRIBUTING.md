@@ -120,3 +120,12 @@ npm run hooks:install
 ```
 
 The local hook delegates to `npm run check:pre-commit`. Remove it at any time with `npm run hooks:uninstall`. No hook is installed by the bootstrap script or other repository commands.
+
+### Claude Code skill-edit check
+
+Claude Code sessions in this repository load a project hook from `.claude/settings.json`. After an agent writes or edits a file under `trackbed/skills/`, the hook runs `trackbed/scripts/check-skill-edit.sh`:
+
+- `node trackbed/scripts/check-installed-resources.js` on every such edit.
+- `python3 trackbed/scripts/lint-skill-contracts.py --skill <path>` when the file is a skill's `SKILL.md`. This mode checks only that file's frontmatter and line budget; the full linter still runs in `make -C trackbed lint`.
+
+A clean edit adds at most about two seconds and prints nothing. A failure goes back to the agent with the checker's message. To turn the hook off on your machine, add `{"env": {"TRACKBED_SKILL_EDIT_CHECK": "0"}}` to `.claude/settings.local.json`, or export `TRACKBED_SKILL_EDIT_CHECK=0` before starting Claude Code.
