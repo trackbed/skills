@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from pathlib import Path
 
+from ..registry_types import Registry
 from ..schema import load_contract_schema
 from .base_diff_scope import check_base_diff_scope
 from .basic import (
@@ -53,7 +55,7 @@ def run_checks(
     return result
 
 
-def run(root, registry) -> tuple[list[str], list[str]]:
+def run(root: Path, registry: Registry) -> tuple[list[str], list[str]]:
     schema_failures: list[str] = []
     schema = load_contract_schema(root, registry, schema_failures)
     context = LintContext(root=root, registry=registry, schema=schema)
