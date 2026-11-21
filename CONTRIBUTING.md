@@ -68,6 +68,9 @@ Choose the smallest meaningful focused check first. Use the smoke target for rep
 # Closest focused test for a documentation change (use the code map for other changes)
 make -C trackbed test-bats-file BATS_TEST_FILE=tests/repository-instructions.bats
 
+# Suites mapped to the files changed against origin/main, including uncommitted ones
+make -C trackbed test-changed
+
 # Representative cross-language feedback
 make -C trackbed test-smoke
 
