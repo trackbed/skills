@@ -8,6 +8,8 @@ script; keep behavior shared by multiple scripts here.
 
 | File | Responsibility |
 | --- | --- |
+| `branch-roles.sh` | Resolves the workbench and remote default branches and checks whether a branch is protected. |
+| `inline_page.py` | Prepares inline assets, script hashes, and template slots for self-contained HTML pages. |
 | `pr_staging.py` | Opens run directories below `.trackbed/` that Git's local exclude file hides, and reads, writes, and locates their manifests, for the helpers that stage Pull Request files; callers own what a staged file may be. |
 | `review_process.py` | Runs bounded Python review commands with noninteractive environments and process-group cleanup; callers own exception mapping and deadlines. |
 | `review-artifacts.sh` | Provides `load_review_artifact_patterns` to read a protected review-report pattern list under a missing-or-empty policy, and `untracked_paths_without_visual_pages` to drop generated visual report pages from a NUL-delimited untracked path list. Shared by `confirm-review-responses.sh`, `collect-review-diff.sh`, and `review-artifact-patterns.sh`. |

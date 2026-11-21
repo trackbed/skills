@@ -95,3 +95,11 @@ sources:
     last_reviewed_at: 2026-11-09
     baseline_commit: "5382b17619be07811a14b2146c7672620b34a791"
     baseline_hash: "sha256:9330780622baaef8dc683ea78efb3ff8e4583e3dde7ab6092b84df50e8c9ea58"
+  - id: ashrafi-stop-babysitting-prs
+    url: https://api.fxtwitter.com/jalalash/status/2122066461007175851
+    title: "Jalal Ashrafi - Stop babysitting your PRs"
+    rationale: "Putting the builder's risk grade in the Pull Request description inspired the deterministic Risk line."
+    usage: inspiration
+    last_reviewed_at: 2026-11-21
+    fetch_mode: availability
+    baseline_hash: "sha256:af6461e530c61b943cb17c61f402bf9556608d2b0e0574227f2fff8a31239513"
