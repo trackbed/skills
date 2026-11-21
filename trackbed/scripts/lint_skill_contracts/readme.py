@@ -379,7 +379,7 @@ def load_hook_references(
 
 @dataclass(frozen=True)
 class ComponentSync:
-    """One README component table, resolved from its registry config, and the source it mirrors.
+    """The README rows for one component kind, resolved from its registry config, and the source they mirror.
 
     `columns` maps each README column to the reference attribute it shows and its
     column index. Agent and hook tables are regenerated whole under `table_header`;
