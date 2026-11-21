@@ -1,4 +1,6 @@
 #!/usr/bin/env bats
+
+load 'test_helper/common'
 #
 # trackbed:code:copy-review fixes its own findings with --apply, undoes them with
 # --revert, and with --apply --visual writes a before and after walkthrough with
@@ -189,7 +191,7 @@ write_screenshot_preparation() {
   grep -qF '${CLAUDE_PLUGIN_ROOT}/scripts/review-tree-fingerprint.sh' "$SKILL"
   grep -qF 'Run `"{tree-fingerprint}"` immediately before and after each capture pass' "$CAPTURE"
 
-  git init -q "$BATS_TEST_TMPDIR/project"
+  init_empty_test_git_repo "$BATS_TEST_TMPDIR/project"
   cd "$BATS_TEST_TMPDIR/project"
   printf 'original\n' > fixture.txt
   git add fixture.txt
@@ -224,7 +226,7 @@ PY
 @test "screenshot setup preserves an unterminated exclude and adds the rule once" {
   local preparation="$BATS_TEST_TMPDIR/prepare-screenshots.sh"
   write_screenshot_preparation "$preparation"
-  git init -q "$BATS_TEST_TMPDIR/project"
+  init_empty_test_git_repo "$BATS_TEST_TMPDIR/project"
   cd "$BATS_TEST_TMPDIR/project"
   printf '%s' '/existing-artifact' > .git/info/exclude
 
@@ -242,7 +244,7 @@ PY
 @test "screenshot setup stops if the repository overrides the local exclude" {
   local preparation="$BATS_TEST_TMPDIR/prepare-screenshots.sh"
   write_screenshot_preparation "$preparation"
-  git init -q "$BATS_TEST_TMPDIR/project"
+  init_empty_test_git_repo "$BATS_TEST_TMPDIR/project"
   cd "$BATS_TEST_TMPDIR/project"
   printf '%s\n' '!/.trackbed/copy-review/' > .gitignore
 

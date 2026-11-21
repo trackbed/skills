@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+load 'test_helper/common'
+
 @test "Linear PR review preserves bidirectional traceability and read-only scope" {
 	run bash -c '
     set -e
@@ -147,9 +149,7 @@
 	filter_script="$BATS_TEST_TMPDIR/smudge-filter.sh"
 
 	mkdir -p "$repo/.hooks"
-	git -C "$repo" init -q
-	git -C "$repo" config user.email test@example.com
-	git -C "$repo" config user.name "Test User"
+	init_empty_test_git_repo "$repo"
 	git -C "$repo" config core.hooksPath .hooks
 
 	printf '#!/usr/bin/env bash\ntouch "%s"\n' "$hook_marker" > "$repo/.hooks/post-checkout"
@@ -182,7 +182,7 @@
 	ORIG_ROOT="$repo"
 
 	mkdir -p "$repo" "$TMP_PARENT"
-	git -C "$repo" init -q
+	init_empty_test_git_repo "$repo"
 	cleanup_script="$BATS_TEST_DIRNAME/../skills/linear:review-pr/scripts/cleanup-review-worktree.sh"
 
 	run "$cleanup_script" "$ORIG_ROOT" "$TMP_PARENT" "$WORKTREE_DIR"
@@ -200,9 +200,7 @@
 	sentinel="$WORKTREE_DIR/unexpected.txt"
 
 	mkdir -p "$repo" "$TMP_PARENT"
-	git -C "$repo" init -q
-	git -C "$repo" config user.email test@example.com
-	git -C "$repo" config user.name "Test User"
+	init_empty_test_git_repo "$repo"
 	git -C "$repo" commit --allow-empty -qm base
 	head_oid=$(git -C "$repo" rev-parse HEAD)
 	git -C "$repo" -c core.hooksPath=/dev/null worktree add \
@@ -231,9 +229,7 @@
 	textconv_script="$BATS_TEST_TMPDIR/textconv.sh"
 
 	mkdir -p "$repo"
-	git -C "$repo" init -q
-	git -C "$repo" config user.email test@example.com
-	git -C "$repo" config user.name "Test User"
+	init_empty_test_git_repo "$repo"
 	printf '#!/usr/bin/env bash\ntouch "%s"\ncat "$1"\n' "$marker" > "$textconv_script"
 	chmod +x "$textconv_script"
 	git -C "$repo" config diff.probe.textconv "$textconv_script"

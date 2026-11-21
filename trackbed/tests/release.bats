@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+load 'test_helper/common'
+
 setup() {
   export RELEASE_REAL_GIT="$(command -v git)"
   export RELEASE_PRETTIER="$BATS_TEST_DIRNAME/../../node_modules/.bin/prettier"
@@ -39,7 +41,7 @@ EOF
 EOF
   cp "$BATS_TEST_DIRNAME/../scripts/release.py" "$PLUGIN_ROOT/scripts/release.py"
   cp "$BATS_TEST_DIRNAME/../scripts/changelog.py" "$PLUGIN_ROOT/scripts/changelog.py"
-  init_release_fixture_repo
+  init_empty_test_git_repo "$TMP_ROOT"
   git -C "$TMP_ROOT" add .
   git -C "$TMP_ROOT" commit -m "initial" >/dev/null
 }
@@ -48,23 +50,10 @@ teardown() {
   rm -rf "$TMP_ROOT"
 }
 
-# Mirrors init_test_git_repo in tests/test_helper/common.bash: repository-local identity
-# with commit and tag signing off, so fixtures never depend on the contributor's global
-# Git configuration. Kept local because that helper commits its own tracked.txt as the
-# initial commit and renames the branch, while these fixtures init in place over files
-# already written and commit that set themselves.
-init_release_fixture_repo() {
-  git -C "$TMP_ROOT" init >/dev/null
-  git -C "$TMP_ROOT" config user.email "test@example.com"
-  git -C "$TMP_ROOT" config user.name "Test User"
-  git -C "$TMP_ROOT" config commit.gpgsign false
-  git -C "$TMP_ROOT" config tag.gpgsign false
-}
-
 # Create a disposable bare remote holding the fixture's initial commit on main.
 init_release_fixture_origin() {
   ORIGIN="$TMP_ROOT/origin.git"
-  git init --bare "$ORIGIN" >/dev/null
+  init_empty_test_git_repo "$ORIGIN" --bare
   git -C "$TMP_ROOT" remote add origin "$ORIGIN"
   git -C "$TMP_ROOT" push -q origin HEAD:refs/heads/main
 }
@@ -235,7 +224,7 @@ SH
 
 @test "release aborts and restores files when changelog history cannot be read" {
   rm -rf "$TMP_ROOT/.git"
-  init_release_fixture_repo
+  init_empty_test_git_repo "$TMP_ROOT"
   MOCK_BIN="$TMP_ROOT/bin"
   mkdir -p "$MOCK_BIN"
   cat >"$MOCK_BIN/make" <<'SH'

@@ -1,5 +1,8 @@
 #!/usr/bin/env bats
+
 # Tests for skills/setup/scripts/check-environment.sh.
+
+load 'test_helper/common'
 
 setup() {
 	SCRIPT="$BATS_TEST_DIRNAME/../skills/setup/scripts/check-environment.sh"
@@ -740,7 +743,7 @@ assert_context_value() {
 	create_fake_tool "uname" "Linux"
 	local main_checkout="$BATS_TEST_TMPDIR/repo"
 	local worktree="$BATS_TEST_TMPDIR/linked worktree"
-	"$real_git" init -q "$main_checkout"
+	init_empty_test_git_repo "$main_checkout"
 	"$real_git" -C "$main_checkout" -c user.name=Test -c user.email=test@example.com -c core.hooksPath=/dev/null commit -qm 'Initial test commit' --allow-empty
 	"$real_git" -C "$main_checkout" worktree add -q --detach "$worktree"
 	mkdir -p "$main_checkout/.claude" "$worktree/.claude"
@@ -1051,8 +1054,11 @@ assert_context_value() {
 	isolated_git=(HOME="$BATS_TEST_TMPDIR/home" XDG_CONFIG_HOME="$BATS_TEST_TMPDIR/xdg" GIT_CONFIG_NOSYSTEM=1)
 	ignored_repo="$BATS_TEST_TMPDIR/ignored-repo"
 	plain_repo="$BATS_TEST_TMPDIR/plain-repo"
-	env "${isolated_git[@]}" git init -q "$ignored_repo"
-	env "${isolated_git[@]}" git init -q "$plain_repo"
+	(
+		export "${isolated_git[@]}"
+		init_empty_test_git_repo "$ignored_repo"
+		init_empty_test_git_repo "$plain_repo"
+	)
 	printf '.context/\n' >"$ignored_repo/.gitignore"
 
 	cd "$ignored_repo"

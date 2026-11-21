@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+load 'test_helper/common'
+
 teardown() {
   if [[ -n "${MAKEFILE_RUNTIME_ROOT:-}" && "$MAKEFILE_RUNTIME_ROOT" == "$BATS_TEST_DIRNAME/../../.context/node-coverage-runtime."* ]]; then
     rm -rf -- "$MAKEFILE_RUNTIME_ROOT"
@@ -38,9 +40,7 @@ description: Test skill
 ---
 MD
 
-  git -C "$CHECK_DEPS_REPO" init >/dev/null
-  git -C "$CHECK_DEPS_REPO" config user.email "test@example.com"
-  git -C "$CHECK_DEPS_REPO" config user.name "Test User"
+  init_empty_test_git_repo "$CHECK_DEPS_REPO"
   git -C "$CHECK_DEPS_REPO" add .
   git -C "$CHECK_DEPS_REPO" commit -m "initial" >/dev/null
   git -C "$CHECK_DEPS_REPO" branch -M main

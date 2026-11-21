@@ -1435,8 +1435,7 @@ PY
 	local object_format attachment reconciled validator_branch
 	for object_format in sha1 sha256; do
 		REPO="$TMP_DIR/repo-$object_format"
-		git init --object-format="$object_format" "$REPO" >/dev/null
-		init_test_git_repo "$REPO"
+		GIT_DEFAULT_HASH="$object_format" init_test_git_repo "$REPO"
 		printf '.context/\n' >"$REPO/.gitignore"
 		git -C "$REPO" add .gitignore
 		git -C "$REPO" commit -m "ignore workflow state" >/dev/null

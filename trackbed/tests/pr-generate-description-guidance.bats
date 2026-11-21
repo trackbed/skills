@@ -806,9 +806,8 @@ EOF
 		PATH="$tmp/bin:$PATH" TEST_DEFAULT_BRANCH="$1" bash "$tmp/lookup.sh"
 	}
 
-	git init -q -b main "$tmp/repo"
+	init_empty_test_git_repo "$tmp/repo" -b main
 	cd "$tmp/repo"
-	git config user.email test@example.com
 	git config user.name Test
 	git commit --allow-empty -q -m init
 	git branch release

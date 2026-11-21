@@ -874,10 +874,9 @@ run_documented_stack_checkout() {
 	observed=$(git -C "$publisher" ls-remote --heads origin refs/heads/feature | awk '{print $1}')
 	git -C "$publisher" merge-base --is-ancestor "$observed" HEAD
 
-	git clone "$remote" "$contender" >/dev/null
+	clone_test_git_repo "$remote" "$contender"
 	git -C "$contender" config user.name "Other User"
 	git -C "$contender" config user.email "other@example.com"
-	git -C "$contender" config commit.gpgsign false
 	git -C "$contender" checkout feature >/dev/null
 	printf 'remote\n' >>"$contender/tracked.txt"
 	git -C "$contender" commit -am "remote work" >/dev/null
@@ -954,7 +953,7 @@ run_documented_stack_checkout() {
 }
 
 prepare_stack_preflight() {
-	git init --bare "$TMP_DIR/remote.git" >/dev/null 2>&1
+	init_empty_test_git_repo "$TMP_DIR/remote.git" --bare
 	git remote set-url origin "$TMP_DIR/remote.git"
 	git branch layer
 	git push origin feature layer >/dev/null 2>&1

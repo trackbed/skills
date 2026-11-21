@@ -166,8 +166,7 @@ run_hook_with_repo_env() {
 
 setup_real_commit_repo() {
 	REAL_COMMIT_REPO="$(mktemp -d)"
-	git -C "$REAL_COMMIT_REPO" init -q
-	git -C "$REAL_COMMIT_REPO" config user.email test@example.com
+	init_empty_test_git_repo "$REAL_COMMIT_REPO"
 	git -C "$REAL_COMMIT_REPO" config user.name "Hook Test"
 	printf 'base\n' >"$REAL_COMMIT_REPO/notes.txt"
 	printf 'base\n' >"$REAL_COMMIT_REPO/REVIEW_OVERVIEW.md"
@@ -754,7 +753,7 @@ src/component.tsx"
 	marker="$BATS_TEST_TMPDIR/fsmonitor-prefix-marker"
 	rm -f "$marker"
 
-	git -C "$repo" init -q
+	init_empty_test_git_repo "$repo"
 	touch "$repo/file.txt"
 	git -C "$repo" add file.txt
 
@@ -1564,7 +1563,7 @@ EOF"
 @test "blocks git commit inside command substitution when repo selection is inherited through sh -c" {
 	local repo
 	repo="$(mktemp -d)"
-	git -C "$repo" init -q
+	init_empty_test_git_repo "$repo"
 	touch "$repo/REVIEW_OVERVIEW.md"
 	git -C "$repo" add REVIEW_OVERVIEW.md
 
@@ -1629,7 +1628,7 @@ EOF"
 @test "checks staged artifacts in repo selected via GIT_DIR and GIT_WORK_TREE" {
 	local repo
 	repo="$(mktemp -d)"
-	git -C "$repo" init -q
+	init_empty_test_git_repo "$repo"
 	touch "$repo/REVIEW_OVERVIEW.md"
 	git -C "$repo" add REVIEW_OVERVIEW.md
 
@@ -1645,7 +1644,7 @@ EOF"
 	marker="$BATS_TEST_TMPDIR/fsmonitor-config-marker"
 	rm -f "$marker"
 
-	git -C "$repo" init -q
+	init_empty_test_git_repo "$repo"
 	touch "$repo/REVIEW_OVERVIEW.md"
 	git -C "$repo" add REVIEW_OVERVIEW.md
 	git -C "$repo" config core.fsmonitor "touch $marker; false"
@@ -1660,7 +1659,7 @@ EOF"
 @test "checks staged artifacts via env GIT_DIR wrapper" {
 	local repo
 	repo="$(mktemp -d)"
-	git -C "$repo" init -q
+	init_empty_test_git_repo "$repo"
 	touch "$repo/REVIEW_OVERVIEW.md"
 	git -C "$repo" add REVIEW_OVERVIEW.md
 
@@ -1673,7 +1672,7 @@ EOF"
 @test "blocks env -u GIT_INDEX_FILE after explicit assignment" {
 	local repo
 	repo="$(mktemp -d)"
-	git -C "$repo" init -q
+	init_empty_test_git_repo "$repo"
 	touch "$repo/REVIEW_OVERVIEW.md"
 	git -C "$repo" add REVIEW_OVERVIEW.md
 	: >"$repo/alt.index"

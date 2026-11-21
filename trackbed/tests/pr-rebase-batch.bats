@@ -324,10 +324,9 @@ run_apply() {
 	[ "$(plan_field raced 7)" = "rebase" ]
 
 	contender="$TMP_DIR/contender"
-	git clone "$REMOTE" "$contender" >/dev/null 2>&1
+	clone_test_git_repo "$REMOTE" "$contender"
 	git -C "$contender" config user.email "other@example.com"
 	git -C "$contender" config user.name "Other User"
-	git -C "$contender" config commit.gpgsign false
 	git -C "$contender" checkout raced >/dev/null 2>&1
 	printf 'remote work\n' >>"$contender/raced.txt"
 	git -C "$contender" commit -am "remote work" >/dev/null
@@ -478,7 +477,7 @@ run_apply() {
 
 @test "plan rejects multiple configured push URLs before listing PRs" {
 	local second_remote="$TMP_DIR/second.git"
-	git init --bare "$second_remote" >/dev/null
+	init_empty_test_git_repo "$second_remote" --bare
 	git remote set-url --push origin "$REMOTE"
 	git remote set-url --add --push origin "$second_remote"
 
@@ -494,7 +493,7 @@ run_apply() {
 	pr_rows $'35\tdrifted\tmain\tfalse'
 	run_plan
 	local second_remote="$TMP_DIR/second.git"
-	git init --bare "$second_remote" >/dev/null
+	init_empty_test_git_repo "$second_remote" --bare
 	git remote set-url --push origin "$second_remote"
 	local old_head
 	old_head=$(git -C "$TMP_DIR/wt-drifted" rev-parse HEAD)

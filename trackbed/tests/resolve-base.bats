@@ -580,7 +580,7 @@ GH
 
 @test "explicit remote base ref preserves its remote" {
 	local upstream="$TMP_DIR/upstream.git"
-	git init --bare "$upstream" >/dev/null
+	init_empty_test_git_repo "$upstream" --bare
 	git remote add upstream "$upstream"
 	git push upstream main:release >/dev/null 2>&1
 
@@ -605,7 +605,7 @@ GH
 
 @test "explicit remote-qualified base uses the named remote when it exists" {
 	local upstream="$TMP_DIR/upstream.git"
-	git init --bare "$upstream" >/dev/null
+	init_empty_test_git_repo "$upstream" --bare
 	git remote add upstream "$upstream"
 	git push upstream main:release >/dev/null 2>&1
 

@@ -83,6 +83,32 @@ assert_absent_text() { assert_guidance_text absent "$@"; }
 assert_text_count() { assert_guidance_text count "$@"; }
 assert_text_order() { assert_guidance_text order "$@"; }
 
+# Configure a fixture independently of the contributor's global signing settings.
+configure_test_git_repo() {
+  local work_dir="$1"
+  git -C "$work_dir" config --local user.email "test@example.com" || return 1
+  git -C "$work_dir" config --local user.name "Test User" || return 1
+  git -C "$work_dir" config --local commit.gpgsign false || return 1
+  git -C "$work_dir" config --local tag.gpgsign false || return 1
+}
+
+# Initialize a fixture without a seed commit. Extra arguments are Git init options.
+init_empty_test_git_repo() {
+  local work_dir="$1"
+  shift
+  git init -q "$@" "$work_dir" || return 1
+  configure_test_git_repo "$work_dir"
+}
+
+# Clone a fixture and apply the local settings that Git clone does not copy.
+clone_test_git_repo() {
+  local origin="$1"
+  local work_dir="$2"
+  shift 2
+  git clone -q "$@" "$origin" "$work_dir" || return 1
+  configure_test_git_repo "$work_dir"
+}
+
 # Helper: Create a deterministic local Git repository for fixtures.
 #
 # Usage: init_test_git_repo <work-dir> [--origin <bare-path>] [--file <name>]
@@ -129,17 +155,11 @@ init_test_git_repo() {
   done
 
   if [ -n "$origin" ]; then
-    git init --bare "$origin" >/dev/null || return 1
-    git clone "$origin" "$work_dir" >/dev/null 2>&1 || return 1
+    init_empty_test_git_repo "$origin" --bare || return 1
+    clone_test_git_repo "$origin" "$work_dir" || return 1
   else
-    mkdir -p "$work_dir" || return 1
-    git init "$work_dir" >/dev/null || return 1
+    init_empty_test_git_repo "$work_dir" || return 1
   fi
-
-  git -C "$work_dir" config user.email "test@example.com" || return 1
-  git -C "$work_dir" config user.name "Test User" || return 1
-  git -C "$work_dir" config commit.gpgsign false || return 1
-  git -C "$work_dir" config tag.gpgsign false || return 1
 
   printf 'base\n' >"$work_dir/$initial_file" || return 1
   git -C "$work_dir" add "$initial_file" || return 1
