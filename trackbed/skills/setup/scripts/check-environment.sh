@@ -119,38 +119,44 @@ tool_status() {
     fi
   fi
 
-  if [ "$OUTPUT_FORMAT" = "json" ]; then
-    printf '{"name":"%s","status":"%s","path":"%s","version":"%s","install":"%s"}' \
-      "$(json_escape "$name")" \
-      "$status" \
-      "$(json_escape "$path")" \
-      "$(json_escape "$version")" \
-      "$(json_escape "$install")"
-  else
-    if [ "$status" = "ok" ]; then
-      if [ -n "$version" ]; then
-        printf '[ok]      %-14s %s (%s)\n' "$name" "$path" "$version"
-      else
-        printf '[ok]      %-14s %s\n' "$name" "$path"
-      fi
-    elif [ "$status" = "outdated" ]; then
-      printf '[outdated] %-14s %s (%s); upgrade: %s\n' "$name" "$path" "$version" "$install"
-    elif [ "$status" = "error" ]; then
-      printf '[error]    %-14s %s (%s); runtime probe failed; repair: %s\n' "$name" "$path" "$version" "$install"
+  "$render_tool" "$name" "$status" "$path" "$version" "$install"
+}
+
+json_tool() {
+  local name="$1" status="$2" path="$3" version="$4" install="$5"
+
+  printf '{"name":"%s","status":"%s","path":"%s","version":"%s","install":"%s"}' \
+    "$(json_escape "$name")" \
+    "$status" \
+    "$(json_escape "$path")" \
+    "$(json_escape "$version")" \
+    "$(json_escape "$install")"
+}
+
+text_tool() {
+  local name="$1" status="$2" path="$3" version="$4" install="$5"
+
+  if [ "$status" = "ok" ]; then
+    if [ -n "$version" ]; then
+      printf '[ok]      %-14s %s (%s)\n' "$name" "$path" "$version"
     else
-      printf '[missing] %-14s install: %s\n' "$name" "$install"
+      printf '[ok]      %-14s %s\n' "$name" "$path"
     fi
+  elif [ "$status" = "outdated" ]; then
+    printf '[outdated] %-14s %s (%s); upgrade: %s\n' "$name" "$path" "$version" "$install"
+  elif [ "$status" = "error" ]; then
+    printf '[error]    %-14s %s (%s); runtime probe failed; repair: %s\n' "$name" "$path" "$version" "$install"
+  else
+    printf '[missing] %-14s install: %s\n' "$name" "$install"
   fi
 }
 
-repo_value() {
-  local key="$1"
-  local value="$2"
-  if [ "$OUTPUT_FORMAT" = "json" ]; then
-    printf '{"key":"%s","value":"%s"}' "$(json_escape "$key")" "$(json_escape "$value")"
-  else
-    printf '%-24s %s\n' "$key:" "$value"
-  fi
+json_context() {
+  printf '{"key":"%s","value":"%s"}' "$(json_escape "$1")" "$(json_escape "$3")"
+}
+
+text_context() {
+  printf '%-24s %s\n' "$2:" "$3"
 }
 
 detect_repo_root() {
@@ -741,152 +747,97 @@ detect_codex_tool_map() {
   fi
 }
 
-detect_connector_note() {
-  local name="$1"
-  local hint="$2"
-  if [ "$OUTPUT_FORMAT" = "json" ]; then
-    printf '{"name":"%s","status":"manual-check","hint":"%s"}' "$(json_escape "$name")" "$(json_escape "$hint")"
-  else
-    printf '[manual-check] %-14s %s\n' "$name" "$hint"
-  fi
+json_connector() {
+  printf '{"name":"%s","status":"manual-check","hint":"%s"}' "$(json_escape "$1")" "$(json_escape "$2")"
 }
 
+text_connector() {
+  printf '[manual-check] %-14s %s\n' "$1" "$2"
+}
+
+json_section() {
+  printf '%s"%s":[' "$section_separator" "$1"
+  section_separator='],'
+  row_separator=""
+}
+
+text_section() {
+  printf '\n%s\n' "$2"
+}
+
+report_row() {
+  printf '%s' "$row_separator"
+  "$@"
+  row_separator="$next_row_separator"
+}
+
+section_separator=""
+row_separator=""
+next_row_separator=""
 if [ "$OUTPUT_FORMAT" = "json" ]; then
+  render_section=json_section
+  render_tool=json_tool
+  render_connector=json_connector
+  render_context=json_context
+  next_row_separator=","
   printf '{'
-  printf '"required":['
-  tool_status "bash" "Install Bash (Git Bash on Windows)" "bash --version"
-  printf ','
-  tool_status "git" "Install Xcode Command Line Tools or git" "git --version"
-  printf ','
-  tool_status "jq" "brew install jq (macOS) or apt install jq (Linux)" "jq --version"
-  printf ','
-  tool_status "python3" "Install Python 3.10+" "python3 --version" "3.10" "python3 -c 'import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")'"
-  printf ','
-  tool_status "node" "Install Node.js 18+" "node --version" "18" "node -p 'process.versions.node'"
-  printf '],'
-  printf '"recommended":['
-  tool_status "gh" "brew install gh (macOS) or apt install gh (Linux)" "gh --version"
-  printf ','
-  tool_status "npm" "bundled with Node.js" "npm --version"
-  printf '],'
-  printf '"optional":['
-  tool_status "bun" "brew install oven-sh/bun/bun" "bun --version"
-  printf ','
-  tool_status "rtk" "install rtk if this workspace requires it" "rtk --version"
-  printf ','
-  tool_status "bats" "brew install bats-core (macOS) or apt install bats (Linux)" "bats --version"
-  printf ','
-  tool_status "trash" "brew install trash (macOS) or apt install trash-cli (Linux)" "trash --version"
-  printf ','
-  tool_status "surf" "install surf-cli if using visual diagram image generation" "surf --version"
-  printf ','
-  tool_status "codex" "npm install -g @openai/codex" "codex --version"
-  printf '],'
-  printf '"integrations":['
-  detect_connector_note "Linear" "Connector authentication is not reliably inspectable from shell."
-  printf ','
-  detect_connector_note "Figma" "Connector authentication is not reliably inspectable from shell."
-  printf ','
-  detect_connector_note "Conductor MCP" "MCP tool availability is not inspectable from shell; check for mcp__conductor__* tools in the host, such as CreateWorkspace and CreateSession for starting local workspaces and chats."
-  printf '],'
-  printf '"context":['
-  repo_value "repoRoot" "$(detect_repo_root)"
-  printf ','
-  repo_value "branch" "$(detect_branch)"
-  printf ','
-  repo_value "gitState" "$(detect_git_state)"
-  printf ','
-  repo_value "conductor" "$(detect_conductor)"
-  printf ','
-  repo_value "conductorMode" "$(detect_conductor_mode)"
-  printf ','
-  repo_value "conductorWorkspaceName" "$(detect_env_or_not_set CONDUCTOR_WORKSPACE_NAME)"
-  printf ','
-  repo_value "conductorWorkspacePath" "$(detect_env_or_not_set CONDUCTOR_WORKSPACE_PATH)"
-  printf ','
-  repo_value "conductorRootPath" "$(detect_env_or_not_set CONDUCTOR_ROOT_PATH)"
-  printf ','
-  repo_value "conductorDefaultBranch" "$(detect_env_or_not_set CONDUCTOR_DEFAULT_BRANCH)"
-  printf ','
-  repo_value "conductorPortRange" "$(detect_conductor_port_range)"
-  printf ','
-  repo_value ".context" "$(detect_file ".context")"
-  printf ','
-  repo_value "contextIgnored" "$(detect_context_ignored)"
-  printf ','
-  repo_value ".conductor/settings.toml" "$(detect_legacy_conductor_settings)"
-  printf ','
-  repo_value "conductor.json" "$(detect_file "conductor.json")"
-  printf ','
-  repo_value ".worktreeinclude" "$(detect_file ".worktreeinclude")"
-  printf ','
-  repo_value "hookConfig" "$(detect_file "${PLUGIN_ROOT}/hooks/hooks.json")"
-  printf ','
-  repo_value "codexLegacyRecords" "$(detect_codex_legacy_records)"
-  printf ','
-  repo_value "codexToolMapBlock" "$(detect_codex_tool_map)"
-  printf ','
-  repo_value "codexPlugin" "$(detect_codex_plugin)"
-  printf ','
-  repo_value "claudePluginCache" "$(detect_claude_plugin_cache)"
-  printf ','
-  repo_value "claudeAutoUpdate" "$(detect_claude_auto_update)"
-  printf ','
-  repo_value "pluginCopy" "$(detect_plugin_copy)"
-  printf ','
-  repo_value "pluginUpdate" "$(detect_plugin_update)"
-  printf ']'
-  printf '}\n'
-  exit 0
+else
+  render_section=text_section
+  render_tool=text_tool
+  render_connector=text_connector
+  render_context=text_context
+  printf 'trackbed setup health check\n'
 fi
 
-echo "trackbed setup health check"
-echo
-echo "Required"
-tool_status "bash" "Install Bash (Git Bash on Windows)" "bash --version"
-tool_status "git" "Install Xcode Command Line Tools or git" "git --version"
-tool_status "jq" "brew install jq (macOS) or apt install jq (Linux)" "jq --version"
-tool_status "python3" "Install Python 3.10+" "python3 --version" "3.10" "python3 -c 'import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")'"
-tool_status "node" "Install Node.js 18+" "node --version" "18" "node -p 'process.versions.node'"
-echo
-echo "Recommended"
-tool_status "gh" "brew install gh (macOS) or apt install gh (Linux)" "gh --version"
-tool_status "npm" "bundled with Node.js" "npm --version"
-echo
-echo "Optional"
-tool_status "bun" "brew install oven-sh/bun/bun" "bun --version"
-tool_status "rtk" "install rtk if this workspace requires it" "rtk --version"
-tool_status "bats" "brew install bats-core (macOS) or apt install bats (Linux)" "bats --version"
-tool_status "trash" "brew install trash (macOS) or apt install trash-cli (Linux)" "trash --version"
-tool_status "surf" "install surf-cli if using visual diagram image generation" "surf --version"
-tool_status "codex" "npm install -g @openai/codex" "codex --version"
-echo
-echo "Integrations"
-detect_connector_note "Linear" "Connector authentication is not reliably inspectable from shell."
-detect_connector_note "Figma" "Connector authentication is not reliably inspectable from shell."
-detect_connector_note "Conductor MCP" "MCP tool availability is not inspectable from shell; check for mcp__conductor__* tools in the host, such as CreateWorkspace and CreateSession for starting local workspaces and chats."
-echo
-echo "Context"
-repo_value "Repo root" "$(detect_repo_root)"
-repo_value "Branch" "$(detect_branch)"
-repo_value "Git state" "$(detect_git_state)"
-repo_value "Conductor" "$(detect_conductor)"
-repo_value "Conductor mode" "$(detect_conductor_mode)"
-repo_value "Workspace name" "$(detect_env_or_not_set CONDUCTOR_WORKSPACE_NAME)"
-repo_value "Workspace path" "$(detect_env_or_not_set CONDUCTOR_WORKSPACE_PATH)"
-repo_value "Root path" "$(detect_env_or_not_set CONDUCTOR_ROOT_PATH)"
-repo_value "Default branch" "$(detect_env_or_not_set CONDUCTOR_DEFAULT_BRANCH)"
-repo_value "Port range" "$(detect_conductor_port_range)"
-repo_value ".context" "$(detect_file ".context")"
-repo_value ".context ignored" "$(detect_context_ignored)"
-repo_value ".conductor/settings.toml" "$(detect_legacy_conductor_settings)"
-repo_value "conductor.json" "$(detect_file "conductor.json")"
-repo_value ".worktreeinclude" "$(detect_file ".worktreeinclude")"
-repo_value "Hook config" "$(detect_file "${PLUGIN_ROOT}/hooks/hooks.json")"
-repo_value "Codex legacy records" "$(detect_codex_legacy_records)"
-repo_value "Codex tool map block" "$(detect_codex_tool_map)"
-repo_value "Codex plugin" "$(detect_codex_plugin)"
-repo_value "Claude plugin cache" "$(detect_claude_plugin_cache)"
-repo_value "Claude auto-update" "$(detect_claude_auto_update)"
-repo_value "Plugin copy" "$(detect_plugin_copy)"
-repo_value "Plugin update" "$(detect_plugin_update)"
+"$render_section" required Required
+report_row tool_status "bash" "Install Bash (Git Bash on Windows)" "bash --version"
+report_row tool_status "git" "Install Xcode Command Line Tools or git" "git --version"
+report_row tool_status "jq" "brew install jq (macOS) or apt install jq (Linux)" "jq --version"
+report_row tool_status "python3" "Install Python 3.10+" "python3 --version" "3.10" "python3 -c 'import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")'"
+report_row tool_status "node" "Install Node.js 18+" "node --version" "18" "node -p 'process.versions.node'"
+
+"$render_section" recommended Recommended
+report_row tool_status "gh" "brew install gh (macOS) or apt install gh (Linux)" "gh --version"
+report_row tool_status "npm" "bundled with Node.js" "npm --version"
+
+"$render_section" optional Optional
+report_row tool_status "bun" "brew install oven-sh/bun/bun" "bun --version"
+report_row tool_status "rtk" "install rtk if this workspace requires it" "rtk --version"
+report_row tool_status "bats" "brew install bats-core (macOS) or apt install bats (Linux)" "bats --version"
+report_row tool_status "trash" "brew install trash (macOS) or apt install trash-cli (Linux)" "trash --version"
+report_row tool_status "surf" "install surf-cli if using visual diagram image generation" "surf --version"
+report_row tool_status "codex" "npm install -g @openai/codex" "codex --version"
+
+"$render_section" integrations Integrations
+report_row "$render_connector" "Linear" "Connector authentication is not reliably inspectable from shell."
+report_row "$render_connector" "Figma" "Connector authentication is not reliably inspectable from shell."
+report_row "$render_connector" "Conductor MCP" "MCP tool availability is not inspectable from shell; check for mcp__conductor__* tools in the host, such as CreateWorkspace and CreateSession for starting local workspaces and chats."
+
+"$render_section" context Context
+report_row "$render_context" "repoRoot" "Repo root" "$(detect_repo_root)"
+report_row "$render_context" "branch" "Branch" "$(detect_branch)"
+report_row "$render_context" "gitState" "Git state" "$(detect_git_state)"
+report_row "$render_context" "conductor" "Conductor" "$(detect_conductor)"
+report_row "$render_context" "conductorMode" "Conductor mode" "$(detect_conductor_mode)"
+report_row "$render_context" "conductorWorkspaceName" "Workspace name" "$(detect_env_or_not_set CONDUCTOR_WORKSPACE_NAME)"
+report_row "$render_context" "conductorWorkspacePath" "Workspace path" "$(detect_env_or_not_set CONDUCTOR_WORKSPACE_PATH)"
+report_row "$render_context" "conductorRootPath" "Root path" "$(detect_env_or_not_set CONDUCTOR_ROOT_PATH)"
+report_row "$render_context" "conductorDefaultBranch" "Default branch" "$(detect_env_or_not_set CONDUCTOR_DEFAULT_BRANCH)"
+report_row "$render_context" "conductorPortRange" "Port range" "$(detect_conductor_port_range)"
+report_row "$render_context" ".context" ".context" "$(detect_file ".context")"
+report_row "$render_context" "contextIgnored" ".context ignored" "$(detect_context_ignored)"
+report_row "$render_context" ".conductor/settings.toml" ".conductor/settings.toml" "$(detect_legacy_conductor_settings)"
+report_row "$render_context" "conductor.json" "conductor.json" "$(detect_file "conductor.json")"
+report_row "$render_context" ".worktreeinclude" ".worktreeinclude" "$(detect_file ".worktreeinclude")"
+report_row "$render_context" "hookConfig" "Hook config" "$(detect_file "${PLUGIN_ROOT}/hooks/hooks.json")"
+report_row "$render_context" "codexLegacyRecords" "Codex legacy records" "$(detect_codex_legacy_records)"
+report_row "$render_context" "codexToolMapBlock" "Codex tool map block" "$(detect_codex_tool_map)"
+report_row "$render_context" "codexPlugin" "Codex plugin" "$(detect_codex_plugin)"
+report_row "$render_context" "claudePluginCache" "Claude plugin cache" "$(detect_claude_plugin_cache)"
+report_row "$render_context" "claudeAutoUpdate" "Claude auto-update" "$(detect_claude_auto_update)"
+report_row "$render_context" "pluginCopy" "Plugin copy" "$(detect_plugin_copy)"
+report_row "$render_context" "pluginUpdate" "Plugin update" "$(detect_plugin_update)"
+
+if [ "$OUTPUT_FORMAT" = "json" ]; then
+  printf ']}\n'
+fi

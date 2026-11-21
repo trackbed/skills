@@ -487,96 +487,80 @@ run_formatter_attempt() {
   return "$command_status"
 }
 
+try_formatter() {
+  local label="$1"
+  shift
+
+  if run_formatter_attempt "$@"; then
+    case "$label" in
+      "npm run "*) output_msg "Formatted with $label" ;;
+      *) output_msg "Formatted with $label: $file_path" ;;
+    esac
+  fi
+  note_attempt "${label#global }"
+}
+
 format_file() {
+  local prettier_label="Prettier"
+  local declared
+  local label_prefix
+
   case "$EXT" in
     # JavaScript/TypeScript/JSON/CSS/HTML/Markdown
     js | jsx | ts | tsx | mjs | cjs | json | css | scss | less | html | htm | md | mdx | yaml | yml | graphql | gql | vue | svelte)
       if [ "$HAS_BIOME" = "true" ] && [ -n "$BIOME_CMD" ]; then
-        if run_formatter_attempt "$BIOME_CMD" format --write "$abs_path"; then
-          output_msg "Formatted with Biome: $file_path"
-        fi
-        note_attempt "Biome"
+        try_formatter Biome "$BIOME_CMD" format --write "$abs_path"
       fi
-      if [ "$HAS_PRETTIER" = "true" ] && [ -n "$PRETTIER_CMD" ]; then
-        if run_formatter_attempt "$PRETTIER_CMD" --write "$abs_path"; then
-          output_msg "Formatted with Prettier: $file_path"
+      if [ -n "$PRETTIER_CMD" ]; then
+        if [ "$HAS_PRETTIER" != "true" ]; then
+          prettier_label="global Prettier"
         fi
-        note_attempt "Prettier"
-      elif [ -n "$PRETTIER_CMD" ]; then
-        # Fallback: formatter exists globally but package.json does not declare it
-        if run_formatter_attempt "$PRETTIER_CMD" --write "$abs_path"; then
-          output_msg "Formatted with global Prettier: $file_path"
-        fi
-        note_attempt "Prettier"
+        try_formatter "$prettier_label" "$PRETTIER_CMD" --write "$abs_path"
       fi
       ;;
 
     # Python
     py | pyi)
-      if [ "$HAS_RUFF" = "true" ] && [ -n "$RUFF_CMD" ]; then
-        if run_formatter_attempt "$RUFF_CMD" format "$abs_path"; then
-          output_msg "Formatted with Ruff: $file_path"
+      # Try declared formatters before any global fallback.
+      for declared in true false; do
+        label_prefix=""
+        if [ "$declared" = "false" ]; then
+          label_prefix="global "
         fi
-        note_attempt "Ruff"
-      fi
-      if [ "$HAS_BLACK" = "true" ] && [ -n "$BLACK_CMD" ]; then
-        if run_formatter_attempt "$BLACK_CMD" "$abs_path"; then
-          output_msg "Formatted with Black: $file_path"
+        if [ "$HAS_RUFF" = "$declared" ] && [ -n "$RUFF_CMD" ]; then
+          try_formatter "${label_prefix}Ruff" "$RUFF_CMD" format "$abs_path"
         fi
-        note_attempt "Black"
-      fi
-      # Fallback: check for global tools
-      if [ "$HAS_RUFF" != "true" ] && [ -n "$RUFF_CMD" ]; then
-        if run_formatter_attempt "$RUFF_CMD" format "$abs_path"; then
-          output_msg "Formatted with global Ruff: $file_path"
+        if [ "$HAS_BLACK" = "$declared" ] && [ -n "$BLACK_CMD" ]; then
+          try_formatter "${label_prefix}Black" "$BLACK_CMD" "$abs_path"
         fi
-        note_attempt "Ruff"
-      fi
-      if [ "$HAS_BLACK" != "true" ] && [ -n "$BLACK_CMD" ]; then
-        if run_formatter_attempt "$BLACK_CMD" "$abs_path"; then
-          output_msg "Formatted with global Black: $file_path"
-        fi
-        note_attempt "Black"
-      fi
+      done
       ;;
 
     # Go
     go)
       if [ -n "$GOFMT_CMD" ]; then
-        if run_formatter_attempt "$GOFMT_CMD" -w "$abs_path"; then
-          output_msg "Formatted with gofmt: $file_path"
-        fi
-        note_attempt "gofmt"
+        try_formatter gofmt "$GOFMT_CMD" -w "$abs_path"
       fi
       ;;
 
     # Rust
     rs)
       if [ -n "$RUSTFMT_CMD" ]; then
-        if run_formatter_attempt "$RUSTFMT_CMD" "$abs_path"; then
-          output_msg "Formatted with rustfmt: $file_path"
-        fi
-        note_attempt "rustfmt"
+        try_formatter rustfmt "$RUSTFMT_CMD" "$abs_path"
       fi
       ;;
 
     # C#
     cs)
       if [ -n "$DOTNET_CMD" ]; then
-        if run_formatter_attempt "$DOTNET_CMD" format --include "$abs_path"; then
-          output_msg "Formatted with dotnet format: $file_path"
-        fi
-        note_attempt "dotnet format"
+        try_formatter "dotnet format" "$DOTNET_CMD" format --include "$abs_path"
       fi
       ;;
 
     # Shell scripts
     sh | bash)
       if [ -n "$SHFMT_CMD" ]; then
-        if run_formatter_attempt "$SHFMT_CMD" -w "$abs_path"; then
-          output_msg "Formatted with shfmt: $file_path"
-        fi
-        note_attempt "shfmt"
+        try_formatter shfmt "$SHFMT_CMD" -w "$abs_path"
       fi
       ;;
   esac
@@ -588,18 +572,12 @@ run_project_fallbacks() {
   # Try Nx format for affected file
   if [ "$HAS_NX" = "true" ] && [ -n "$NX_CMD" ]; then
     rel_path="${abs_path#$PROJECT_ROOT/}"
-    if run_formatter_attempt "$NX_CMD" format:write --files="$rel_path"; then
-      output_msg "Formatted with Nx: $file_path"
-    fi
-    note_attempt "Nx"
+    try_formatter Nx "$NX_CMD" format:write --files="$rel_path"
   fi
 
   # Try npm format script
   if [ -n "$FORMAT_SCRIPT_NAME" ] && [ "${SKIPPED_UNTRUSTED_DIRECTIVE:-false}" != "true" ] && [ -n "$NPM_CMD" ]; then
-    if run_formatter_attempt "$NPM_CMD" run "$FORMAT_SCRIPT_NAME"; then
-      output_msg "Formatted with npm run $FORMAT_SCRIPT_NAME"
-    fi
-    note_attempt "npm run $FORMAT_SCRIPT_NAME"
+    try_formatter "npm run $FORMAT_SCRIPT_NAME" "$NPM_CMD" run "$FORMAT_SCRIPT_NAME"
   fi
 }
 
