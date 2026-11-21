@@ -226,6 +226,7 @@ SH
 
   [ "$status" -eq 1 ]
   [[ "$output" == *"Restored release files to their pre-release state."* ]] || false
+  [[ "$output" == *"Release verification failed. Aborting before creating release branch."* ]] || false
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/.claude-plugin/plugin.json"
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/package.json"
   ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md" || false
@@ -264,6 +265,38 @@ SH
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/.claude-plugin/plugin.json"
   grep -q '"version": "0.64.0"' "$PLUGIN_ROOT/package.json"
   ! grep -q '## \[0.64.1\]' "$PLUGIN_ROOT/CHANGELOG.md" || false
+}
+
+@test "release rolls back and re-raises an unexpected failure" {
+  install_release_make_mock
+  initial_head="$(git -C "$TMP_ROOT" rev-parse HEAD)"
+  initial_branch="$(git -C "$TMP_ROOT" symbolic-ref --short HEAD)"
+
+  run env PATH="$MOCK_BIN:$PATH" PYTHONPATH="$PLUGIN_ROOT/scripts" python3 - --ci <<'PY'
+from unittest.mock import patch
+
+import release
+
+create_branch = release.git_commit_and_push_branch
+
+
+def fail_after_commit(repo_root, version, dry_run, ci_mode):
+    create_branch(repo_root, version, dry_run, False)
+    raise RuntimeError("simulated unexpected release failure")
+
+
+with patch.object(release, "git_commit_and_push_branch", fail_after_commit):
+    raise SystemExit(release.main())
+PY
+
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"Restored release files to their pre-release state."* ]] || false
+  [[ "$output" == *"Left local branch release/v0.64.1 in place"* ]] || false
+  [[ "$output" == *"Traceback (most recent call last):"* ]] || false
+  [[ "$output" == *"RuntimeError: simulated unexpected release failure"* ]] || false
+  [ "$(git -C "$TMP_ROOT" symbolic-ref --short HEAD)" = "$initial_branch" ]
+  [ "$(git -C "$TMP_ROOT" rev-parse HEAD)" = "$initial_head" ]
+  git -C "$TMP_ROOT" diff --quiet HEAD
 }
 
 @test "release restores generated files when commit fails" {
