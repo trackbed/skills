@@ -236,8 +236,6 @@ async function samePath(left, right) {
 
 module.exports = {
   defaultCodexHome,
-  listCodexMarketplaces,
   registerCodexPlugin,
-  runCodex,
   unregisterCodexPlugin,
 };

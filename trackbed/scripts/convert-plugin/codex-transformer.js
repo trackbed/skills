@@ -936,7 +936,5 @@ function cloneJson(value) {
 module.exports = {
   convertClaudeToCodex,
   transformContentForCodex,
-  applyReplacements,
-  CODEX_TOOL_NAME_SUBSTITUTIONS,
   CODEX_PHRASE_REPAIRS,
 };

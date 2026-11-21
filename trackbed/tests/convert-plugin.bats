@@ -503,6 +503,13 @@ SH
 	[ "$status" -eq 1 ]
 	[ "$output" = "--codex-home requires a directory." ]
 
+	local alias_flag
+	for alias_flag in --codexHome --agentsHome --nonInteractive; do
+		run node "$isolated/scripts/convert-plugin.js" install fixture "$alias_flag"
+		[ "$status" -eq 1 ]
+		[ "$output" = "install does not support $alias_flag." ]
+	done
+
 	run node "$isolated/scripts/convert-plugin.js" install fixture --yes=maybe
 	[ "$status" -eq 1 ]
 	[ "$output" = "--yes requires a boolean value when one is provided." ]

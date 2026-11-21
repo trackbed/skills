@@ -268,6 +268,5 @@ function appendPrefixedMultiline(lines, prefix, value) {
 
 module.exports = {
   parseAskUserQuestionBlock,
-  renderDirectChatQuestion,
   rewriteAskUserQuestionCodeBlocks,
 };
