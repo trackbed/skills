@@ -37,6 +37,7 @@ The script diffs with `--text`, so a branch's `.gitattributes` cannot hide conte
 | `shape:large` | medium | yes | More than 400 code lines or more than 25 code files changed. |
 | `shape:non-trivial` | medium | yes | More than 100 code lines or more than 10 code files changed. Only the largest `shape:` size signal is emitted. |
 | `shape:deleted-source` | medium | yes | A source file (a `code` file with a programming-language extension) was deleted. |
+| `shape:deleted-test` | medium | yes | A `test` file was deleted, including a fixture, mock, or snapshot under a test directory. A moved or renamed test does not count. |
 | `shape:untested-source` | medium | yes | More than 20 lines changed across source files that still exist and the branch adds or edits no `test` file; deleting a test does not count. Evidence lists the source files. |
 | `content:disabled-test` | medium | yes | An added line in a `test` file skips, focuses, or expects failure: `it.skip(`, `xit(`, `.only(`, `fit(`, `@pytest.mark.skip`, `@unittest.skip`, `t.Skip(`, `@Disabled`, a Bats `skip`, and similar. |
 | `content:dangerous-sink` | medium | yes | An added line in a `code` file calls a dynamic-execution, shell, raw-HTML, or unsafe-deserialization sink: `eval(`, `new Function(`, `exec(`, `os.system(`, `child_process`, `shell=True`, `innerHTML =`, `dangerouslySetInnerHTML`, `v-html`, `bypassSecurityTrust*`, `pickle.load`, and similar. |
