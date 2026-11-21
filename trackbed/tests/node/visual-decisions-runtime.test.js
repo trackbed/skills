@@ -315,6 +315,110 @@ test("a choice the reader cleared outlasts an older record in the file", () => {
   assert.equal(merged["A-2"].notes, "Newer than the clear.");
 });
 
+/** A localStorage stand-in that two open tabs share. */
+function fakeStorage() {
+  /** @type {Map<string, string>} */
+  const values = new Map();
+  return {
+    /** @param {string} key */
+    getItem: (key) => values.get(key) ?? null,
+    /** @param {string} key @param {string} value */
+    setItem: (key, value) => {
+      values.set(key, value);
+    },
+  };
+}
+
+const KEY = `${runtime.FORMAT}:v${runtime.SCHEMA_VERSION}:${catalog.documentId}`;
+
+test("two tabs sharing one browser store keep each other's decisions", () => {
+  const storage = fakeStorage();
+  // Both tabs opened the document before either recorded anything.
+  let older = Object.create(null);
+  let newer = Object.create(null);
+  older["A-1"] = runtime.applyChange(
+    first,
+    runtime.emptyRecord(first),
+    { option: "keep-a" },
+    "2026-01-16T09:00:00.000Z",
+  );
+  older = runtime.syncStore(storage, KEY, catalog, older, NOW);
+  newer["A-2"] = runtime.applyChange(
+    second,
+    runtime.emptyRecord(second),
+    { notes: "From the newer tab." },
+    "2026-01-16T09:01:00.000Z",
+  );
+  newer = runtime.syncStore(storage, KEY, catalog, newer, NOW);
+  assert.equal(
+    newer["A-1"].option,
+    "keep-a",
+    "the newer tab picks up the older one's choice",
+  );
+  // The older tab writes again, as it does on an edit or when it is hidden
+  // with a save pending.
+  older = runtime.syncStore(storage, KEY, catalog, older, NOW);
+  assert.equal(older["A-2"].notes, "From the newer tab.");
+  const stored = runtime.parsePayload(
+    JSON.parse(storage.getItem(KEY) ?? ""),
+    catalog,
+  ).records;
+  assert.equal(stored["A-1"].option, "keep-a");
+  assert.equal(stored["A-2"].notes, "From the newer tab.");
+});
+
+test("a clear made in one tab outlasts an older record from the other tab", () => {
+  const storage = fakeStorage();
+  const decided = runtime.applyChange(
+    first,
+    runtime.emptyRecord(first),
+    { option: "keep-a" },
+    "2026-01-16T09:00:00.000Z",
+  );
+  let stale = runtime.syncStore(storage, KEY, catalog, { "A-1": decided }, NOW);
+  let clearing = runtime.syncStore(
+    storage,
+    KEY,
+    catalog,
+    {
+      "A-1": runtime.applyChange(
+        first,
+        decided,
+        { option: "", status: "open" },
+        "2026-01-16T09:05:00.000Z",
+      ),
+    },
+    NOW,
+  );
+  assert.equal(runtime.hasContent(clearing["A-1"]), false);
+  // The other tab still holds the decision in memory, then writes.
+  stale = runtime.syncStore(storage, KEY, catalog, stale, NOW);
+  assert.equal(runtime.hasContent(stale["A-1"]), false, "the clear wins");
+  assert.equal(stale["A-1"].updatedAt, "2026-01-16T09:05:00.000Z");
+  // The clear stays in the store, so a third copy with the old record loses too.
+  const reopened = runtime.absorbStored(
+    catalog,
+    { "A-1": decided },
+    storage.getItem(KEY),
+  );
+  assert.equal(runtime.hasContent(reopened["A-1"]), false);
+  clearing = runtime.syncStore(storage, KEY, catalog, clearing, NOW);
+  assert.equal(runtime.hasContent(clearing["A-1"]), false);
+});
+
+test("an unreadable store changes nothing, and a refusing store throws for the page to report", () => {
+  const records = { "A-1": record({ notes: "Mine.", updatedAt: NOW }) };
+  assert.equal(runtime.absorbStored(catalog, records, "{not json"), records);
+  assert.equal(runtime.absorbStored(catalog, records, null), records);
+  const refusing = {
+    getItem: () => null,
+    setItem: () => {
+      throw new Error("QuotaExceededError");
+    },
+  };
+  assert.throws(() => runtime.syncStore(refusing, KEY, catalog, records, NOW));
+});
+
 test("an export lists every item with what a later reader needs, and imports back unchanged", () => {
   const records = {
     "A-1": record({

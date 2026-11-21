@@ -2044,7 +2044,7 @@
           "trackbed/scripts/siw-issue-reservation.sh": 1772,
           "trackbed/scripts/skill-usage.js": 1165,
           "trackbed/skills/session:automate-repeats/scripts/extract-metadata.py": 540,
-          "trackbed/skills/visual:decisions/assets/decisions.js": 1291
+          "trackbed/skills/visual:decisions/assets/decisions.js": 1340
         },
         "excluded": ["trackbed/skills/pr:walkthrough/assets/d3.v7.9.0.min.js"]
       },
