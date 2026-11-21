@@ -32,19 +32,14 @@ PY
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
-@test "adversarial review declares shell access and uses scanner-safe cleanup and modes" {
-	run python3 - "$SKILL" "$PLUGIN_ROOT/skills/pr:adversarial-review/scripts/run-adversarial-review.sh" <<'PY'
+@test "adversarial review declares shell and file read access and uses scanner-safe cleanup" {
+	run python3 - "$SKILL" <<'PY'
 import pathlib
 import sys
 
 skill = pathlib.Path(sys.argv[1]).read_text()
-runner = pathlib.Path(sys.argv[2]).read_text()
-assert "permissions:\n  - shell\n" in skill
+assert "permissions:\n  - shell\n  - file_read\n" in skill
 assert 'rmdir -- "$REQUIREMENTS_TEMP_DIR"' not in skill
-assert 'chmod u=rwx,go=rx "$snapshot_path"' in runner
-assert 'chmod u=rw,go=r "$snapshot_path"' in runner
-assert 'chmod 755 "$snapshot_path"' not in runner
-assert 'chmod 644 "$snapshot_path"' not in runner
 PY
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }

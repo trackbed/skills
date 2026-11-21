@@ -209,7 +209,7 @@ esac
 [ "$COMMAND_TIMEOUT_SECONDS" -gt 0 ] \
   || die "ADVERSARIAL_REVIEW_COMMAND_TIMEOUT_SECONDS must be a positive integer"
 
-for command_name in basename cat chmod cp dirname git jq mkdir mktemp mv perl python3 rm sleep tail; do
+for command_name in basename cat cp dirname git jq mkdir mktemp mv perl python3 rm sleep tail; do
   resolve_trusted_command "$command_name" "required command not found: $command_name"
 done
 
@@ -372,32 +372,70 @@ if [ "$RUN_MODE" = "local" ]; then
   TREE_ENTRIES_FILE="$TEMP_ROOT/tracked-tree.entries"
   git ls-tree -rz --full-tree HEAD > "$TREE_ENTRIES_FILE" \
     || die "could not enumerate the tracked HEAD tree"
-  while IFS= read -r -d '' tree_entry; do
-    tree_metadata=${tree_entry%%$'\t'*}
-    [ "$tree_metadata" != "$tree_entry" ] || die "tracked tree entry was malformed"
-    tracked_path=${tree_entry#*$'\t'}
-    read -r tracked_mode tracked_type tracked_object <<< "$tree_metadata"
-    case "$tracked_path" in
-      '' | /* | . | .. | ../* | */. | */.. | */./* | */../*)
-        die "tracked tree contains an unsafe path"
-        ;;
-    esac
-    [ "$tracked_type" = "blob" ] \
-      || die "tracked tree entry is unsupported for isolated review: $tracked_path ($tracked_type)"
-    case "$tracked_mode" in
-      100644 | 100755) ;;
-      *) die "tracked tree entry mode is unsupported for isolated review: $tracked_path ($tracked_mode)" ;;
-    esac
-    snapshot_path="$SNAPSHOT_DIR/$tracked_path"
-    mkdir -p -- "$(dirname -- "$snapshot_path")"
-    git cat-file blob "$tracked_object" > "$snapshot_path" \
-      || die "could not materialize tracked blob: $tracked_path"
-    if [ "$tracked_mode" = "100755" ]; then
-      chmod u=rwx,go=rx "$snapshot_path"
-    else
-      chmod u=rw,go=r "$snapshot_path"
-    fi
-  done < "$TREE_ENTRIES_FILE"
+  python3 -I - "$TREE_ENTRIES_FILE" "$SNAPSHOT_DIR" << 'PYTHON' || die "could not build tracked snapshot"
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+tree_file, snapshot_dir = sys.argv[1:]
+modes = {b"100644": 0o644, b"100755": 0o755}
+entries = []
+records = Path(tree_file).read_bytes().split(b"\0")
+if records.pop():
+    sys.exit("tracked tree entry was malformed")
+for record in records:
+    metadata, separator, path = record.partition(b"\t")
+    fields = metadata.split()
+    if not separator or len(fields) != 3:
+        sys.exit("tracked tree entry was malformed")
+    mode, kind, oid = fields
+    if any(part in (b"", b".", b"..") for part in path.split(b"/")):
+        sys.exit("tracked tree contains an unsafe path")
+    name = os.fsdecode(path)
+    if kind != b"blob":
+        sys.exit(f"tracked tree entry is unsupported for isolated review: {name} ({os.fsdecode(kind)})")
+    if mode not in modes:
+        sys.exit(f"tracked tree entry mode is unsupported for isolated review: {name} ({os.fsdecode(mode)})")
+    if not re.fullmatch(rb"[0-9a-f]{40}|[0-9a-f]{64}", oid):
+        sys.exit("tracked tree object ID was malformed")
+    entries.append((Path(snapshot_dir, name), modes[mode], oid))
+
+try:
+    with subprocess.Popen(
+        ["git", "cat-file", "--batch"], stdin=subprocess.PIPE, stdout=subprocess.PIPE
+    ) as batch:
+        try:
+            for destination, mode, oid in entries:
+                # Drain each response before sending the next request so neither pipe fills.
+                batch.stdin.write(oid + b"\n")
+                batch.stdin.flush()
+                header = batch.stdout.readline().split()
+                if (len(header) != 3 or header[:2] != [oid, b"blob"]
+                        or not header[2].isdigit()):
+                    raise ValueError(f"invalid blob header for {destination}")
+                remaining = int(header[2])
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                with destination.open("wb") as output:
+                    while remaining:
+                        chunk = batch.stdout.read(min(remaining, 1024 * 1024))
+                        if not chunk:
+                            raise ValueError(f"truncated blob for {destination}")
+                        output.write(chunk)
+                        remaining -= len(chunk)
+                    if batch.stdout.read(1) != b"\n":
+                        raise ValueError(f"missing blob delimiter for {destination}")
+                    os.fchmod(output.fileno(), mode)
+            batch.stdin.close()
+            if batch.wait():
+                raise ValueError("git cat-file --batch failed")
+        finally:
+            if batch.poll() is None:
+                batch.kill()
+except (OSError, ValueError) as error:
+    sys.exit(str(error))
+PYTHON
 fi
 git diff --no-ext-diff --no-textconv --binary "$MERGE_BASE"...HEAD -- > "$PATCH_FILE"
 

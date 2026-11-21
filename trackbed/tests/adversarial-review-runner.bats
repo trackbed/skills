@@ -203,7 +203,7 @@ assert_shared_review_rules() {
 link_runner_helpers() {
 	local helper_dir="$1" tool target
 	mkdir -p "$helper_dir"
-	for tool in bash basename cat chmod cp dirname git jq mkdir mktemp mv perl rm sleep tail; do
+	for tool in bash basename cat cp dirname git jq mkdir mktemp mv perl rm sleep tail; do
 		target="$(command -v "$tool")"
 		ln -s "$target" "$helper_dir/$tool"
 	done
@@ -353,6 +353,88 @@ SH
 	[ "$status" -eq 0 ]
 	[ ! -e "$FAKE_SMUDGE_MARKER" ]
 	[ ! -e "$FAKE_TEXTCONV_MARKER" ]
+}
+
+@test "local snapshot reads all blobs in one batch and preserves binary bytes and modes" {
+	local fixture=$'nested/file\twith\nwhitespace'
+	mkdir nested
+	printf '\000\377\012blob without trailing newline' >"$fixture"
+	cp "$fixture" "$TMP_DIR/expected-blob"
+	chmod 755 "$fixture"
+	git add -- "$fixture"
+	git commit -m "add executable binary fixture" >/dev/null
+
+	export FAKE_GIT_BLOB_CALLS="$TMP_DIR/blob-calls"
+	cat >"$BIN_DIR/git" <<'SH'
+#!/bin/sh
+if [ "$1" = cat-file ]; then
+  printf '%s\n' "$*" >>"$FAKE_GIT_BLOB_CALLS"
+fi
+exec "$REAL_GIT" "$@"
+SH
+	chmod +x "$BIN_DIR/git"
+	write_fake_claude
+	export FAKE_BINARY_FIXTURE="$fixture" FAKE_EXPECTED_BLOB="$TMP_DIR/expected-blob"
+	cat >>"$BIN_DIR/claude" <<'SH'
+cmp "$FAKE_EXPECTED_BLOB" "$FAKE_BINARY_FIXTURE" &&
+  python3 -I -c 'import os, stat; assert stat.S_IMODE(os.stat(os.environ["FAKE_BINARY_FIXTURE"]).st_mode) == 0o755; assert stat.S_IMODE(os.stat("feature.txt").st_mode) == 0o644'
+SH
+
+	run "$RUNNER" --host-provider codex --provider claude --merge-base "$MERGE_BASE"
+
+	[ "$status" -eq 0 ]
+	[ "$(cat "$FAKE_GIT_BLOB_CALLS")" = "cat-file --batch" ]
+}
+
+@test "local snapshot stops when Git reports failure after streaming the blobs" {
+	write_fake_claude
+	cat >"$BIN_DIR/git" <<'SH'
+#!/bin/sh
+if [ "$1" = cat-file ] && [ "$2" = --batch ]; then
+  "$REAL_GIT" "$@"
+  exit 42
+fi
+exec "$REAL_GIT" "$@"
+SH
+	chmod +x "$BIN_DIR/git"
+
+	run "$RUNNER" --host-provider codex --provider claude --merge-base "$MERGE_BASE"
+
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"git cat-file --batch failed"* ]] || false
+	[ ! -e "$FAKE_CWD_FILE" ]
+}
+
+@test "local snapshot rejects an unsafe tree path before starting the reviewer" {
+	write_fake_claude
+	cat >"$BIN_DIR/git" <<'SH'
+#!/bin/sh
+if [ "$1" = ls-tree ]; then
+  printf '100644 blob %s\t../outside\000' "$("$REAL_GIT" rev-parse HEAD:feature.txt)"
+  exit
+fi
+exec "$REAL_GIT" "$@"
+SH
+	chmod +x "$BIN_DIR/git"
+
+	run "$RUNNER" --host-provider codex --provider claude --merge-base "$MERGE_BASE"
+
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"tracked tree contains an unsafe path"* ]] || false
+	[ ! -e "$FAKE_CWD_FILE" ]
+}
+
+@test "local snapshot rejects non-blob tree entries" {
+	write_fake_claude
+	git update-index --add --cacheinfo "160000,$MERGE_BASE,tracked-gitlink"
+	git commit -m "add gitlink" >/dev/null
+	mkdir tracked-gitlink
+
+	run "$RUNNER" --host-provider codex --provider claude --merge-base "$MERGE_BASE"
+
+	[ "$status" -eq 1 ]
+	[[ "$output" == *"tracked-gitlink (commit)"* ]] || false
+	[ ! -e "$FAKE_CWD_FILE" ]
 }
 
 @test "local snapshot blocks tracked symlinks instead of following them" {
