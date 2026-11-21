@@ -1,11 +1,28 @@
-"""Option vocabularies for the commands the gates must see through.
-
-These tables are not shell grammar: they describe how `xargs` (read by the
-rm-rf mode) and `git` (read by the commit-contexts mode) consume their own
-options.
-"""
+"""Shared substitution placeholders and command option vocabularies."""
 
 from __future__ import annotations
+
+import re
+
+COMMAND_SUBSTITUTION_PREFIX = "__CMD_SUBST_"
+_COMMAND_SUBSTITUTION_SUFFIX = "__"
+_COMMAND_SUBSTITUTION_PATTERN = re.compile(
+    rf"{re.escape(COMMAND_SUBSTITUTION_PREFIX)}(\d+){re.escape(_COMMAND_SUBSTITUTION_SUFFIX)}"
+)
+
+
+def command_substitution_placeholder(index: int) -> str:
+    return f"{COMMAND_SUBSTITUTION_PREFIX}{index}{_COMMAND_SUBSTITUTION_SUFFIX}"
+
+
+def extract_placeholder_indexes(tokens: list[str]) -> list[int]:
+    """Return unique substitution indexes in order of first appearance."""
+    return list(
+        dict.fromkeys(
+            int(match.group(1)) for token in tokens for match in _COMMAND_SUBSTITUTION_PATTERN.finditer(token)
+        )
+    )
+
 
 # Used by the rm-rf mode to walk past xargs's own options and find the
 # command xargs will invoke. Only options whose value is a *mandatory

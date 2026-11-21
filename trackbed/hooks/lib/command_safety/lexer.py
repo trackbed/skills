@@ -3,7 +3,7 @@
 Turns a raw command string into the token segments the policy modes walk:
 heredoc bodies stripped (and their substitutions harvested), newlines folded
 into separators, ANSI-C quoting expanded, and command substitutions replaced
-by `__CMD_SUBST_<n>__` placeholders the modes can resolve later.
+by indexed placeholders the modes can resolve later.
 
 Depends on `prefix` because deciding whether a heredoc body is executable
 means normalizing the wrappers in front of the command that reads it.
@@ -11,7 +11,6 @@ means normalizing the wrappers in front of the command that reads it.
 
 from __future__ import annotations
 
-import re
 import shlex
 from collections.abc import Iterator
 from typing import Optional, cast
@@ -34,6 +33,8 @@ from .syntax import (
     read_dollar_substitution,
     strip_shell_comments,
 )
+from .vocabulary import command_substitution_placeholder
+from .vocabulary import extract_placeholder_indexes as extract_placeholder_indexes
 
 
 def _heredoc_feeds_shell_stdin(command_prefix: str) -> bool:
@@ -299,28 +300,16 @@ def replace_command_substitutions(command: str) -> tuple[str, list[str]]:
         if not in_single and command.startswith("$" + "(", idx):
             inner, idx = read_dollar_substitution(command, idx)
             substitutions.append(inner)
-            result.append(f"__CMD_SUBST_{len(substitutions) - 1}__")
+            result.append(command_substitution_placeholder(len(substitutions) - 1))
             continue
 
         if not in_single and char == chr(96):
             inner, idx = read_backtick_substitution(command, idx)
             substitutions.append(inner)
-            result.append(f"__CMD_SUBST_{len(substitutions) - 1}__")
+            result.append(command_substitution_placeholder(len(substitutions) - 1))
             continue
 
         result.append(char)
         idx += 1
 
     return "".join(result), substitutions
-
-
-def extract_placeholder_indexes(tokens: list[str]) -> list[int]:
-    indexes: list[int] = []
-    seen: set[int] = set()
-    for token in tokens:
-        for match in re.finditer(r"__CMD_SUBST_(\d+)__", token):
-            index = int(match.group(1))
-            if index not in seen:
-                seen.add(index)
-                indexes.append(index)
-    return indexes

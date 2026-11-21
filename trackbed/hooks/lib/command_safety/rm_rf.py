@@ -11,7 +11,6 @@ import re
 from typing import Optional
 
 from .lexer import (
-    extract_placeholder_indexes,
     replace_command_substitutions,
     split_segments,
     tokenize,
@@ -24,7 +23,7 @@ from .syntax import (
     _function_body_start,
     _is_assignment,
 )
-from .vocabulary import _skip_xargs_options
+from .vocabulary import _skip_xargs_options, extract_placeholder_indexes
 
 PARSE_ERROR_REASON = "Unable to safely parse command. Refusing potentially destructive deletion command."
 RM_RF_REASON = "rm -rf is blocked. Use `trash` instead (install: brew install trash). Files go to Trash for recovery."
@@ -66,12 +65,8 @@ def _has_literal_rm_rf_text(text: str) -> bool:
     return has_recursive and has_force
 
 
-def _placeholder_indexes_in_text(text: str) -> list[int]:
-    return [int(match.group(1)) for match in re.finditer(r"__CMD_SUBST_(\d+)__", text)]
-
-
 def _literal_placeholder_reason(text: str, substitutions: list[str]) -> Optional[str]:
-    for placeholder_index in _placeholder_indexes_in_text(text):
+    for placeholder_index in extract_placeholder_indexes([text]):
         if placeholder_index < len(substitutions) and _has_literal_rm_rf_text(substitutions[placeholder_index]):
             return RM_RF_REASON
     return None
