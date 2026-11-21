@@ -473,6 +473,11 @@
     },
     {
       "kind": "guidance",
+      "suite": "trackbed/tests/learn-from-fixes-guidance.bats",
+      "skills": ["trackbed/skills/code:learn-from-fixes/SKILL.md"]
+    },
+    {
+      "kind": "guidance",
       "suite": "trackbed/tests/github-review-guidance.bats",
       "skills": [
         "trackbed/skills/linear:review-pr/SKILL.md",
