@@ -17,8 +17,8 @@ Sources, in order:
 2. The open Pull Request chain on GitHub. A Pull Request's base is its parent layer when that base is
    itself the head of an open same-repository Pull Request, and open Pull Requests that target the head
    branch sit above it. This covers native GitHub stacks and manually chained Pull Requests alike. The
-   walk down stops at a trunk-like branch: the remote default branch, `trackbed.baseBranch`, or
-   `CONDUCTOR_DEFAULT_BRANCH`. Each walk follows at most `MAX_WALK` layers.
+   walk down stops at a protected branch reported by resolve-base.sh. Each walk follows at most
+   `MAX_WALK` layers.
 
 Without `--head`, a detached HEAD is matched to the open Pull Request whose head commit it is.
 
@@ -36,7 +36,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import shutil
 import subprocess
@@ -48,6 +47,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
 from review_process import noninteractive_environment, run_bounded  # noqa: E402
 
+RESOLVE_BASE = Path(__file__).resolve().with_name("resolve-base.sh")
 SCHEMA_VERSION = 1
 LOCAL_TIMEOUT = 30
 NETWORK_TIMEOUT = 20
@@ -311,18 +311,16 @@ def gh_stack_context(view: Json, head: str, head_oid: str, notes: list[str]) -> 
 
 
 def trunk_like() -> set[str]:
-    names = set()
-    remote_head = git("symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
-    if remote_head and remote_head.startswith("origin/"):
-        names.add(remote_head[len("origin/") :])
-    else:
-        default = gh("repo", "view", "--json", "defaultBranchRef", "--jq", ".defaultBranchRef.name")
-        if default.returncode == 0:
-            names.add(default.stdout.strip())
-    for key in ("trackbed.baseBranch", "kramme.baseBranch"):  # kramme.baseBranch is the pre-1.0.0 name.
-        names.add(git("config", "--local", "--get", key) or "")
-    names.add(os.environ.get("CONDUCTOR_DEFAULT_BRANCH", "").strip())
-    return {name for name in names if valid_branch(name)}
+    result = run([str(RESOLVE_BASE), "--branch-roles"], LOCAL_TIMEOUT)
+    if result.returncode != 0:
+        raise Unknown(f"branch roles could not be resolved: {tail(result.stderr)}")
+    try:
+        names = json.loads(result.stdout)["protected_branches"]
+    except (ValueError, KeyError, TypeError) as error:
+        raise Unknown("resolve-base.sh returned malformed branch roles") from error
+    if not isinstance(names, list) or not names or not all(isinstance(name, str) and name for name in names):
+        raise Unknown("resolve-base.sh returned malformed protected branches")
+    return set(names)
 
 
 def walk_up(head: str, notes: list[str]) -> list[Json]:

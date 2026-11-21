@@ -248,9 +248,11 @@ git config --local trackbed.baseBranch development
 
 Repositories configured before 1.0.0 can keep `kramme.baseBranch`; the skills read it when `trackbed.baseBranch` is unset.
 
+If batch rebase previously protected a branch through your global Git configuration, set that branch with `git config --local trackbed.baseBranch <branch>` in each affected repository.
+
 - For a repository where `main` is the workbench and releases use tags, the remote default can remain `main`; no setting is needed when Conductor also names `main`. Set `trackbed.baseBranch` to `main` if a host suggests a different branch.
 - An explicit `--base <branch>` on a base-aware skill overrides the default for that run.
-- Without an explicit or local setting, the shared resolver checks Conductor's configured branch when it has a local `origin` tracking ref, then `origin/HEAD`, `origin/main`, and `origin/master`.
+- Without an explicit or local setting, the shared resolver checks Conductor's configured branch when it has a local `origin` tracking ref, then the remote default, `origin/main`, and `origin/master`. It gets the remote default from `origin/HEAD` or queries `origin` when that symbolic ref is unavailable.
 - A failed GitHub PR lookup stops existing-branch workflows unless GitHub confirms there is no PR; it cannot silently choose the workbench.
 - New worktrees can use a cached workbench ref during a fetch failure, and local repositories without `origin` or a configured workbench start from `HEAD`.
 

@@ -694,59 +694,13 @@ class ContinueBranchTests(RepoCase):
         self.assertEqual(payload["details"], {"entry_branch": "kramme/other-work", "issue_branch": BRANCH})
         self.assertEqual(self.gh_calls(), [])
 
-    def test_continuation_resolves_origin_head_then_verified_main_then_master(self) -> None:
-        def set_head_develop(repo: Path) -> None:
-            git(repo, "push", "-q", "origin", "main:develop")
-            git(repo, "fetch", "-q", "origin")
-            git(repo, "remote", "set-head", "origin", "develop")
-
-        cases = [
-            ("main", lambda repo: None, "main"),
-            ("main", set_head_develop, "develop"),
-            ("main", lambda repo: git(repo, "remote", "set-head", "origin", "-d"), "main"),
-            ("master", lambda repo: git(repo, "remote", "set-head", "origin", "-d"), "master"),
-        ]
-        for index, (default, adjust, expected) in enumerate(cases):
-            with self.subTest(expected=expected, default=default):
-                repo = self.make_repo(f"base-{index}", default)
-                adjust(repo)
-                payload = self.check(self.continuation(repo))
-                self.assert_status(payload, "ok")
-                self.assertEqual(payload["base_branch"], expected)
-
-    def test_continuation_uses_conductor_workbench_before_production_main(self) -> None:
-        git(self.repo, "push", "-q", "origin", "main:development")
-        git(self.repo, "fetch", "-q", "origin")
-        os.environ["CONDUCTOR_DEFAULT_BRANCH"] = "development"
+    def test_continuation_uses_the_shared_workbench_resolver(self) -> None:
+        git(self.repo, "push", "-q", "origin", "main:integration")
+        git(self.repo, "config", "--local", "trackbed.baseBranch", "refs/heads/integration")
         payload = self.check(self.continuation(self.repo))
         self.assert_status(payload, "ok")
-        self.assertEqual(payload["base_branch"], "development")
-
-    def test_continuation_uses_repository_setting_before_conductor_workbench(self) -> None:
-        git(self.repo, "push", "-q", "origin", "main:development")
-        git(self.repo, "fetch", "-q", "origin")
-        git(self.repo, "config", "--local", "trackbed.baseBranch", "development")
-        os.environ["CONDUCTOR_DEFAULT_BRANCH"] = "main"
-        payload = self.check(self.continuation(self.repo))
-        self.assert_status(payload, "ok")
-        self.assertEqual(payload["base_branch"], "development")
-
-    def test_continuation_reads_the_pre_1_0_0_repository_setting(self) -> None:
-        git(self.repo, "push", "-q", "origin", "main:development")
-        git(self.repo, "fetch", "-q", "origin")
-        git(self.repo, "config", "--local", "kramme.baseBranch", "development")
-        os.environ["CONDUCTOR_DEFAULT_BRANCH"] = "main"
-        payload = self.check(self.continuation(self.repo))
-        self.assert_status(payload, "ok")
-        self.assertEqual(payload["base_branch"], "development")
-
-    def test_continuation_refuses_an_unresolvable_base(self) -> None:
-        trunk = self.make_repo("trunk", "trunk")
-        git(trunk, "remote", "set-head", "origin", "-d")
-        self.assert_status(self.check(self.continuation(trunk)), "blocked", "base_unresolved")
-        foreign = self.make_repo("foreign")
-        git(foreign, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/heads/main")
-        self.assert_status(self.check(self.continuation(foreign)), "blocked", "base_unresolved")
+        self.assertEqual(payload["base_branch"], "integration")
+        self.assertTrue(all(call[:2] == ["pr", "list"] for call in self.gh_calls()))
 
     def test_continuation_refuses_a_base_that_cannot_be_fetched(self) -> None:
         git(self.repo, "push", "-q", "origin", "main:gone")

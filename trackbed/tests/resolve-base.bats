@@ -359,6 +359,69 @@ GH
 	[ "$BASE_BRANCH" = "develop" ]
 }
 
+@test "branch roles report the workbench and every protected role without fetching" {
+	create_remote_branch production
+	git remote set-head origin production
+	git config --local trackbed.baseBranch refs/heads/workbench
+	git config --local kramme.baseBranch legacy
+	git remote set-url origin "$TMP_DIR/missing.git"
+
+	run env CONDUCTOR_DEFAULT_BRANCH=workspace "$SCRIPT_DIR/resolve-base.sh" --branch-roles
+
+	[ "$status" -eq 0 ]
+	jq -e '
+		.base_branch == "workbench"
+		and .configured_base == "refs/heads/workbench"
+		and .configured_base_key == "trackbed.baseBranch"
+		and .conductor_default == "workspace"
+		and .remote_default == "production"
+		and (.protected_branches | sort) ==
+			["main", "master", "production", "refs/heads/workbench", "workbench", "workspace"]
+	' <<< "$output"
+}
+
+@test "branch roles use the legacy local key and explicitly opt into protecting develop" {
+	git config --local kramme.baseBranch main
+	export GIT_CONFIG_GLOBAL="$TMP_DIR/global.gitconfig"
+	git config --global trackbed.baseBranch global-workbench
+
+	run env CONDUCTOR_DEFAULT_BRANCH=main "$SCRIPT_DIR/resolve-base.sh" --branch-roles --protect-develop
+
+	[ "$status" -eq 0 ]
+	jq -e '
+		.base_branch == "main"
+		and .configured_base_key == "kramme.baseBranch"
+		and .protected_branches == ["main", "master", "develop"]
+	' <<< "$output"
+}
+
+@test "branch roles look up the remote default when origin HEAD is unavailable" {
+	create_remote_branch production
+	git --git-dir="$ORIGIN" symbolic-ref HEAD refs/heads/production
+	delete_origin_head
+	git update-ref -d refs/remotes/origin/production
+	write_broken_gh
+
+	run env CONDUCTOR_DEFAULT_BRANCH=missing GH_REPO=elsewhere/repo "$SCRIPT_DIR/resolve-base.sh" --branch-roles
+
+	[ "$status" -eq 0 ]
+	jq -e '
+		.base_branch == "production"
+		and .remote_default == "production"
+		and (.protected_branches | sort) == ["main", "master", "missing", "production"]
+	' <<< "$output"
+	! git show-ref --verify --quiet refs/remotes/origin/production || false
+}
+
+@test "branch roles reject an origin HEAD outside origin tracking refs" {
+	git symbolic-ref refs/remotes/origin/HEAD refs/heads/main
+
+	run "$SCRIPT_DIR/resolve-base.sh" --branch-roles
+
+	[ "$status" -ne 0 ]
+	[[ "$output" == *"refs/remotes/origin/HEAD does not point to a valid origin branch"* ]] || false
+}
+
 @test "repository base setting selects development while origin HEAD stays on main" {
 	create_remote_branch "development"
 	git config --local trackbed.baseBranch development
@@ -523,6 +586,7 @@ GH
 
 @test "falls back to origin main when origin HEAD is missing" {
 	delete_origin_head
+	git --git-dir="$ORIGIN" symbolic-ref HEAD refs/heads/unborn
 
 	run "$SCRIPT_DIR/resolve-base.sh"
 
@@ -535,6 +599,7 @@ GH
 @test "falls back to origin master when no origin HEAD or origin main tracking ref exists" {
 	create_remote_branch "master"
 	delete_origin_head
+	git --git-dir="$ORIGIN" symbolic-ref HEAD refs/heads/unborn
 	git update-ref -d refs/remotes/origin/main
 
 	run "$SCRIPT_DIR/resolve-base.sh"
@@ -547,6 +612,7 @@ GH
 
 @test "fails when no automatic base source is available" {
 	delete_origin_head
+	git --git-dir="$ORIGIN" symbolic-ref HEAD refs/heads/unborn
 	git update-ref -d refs/remotes/origin/main
 
 	run env -u CONDUCTOR_DEFAULT_BRANCH "$SCRIPT_DIR/resolve-base.sh"

@@ -16,6 +16,8 @@ set -euo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 # shellcheck source=lib/shell-helpers.sh
 source "$SCRIPT_DIR/lib/shell-helpers.sh"
+# shellcheck source=lib/branch-roles.sh
+source "$SCRIPT_DIR/lib/branch-roles.sh"
 
 BASE_FLAG=""
 BASE_COMMIT_FLAG=""
@@ -27,16 +29,24 @@ FORCE_BACKUP=0
 WORKBENCH_MODE=0
 BASE_ONLY_MODE=0
 OUTPUT_FORMAT="shell"
+BRANCH_ROLES_MODE=0
+PROTECT_DEVELOP=0
 RESOLVE_BASE_FETCH_TIMEOUT_SECONDS="${RESOLVE_BASE_FETCH_TIMEOUT_SECONDS:-30}"
 RESOLVE_BASE_GH_LOOKUP_TIMEOUT_SECONDS="${RESOLVE_BASE_GH_LOOKUP_TIMEOUT_SECONDS:-10}"
 
 usage() {
   cat >&2 << 'USAGE'
-Usage: resolve-base.sh [--base <branch-or-40-hex-oid>] [--workbench] [--base-only] [--base-commit <40-hex-oid>] [--strict|--tolerate-fetch-failure] [--backup] [--backup-ref <branch>] [--after <commit>] [--force-backup] [--format shell|json]
+Usage: resolve-base.sh --branch-roles [--protect-develop]
+       resolve-base.sh [--base <branch-or-40-hex-oid>] [--workbench] [--base-only] [--base-commit <40-hex-oid>] [--strict|--tolerate-fetch-failure] [--backup] [--backup-ref <branch>] [--after <commit>] [--force-backup] [--format shell|json]
 
 --workbench skips the current Pull Request target when starting independent work.
 --base-only selects a base for independent work without comparing it with HEAD; MERGE_BASE is empty.
 --base with a full 40-character lowercase commit OID uses that local commit without fetching; BASE_BRANCH is empty.
+
+--branch-roles [--protect-develop] prints repository branch roles as JSON without fetching.
+It returns base_branch, configured_base, configured_base_key, conductor_default, remote_default,
+and protected_branches. Unavailable roles are empty strings.
+--base-only exits 3 when the selected remote base cannot be fetched.
 
 Default output is shell-quoted assignments:
   BASE_REF BASE_BRANCH MERGE_BASE AFTER_COMMIT RESET_POINT ORIGINAL_BRANCH ORIGINAL_TIP BACKUP_REF
@@ -86,6 +96,14 @@ while [ $# -gt 0 ]; do
       ;;
     --workbench)
       WORKBENCH_MODE=1
+      shift
+      ;;
+    --branch-roles)
+      BRANCH_ROLES_MODE=1
+      shift
+      ;;
+    --protect-develop)
+      PROTECT_DEVELOP=1
       shift
       ;;
     --base-only)
@@ -148,6 +166,17 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+if [ "$PROTECT_DEVELOP" -eq 1 ] && [ "$BRANCH_ROLES_MODE" -ne 1 ]; then
+  echo "--protect-develop requires --branch-roles" >&2
+  exit 1
+fi
+if [ "$BRANCH_ROLES_MODE" -eq 1 ] \
+  && { [ "$BACKUP_MODE" -eq 1 ] || [ "$WORKBENCH_MODE" -eq 1 ] || [ "$BASE_ONLY_MODE" -eq 1 ] \
+    || [ "$FETCH_MODE" != strict ] || [ "$FORCE_BACKUP" -eq 1 ] \
+    || [ -n "$BASE_FLAG$BASE_COMMIT_FLAG$BACKUP_REF_FLAG$AFTER_ARG" ]; }; then
+  echo "--branch-roles cannot be combined with base selection or rewrite options" >&2
+  exit 1
+fi
 if [ "$FORCE_BACKUP" -eq 1 ] && [ "$BACKUP_MODE" -ne 1 ]; then
   echo "--force-backup requires --backup" >&2
   exit 1
@@ -185,6 +214,19 @@ if ! REPO_ROOT=$(git rev-parse --show-toplevel 2> /dev/null); then
   exit 1
 fi
 REPO_ROOT=$(cd "$REPO_ROOT" && pwd -P)
+if [ "$BRANCH_ROLES_MODE" -eq 1 ]; then
+  load_branch_roles "$PROTECT_DEVELOP"
+  PROTECTED_LINES=$(printf '%s\n' "${PROTECTED_BRANCHES[@]}")
+  emit_json_object \
+    "python3 is required for --branch-roles" \
+    "str:base_branch" "$WORKBENCH_BASE" \
+    "str:configured_base" "$CONFIGURED_BASE" \
+    "str:configured_base_key" "$CONFIGURED_BASE_KEY" \
+    "str:conductor_default" "$CONDUCTOR_DEFAULT" \
+    "str:remote_default" "$REMOTE_DEFAULT" \
+    "lines:protected_branches" "$PROTECTED_LINES"
+  exit 0
+fi
 
 if [ "$BACKUP_MODE" -eq 1 ]; then
   if [ "$SCRIPT_DIR" = "$REPO_ROOT" ] || [[ "$SCRIPT_DIR" == "$REPO_ROOT"/* ]]; then
@@ -216,26 +258,9 @@ if [ "$BACKUP_MODE" -eq 1 ] \
   exit 1
 fi
 
-# Reads the repository-local workbench branch setting into CONFIGURED_BASE and
-# names the key it came from in CONFIGURED_BASE_KEY. trackbed.baseBranch wins;
-# kramme.baseBranch is the name it had before 1.0.0. Returns 1 when neither is
-# set and git's status when it cannot read them.
-read_configured_base() {
-  local key status
-  for key in trackbed.baseBranch kramme.baseBranch; do
-    CONFIGURED_BASE_KEY=$key
-    if CONFIGURED_BASE=$(git config --local --get "$key"); then
-      return 0
-    else
-      status=$?
-      if [ "$status" -ne 1 ]; then
-        return "$status"
-      fi
-    fi
-  done
-  CONFIGURED_BASE_KEY=trackbed.baseBranch
-  return 1
-}
+if [ "$BACKUP_MODE" -eq 1 ]; then
+  load_branch_roles
+fi
 
 fetch_remote_branch() {
   local remote="$1"
@@ -270,10 +295,12 @@ fetch_remote_branch() {
 
   if [ "$fetch_status" -eq 124 ] || [ "$fetch_status" -eq 142 ]; then
     echo "Timed out fetching ${remote}/${branch}${label:+ for $label} after ${RESOLVE_BASE_FETCH_TIMEOUT_SECONDS}s" >&2
-    exit 1
+  else
+    echo "Failed to fetch ${remote}/${branch}${label:+ for $label}" >&2
   fi
-
-  echo "Failed to fetch ${remote}/${branch}${label:+ for $label}" >&2
+  if [ "$BASE_ONLY_MODE" -eq 1 ]; then
+    exit 3
+  fi
   exit 1
 }
 
@@ -358,53 +385,23 @@ else
     rm -f "$PR_LOOKUP_STDERR"
   fi
   if [ -z "$BASE_BRANCH" ]; then
-    if read_configured_base; then
-      if [ -z "$CONFIGURED_BASE" ]; then
-        echo "Configured $CONFIGURED_BASE_KEY is empty" >&2
-        exit 1
-      fi
-      if ! git check-ref-format --branch "$CONFIGURED_BASE" > /dev/null 2>&1; then
-        echo "Configured $CONFIGURED_BASE_KEY '$CONFIGURED_BASE' is not a valid branch name" >&2
-        exit 1
-      fi
-      BASE_BRANCH="$CONFIGURED_BASE"
-    else
-      CONFIG_STATUS=$?
-      if [ "$CONFIG_STATUS" -ne 1 ]; then
-        echo "Could not read repository-local $CONFIGURED_BASE_KEY setting" >&2
-        exit 1
-      fi
+    if [ "$BACKUP_MODE" -ne 1 ]; then
+      load_branch_roles
     fi
-  fi
-  if [ -z "$BASE_BRANCH" ] && [ -n "${CONDUCTOR_DEFAULT_BRANCH:-}" ]; then
-    if git check-ref-format --branch "$CONDUCTOR_DEFAULT_BRANCH" > /dev/null 2>&1 \
-      && git show-ref --verify --quiet "refs/remotes/origin/${CONDUCTOR_DEFAULT_BRANCH}"; then
-      BASE_BRANCH="$CONDUCTOR_DEFAULT_BRANCH"
+    BASE_BRANCH=$WORKBENCH_BASE
+  else
+    BASE_BRANCH=${BASE_BRANCH#refs/heads/}
+    BASE_BRANCH=${BASE_BRANCH#refs/remotes/origin/}
+    BASE_BRANCH=${BASE_BRANCH#origin/}
+    if ! valid_branch_role_name "$BASE_BRANCH"; then
+      echo "Base branch '$BASE_BRANCH' is not a valid branch name" >&2
+      exit 1
     fi
-  fi
-  if [ -z "$BASE_BRANCH" ]; then
-    BASE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2> /dev/null | sed 's@^refs/remotes/origin/@@' || true)
-  fi
-  if [ -z "$BASE_BRANCH" ]; then
-    BASE_BRANCH=$(git branch -r | grep -E 'origin/(main|master)$' | head -1 | sed 's@.*origin/@@' || true)
   fi
   if [ -z "$BASE_BRANCH" ]; then
     echo "Could not determine base branch; expected PR metadata, trackbed.baseBranch, CONDUCTOR_DEFAULT_BRANCH, origin/HEAD, origin/main, or origin/master" >&2
     exit 1
   fi
-
-  BASE_BRANCH=${BASE_BRANCH#refs/heads/}
-  BASE_BRANCH=${BASE_BRANCH#refs/remotes/origin/}
-  BASE_BRANCH=${BASE_BRANCH#origin/}
-  if [ -z "$BASE_BRANCH" ]; then
-    echo "Could not determine base branch" >&2
-    exit 1
-  fi
-  if ! git check-ref-format --branch "$BASE_BRANCH" > /dev/null 2>&1; then
-    echo "Base branch '$BASE_BRANCH' is not a valid branch name" >&2
-    exit 1
-  fi
-
   BASE_REF="refs/remotes/origin/${BASE_BRANCH}"
   if [ -z "$BASE_COMMIT_FLAG" ]; then
     fetch_remote_branch origin "$BASE_BRANCH" ""
@@ -427,17 +424,9 @@ if [ "$BACKUP_MODE" -eq 1 ] && [ -n "$BASE_BRANCH" ] && [ "$CURRENT_BRANCH" = "$
   echo "Current branch is the base branch '$BASE_BRANCH'; switch to a feature branch first" >&2
   exit 1
 fi
-if [ "$BACKUP_MODE" -eq 1 ]; then
-  PROTECTED_REMOTE_DEFAULT=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2> /dev/null || true)
-  PROTECTED_REMOTE_DEFAULT=${PROTECTED_REMOTE_DEFAULT#origin/}
-  PROTECTED_CONFIGURED_BASE=$(git config --local --get trackbed.baseBranch || git config --local --get kramme.baseBranch || true)
-  if [ "$CURRENT_BRANCH" = main ] || [ "$CURRENT_BRANCH" = master ] \
-    || { [ -n "$PROTECTED_REMOTE_DEFAULT" ] && [ "$CURRENT_BRANCH" = "$PROTECTED_REMOTE_DEFAULT" ]; } \
-    || { [ -n "$PROTECTED_CONFIGURED_BASE" ] && [ "$CURRENT_BRANCH" = "$PROTECTED_CONFIGURED_BASE" ]; } \
-    || { [ -n "${CONDUCTOR_DEFAULT_BRANCH:-}" ] && [ "$CURRENT_BRANCH" = "$CONDUCTOR_DEFAULT_BRANCH" ]; }; then
-    echo "Current branch '$CURRENT_BRANCH' is a protected workbench or production branch; switch to a feature branch first" >&2
-    exit 1
-  fi
+if [ "$BACKUP_MODE" -eq 1 ] && branch_is_protected "$CURRENT_BRANCH"; then
+  echo "Current branch '$CURRENT_BRANCH' is a protected workbench or production branch; switch to a feature branch first" >&2
+  exit 1
 fi
 MERGE_BASE=""
 if [ "$BASE_ONLY_MODE" -ne 1 ]; then

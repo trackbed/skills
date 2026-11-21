@@ -224,15 +224,16 @@ def step_4_local(root: Path, facts: JsonDict) -> None:
 
 
 def protected_branches(root: Path) -> list[str]:
-    names = {"main", "master"}
-    configured = git(root, "config", "--local", "--get", "trackbed.baseBranch", ok=(0, 1))
-    if configured.returncode == 1:  # kramme.baseBranch is the setting's name before 1.0.0.
-        configured = git(root, "config", "--local", "--get", "kramme.baseBranch", ok=(0, 1))
-    origin_head = git(root, "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD", ok=(0, 1))
-    names.add(text(configured).strip())
-    names.add(text(origin_head).strip().removeprefix("origin/") if origin_head.returncode == 0 else "")
-    names.add(os.environ.get("CONDUCTOR_DEFAULT_BRANCH", ""))
-    return sorted(name for name in names if name)
+    result = run([str(RESOLVE_BASE), "--branch-roles"], root, "branch_roles_unresolved", NETWORK_TIMEOUT)
+    if result.returncode != 0:
+        raise blocked("branch_roles_unresolved", "Branch roles could not be resolved.", {"stderr": stderr_tail(result)})
+    try:
+        names = json.loads(text(result))["protected_branches"]
+    except (ValueError, KeyError, TypeError) as error:
+        raise blocked("branch_roles_unresolved", "resolve-base.sh returned malformed branch roles.") from error
+    if not isinstance(names, list) or not names or not all(isinstance(name, str) and name for name in names):
+        raise blocked("branch_roles_unresolved", "resolve-base.sh returned malformed protected branches.")
+    return sorted(names)
 
 
 def changed_paths(root: Path, base_ref: str) -> list[str]:
