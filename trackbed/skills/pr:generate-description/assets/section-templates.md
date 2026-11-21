@@ -125,7 +125,9 @@ Rollback: revert the app deploy. The table can stay, because nothing reads it wi
 
 ## Review notes
 
-**Include when:** something non-obvious remains that a reviewer should know, or the change adds a runtime dependency. Order the bullets:
+When the risk helper returns a line, place it first as a standalone line under this heading, even when it is the only review note. Leave a blank line after it when section content follows. For a repository template, place it first in the section that holds risk or review notes, or append it after the template's content if there is no such section.
+
+**Include these bullets when:** something non-obvious remains that a reviewer should know, or the change adds a runtime dependency. Order the bullets:
 
 1. **Risks and side effects**: what could go wrong, how it would show up, and what limits it.
 2. **New runtime dependencies**: each package, service, or other system the change needs at run time, and what it is for. Leave out dependencies used only to develop, build, or test the project unless one needs review attention.
@@ -140,6 +142,8 @@ Keep each bullet to three sentences at most. When a risk needs more, put the mec
 
 ```markdown
 ## Review notes
+
+Risk: low (no signals)
 
 - Single-platform users on slow connections will sometimes see the picker instead of the redirect, because the 2-second fallback wins. That is the intended trade-off.
 - The picker's layout and the multi-platform flow are unchanged; the redesign is tracked in WAN-540.
