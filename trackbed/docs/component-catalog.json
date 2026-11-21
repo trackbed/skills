@@ -58,6 +58,11 @@
       "path": "trackbed/skills/code:harden-security/SKILL.md"
     },
     {
+      "name": "trackbed:code:learn-from-fixes",
+      "invocation": "User, Auto",
+      "path": "trackbed/skills/code:learn-from-fixes/SKILL.md"
+    },
+    {
       "name": "trackbed:code:migrate",
       "invocation": "User",
       "path": "trackbed/skills/code:migrate/SKILL.md"
