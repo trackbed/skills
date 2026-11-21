@@ -11,8 +11,6 @@ source "${CLAUDE_PLUGIN_ROOT}/hooks/lib/safety-hook-parser.sh"
 source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/review-artifacts.sh" || exit 2
 
 ARTIFACT_LIST_FILE="${CONFIRM_REVIEW_ARTIFACT_LIST_FILE:-${CLAUDE_PLUGIN_ROOT}/hooks/confirm-review-artifacts.txt}"
-COMMAND_SUBSTITUTION_TOKEN="__CMD_SUBST_"
-UNSAFE_REPO_SELECTION_REASON="Unable to safely determine the git commit target because repository selection uses command substitution. Use a literal path or commit from within the target repo."
 PARSE_ERROR_REASON="Unable to safely parse command. Refusing possible git commit that may stage a review artifact."
 CONTEXT_DECODE_REASON="Unable to safely decode git commit context. Refusing possible commit of a review artifact."
 CONTEXT_SCHEMA_REASON="$CONTEXT_DECODE_REASON Parser output does not match the commit-context field contract."
@@ -111,15 +109,6 @@ matches_artifact() {
   return 1
 }
 
-should_replay_git_env() {
-  case "$1" in
-    GIT_DIR | GIT_WORK_TREE | GIT_INDEX_FILE | GIT_NAMESPACE | GIT_COMMON_DIR | GIT_OBJECT_DIRECTORY | GIT_ALTERNATE_OBJECT_DIRECTORIES | GIT_LITERAL_PATHSPECS | GIT_GLOB_PATHSPECS | GIT_NOGLOB_PATHSPECS | GIT_ICASE_PATHSPECS)
-      return 0
-      ;;
-  esac
-  return 1
-}
-
 build_safe_git_prefix_args() {
   safe_git_prefix_args=()
   local value
@@ -152,42 +141,6 @@ build_safe_git_prefix_args() {
         ;;
     esac
   done
-}
-
-contains_command_substitution_token() {
-  case "$1" in
-    *"$COMMAND_SUBSTITUTION_TOKEN"*)
-      return 0
-      ;;
-  esac
-  return 1
-}
-
-context_has_dynamic_repo_selection() {
-  # Any prefix arg that still carries a command-substitution placeholder
-  # would be expanded by git when we replay it (see also git -c
-  # core.fsmonitor=$(...) which achieves RCE). Refuse to replay such
-  # args regardless of which flag they sit behind.
-  local arg assignment key value
-  if [ ${#git_prefix_args[@]} -gt 0 ]; then
-    for arg in "${git_prefix_args[@]}"; do
-      if contains_command_substitution_token "$arg"; then
-        return 0
-      fi
-    done
-  fi
-
-  if [ ${#git_env_assignments[@]} -gt 0 ]; then
-    for assignment in "${git_env_assignments[@]}"; do
-      key="${assignment%%=*}"
-      value="${assignment#*=}"
-      if should_replay_git_env "$key" && contains_command_substitution_token "$value"; then
-        return 0
-      fi
-    done
-  fi
-
-  return 1
 }
 
 context_has_unsupported_worktree_prefix() {
@@ -613,8 +566,7 @@ read_commit_context() {
 }
 
 check_commit_context_policy() {
-  # Rejects contexts the parser already flagged, plus selections and repository
-  # targets this hook cannot replay safely.
+  # Reject contexts the parser flagged and selection modes this hook cannot replay.
   if [ -n "$parse_error_reason" ]; then
     echo "$parse_error_reason" >&2
     return 1
@@ -630,10 +582,6 @@ check_commit_context_policy() {
       return 1
       ;;
   esac
-  if context_has_dynamic_repo_selection; then
-    echo "$UNSAFE_REPO_SELECTION_REASON" >&2
-    return 1
-  fi
 }
 
 already_blocked() {

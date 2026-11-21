@@ -9,10 +9,9 @@ from __future__ import annotations
 import json
 import os
 import re
-from typing import Optional, TypedDict
+from typing import Literal, Optional, TypedDict
 
 from .lexer import (
-    extract_placeholder_indexes,
     replace_command_substitutions,
     split_segments,
     tokenize,
@@ -33,19 +32,23 @@ from .syntax import (
     _redirection_token_count,
 )
 from .vocabulary import (
+    COMMAND_SUBSTITUTION_PREFIX,
     GIT_GLOBAL_END_OF_OPTIONS,
     GIT_GLOBAL_OPTION_AMBIGUOUS,
     GIT_GLOBAL_OPTION_FLAG,
     GIT_GLOBAL_OPTION_WITH_VALUE,
     classify_git_global_option,
+    extract_placeholder_indexes,
 )
+
+CommitSelectionMode = Literal["index", "all", "include", "only", "add"]
 
 
 class CommitContext(TypedDict, total=False):
     git_args: list[str]
     git_env: list[str]
     staging_steps: list[list[str]]
-    selection_mode: str
+    selection_mode: CommitSelectionMode
     pathspecs: list[str]
     pathspec_from_file: str
     pathspec_file_nul: bool
@@ -121,7 +124,16 @@ COMMIT_SELECTION_LONG_OPTIONS_WITHOUT_VALUE = {
 }
 COMMIT_SELECTION_SHORT_OPTIONS_WITH_VALUE = {"C", "F", "c", "m", "t"}
 COMMIT_SELECTION_SHORT_OPTIONS_WITH_OPTIONAL_VALUE = {"S", "u"}
+COMMIT_SELECTION_LONG_MODES: dict[str, CommitSelectionMode] = {
+    "--all": "all",
+    "--include": "include",
+    "--only": "only",
+}
 COMMIT_SELECTION_ERROR_PREFIX = "Unable to safely inspect git commit content selection:"
+UNSAFE_REPO_SELECTION_REASON = (
+    "Unable to safely determine the git commit target because repository selection uses command substitution. "
+    "Use a literal path or commit from within the target repo."
+)
 
 
 def commit_selection_error(detail: str) -> CommitContext:
@@ -129,7 +141,7 @@ def commit_selection_error(detail: str) -> CommitContext:
 
 
 def parse_commit_selection(args: list[str]) -> CommitContext:
-    explicit_modes: list[str] = []
+    explicit_modes: list[CommitSelectionMode] = []
     pathspecs: list[str] = []
     pathspec_from_file: Optional[str] = None
     pathspec_file_nul = False
@@ -163,8 +175,9 @@ def parse_commit_selection(args: list[str]) -> CommitContext:
                 "--patch and --interactive cannot be modeled without running an interactive staging session."
             )
 
-        if arg in {"--all", "--include", "--only"}:
-            explicit_modes.append(arg[2:])
+        explicit_mode = COMMIT_SELECTION_LONG_MODES.get(arg)
+        if explicit_mode is not None:
+            explicit_modes.append(explicit_mode)
             idx += 1
             continue
 
@@ -259,9 +272,9 @@ def parse_commit_selection(args: list[str]) -> CommitContext:
     if pathspec_from_file == "-":
         return commit_selection_error("--pathspec-from-file=- depends on consumed hook stdin.")
     if (
-        any("__CMD_SUBST_" in pathspec for pathspec in pathspecs)
+        any(COMMAND_SUBSTITUTION_PREFIX in pathspec for pathspec in pathspecs)
         or pathspec_from_file is not None
-        and "__CMD_SUBST_" in pathspec_from_file
+        and COMMAND_SUBSTITUTION_PREFIX in pathspec_from_file
     ):
         return commit_selection_error("command substitution in a pathspec cannot be replayed safely.")
 
@@ -427,187 +440,91 @@ def lookup_replay_env(assignments: list[str], key: str) -> Optional[str]:
     return None
 
 
-def parse_commit_segment(
+def _apply_export(
     tokens: list[str],
-    git_args: list[str],
+    idx: int,
     git_env: list[str],
+    shell_git_env: list[str],
     shell_git_vars: list[str],
-    depth: int = 0,
-) -> CommitSegmentResult:
-    idx = 0
-    git_args = list(git_args)
-    inherited_shell_git_env = list(git_env)
-    shell_git_env = list(inherited_shell_git_env)
-    inherited_shell_git_vars = list(shell_git_vars)
-    shell_git_vars = list(inherited_shell_git_vars)
-    git_env = list(shell_git_env)
-    shell_env_persists = True
-    pending_shell_git_vars: list[str] = []
-
-    while idx < len(tokens) and tokens[idx] in SHELL_KEYWORDS_WITH_SUBSHELL_CLOSE:
-        if tokens[idx] == "(":
-            shell_env_persists = False
-        idx += 1
-
-    assignment_start = idx
-    while idx < len(tokens) and _is_assignment(tokens[idx]):
-        key, value = tokens[idx].split("=", 1)
-        if key in COMMIT_REPLAY_ENV_VARS:
-            set_replay_env(git_env, key, value)
-            set_replay_env(pending_shell_git_vars, key, value)
-        idx += 1
-
-    segment_has_command = idx < len(tokens)
-    normalized = normalize_command_prefix(
-        tokens[idx:],
-        inherited_environment=git_env,
-        inherited_repository_modifiers=git_args,
-        shell_keywords_allowed=idx == assignment_start,
-    )
-    git_env = _filter_environment_assignments(normalized.environment, COMMIT_REPLAY_ENV_VARS)
-    git_args = normalized.repository_modifiers
-    tokens = [normalized.executable, *normalized.arguments] if normalized.executable is not None else []
-    idx = 0
-
-    if idx >= len(tokens):
-        if not segment_has_command:
-            for assignment in pending_shell_git_vars:
-                key, value = assignment.split("=", 1)
-                set_replay_env(shell_git_vars, key, value)
-        persisted_shell_git_env = shell_git_env if shell_env_persists else inherited_shell_git_env
-        persisted_shell_git_vars = shell_git_vars if shell_env_persists else inherited_shell_git_vars
-        return CommitSegmentResult(
-            contexts=[],
-            persisted_git_env=persisted_shell_git_env,
-            persisted_shell_git_vars=persisted_shell_git_vars,
-        )
-
+) -> int:
+    idx += 1
     while idx < len(tokens):
-        base = _basename_no_unescape(tokens[idx])
-        if base == "alias" and normalized.shell_builtins_allowed:
-            raise ParseError("shell alias definitions are not supported")
-
-        if base == "export" and normalized.shell_builtins_allowed:
-            for assignment in pending_shell_git_vars:
-                key, value = assignment.split("=", 1)
-                set_replay_env(shell_git_vars, key, value)
-            pending_shell_git_vars = []
+        token = tokens[idx]
+        if token == "--":
             idx += 1
-            while idx < len(tokens):
-                token = tokens[idx]
-                if token == "--":
-                    idx += 1
-                    break
-                if token == "-n":
-                    if idx + 1 < len(tokens):
-                        unset_replay_env(shell_git_env, tokens[idx + 1])
-                        unset_replay_env(git_env, tokens[idx + 1])
-                    idx += 2
-                    continue
-                if token.startswith("-n") and token != "-n":
-                    unset_replay_env(shell_git_env, token[2:])
-                    unset_replay_env(git_env, token[2:])
-                    idx += 1
-                    continue
-                if _is_assignment(token):
-                    key, value = token.split("=", 1)
-                    if key in COMMIT_REPLAY_ENV_VARS:
-                        set_replay_env(shell_git_vars, key, value)
-                        set_replay_env(shell_git_env, key, value)
-                        set_replay_env(git_env, key, value)
-                    idx += 1
-                    continue
-                if re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", token):
-                    exported_value = lookup_replay_env(shell_git_vars, token)
-                    if exported_value is not None:
-                        set_replay_env(shell_git_env, token, exported_value)
-                        set_replay_env(git_env, token, exported_value)
-                    idx += 1
-                    continue
-                if token.startswith("-"):
-                    idx += 1
-                    continue
-                break
+            break
+        if token == "-n":
+            if idx + 1 < len(tokens):
+                unset_replay_env(shell_git_env, tokens[idx + 1])
+                unset_replay_env(git_env, tokens[idx + 1])
+            idx += 2
             continue
+        if token.startswith("-n") and token != "-n":
+            unset_replay_env(shell_git_env, token[2:])
+            unset_replay_env(git_env, token[2:])
+            idx += 1
+            continue
+        if _is_assignment(token):
+            key, value = token.split("=", 1)
+            if key in COMMIT_REPLAY_ENV_VARS:
+                set_replay_env(shell_git_vars, key, value)
+                set_replay_env(shell_git_env, key, value)
+                set_replay_env(git_env, key, value)
+            idx += 1
+            continue
+        if re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", token):
+            exported_value = lookup_replay_env(shell_git_vars, token)
+            if exported_value is not None:
+                set_replay_env(shell_git_env, token, exported_value)
+                set_replay_env(git_env, token, exported_value)
+            idx += 1
+            continue
+        if token.startswith("-"):
+            idx += 1
+            continue
+        break
+    return idx
 
-        if base == "unset" and normalized.shell_builtins_allowed:
-            pending_shell_git_vars = []
+
+def _apply_unset(
+    tokens: list[str],
+    idx: int,
+    git_env: list[str],
+    shell_git_env: list[str],
+    shell_git_vars: list[str],
+) -> int:
+    unset_targets_variables = True
+    idx += 1
+    while idx < len(tokens):
+        token = tokens[idx]
+        if token == "--":
+            idx += 1
+            break
+        if token in {"-f", "-n"}:
+            unset_targets_variables = False
+            idx += 1
+            continue
+        if token == "-v":
             unset_targets_variables = True
             idx += 1
-            while idx < len(tokens):
-                token = tokens[idx]
-                if token == "--":
-                    idx += 1
-                    break
-                if token in {"-f", "-n"}:
-                    unset_targets_variables = False
-                    idx += 1
-                    continue
-                if token == "-v":
-                    unset_targets_variables = True
-                    idx += 1
-                    continue
-                if token.startswith("-"):
-                    option_flags = token[1:]
-                    if "f" in option_flags or "n" in option_flags:
-                        unset_targets_variables = False
-                    elif "v" in option_flags:
-                        unset_targets_variables = True
-                    idx += 1
-                    continue
-                if unset_targets_variables:
-                    unset_replay_env(shell_git_vars, token)
-                    unset_replay_env(shell_git_env, token)
-                    unset_replay_env(git_env, token)
-                idx += 1
             continue
+        if token.startswith("-"):
+            option_flags = token[1:]
+            if "f" in option_flags or "n" in option_flags:
+                unset_targets_variables = False
+            elif "v" in option_flags:
+                unset_targets_variables = True
+            idx += 1
+            continue
+        if unset_targets_variables:
+            unset_replay_env(shell_git_vars, token)
+            unset_replay_env(shell_git_env, token)
+            unset_replay_env(git_env, token)
+        idx += 1
+    return idx
 
-        if base in SHELL_EXECUTABLES:
-            nested_command = _extract_shell_inline_command(tokens[idx + 1 :])
-            if nested_command is None:
-                persisted_shell_git_env = shell_git_env if shell_env_persists else inherited_shell_git_env
-                persisted_shell_git_vars = shell_git_vars if shell_env_persists else inherited_shell_git_vars
-                return CommitSegmentResult(
-                    contexts=[],
-                    persisted_git_env=persisted_shell_git_env,
-                    persisted_shell_git_vars=persisted_shell_git_vars,
-                )
-            persisted_shell_git_env = shell_git_env if shell_env_persists else inherited_shell_git_env
-            persisted_shell_git_vars = shell_git_vars if shell_env_persists else inherited_shell_git_vars
-            return CommitSegmentResult(
-                contexts=parse_commit_contexts(
-                    nested_command,
-                    inherited_git_args=git_args,
-                    inherited_git_env=git_env,
-                    inherited_shell_git_vars=list(git_env),
-                    depth=depth + 1,
-                    include_adds=True,
-                ),
-                persisted_git_env=persisted_shell_git_env,
-                persisted_shell_git_vars=persisted_shell_git_vars,
-            )
 
-        if base == "git":
-            break
-
-        persisted_shell_git_env = shell_git_env if shell_env_persists else inherited_shell_git_env
-        persisted_shell_git_vars = shell_git_vars if shell_env_persists else inherited_shell_git_vars
-        return CommitSegmentResult(
-            contexts=[],
-            persisted_git_env=persisted_shell_git_env,
-            persisted_shell_git_vars=persisted_shell_git_vars,
-        )
-
-    if idx >= len(tokens) or _basename_no_unescape(tokens[idx]) != "git":
-        persisted_shell_git_env = shell_git_env if shell_env_persists else inherited_shell_git_env
-        persisted_shell_git_vars = shell_git_vars if shell_env_persists else inherited_shell_git_vars
-        return CommitSegmentResult(
-            contexts=[],
-            persisted_git_env=persisted_shell_git_env,
-            persisted_shell_git_vars=persisted_shell_git_vars,
-        )
-
-    idx += 1
+def _scan_git_globals(tokens: list[str], idx: int, git_args: list[str]) -> int:
     while idx < len(tokens):
         token = tokens[idx]
         redirection_tokens = _redirection_token_count(tokens, idx)
@@ -636,64 +553,150 @@ def parse_commit_segment(
         # unknown flags at runtime; keep scanning so a commit context is
         # emitted and the dynamic-repo-selection gate can block on the
         # retained placeholder.
-        if token.startswith("__CMD_SUBST_"):
+        if token.startswith(COMMAND_SUBSTITUTION_PREFIX):
             git_args.append(token)
             idx += 1
             continue
         break
+    return idx
 
-    if idx < len(tokens) and tokens[idx] == "add":
-        add_args: list[str] = []
-        after_separator = False
-        error = False
-        add_idx = idx + 1
-        while add_idx < len(tokens):
-            arg = tokens[add_idx]
-            redirection_tokens = _redirection_token_count(tokens, add_idx)
-            if redirection_tokens:
-                add_idx += redirection_tokens
-                continue
-            if "__CMD_SUBST_" in arg or "$" in arg or "`" in arg:
+
+def _parse_git_add(args: list[str]) -> CommitContext:
+    add_args: list[str] = []
+    after_separator = False
+    error = False
+    idx = 0
+    while idx < len(args):
+        arg = args[idx]
+        redirection_tokens = _redirection_token_count(args, idx)
+        if redirection_tokens:
+            idx += redirection_tokens
+            continue
+        if COMMAND_SUBSTITUTION_PREFIX in arg or "$" in arg or "`" in arg:
+            error = True
+        if arg == "--":
+            after_separator = True
+        elif not after_separator and arg.startswith("-"):
+            if arg not in {"-A", "--all", "-u", "--update", "-f", "--force"}:
                 error = True
-            if arg == "--":
-                after_separator = True
-            elif not after_separator and arg.startswith("-"):
-                if arg not in {"-A", "--all", "-u", "--update", "-f", "--force"}:
-                    error = True
-            add_args.append(arg)
-            add_idx += 1
-        add_context: CommitContext = {
-            "git_args": git_args,
-            "git_env": git_env,
-            "selection_mode": "add",
-            "pathspecs": add_args,
-        }
-        if error:
-            add_context.update(commit_selection_error("unsupported git add arguments."))
-        return CommitSegmentResult(
-            contexts=[add_context],
-            persisted_git_env=shell_git_env if shell_env_persists else inherited_shell_git_env,
-            persisted_shell_git_vars=shell_git_vars if shell_env_persists else inherited_shell_git_vars,
-        )
+        add_args.append(arg)
+        idx += 1
+    add_context: CommitContext = {
+        "selection_mode": "add",
+        "pathspecs": add_args,
+    }
+    if error:
+        add_context.update(commit_selection_error("unsupported git add arguments."))
+    return add_context
 
-    if idx < len(tokens) and tokens[idx] == "commit":
-        context: CommitContext = {"git_args": git_args, "git_env": git_env}
-        context.update(parse_commit_selection(tokens[idx + 1 :]))
-        persisted_shell_git_env = shell_git_env if shell_env_persists else inherited_shell_git_env
-        persisted_shell_git_vars = shell_git_vars if shell_env_persists else inherited_shell_git_vars
-        return CommitSegmentResult(
-            contexts=[context],
-            persisted_git_env=persisted_shell_git_env,
-            persisted_shell_git_vars=persisted_shell_git_vars,
-        )
 
-    persisted_shell_git_env = shell_git_env if shell_env_persists else inherited_shell_git_env
-    persisted_shell_git_vars = shell_git_vars if shell_env_persists else inherited_shell_git_vars
-    return CommitSegmentResult(
-        contexts=[],
-        persisted_git_env=persisted_shell_git_env,
-        persisted_shell_git_vars=persisted_shell_git_vars,
+def parse_commit_segment(
+    tokens: list[str],
+    git_args: list[str],
+    git_env: list[str],
+    shell_git_vars: list[str],
+    depth: int = 0,
+) -> CommitSegmentResult:
+    idx = 0
+    inherited_git_env = git_env
+    inherited_shell_git_vars = shell_git_vars
+    shell_git_env = list(git_env)
+    git_env = list(git_env)
+    shell_git_vars = list(shell_git_vars)
+    shell_env_persists = True
+    pending_shell_git_vars: list[str] = []
+
+    while idx < len(tokens) and tokens[idx] in SHELL_KEYWORDS_WITH_SUBSHELL_CLOSE:
+        if tokens[idx] == "(":
+            shell_env_persists = False
+        idx += 1
+
+    assignment_start = idx
+    while idx < len(tokens) and _is_assignment(tokens[idx]):
+        key, value = tokens[idx].split("=", 1)
+        if key in COMMIT_REPLAY_ENV_VARS:
+            set_replay_env(git_env, key, value)
+            set_replay_env(pending_shell_git_vars, key, value)
+        idx += 1
+
+    segment_has_command = idx < len(tokens)
+    normalized = normalize_command_prefix(
+        tokens[idx:],
+        inherited_environment=git_env,
+        inherited_repository_modifiers=list(git_args),
+        shell_keywords_allowed=idx == assignment_start,
     )
+    git_env = _filter_environment_assignments(normalized.environment, COMMIT_REPLAY_ENV_VARS)
+    git_args = normalized.repository_modifiers
+    tokens = [normalized.executable, *normalized.arguments] if normalized.executable is not None else []
+
+    def finish(contexts: list[CommitContext]) -> CommitSegmentResult:
+        return CommitSegmentResult(
+            contexts=contexts,
+            persisted_git_env=shell_git_env if shell_env_persists else inherited_git_env[:],
+            persisted_shell_git_vars=shell_git_vars if shell_env_persists else inherited_shell_git_vars[:],
+        )
+
+    if not tokens:
+        if not segment_has_command:
+            for assignment in pending_shell_git_vars:
+                key, value = assignment.split("=", 1)
+                set_replay_env(shell_git_vars, key, value)
+        return finish([])
+
+    idx = 0
+    while idx < len(tokens):
+        base = _basename_no_unescape(tokens[idx])
+        if base == "alias" and normalized.shell_builtins_allowed:
+            raise ParseError("shell alias definitions are not supported")
+
+        if base == "export" and normalized.shell_builtins_allowed:
+            for assignment in pending_shell_git_vars:
+                key, value = assignment.split("=", 1)
+                set_replay_env(shell_git_vars, key, value)
+            pending_shell_git_vars.clear()
+            idx = _apply_export(tokens, idx, git_env, shell_git_env, shell_git_vars)
+            continue
+
+        if base == "unset" and normalized.shell_builtins_allowed:
+            pending_shell_git_vars.clear()
+            idx = _apply_unset(tokens, idx, git_env, shell_git_env, shell_git_vars)
+            continue
+
+        if base in SHELL_EXECUTABLES:
+            nested_command = _extract_shell_inline_command(tokens[idx + 1 :])
+            if nested_command is None:
+                return finish([])
+            return finish(
+                parse_commit_contexts(
+                    nested_command,
+                    inherited_git_args=git_args,
+                    inherited_git_env=git_env,
+                    inherited_shell_git_vars=list(git_env),
+                    depth=depth + 1,
+                    include_adds=True,
+                )
+            )
+
+        if base == "git":
+            break
+        return finish([])
+
+    if idx >= len(tokens):
+        return finish([])
+
+    idx = _scan_git_globals(tokens, idx + 1, git_args)
+    if idx >= len(tokens):
+        return finish([])
+
+    context: CommitContext = {"git_args": git_args, "git_env": git_env}
+    if tokens[idx] == "add":
+        context.update(_parse_git_add(tokens[idx + 1 :]))
+    elif tokens[idx] == "commit":
+        context.update(parse_commit_selection(tokens[idx + 1 :]))
+    else:
+        return finish([])
+    return finish([context])
 
 
 def run_commit_contexts(command: str, parse_error_reason: str) -> int:
@@ -707,5 +710,13 @@ def run_commit_contexts(command: str, parse_error_reason: str) -> int:
     except (ParseError, RecursionError, ValueError):
         # Emit a sentinel the shell caller recognises and blocks on.
         result = [{"parse_error": parse_error_reason}]
+    else:
+        for context in result:
+            if "selection_error" in context:
+                continue
+            if any(COMMAND_SUBSTITUTION_PREFIX in arg for arg in context.get("git_args", [])) or any(
+                COMMAND_SUBSTITUTION_PREFIX in assignment.partition("=")[2] for assignment in context.get("git_env", [])
+            ):
+                context["selection_error"] = UNSAFE_REPO_SELECTION_REASON
     print(json.dumps(result))
     return 0

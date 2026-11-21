@@ -5,6 +5,7 @@ import importlib.util
 import io
 import json
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -67,6 +68,14 @@ from command_safety import syntax as parser_syntax  # noqa: E402
 from command_safety import vocabulary as parser_vocabulary  # noqa: E402
 
 ENTRY_POINT = load_entry_point_module()
+
+
+class CommitReplayContractTest(unittest.TestCase):
+    def test_hook_clears_every_environment_variable_the_parser_replays(self) -> None:
+        hook = (PARSER_LIB_DIR.parent / "confirm-review-responses.sh").read_text()
+        arrays = re.findall(r"^REPLAY_GIT_ENV_VARS=\(\n([^)]*)^\)$", hook, flags=re.MULTILINE)
+        self.assertEqual(len(arrays), 1)
+        self.assertCountEqual(arrays[0].split(), parser_commit.COMMIT_REPLAY_ENV_VARS)
 
 
 class GitCommandLexerTest(unittest.TestCase):
