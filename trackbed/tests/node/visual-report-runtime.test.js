@@ -533,22 +533,173 @@ test("a long title or note is flattened and shortened in the prompt", () => {
   assert.ok(line.includes("..."));
 });
 
-test("stored triage is reduced to well-formed decisions", () => {
+test("stored triage is reduced to well-formed decisions and clears", () => {
+  const time = "2026-01-15T10:00:00.000Z";
   assert.deepEqual(
     runtime.sanitizeTriage({
-      a: { decision: "accept", note: "ok" },
+      a: { decision: "accept", note: "ok", updatedAt: time },
       b: { decision: "dismiss" },
       c: { decision: "delete", note: "x" },
       d: "accept",
       e: null,
+      f: { decision: null, updatedAt: time },
+      g: { decision: null },
+      h: { decision: "accept", updatedAt: "yesterday" },
     }),
     {
-      a: { decision: "accept", note: "ok" },
-      b: { decision: "dismiss", note: "" },
+      decisions: {
+        a: { decision: "accept", note: "ok", updatedAt: time },
+        b: { decision: "dismiss", note: "" },
+        h: { decision: "accept", note: "" },
+      },
+      cleared: { f: time },
     },
   );
-  assert.deepEqual(runtime.sanitizeTriage("corrupt"), {});
-  assert.deepEqual(runtime.sanitizeTriage(null), {});
+  const empty = { decisions: {}, cleared: {} };
+  assert.deepEqual(runtime.sanitizeTriage("corrupt"), empty);
+  assert.deepEqual(runtime.sanitizeTriage(null), empty);
+});
+
+/** A localStorage stand-in that two report tabs share. */
+function fakeStorage() {
+  /** @type {Map<string, string>} */
+  const values = new Map();
+  return {
+    /** @param {string} key */
+    getItem: (key) => values.get(key) ?? null,
+    /** @param {string} key @param {string} value */
+    setItem: (key, value) => {
+      values.set(key, value);
+    },
+  };
+}
+
+test("triage entries saved by two report tabs both survive", () => {
+  const storage = fakeStorage();
+  const key = runtime.storageKey("/work/REVIEW_OVERVIEW.html", "2026-01-15");
+  // Both tabs open on an empty store, then each decides a different entry.
+  const first = runtime.syncTriage(storage, key, {
+    decisions: {
+      "CR-001": {
+        decision: "accept",
+        note: "",
+        updatedAt: "2026-01-15T10:00:00.000Z",
+      },
+    },
+    cleared: {},
+  });
+  const second = runtime.syncTriage(storage, key, {
+    decisions: {
+      "CR-002": {
+        decision: "dismiss",
+        note: "Not ours.",
+        updatedAt: "2026-01-15T10:01:00.000Z",
+      },
+    },
+    cleared: {},
+  });
+  assert.deepEqual(Object.keys(second.decisions).sort(), ["CR-001", "CR-002"]);
+  // The first tab's next save keeps what the second one stored.
+  const again = runtime.syncTriage(storage, key, first);
+  assert.deepEqual(again, second);
+  assert.deepEqual(
+    runtime.sanitizeTriage(JSON.parse(storage.getItem(key) ?? "")),
+    second,
+  );
+});
+
+test("a clear saved by one report tab outlasts an older decision the other tab still holds", () => {
+  const storage = fakeStorage();
+  const key = runtime.storageKey("/work/REVIEW_OVERVIEW.html", "2026-01-15");
+  const stale = runtime.syncTriage(storage, key, {
+    decisions: {
+      "CR-001": {
+        decision: "accept",
+        note: "",
+        updatedAt: "2026-01-15T10:00:00.000Z",
+      },
+    },
+    cleared: {},
+  });
+  runtime.syncTriage(storage, key, {
+    decisions: {},
+    cleared: { "CR-001": "2026-01-15T10:05:00.000Z" },
+  });
+  // The first tab still holds the accept in memory, then saves again.
+  const again = runtime.syncTriage(storage, key, stale);
+  assert.deepEqual(again, {
+    decisions: {},
+    cleared: { "CR-001": "2026-01-15T10:05:00.000Z" },
+  });
+  assert.deepEqual(JSON.parse(storage.getItem(key) ?? "")["CR-001"], {
+    decision: null,
+    updatedAt: "2026-01-15T10:05:00.000Z",
+  });
+});
+
+test("storage that refuses or holds unreadable triage leaves the page's triage standing", () => {
+  const key = runtime.storageKey("/work/REVIEW_OVERVIEW.html", "2026-01-15");
+  const state = {
+    decisions: {
+      "CR-001": {
+        decision: /** @type {const} */ ("accept"),
+        note: "Mine.",
+        updatedAt: "2026-01-15T10:00:00.000Z",
+      },
+    },
+    cleared: { "CR-002": "2026-01-15T10:01:00.000Z" },
+  };
+  const unreadable = fakeStorage();
+  unreadable.setItem(key, "{not json");
+  assert.deepEqual(runtime.syncTriage(unreadable, key, state), state);
+  assert.deepEqual(
+    runtime.sanitizeTriage(JSON.parse(unreadable.getItem(key) ?? "")),
+    state,
+    "the unreadable copy is replaced",
+  );
+  const refuse = () => {
+    throw new Error("SecurityError");
+  };
+  assert.deepEqual(
+    runtime.syncTriage({ getItem: refuse, setItem: refuse }, key, state),
+    state,
+  );
+});
+
+test("a later clear outlasts an older decision from another tab, and a later decision a clear", () => {
+  const older = {
+    decision: /** @type {const} */ ("accept"),
+    note: "",
+    updatedAt: "2026-01-15T10:00:00.000Z",
+  };
+  const merged = runtime.mergeTriage(
+    { decisions: { a: older, b: older }, cleared: {} },
+    {
+      decisions: { b: { ...older, updatedAt: "2026-01-15T10:05:00.000Z" } },
+      cleared: { a: "2026-01-15T10:01:00.000Z" },
+    },
+  );
+  assert.deepEqual(merged.cleared, { a: "2026-01-15T10:01:00.000Z" });
+  assert.deepEqual(Object.keys(merged.decisions), ["b"]);
+  assert.equal(merged.decisions.b.updatedAt, "2026-01-15T10:05:00.000Z");
+
+  const back = runtime.mergeTriage(merged, {
+    decisions: { a: { ...older, updatedAt: "2026-01-15T10:02:00.000Z" } },
+    cleared: { b: "2026-01-15T10:03:00.000Z" },
+  });
+  assert.deepEqual(
+    Object.keys(back.decisions).sort(),
+    ["a", "b"],
+    "an older clear loses",
+  );
+  assert.deepEqual(back.cleared, {});
+
+  // A decision saved before decisions carried a time is older than any edit.
+  const legacy = runtime.mergeTriage(
+    { decisions: {}, cleared: { a: "2026-01-15T10:01:00.000Z" } },
+    runtime.sanitizeTriage({ a: { decision: "dismiss", note: "" } }),
+  );
+  assert.deepEqual(legacy.decisions, {});
 });
 
 test("triage is stored per page and per generation", () => {
