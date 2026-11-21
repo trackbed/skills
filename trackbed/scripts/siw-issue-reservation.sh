@@ -331,22 +331,41 @@ cleanup_receipt_temp() {
   receipt_temp=
 }
 
+# Unlink a claim only if it still records the given owner and token when re-read,
+# so a claim another helper has since created at the same path is left in place.
+# The read and the unlink are not atomic: callers must keep other helpers from
+# replacing the claim in between. A claim that vanishes before it is read is skipped.
+unlink_claim_if_matches() {
+  match_claim=$1
+  match_owner=$2
+  match_token=$3
+  if [ -f "$match_claim" ] && [ ! -L "$match_claim" ]; then
+    current_claim_owner=
+    current_claim_token=
+    {
+      IFS= read -r current_claim_owner || true
+      IFS= read -r current_claim_token || true
+    } 2> /dev/null < "$match_claim" || return 0
+    if [ "$current_claim_owner" = "$match_owner" ] && [ "$current_claim_token" = "$match_token" ]; then
+      unlink "$match_claim" 2> /dev/null || true
+    fi
+  fi
+}
+
 cleanup_operation_lock() {
   if [ -z "${operation_lock_held:-}" ]; then
     return
   fi
-  if [ -f "$operation_claim" ] && [ ! -L "$operation_claim" ]; then
-    current_operation_owner=
-    current_operation_token=
-    {
-      IFS= read -r current_operation_owner || true
-      IFS= read -r current_operation_token || true
-    } < "$operation_claim"
-    if [ "$current_operation_owner" = "$operation_owner" ] && [ "$current_operation_token" = "$operation_token" ]; then
-      unlink "$operation_claim" 2> /dev/null || true
-    fi
-  fi
+  unlink_claim_if_matches "$operation_claim" "$operation_owner" "$operation_token"
   operation_lock_held=
+}
+
+cleanup_operation_guard() {
+  if [ -z "${operation_guard_held:-}" ]; then
+    return
+  fi
+  unlink_claim_if_matches "$operation_guard" "$operation_owner" "$operation_token"
+  operation_guard_held=
 }
 
 finish_operation_lock() {
@@ -362,6 +381,7 @@ cleanup_all() {
   cleanup_hash_temps
   cleanup_changed_ids_temp
   cleanup_receipt_temp
+  cleanup_operation_guard
   cleanup_operation_lock
 }
 
@@ -426,6 +446,7 @@ acquire_operation_lock() {
   siw_dir=$1
   operation_owner=$2
   operation_claim="$siw_dir/.issue-reservation-operation.lock"
+  operation_guard="$siw_dir/.issue-reservation-operation.guard"
   operation_nonce=$(new_owner)
   operation_token="operation:$$:$operation_nonce"
   operation_attempt=1
@@ -454,9 +475,10 @@ acquire_operation_lock() {
         '' | *[!0-9]*) fail "reservation operation claim is malformed: $operation_claim" ;;
       esac
       if [ "$operation_pid" = "$$" ] || ! kill -0 "$operation_pid" 2> /dev/null; then
-        unlink "$operation_claim" 2> /dev/null || true
-        operation_attempt=$((operation_attempt + 1))
-        continue
+        if recover_stale_operation_lock "$recorded_owner" "$recorded_request_key"; then
+          operation_attempt=$((operation_attempt + 1))
+          continue
+        fi
       fi
     elif [ -e "$operation_claim" ] || [ -L "$operation_claim" ]; then
       fail "reservation operation claim is not a regular ownership claim: $operation_claim"
@@ -464,7 +486,29 @@ acquire_operation_lock() {
     operation_attempt=$((operation_attempt + 1))
     [ "$operation_attempt" -le "$operation_max_attempts" ] && sleep "${SIW_OPERATION_RETRY_DELAY:-0.01}"
   done
+  if [ -e "$operation_guard" ] || [ -L "$operation_guard" ]; then
+    fail "stale operation lock recovery is blocked by $operation_guard; if no reservation helper is running, remove it and retry"
+  fi
   fail "another reservation helper operation is still running; wait for it to finish before retrying"
+}
+
+# Delete a stale operation lock under an exclusive guard. Between reading the lock
+# and deleting it, another helper may have recovered it and created its own live
+# lock, so delete only while the lock still records the dead holder's owner and
+# operation:PID:nonce token. Returns nonzero when the guard cannot be taken, for
+# example while another helper holds it. A helper that dies here before its cleanup
+# traps cover the guard, or by SIGKILL or a crash, leaves it for manual removal.
+recover_stale_operation_lock() {
+  stale_owner=$1
+  stale_token=$2
+  if ! create_owned_claim "$operation_guard" "$operation_owner" "$operation_token"; then
+    return 1
+  fi
+  operation_guard_held=1
+  install_cleanup_traps
+  unlink_claim_if_matches "$operation_claim" "$stale_owner" "$stale_token"
+  cleanup_operation_guard
+  trap - 0 1 2 15
 }
 
 remove_owned_claim() {

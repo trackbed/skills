@@ -25,7 +25,7 @@ create_usage_plugin_root() {
 	cp "$BATS_TEST_DIRNAME/../hooks/lib/check-enabled.sh" "$plugin_root/hooks/lib/check-enabled.sh"
 	cp "$BATS_TEST_DIRNAME/../scripts/lib/trackbed-paths.sh" "$plugin_root/scripts/lib/trackbed-paths.sh"
 	cp "$SCRIPT" "$plugin_root/scripts/skill-usage.js"
-	cp "$BATS_TEST_DIRNAME/../scripts/lib/skill-usage-hosts.js" "$plugin_root/scripts/lib/skill-usage-hosts.js"
+	cp "$BATS_TEST_DIRNAME/../scripts/lib/trackbed-runtime.js" "$plugin_root/scripts/lib/trackbed-runtime.js"
 }
 
 @test "records explicit slash skill invocations from prompts" {

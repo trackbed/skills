@@ -296,6 +296,47 @@
   }
 
   /**
+   * Fold a stored payload into the page's records, keeping the later edit of
+   * each item. A later clear stays as an empty record with its time, so it
+   * still outlasts an older record after this page writes. An unreadable
+   * payload changes nothing; the next write replaces it.
+   * @param {Catalog} catalog @param {Records} records @param {string | null} stored
+   * @returns {Records}
+   */
+  function absorbStored(catalog, records, stored) {
+    if (!stored) return records;
+    /** @type {Parsed} */
+    let parsed;
+    try {
+      parsed = parsePayload(JSON.parse(stored), catalog);
+    } catch {
+      return records;
+    }
+    const merged = mergeNewest(records, parsed.records, parsed.cleared);
+    for (const item of catalog.items) {
+      const time = parsed.cleared[item.id];
+      if (time && !merged[item.id])
+        merged[item.id] = { ...emptyRecord(item), updatedAt: time };
+    }
+    return merged;
+  }
+
+  /**
+   * The one way records reach this browser's storage. Another tab may have
+   * written since this page last looked, so read what is stored, merge both
+   * ways, write the result, and hand it back for the page to show. Throws when
+   * the storage refuses, so the page can say it is not saving.
+   * @param {Pick<Storage, "getItem" | "setItem">} storage @param {string} key
+   * @param {Catalog} catalog @param {Records} records @param {string} now
+   * @returns {Records}
+   */
+  function syncStore(storage, key, catalog, records, now) {
+    const merged = absorbStored(catalog, records, storage.getItem(key));
+    storage.setItem(key, JSON.stringify(buildPayload(catalog, merged, now)));
+    return merged;
+  }
+
+  /**
    * Which imported records would be written. By default a record the reader
    * already has is kept; replacing is the reader's explicit choice.
    * @param {Catalog} catalog @param {Records} current @param {Records} incoming @param {boolean} replace
@@ -435,6 +476,7 @@
     STATUSES,
     CUSTOM,
     NO_CHANGE,
+    absorbStored,
     applyChange,
     buildPayload,
     choiceAllowed,
@@ -449,6 +491,7 @@
     parsePayload,
     planImport,
     safeJson,
+    syncStore,
   };
   if (typeof module === "object" && module && module.exports)
     module.exports = api;
@@ -550,16 +593,19 @@
       }, 9000);
     }
 
+    // Every write goes through here, so a tab never erases what another saved.
     function persist() {
       window.clearTimeout(saveTimer);
       saveTimer = undefined;
       try {
-        localStorage.setItem(
+        records = syncStore(
+          localStorage,
           storageKey,
-          JSON.stringify(
-            buildPayload(catalog, records, new Date().toISOString()),
-          ),
+          catalog,
+          records,
+          new Date().toISOString(),
         );
+        render();
         storageWorks = true;
         unsaved = false;
         const time = new Date().toLocaleTimeString([], {
@@ -1239,6 +1285,13 @@
       // Only when this browser cannot keep the choices and no copy was taken.
       if (!storageWorks && unsaved) event.preventDefault();
     });
+    // Another tab saved. Its write already holds this page's last save, so
+    // merging is enough; a pending save here merges again before it writes.
+    window.addEventListener("storage", (event) => {
+      if (event.key !== storageKey) return;
+      records = absorbStored(catalog, records, event.newValue);
+      render();
+    });
 
     // ---------- start ----------
 
@@ -1256,15 +1309,11 @@
       );
     }
     try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        try {
-          const parsed = parsePayload(JSON.parse(stored), catalog);
-          records = mergeNewest(records, parsed.records, parsed.cleared);
-        } catch {
-          // What this browser stored is unreadable; the next edit replaces it.
-        }
-      }
+      records = absorbStored(
+        catalog,
+        records,
+        localStorage.getItem(storageKey),
+      );
       const probe = `${storageKey}:probe`;
       localStorage.setItem(probe, "1");
       localStorage.removeItem(probe);

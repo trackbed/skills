@@ -1,0 +1,34 @@
+[
+  {
+    "label": "current wins",
+    "current": "new",
+    "legacy": "old",
+    "expected": "new"
+  },
+  {
+    "label": "legacy fallback",
+    "legacy": "old",
+    "expected": "old"
+  },
+  {
+    "label": "empty current falls back",
+    "current": "",
+    "legacy": "old",
+    "expected": "old"
+  },
+  {
+    "label": "empty values fall back to default",
+    "current": "",
+    "legacy": "",
+    "expected": "default"
+  },
+  {
+    "label": "unset values fall back to default",
+    "expected": "default"
+  },
+  {
+    "label": "trailing newline stays in the value",
+    "current": "1\n",
+    "expected": "1\n"
+  }
+]

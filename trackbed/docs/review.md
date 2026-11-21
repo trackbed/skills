@@ -216,14 +216,31 @@ A caller-only validation mode instead reruns the applicable gates once when auth
 
 ## Your Review Queue
 
-`/trackbed:pr:review-queue` reports which Pull Requests wait on your review and where each one stands: your part, CI, merge state, and the linked issue. It only reads from GitHub; it never reviews, comments, re-runs jobs, or merges.
+`/trackbed:pr:review-queue` reports which Pull Requests wait on your review and where each one stands. Its table always lists the Pull Request's title and link, its author, the linked Linear issue, CI, how long it has waited, whether it looks ready for review, and your part. It only reads from GitHub; it never reviews, comments, re-runs jobs, or merges.
 
+- **Waiting** counts from your latest review request, or from when a draft was marked ready after that request.
+- **Ready?** is an estimate from GitHub state, so you do not review code that is about to change.
+  - "No" means the author still owes work: a draft, a title or label that says unfinished, merge conflicts, a failing required check, or another reviewer's changes request with no push since.
+  - "Probably" means something is still open or in motion: CI running, unresolved threads from other reviewers, a base that is another Pull Request's branch, or no description.
+  - A failing check that looks like a flake counts as "Probably", not "No".
+- **Linear issue** comes from the title, then from a Linear link or a line such as "Fixes ABC-123" in the description, then from the branch name.
 - **Your part** covers an unsubmitted pending review, which its author cannot see yet, your unresolved threads, a re-request after your earlier review, and an approval that a later push made stale.
 - **CI** ignores checks from runs that a newer run of the same workflow and event replaced, so a cancelled duplicate run does not make a passing Pull Request read as failing. A skipped run replaces nothing, so it cannot hide an earlier failure.
 - **Rechecks** pass the previous snapshot time as `--since` and the earlier Pull Requests as refs. GitHub drops you from the requested reviewers once you review, and a Pull Request merged without your review keeps the request, so `--since` searches for both and the report names each change.
 - **Scope:** only the repository you run it in, and only requests made to you personally, not requests to a team you belong to. `--repo OWNER/NAME` searches another repository, and `--all-repos` searches every repository you can read.
 
 To review one of them, run `/trackbed:pr:github-review` with its URL.
+
+### Review Workspaces in Conductor
+
+In a local Conductor workspace whose agent has Conductor's workspace tools, the queue also looks for each waiting Pull Request's review workspace and adds a `Workspace` column.
+
+- **Finding a workspace:** it matches a workspace whose branch is the Pull Request's branch, as when Conductor opens a workspace from a Pull Request, or whose name holds the reference, such as `acme/web#412`. It also searches the repository's chats once for a review command that was run with a Pull Request URL, which finds a review started in another workspace. A chat that only suggests the command does not count.
+- **Where the review stands:** running, waiting for your answer, stopped on an error, or idle with what it reached, such as the recommended verdict. A review older than the latest push or request is called out.
+- **Starting reviews:** the report ends with one offer to start `/trackbed:pr:github-review` for the Pull Requests that have no workspace, look ready, and have no pending review of yours. Nothing starts until you answer yes and name which. Each one gets its own new workspace named `Review OWNER/NAME#N`, which the next queue run finds.
+- **What a started review may do:** it only reports. It posts nothing to GitHub without asking you in its own workspace, because the queue never adds `--draft-review`.
+
+The queue never messages, cancels, or archives a chat or a workspace. The [proposed decision](decisions/2026-11-21-review-queue-conductor-workspaces.md) records why it stays model-invocable.
 
 ## Reviewing Someone Else's Pull Request
 

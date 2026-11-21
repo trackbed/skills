@@ -247,9 +247,32 @@ class RiskSignalsTests(unittest.TestCase):
 
     def test_deleted_source_file(self) -> None:
         (self.repo / "src" / "app.py").unlink()
-        signal = self.signals(self.report())["shape:deleted-source"]
+        signals = self.signals(self.report())
 
-        self.assertEqual(signal["evidence"], ["src/app.py"])
+        self.assertEqual(signals["shape:deleted-source"]["evidence"], ["src/app.py"])
+        self.assertNotIn("shape:deleted-test", signals)
+
+    def test_deleted_test_file_raises_the_floor_on_its_own(self) -> None:
+        self.write("tests/test_app.py", "def test_app():\n    assert True\n")
+        self.write("tests/fixtures/app.json", "{}\n")
+        self.base = self.commit("add tests")
+        (self.repo / "tests" / "test_app.py").unlink()
+        (self.repo / "tests" / "fixtures" / "app.json").unlink()
+        report = self.report()
+        signals = self.signals(report)
+
+        self.assertEqual(signals["shape:deleted-test"]["evidence"], ["tests/fixtures/app.json", "tests/test_app.py"])
+        self.assertEqual(list(signals), ["shape:deleted-test"])
+        self.assertEqual((report["floor"], report["hard_floor"]), ("medium", "low"))
+
+    def test_moved_test_file_is_not_a_deleted_test(self) -> None:
+        self.write("tests/test_app.py", "def test_app():\n    assert True\n")
+        self.base = self.commit("add test")
+        self.git("mv", "tests/test_app.py", "tests/test_application.py")
+        report = self.report()
+
+        self.assertEqual(report["signals"], [])
+        self.assertEqual([entry["status"] for entry in report["files"]], ["R"])
 
     def test_untested_source_requires_a_threshold_and_no_test_changes(self) -> None:
         self.write("src/feature.py", lines(25))

@@ -366,10 +366,6 @@ def _risk_report(root: Path, script: str, merge_base: str, policy_ref: str) -> d
     return report
 
 
-def _higher(first: str, second: str) -> str:
-    return max(first, second, key=PROFILES.index)
-
-
 def select_profile(
     key: str,
     base_ref: str,

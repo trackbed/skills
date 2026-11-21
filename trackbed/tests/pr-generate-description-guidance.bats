@@ -929,3 +929,72 @@ docs/Pull_Request_Template/Feature.MD"
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
+
+@test "description risk line uses the committed layer and the default branch policy" {
+    skill="$BATS_TEST_DIRNAME/../skills/pr:generate-description"
+    script="$skill/scripts/risk-line.py"
+    assert_required_text "$skill/assets/section-templates.md" "place it first as a standalone line under this heading, even when it is the only review note"
+    assert_required_text "$skill/SKILL.md" 'the body contains exactly one plain line starting `Risk:`'
+    assert_required_text "$skill/references/verification-checklist.md" 'only when it contains the deterministic `Risk:` line'
+    init_empty_test_git_repo "$BATS_TEST_TMPDIR/repo" -b main
+    cd "$BATS_TEST_TMPDIR/repo"
+    mkdir -p .github
+    printf '%s\n' '{"version":1,"medium_risk_paths":["notes.md"]}' > .github/pr-risk.json
+    git add .github/pr-risk.json
+    git commit -qm "Define default risk policy"
+    git update-ref refs/remotes/origin/main HEAD
+    git switch -qc parent
+    printf '%s\n' '{"version":1}' > .github/pr-risk.json
+    git commit -qam "Change policy on parent"
+    layer_base="$(git rev-parse HEAD)"
+    git switch -qc layer
+    printf 'Review this change\n' > notes.md
+    git add notes.md
+    git commit -qm "Add layer notes"
+    layer_head="$(git rev-parse HEAD)"
+
+    run python3 "$script" --merge-base "$layer_base" --head "$layer_head"
+    [ "$status" -eq 0 ]
+    [ "$output" = "Risk: medium (signals: policy:medium-path)" ]
+
+    run python3 "$script" --merge-base "$layer_base" --head "$layer_base"
+    [ "$status" -eq 0 ]
+    [ "$output" = "Risk: low (no signals)" ]
+
+    body="$BATS_TEST_TMPDIR/body.md"
+    for line in 'Risk: low (no signals)' 'Risk: medium (signals: path:dependencies)'; do
+        printf '## Review notes\n\n%s\n' "$line" > "$body"
+        run python3 "$script" --merge-base "$layer_base" --head "$layer_head" --check-body "$body"
+        [ "$status" -eq 0 ]
+        [ "$output" = "Risk: medium (signals: policy:medium-path)" ]
+    done
+
+    for line in 'Risk: medium (signals: policy:medium-path)' 'Legacy review notes'; do
+        printf '%s\n' "$line" > "$body"
+        run python3 "$script" --merge-base "$layer_base" --head "$layer_head" --check-body "$body"
+        [ "$status" -eq 0 ]
+        [ -z "$output" ]
+    done
+
+    printf '%s\n' 'Risk: medium (signals: policy:medium-path)' 'Risk: medium (signals: policy:medium-path)' > "$body"
+    run python3 "$script" --merge-base "$layer_base" --head "$layer_head" --check-body "$body"
+    [ "$status" -eq 0 ]
+    [ "$output" = "Risk: medium (signals: policy:medium-path)" ]
+
+    git update-ref refs/remotes/origin/stable "$layer_base"
+    git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/stable
+    run python3 "$script" --merge-base "$layer_base" --head "$layer_head"
+    [ "$status" -eq 0 ]
+    [ "$output" = "Risk: low (no signals)" ]
+
+    git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/unfetched
+    run python3 "$script" --merge-base "$layer_base" --head "$layer_head"
+    [ "$status" -eq 1 ]
+    [[ "$output" == "Risk assessment unavailable:"* ]] || false
+
+    git symbolic-ref --delete refs/remotes/origin/HEAD
+    git update-ref -d refs/remotes/origin/main
+    run python3 "$script" --merge-base "$layer_base" --head "$layer_head"
+    [ "$status" -eq 1 ]
+    [[ "$output" == "Risk assessment unavailable: no origin/HEAD, origin/main, or origin/master"* ]] || false
+}

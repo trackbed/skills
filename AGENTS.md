@@ -25,6 +25,7 @@ Edit shipped components in the canonical plugin source under `trackbed/`. Instal
 - **ALWAYS** keep each shipped skill self-contained within the installed plugin. Follow the [shared-resource decision](trackbed/docs/decisions/2026-10-01-plugin-level-shared-skill-resources.md) for runtime paths and subagent prompts.
 - **ALWAYS** follow the [skill epilogue decision](trackbed/docs/decisions/2026-09-07-skill-epilogue-verification-only.md) when writing a skill's gates and verification section.
 - **ALWAYS** register hooks in [hooks.json](trackbed/hooks/hooks.json) and call `exit_if_hook_disabled` from [check-enabled.sh](trackbed/hooks/lib/check-enabled.sh) before the hook does work.
+- **ALWAYS** follow the [add-a-script checklist](trackbed/scripts/README.md#adding-a-script) when adding a top-level file to `trackbed/scripts/`. The [scripts README](trackbed/scripts/README.md) marks which files ship in the Codex plugin.
 
 ## Documentation and Verification
 

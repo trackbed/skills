@@ -1,4 +1,4 @@
-.PHONY: test-walkthrough-browser test-python38-compatibility lint lint-shell lint-python lint-js typecheck-python format format-check pre-commit pr-verify verify test test-smoke installed-resources test-bootstrap test-bats test-bats-file test-node test-node-watch test-node-file test-python test-python-file test-verbose test-convert test-block test-format test-skill-usage test-skill-contracts test-skill-review-eval test-skill-review-live-eval coverage unit-coverage coverage-node coverage-python coverage-bats-contract check-python-static-inventory skill-contracts skill-security skill-security-changed skill-security-semantic skill-security-semantic-changed skill-eval-skill-review skill-eval-compare skillopt-candidate-check bootstrap-check bootstrap-install install-test-deps check-deps check-bats-deps check-node-deps check-python-deps check-coverage-inventory-deps check-shell-deps check-ruff-deps check-mypy-deps check-js-deps check-static-deps check-test-deps check-format-deps check-security-deps check-security-changed-deps
+.PHONY: test-walkthrough-browser test-python38-compatibility lint lint-shell lint-python lint-js typecheck-python format format-check pre-commit pr-verify verify test test-smoke test-changed installed-resources test-bootstrap test-bats test-bats-file test-node test-node-watch test-node-file test-python test-python-file test-verbose test-convert test-block test-format test-skill-usage test-skill-contracts test-skill-review-eval test-skill-review-live-eval coverage unit-coverage coverage-node coverage-python coverage-bats-contract check-python-static-inventory skill-contracts skill-security skill-security-changed skill-security-semantic skill-security-semantic-changed skill-eval-skill-review skill-eval-compare skillopt-candidate-check bootstrap-check bootstrap-install install-test-deps check-deps check-bats-deps check-node-deps check-python-deps check-coverage-inventory-deps check-shell-deps check-ruff-deps check-mypy-deps check-js-deps check-static-deps check-test-deps check-format-deps check-security-deps check-security-changed-deps
 
 ROOT_DIR := $(abspath ..)
 PLUGIN_REL := $(shell basename "$(CURDIR)")
@@ -152,6 +152,12 @@ test-smoke: check-test-deps test-bootstrap
 	@node --test $(SMOKE_NODE_TEST_FILES)
 	@python3 -m unittest $(SMOKE_PYTHON_TEST_FILE)
 	@bats $(SMOKE_BATS_TEST_FILE)
+
+# Suites mapped to the files changed against FORMAT_BASE, including uncommitted
+# and untracked files; the mapping rules are in scripts/changed-tests.py.
+test-changed: check-test-deps
+	@chmod +x tests/test_helper/mocks/*
+	@python3 scripts/changed-tests.py --base "$(FORMAT_BASE)"
 
 # Focused entry point for the portable bootstrap contracts.
 test-bootstrap: check-bats-deps

@@ -354,7 +354,7 @@ More review skills cover product, convention, UX, and GitHub-reviewer flows. Whi
 | Convention drift and overcaution vs. established codebase practice | `/trackbed:pr:convention-review` |
 | Needless complexity and unlikely-edge-case hedging vs. what the task requires | `/trackbed:pr:overengineering-review` |
 | Product-value, flow, copy, and edge-case review, plus UX, visual, and accessibility review when UI files changed | `/trackbed:pr:product-review` |
-| Which PRs wait on your review, and where each one stands | `/trackbed:pr:review-queue` |
+| Which PRs wait on your review, where each one stands, and whether it looks ready | `/trackbed:pr:review-queue` |
 | Review someone else's GitHub PR as the assigned reviewer | `/trackbed:pr:github-review` |
 | Triage and respond to review comments on your own PR | `/trackbed:pr:github-review-reply` |
 | Rebase, fix CI, and answer AI reviewer comments on your open PR in one run | `/trackbed:pr:shape-up` |
@@ -532,7 +532,7 @@ PR creation, review, iteration, and resolution. See the [review guide](trackbed/
 | `/trackbed:pr:resolve-review` | User, Auto | `[--team] [--implement-only] [--granular] [--severity ...] [--source local\|online\|conductor] [review\|url\|instructions]` | Implement fixes for code-review or Conductor diff-comment findings as commits on the current branch. |
 | `/trackbed:pr:github-review-reply` | User, Auto | `[--auto] [--implement\|--no-implement] [--post] [--resolve] [--inline] [--visual] [--humanize] [--human-only\|--bot-only\|--include-bots] [--all] [--only <login>] [pr-url\|instructions]` | Triage review comments on your own PR, make the needed changes, and draft or post replies. |
 | `/trackbed:pr:github-review` | User | `[--subagent-model <model>] [pr-number\|pr-url] [--stack] [--draft-review] [--no-clarity-check] [--base <ref>] [--categories a11y,ux,product,visual] [--code-only] [--sequential] [--fresh] [--full] [--include-bots] [--all-threads] [--inline] [--visual] [--keep-worktree]` | Review someone else's GitHub PR or its whole stack, including linked Linear issues. Report-only unless you ask for a pending review. |
-| `/trackbed:pr:review-queue` | User, Auto | `[--repo OWNER/NAME \| --all-repos] [--since ISO-8601] [OWNER/NAME#N ...]` | See which PRs wait on your review and where each stands: your part, CI, merge state, and linked issue; rechecks report what changed. Read-only. |
+| `/trackbed:pr:review-queue` | User, Auto | `[--repo OWNER/NAME \| --all-repos] [--since ISO-8601] [OWNER/NAME#N ...]` | See which PRs wait on your review: wait time, readiness, CI, and linked issue. In Conductor, start reviews in new workspaces. Read-only on GitHub. |
 | `/trackbed:pr:fix-ci` | User, Auto | `[--fixup] [--manual] [--no-consolidate] [--rebase\|--no-rebase] [--scope-plan <archived-plan>]` | Repair failing CI checks and reviewer feedback on an open PR with targeted pushes until checks pass; `--manual` keeps the prompts. |
 | `/trackbed:pr:shape-up` | User | — | Get an open PR ready to merge: rebase when behind its target, fix CI until checks are green, and fix and answer AI reviewer comments. Does only what is needed. |
 | `/trackbed:pr:generate-description` | User, Auto | `[--manual] [--no-update] [--check [--strict]] [--no-capture] [--base <ref>] [--base-commit <oid>] [--linear-issue <ISSUE-ID>] [--evidence-manifest <path>] [--independent-review-line <line>]` | Write a PR title and body from the diff, commits, and Linear context, updating an open PR unless `--manual`; `--check` reports drift. |
@@ -869,6 +869,9 @@ make -C trackbed test-bats-file BATS_TEST_FILE=tests/repository-instructions.bat
 npm run format
 npm run format:check
 
+# Suites mapped to the files changed against origin/main, including uncommitted ones
+make -C trackbed test-changed
+
 # Representative cross-language feedback
 make -C trackbed test-smoke
 
@@ -1013,6 +1016,7 @@ Reviewed at commit `403d8881d62022490637d740657b33f01e321ea8`, the Codex integra
 - `trackbed:code:audit-practice`: The eighteen mistakes it checks for are adapted from Matt Pocock's [post on agentic coding mistakes](https://x.com/mattpocockuk/status/2109973273924579720), with terms read through AI Hero's [AI Coding Dictionary](https://www.aicodingdictionary.com/).
 - `trackbed:code:encode-constraint`: Inspired by [@poteto's X post](https://x.com/poteto/status/2109699980248408574) on treating the codebase as agent memory and turning each observed agent mistake into a constraint.
 - `trackbed:product:prd`: The PRD written after prototyping as a decision record, with its behavior contract, golden-set evals, rollout gates, kill switch, and change log, is adapted from Aakash Gupta's [post on an AI-era PRD template](https://x.com/aakashgupta/status/2112951808050245874).
+- The `shape:deleted-test` risk signal in `trackbed:pr:triage-risk` and the removed-coverage check in `trackbed:pr-test-analyzer`: Informed by the pre-merge check for weakened tests in Daniel Moka's [article on building a software factory](https://x.com/dmokafa/status/2122591275845112164).
 - `trackbed:git:commit-message`: From [getsentry/skills](https://github.com/getsentry/skills/blob/main/plugins/sentry-skills/skills/commit/SKILL.md).
 - `trackbed:text:clarify` and the shared plain-language rubric that `trackbed:pr:generate-description` also applies: Inspired by [fofr's GOV.UK style skill](https://gist.github.com/fofr/505e225f9bf5e839d30c12ba6bfa0be2) and official GOV.UK guidance on [identifying user needs](https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/plan-manage-content/identify-user-needs/) and [using clear language](https://guidance.publishing.service.gov.uk/writing-to-gov-uk-standards/writing-guidelines/clear-language/), adapted into a locale-neutral reader-task workflow.
 - `trackbed:text:clarify --humanize`: Its AI-writing pattern catalog adapts Wikipedia: Signs of AI writing (maintained by WikiProject AI Cleanup) under CC BY-SA 4.0 and retains adapted text from [blader/humanizer](https://github.com/blader/humanizer)'s `SKILL.md` at commit [`3e1da8bfce43ecbe43a56f3cb00b62fbdf1cbd56`](https://github.com/blader/humanizer/blob/3e1da8bfce43ecbe43a56f3cb00b62fbdf1cbd56/SKILL.md) under the MIT License. Both notices ship with the skill.

@@ -458,7 +458,6 @@ module.exports = {
   PROFILE,
   SKILL,
   ENDPOINT,
-  TOOL_DEFINITIONS,
   globPattern,
   retryDelay,
   runTool,

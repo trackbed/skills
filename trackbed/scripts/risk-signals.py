@@ -61,6 +61,7 @@ SIGNALS: dict[str, tuple[str, bool]] = {
     "shape:large": ("medium", True),
     "shape:non-trivial": ("medium", True),
     "shape:deleted-source": ("medium", True),
+    "shape:deleted-test": ("medium", True),
     "shape:untested-source": ("medium", True),
     "content:disabled-test": ("medium", True),
     "content:dangerous-sink": ("medium", True),
@@ -246,8 +247,12 @@ def apply_shape_signals(changes: list[FileChange], signals: Signals) -> dict[str
         signals.add("shape:non-trivial", size_evidence)
 
     for change in changes:
-        if change.status == "D" and change.is_source:
+        if change.status != "D":
+            continue
+        if change.is_source:
             signals.add("shape:deleted-source", change.path)
+        elif change.kind == "test":
+            signals.add("shape:deleted-test", change.path)
     sources = [change for change in changes if change.is_source and change.status != "D"]
     source_lines = sum(change.added + change.deleted for change in sources)
     touches_tests = any(change.kind == "test" and change.status != "D" for change in changes)

@@ -19,6 +19,7 @@ Classify each potential drift point against this rubric. Severity drives the ver
 | Versioned artifact or durable public contract change lacks release impact, SemVer, changelog, or migration story needed for release-note accuracy | Important | Yes |
 | Risk notes (`## Review notes`, `## Rollout`, legacy `Potential concerns`, or a template's risk prompt) omit or deny a migration, flag flip, partial coverage, or known follow-up | Important | Yes |
 | The diff has a one-way effect a revert would not undo (see `references/context-gathering.md` §2.4 step 5), and the body does not say what a revert leaves behind in `## Rollout`, `## Review notes`, legacy `Potential concerns`, or the template section that holds rollout or risk content | Important | Yes |
+| A present `Risk:` line differs from the deterministic assessment or appears more than once | Important | Yes |
 | Stale claim — body describes work that was removed or refactored away | Important | Yes |
 | A scope statement (`## Review notes` or legacy `Things I didn't touch`) puts adjacent work out of scope that the diff did touch | Important | Yes |
 | Title Conventional Commit type wrong for the dominant change (`fix:` for a feature addition) | Important | Yes |
@@ -155,9 +156,9 @@ Classify each potential drift point against this rubric. Severity drives the ver
 1. Get the branch diff against the base:
 
    ```bash
-   git diff origin/$BASE_BRANCH...HEAD
-   git diff origin/$BASE_BRANCH...HEAD --stat
-   git log origin/$BASE_BRANCH..HEAD --format="%h %s%n%b%n"
+   git diff "$BASE_COMMIT...$CURRENT_HEAD"
+   git diff "$BASE_COMMIT...$CURRENT_HEAD" --stat
+   git log "$BASE_COMMIT..$CURRENT_HEAD" --format="%h %s%n%b%n"
    ```
 
 2. Include local uncommitted work in the diff scope, because the PR body should match what _will_ be on the branch after the next push:
@@ -173,7 +174,9 @@ Classify each potential drift point against this rubric. Severity drives the ver
 
 ## Phase C3: Drift Analysis
 
-If the diff is empty or near-empty (only whitespace, comments, or formatting), there is nothing to check against: return `Accurate` and stop.
+Run the risk comparison in `references/risk-line.md` before deciding whether there is other drift. A mismatch is an Important finding named `Stale risk assessment`. Include the current line and the expected line in the report. When assessment fails, carry the reason into the report and continue.
+
+If the diff is empty or near-empty (only whitespace, comments, or formatting), skip the remaining analysis and report the risk comparison result.
 
 Walk the description body section by section and the diff in parallel. Classify each potential drift point against the rubric above. For each finding, record:
 
