@@ -203,6 +203,9 @@
       "trackbed/scripts/lint_skill_contracts/checks/suite_references.py"
     ],
     "contract_only": {
+      "trackbed/skills/pr:generate-description/scripts/risk-line.py": [
+        "trackbed/tests/pr-generate-description-guidance.bats"
+      ],
       "trackbed/scripts/generate-component-reference.py": [
         "trackbed/tests/lint-skill-contracts.bats"
       ],

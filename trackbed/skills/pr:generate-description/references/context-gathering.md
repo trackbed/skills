@@ -2,16 +2,18 @@
 
 **ALWAYS** gather comprehensive context from all available sources.
 
-**IMPORTANT**: Use the resolved `BASE_REF` for all comparisons. It is either the freshly resolved remote-tracking ref or the caller-pinned base commit, never a potentially stale local branch.
+**IMPORTANT**: Pin the resolved `BASE_REF` for comparisons. It is either the freshly resolved remote-tracking ref or the caller-pinned base commit.
 
 **IMPORTANT**: Spec files and conversation history are for YOUR analysis only to understand implementation decisions. The final PR description should ONLY reference Linear issues as the source of original requirements, since reviewers have access to Linear but not to spec files or conversation history.
 
 ### 2.1 Git Changes Analysis
 
-1. **ALWAYS** get the diff between current branch and base branch:
+1. **ALWAYS** pin both ends of the description diff before reading it:
 
    ```bash
-   git diff "$BASE_REF"...HEAD
+   DESCRIPTION_BASE=$(git rev-parse --verify "$BASE_REF^{commit}")
+   DESCRIPTION_HEAD=$(git rev-parse --verify HEAD)
+   git diff "$DESCRIPTION_BASE...$DESCRIPTION_HEAD"
    ```
 
    - **NOTE**: Use three dots (`...`) to compare from merge base
@@ -20,7 +22,7 @@
 2. **ALWAYS** get the list of changed files with stats:
 
    ```bash
-   git diff "$BASE_REF"...HEAD --stat
+   git diff "$DESCRIPTION_BASE...$DESCRIPTION_HEAD" --stat
    ```
 
    - Use this for analysis and scoping only. Do not reproduce the changed-file list in the final PR body unless a specific file is a non-obvious review landmark.
@@ -104,13 +106,13 @@
 1. **ALWAYS** get commit history for the current branch:
 
    ```bash
-   git log "$BASE_REF"..HEAD --oneline
+   git log "$DESCRIPTION_BASE..$DESCRIPTION_HEAD" --oneline
    ```
 
 2. **ALWAYS** get detailed commit messages:
 
    ```bash
-   git log "$BASE_REF"..HEAD --format="%h %s%n%b%n"
+   git log "$DESCRIPTION_BASE..$DESCRIPTION_HEAD" --format="%h %s%n%b%n"
    ```
 
 3. **ALWAYS** analyze commits to understand:

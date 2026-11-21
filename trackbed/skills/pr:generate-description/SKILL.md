@@ -160,6 +160,8 @@ For a change a reviewer can see, try to add before and after screenshots, and oc
 
 ### Phase 3: Description Generation
 
+Compute the risk line with `references/risk-line.md` and the skill-local `scripts/risk-line.py`, which uses the plugin's `${CLAUDE_PLUGIN_ROOT}/scripts/risk-signals.py`. Carry the line verbatim into the draft or report why assessment was unavailable.
+
 Before drafting, evaluate whether any **MISSING REQUIREMENT** conditions hold (see the Output markers section below). Emit a `MISSING REQUIREMENT: …` line in the skill's conversation output whenever:
 
 - The branch name has no detectable issue ID and commits reference none — non-blocking; confirm the intended ticket or proceed without one.
@@ -281,6 +283,8 @@ Run these three steps in order on the drafted title and body, before Phase 4 pre
 1. Read `${CLAUDE_PLUGIN_ROOT}/shared/writing/references/plain-language-rubric.md` and `references/readability-pass.md`, then follow Part 1 of the pass. It edits the draft for a reviewer who is new to the change, checking it against `references/verification-checklist.md`: regenerate when an item labeled **Regenerate** fails, and fix other failures in place.
 2. Decide with `When to Skip the Cold Read` in `references/readability-pass.md` whether the cold read runs. `NON_INTERACTIVE=true` is not a skip reason. If it runs, follow Part 2: a cold reader launched under `${CLAUDE_PLUGIN_ROOT}/shared/agents/references/cold-reader.md` reads only the title and body using `references/cold-read-prompt.md`, and you apply what that reader flags once. Either way, record exactly one line starting `Cold read:` for the run output.
 3. Run the consolidated checklist in `references/verification-checklist.md`. No other phase has its own checklist; that reference is the single source of truth. If the checklist leads to an edit, repeat the keep-list audit from the readability pass, but not the cold read.
+
+Before Phase 4, ensure the body contains exactly one plain line starting `Risk:`, equal to the helper output byte-for-byte. Restore the exact line in the location specified by `assets/section-templates.md` if a revision changed, moved, or removed it. If assessment was unavailable, leave the line out and report the helper's reason in the run output. Risk assessment never blocks publication.
 
 ### Phase 4: Output Formatting
 
