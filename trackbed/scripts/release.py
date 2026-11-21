@@ -49,26 +49,6 @@ def get_version_files(repo_root: Path) -> list[Path]:
     return files
 
 
-def get_sibling_version_files() -> list[Path]:
-    """Discover sibling plugin version files from marketplace.json."""
-    git_root = get_git_root()
-    marketplace_path = git_root / ".claude-plugin" / "marketplace.json"
-    if not marketplace_path.exists():
-        return []
-
-    with open(marketplace_path) as f:
-        marketplace = json.load(f)
-
-    main_plugin_json = get_repo_root() / ".claude-plugin" / "plugin.json"
-    sibling_files = []
-    for plugin in marketplace.get("plugins", []):
-        source = plugin.get("source", ".")
-        plugin_json = (git_root / source / ".claude-plugin" / "plugin.json").resolve()
-        if plugin_json.exists() and plugin_json.resolve() != main_plugin_json.resolve():
-            sibling_files.append(plugin_json)
-    return sibling_files
-
-
 def read_version(path: Path) -> str:
     """Read version from a JSON file."""
     with open(path) as f:
@@ -111,9 +91,8 @@ def bump_version(current: str, bump_type: str) -> str:
 
 
 def update_version_files(repo_root: Path, new_version: str, dry_run: bool) -> None:
-    """Update version in all version files (main plugin + siblings)."""
-    all_files = get_version_files(repo_root) + get_sibling_version_files()
-    for path in all_files:
+    """Update the plugin version files."""
+    for path in get_version_files(repo_root):
         with open(path) as f:
             data = json.load(f)
         data["version"] = new_version
@@ -129,7 +108,7 @@ def update_version_files(repo_root: Path, new_version: str, dry_run: bool) -> No
 
 def get_release_mutation_paths(repo_root: Path) -> list[Path]:
     """Return files the release flow may mutate before verification completes."""
-    paths = get_version_files(repo_root) + get_sibling_version_files()
+    paths = get_version_files(repo_root)
     paths.append(repo_root / "CHANGELOG.md")
 
     unique_paths = []

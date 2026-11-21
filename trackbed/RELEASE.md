@@ -17,7 +17,7 @@ Both script-driven paths — the GitHub Actions workflow and `scripts/release.py
 - A local `release/vX.Y.Z` branch already exists.
 - A `release/vX.Y.Z` branch already exists on `origin`.
 - Git cannot be inspected. A failed lookup of `origin`, the local refs, or the index is a blocker rather than proof that the condition is absent, so an unreachable or unauthenticated remote refuses the release.
-- Anything outside the release's own files is staged. Those are the plugin's `.claude-plugin/plugin.json`, `package.json`, and `CHANGELOG.md`, plus any sibling plugin manifest named by `.claude-plugin/marketplace.json`. The first three are plugin-root-relative: the repository-root `package.json` is not among them, so commit or unstage any change to it before starting a release.
+- Anything outside the plugin's `.claude-plugin/plugin.json`, `package.json`, and `CHANGELOG.md` is staged. These paths are relative to the plugin root. Commit or unstage any changes to the repository-root `package.json` before starting a release.
 
 The Manual Release steps at the end of this document bypass the preflight entirely; check for leftovers yourself before following them.
 
