@@ -233,7 +233,8 @@ FORMATTER_DEBUG_BYTE_LIMIT=65536
 FORMATTER_DEBUG_LOG="$CACHE_DIR/$CACHE_KEY.last-error.log"
 FORMATTER_DEBUG_LOG_AVAILABLE=false
 
-if [ "${TRACKBED_AUTOFORMAT_DEBUG:-${KRAMME_AUTOFORMAT_DEBUG:-0}}" = "1" ]; then
+trackbed_setting TRACKBED_AUTOFORMAT_DEBUG 0 FORMATTER_DEBUG
+if [ "$FORMATTER_DEBUG" = "1" ]; then
   chmod 700 "$CACHE_DIR" 2> /dev/null || true
 fi
 rm -f -- "$FORMATTER_DEBUG_LOG" 2> /dev/null || true
@@ -446,7 +447,7 @@ run_formatter_attempt() {
   local capture_pid=""
   local command_status=0
 
-  if [ "${TRACKBED_AUTOFORMAT_DEBUG:-${KRAMME_AUTOFORMAT_DEBUG:-0}}" != "1" ]; then
+  if [ "$FORMATTER_DEBUG" != "1" ]; then
     "$@" > /dev/null 2>&1
     return $?
   fi

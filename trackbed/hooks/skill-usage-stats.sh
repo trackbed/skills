@@ -18,7 +18,8 @@ usage_diagnostic_file() {
 }
 
 usage_diagnostic_max_lines() {
-  local max="${TRACKBED_SKILL_USAGE_DIAGNOSTIC_MAX_LINES:-${KRAMME_SKILL_USAGE_DIAGNOSTIC_MAX_LINES:-20}}"
+  local max
+  trackbed_setting TRACKBED_SKILL_USAGE_DIAGNOSTIC_MAX_LINES 20 max
   case "$max" in
     '' | *[!0-9]*) printf '20\n' ;;
     *)
