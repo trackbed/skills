@@ -2,6 +2,7 @@ import path from "node:path";
 import { DEFAULT_BRANCH, HOME_PAGE, README_PATH, REPO_URL } from "./config.mjs";
 import { isAbsoluteUrl } from "./markdown.mjs";
 
+/** @param {string | null} [anchor] */
 export function pageUrl(slug, anchor = null, currentPage = null) {
   if (anchor && slug === currentPage) return `#${anchor}`;
   const pathname = slug === HOME_PAGE ? "/" : `/${slug}/`;

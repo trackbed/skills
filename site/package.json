@@ -10,7 +10,8 @@
     "dev": "npm run sync && astro dev",
     "preview": "astro preview",
     "sync": "node scripts/sync-content.mjs",
-    "test": "node --test \"scripts/tests/*.test.mjs\""
+    "test": "node --test \"scripts/tests/*.test.mjs\"",
+    "typecheck": "tsc --project tsconfig.scripts.json"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.42.10",
@@ -23,6 +24,10 @@
     "sharp": "^0.35.5",
     "starlight-links-validator": "^0.27.0",
     "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^6.0.3"
   },
   "engines": {
     "node": "24.x"

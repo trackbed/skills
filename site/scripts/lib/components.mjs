@@ -1,19 +1,56 @@
+// @ts-check
+
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { parse as parseYaml } from "yaml";
 import { CATALOG_PATH, REGISTRY_PATH } from "./config.mjs";
 import { splitFrontmatter } from "./markdown.mjs";
 
+/**
+ * @typedef {object} Component
+ * @property {string} name
+ * @property {string} shortName
+ * @property {string} slug
+ * @property {string} path
+ * @property {string} description
+ * @property {string} summary
+ */
+
+/** @typedef {"User" | "User, Auto" | "Background" | "Hidden"} Invocation */
+
+/**
+ * @typedef {Component & {
+ *   invocation: Invocation,
+ *   argumentHint: string | null,
+ *   userInvocable: boolean,
+ *   hosts: string[],
+ *   mentions: Set<string>
+ * }} Skill
+ */
+
+/** @typedef {Component & {model: string | null, readOnly: boolean}} Agent */
+
+/**
+ * @typedef {Pick<Component, "name" | "path">} CatalogEntry
+ * @typedef {{skills: (CatalogEntry & {invocation: Invocation})[], agents: CatalogEntry[]}} Catalog
+ */
+
+/** @typedef {{summaries: Record<string, string>}} SummaryRegistry */
+
 /** A qualified skill or agent name, such as `trackbed:pr:create`. */
 export const COMPONENT_NAME = "trackbed:[a-z0-9]+(?:[:-][a-z0-9]+)*";
 const ALL_HOSTS = ["claude-code", "codex"];
 const WRITE_TOOLS = ["Write", "Edit"];
 
-/** Qualified component names (`trackbed:pr:create`) that appear in `text`. */
+/**
+ * Qualified component names (`trackbed:pr:create`) that appear in `text`.
+ * @param {string} text
+ */
 export function findComponentNames(text) {
   return new Set(text.match(new RegExp(COMPONENT_NAME, "g")) ?? []);
 }
 
+/** @param {string} directory */
 function readMarkdownTree(directory) {
   return readdirSync(directory, { recursive: true, withFileTypes: true })
     .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
@@ -23,6 +60,10 @@ function readMarkdownTree(directory) {
     .join("\n");
 }
 
+/**
+ * @param {Record<string, string>} summaries
+ * @param {string} name
+ */
 function requireSummary(summaries, name) {
   const summary = summaries[name];
   if (typeof summary !== "string" || summary === "") {
@@ -31,6 +72,7 @@ function requireSummary(summaries, name) {
   return summary;
 }
 
+/** @param {string} name */
 function shortName(name) {
   return name.replace(/^trackbed:/, "");
 }
@@ -39,14 +81,27 @@ function shortName(name) {
  * Load every shipped skill and agent. The component catalog says which
  * components exist, each component's own file supplies its frontmatter, and
  * the README summaries come from the registry the README rows are synced from.
+ *
+ * @param {string} repoRoot
+ * @returns {{skills: Skill[], agents: Agent[]}}
  */
 export function loadComponents(repoRoot) {
+  /** @param {string} repoPath */
   const read = (repoPath) =>
     readFileSync(path.join(repoRoot, repoPath), "utf8");
+  /** @type {Catalog} */
   const catalog = JSON.parse(read(CATALOG_PATH));
+  /** @type {{readme_skill_sync: SummaryRegistry, readme_agent_sync: SummaryRegistry}} */
   const registry = parseYaml(read(REGISTRY_PATH));
 
+  /** @type {Skill[]} */
   const skills = catalog.skills.map((entry) => {
+    /** @type {{data: {
+     *   description: string,
+     *   "argument-hint"?: string,
+     *   "user-invocable"?: boolean,
+     *   "trackbed-platforms"?: string[]
+     * }}} */
     const { data } = splitFrontmatter(read(entry.path));
     const short = shortName(entry.name);
     return {
@@ -66,7 +121,13 @@ export function loadComponents(repoRoot) {
     };
   });
 
+  /** @type {Agent[]} */
   const agents = catalog.agents.map((entry) => {
+    /** @type {{data: {
+     *   description: string,
+     *   disallowedTools?: string | string[],
+     *   model?: string
+     * }}} */
     const { data } = splitFrontmatter(read(entry.path));
     const disallowed = new Set(
       [data.disallowedTools ?? []]
