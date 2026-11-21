@@ -16,14 +16,15 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
-import tempfile
 from pathlib import Path
 from typing import Any, Optional
 
 # Running the builder must leave the installed plugin as it was: no bytecode beside these modules.
 sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts" / "lib"))
+
+from inline_page import read_inline_asset, write_page  # noqa: E402
 
 from decisions_choices import Carried, carry_choices, load_choices  # noqa: E402
 from decisions_content import Reader  # noqa: E402
@@ -39,25 +40,12 @@ LARGE_PAGE_BYTES = 40 * 1024 * 1024
 
 def read_asset(path: Path, closing: str) -> str:
     try:
-        text = path.read_text(encoding="utf-8")
-    except OSError as error:
+        text = read_inline_asset(path, closing)
+    except (OSError, UnicodeDecodeError) as error:
         raise BuildError(f"{path}: cannot read a file this builder ships with: {error}") from error
-    if closing in text.lower():
-        raise BuildError(f"{path}: must not contain {closing}")
+    except ValueError as error:
+        raise BuildError(str(error)) from error
     return "\n" + text.strip("\n") + "\n"
-
-
-def write_atomically(path: Path, text: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    handle, temp_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
-    try:
-        with os.fdopen(handle, "w", encoding="utf-8", newline="\n") as stream:
-            stream.write(text)
-        os.chmod(temp_name, 0o644)
-        os.replace(temp_name, path)
-    except BaseException:
-        Path(temp_name).unlink(missing_ok=True)
-        raise
 
 
 def build(data: Path, output: Path, choices: Optional[Path], base_dir: Path) -> tuple[int, dict[str, Any]]:
@@ -93,7 +81,7 @@ def build(data: Path, output: Path, choices: Optional[Path], base_dir: Path) -> 
     css = read_asset(TOKENS, "</style") + read_asset(ASSETS / "decisions.css", "</style")
     script = read_asset(ASSETS / "decisions.js", "</script")
     page = render_page(model, seed, css, script)
-    write_atomically(output, page)
+    write_page(output, page, mode=0o644)
 
     size = len(page.encode("utf-8"))
     report: dict[str, Any] = {

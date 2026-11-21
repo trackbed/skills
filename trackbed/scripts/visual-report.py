@@ -14,16 +14,16 @@ the contract and was left untouched, 2 usage or file error.
 from __future__ import annotations
 
 import argparse
-import base64
-import hashlib
-import os
 import re
 import stat
 import sys
-import tempfile
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from pathlib import Path
+
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
+from inline_page import csp_meta, read_inline_asset, write_page  # noqa: E402
 
 ASSETS = Path(__file__).resolve().parent.parent / "shared" / "visual" / "assets"
 RUNTIME_ATTR = "data-trackbed-runtime"
@@ -547,22 +547,15 @@ def load_runtime(assets: Path = ASSETS) -> tuple[str, str]:
     """Return the runtime stylesheet and script as they are written into a page."""
     # The palette and fonts are a separate file because the decision document shares them.
     css = "".join(
-        "\n" + (assets / name).read_text(encoding="utf-8").strip("\n") + "\n"
+        "\n" + read_inline_asset(assets / name, "</style").strip("\n") + "\n"
         for name in ("report-tokens.css", "report-runtime.css")
     )
-    script = "\n" + (assets / "report-runtime.js").read_text(encoding="utf-8").strip("\n") + "\n"
-    if "</style" in css.lower() or "</script" in script.lower():
-        raise ValueError("runtime assets must not contain a closing style or script tag")
+    script = "\n" + read_inline_asset(assets / "report-runtime.js", "</script").strip("\n") + "\n"
     return css, script
 
 
 def policy_tag(script: str) -> str:
-    digest = base64.b64encode(hashlib.sha256(script.encode("utf-8")).digest()).decode("ascii")
-    policy = (
-        f"default-src 'none'; script-src 'sha256-{digest}'; style-src 'unsafe-inline'; "
-        "img-src 'self' data: file:; base-uri 'none'; form-action 'none'"
-    )
-    return f'<meta http-equiv="Content-Security-Policy" {RUNTIME_ATTR} content="{policy}">'
+    return csp_meta(script, image_sources="'self' data: file:", marker=RUNTIME_ATTR)
 
 
 def finalize(source: str, scan: Scan, css: str, script: str) -> str:
@@ -574,22 +567,13 @@ def finalize(source: str, scan: Scan, css: str, script: str) -> str:
         edits.append((scan.policy_tags[0], policy_tag(script)))
     else:
         edits.append((Span(scan.charset_end, scan.charset_end), f"\n    {NOTICE}\n    {policy_tag(script)}"))
-    for span, text in sorted(edits, key=lambda edit: edit[0].start, reverse=True):
-        source = source[: span.start] + text + source[span.end :]
-    return source
-
-
-def write_atomically(path: Path, text: str) -> None:
-    handle, temp_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
-    try:
-        with os.fdopen(handle, "w", encoding="utf-8", newline="\n") as stream:
-            stream.write(text)
-        # mkstemp creates the file owner-only; keep the permissions the page already had.
-        os.chmod(temp_name, stat.S_IMODE(path.stat().st_mode))
-        os.replace(temp_name, path)
-    except BaseException:
-        Path(temp_name).unlink(missing_ok=True)
-        raise
+    parts: list[str] = []
+    cursor = 0
+    for span, text in sorted(edits, key=lambda edit: edit[0].start):
+        parts.extend((source[cursor : span.start], text))
+        cursor = span.end
+    parts.append(source[cursor:])
+    return "".join(parts)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -631,7 +615,7 @@ def main(argv: list[str] | None = None) -> int:
             return 1
     elif finalized != source:
         try:
-            write_atomically(page, finalized)
+            write_page(page, finalized, mode=stat.S_IMODE(page.stat().st_mode))
         except OSError as error:
             print(f"visual-report: {error}", file=sys.stderr)
             return 2

@@ -17,7 +17,7 @@ Turn what a person has to decide on into one HTML file they can read, decide in,
 
 **Arguments:** "$ARGUMENTS"
 
-You write a content file. The builder at `${CLAUDE_PLUGIN_ROOT}/skills/visual:decisions/scripts/build-decisions.py` checks it and writes the page: it embeds the evidence images with `${CLAUDE_PLUGIN_ROOT}/scripts/visual_evidence_images.py`, the palette it shares with visual reports (`${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-tokens.css`), the styles, and the script that keeps the reader's record. Never write the page's HTML, styles, or script yourself. Resolve this skill's own `references/...` and `assets/...` files relative to this `SKILL.md` file.
+You write a content file. The builder at `${CLAUDE_PLUGIN_ROOT}/skills/visual:decisions/scripts/build-decisions.py` checks it and writes the page with `${CLAUDE_PLUGIN_ROOT}/scripts/lib/inline_page.py`. It embeds the evidence images with `${CLAUDE_PLUGIN_ROOT}/scripts/visual_evidence_images.py`, the shared palette (`${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-tokens.css`), the styles, and the script that keeps the reader's record. Never write the page's HTML, styles, or script yourself. Resolve this skill's own `references/...` and `assets/...` files relative to this `SKILL.md` file.
 
 ## Boundaries
 

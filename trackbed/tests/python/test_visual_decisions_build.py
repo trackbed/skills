@@ -42,7 +42,7 @@ assert SPEC.loader is not None
 builder = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(builder)
 images = importlib.import_module("visual_evidence_images")
-page = importlib.import_module("decisions_page")
+inline_page = importlib.import_module("inline_page")
 evidence_module = importlib.import_module("decisions_evidence")
 
 CATALOG_RE = re.compile(r'<script type="application/json" id="trackbed-decisions-catalog">(.*?)</script>', re.S)
@@ -743,7 +743,7 @@ class CarryChoicesTests(BuilderCase):
         }
         copy_html = (
             '<!doctype html><html><body><script type="application/json" id="trackbed-decisions-state">'
-            f"{page.safe_json(payload)}</script></body></html>"
+            f"{inline_page.json_script(payload)}</script></body></html>"
         )
         code, out, err = self.carry(copy_html, "saved-copy.html")
         self.assertEqual(code, 0, err)

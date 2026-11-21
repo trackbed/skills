@@ -114,7 +114,7 @@ Create a single static HTML page with four interactive D3 views:
 
 7. **Render the static walkthrough.**
    - Resolve `SKILL_DIR` to this skill directory.
-   - Use the helper script:
+   - Use the renderer, which uses `${CLAUDE_PLUGIN_ROOT}/scripts/lib/inline_page.py` to write the page:
 
      ```bash
      python3 "$SKILL_DIR/scripts/render_walkthrough.py" \

@@ -255,19 +255,7 @@ class Reader:
 
     # ----- items -----
 
-    def read_item(self, raw: Any, where: str) -> Optional[Item]:
-        if not isinstance(raw, dict):
-            self.problem(where, "must be an object")
-            return None
-        self.unknown_keys(raw, ITEM_FIELDS, where)
-        item_id = self.text(raw, "id", where, required=True, limit=64)
-        if item_id and not ITEM_ID_RE.match(item_id):
-            self.problem(
-                f"{where}.id", "must be letters, digits, dots, hyphens, or underscores; keep the source's own id"
-            )
-        if item_id:
-            where = f"{where} ({item_id})"
-
+    def read_labels(self, raw: dict[str, Any], where: str) -> list[Label]:
         labels: list[Label] = []
         for index, entry in enumerate(self.entries(raw, "labels", where)):
             spot = f"{where}.labels[{index}]"
@@ -284,7 +272,9 @@ class Reader:
             labels.append(Label(self.text(entry, "text", spot, required=True, limit=40), tone))
         if len(labels) > 4:
             self.problem(f"{where}.labels", "holds more than four entries")
+        return labels
 
+    def read_options(self, raw: dict[str, Any], where: str) -> list[Option]:
         options: list[Option] = []
         option_ids: set[str] = set()
         raw_options = self.entries(raw, "options", where)
@@ -317,7 +307,9 @@ class Reader:
             if not option.summary and not option.benefits:
                 self.problem(spot, "needs a summary or benefits, so the reader knows what choosing it gives them")
             options.append(option)
+        return options
 
+    def read_no_change(self, raw: dict[str, Any], where: str) -> tuple[str, str]:
         no_change, no_change_description = "No change", "Leave things as they are."
         raw_no_change = raw.get("noChange", True)
         if raw_no_change is False:
@@ -329,6 +321,25 @@ class Reader:
             no_change_description = self.text(raw_no_change, "description", spot, limit=300) or no_change_description
         elif raw_no_change is not True:
             self.problem(f"{where}.noChange", "must be true, false, or an object with label and description")
+        return no_change, no_change_description
+
+    def read_item(self, raw: Any, where: str) -> Optional[Item]:
+        if not isinstance(raw, dict):
+            self.problem(where, "must be an object")
+            return None
+        self.unknown_keys(raw, ITEM_FIELDS, where)
+        item_id = self.text(raw, "id", where, required=True, limit=64)
+        if item_id and not ITEM_ID_RE.match(item_id):
+            self.problem(
+                f"{where}.id", "must be letters, digits, dots, hyphens, or underscores; keep the source's own id"
+            )
+        if item_id:
+            where = f"{where} ({item_id})"
+
+        labels = self.read_labels(raw, where)
+        options = self.read_options(raw, where)
+        option_ids = {option.id for option in options}
+        no_change, no_change_description = self.read_no_change(raw, where)
 
         recommended, recommendation, reasoning = "", "", []
         raw_recommendation = raw.get("recommendation")
