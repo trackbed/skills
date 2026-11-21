@@ -85,6 +85,12 @@ registered source:
 python3 trackbed/scripts/lint-skill-contracts.py
 ```
 
+`--skill <path>` runs only the per-file `SKILL.md` checks from
+`checks/mechanical.py` (frontmatter fields and types, description length, line
+budget) and prints no burndown warnings. The project Claude Code hook
+(`../check-skill-edit.sh`) uses it after each `SKILL.md` edit because the full
+run is too slow for an edit loop.
+
 Test sources:
 
 - [`../../tests/python/test_lint_skill_contracts.py`](../../tests/python/test_lint_skill_contracts.py)

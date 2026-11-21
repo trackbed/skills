@@ -16,7 +16,7 @@ from .epilogue import check_epilogue_forbidden
 from .hooks_json import check_hooks_json
 from .invocation_graph import check_invocation_graph
 from .marker_manifest import check_marker_manifests
-from .mechanical import check_mechanical
+from .mechanical import check_mechanical, check_single_skill
 from .readme_prose import check_readme_prose
 from .readme_sync import check_readme_skill_sync
 from .routing_distinctness import check_routing_distinctness
@@ -60,4 +60,12 @@ def run(root: Path, registry: Registry) -> tuple[list[str], list[str]]:
     schema = load_contract_schema(root, registry, schema_failures)
     context = LintContext(root=root, registry=registry, schema=schema)
     result = run_checks(context)
+    return schema_failures + result.failures, result.warnings
+
+
+def run_single_skill(root: Path, registry: Registry, skill_path: Path) -> tuple[list[str], list[str]]:
+    schema_failures: list[str] = []
+    schema = load_contract_schema(root, registry, schema_failures)
+    context = LintContext(root=root, registry=registry, schema=schema)
+    result = check_single_skill(context, skill_path)
     return schema_failures + result.failures, result.warnings
