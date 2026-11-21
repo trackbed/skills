@@ -1319,6 +1319,41 @@ class MechanicalCheckTest(unittest.TestCase):
             ],
         )
 
+    def test_single_skill_reports_file_failures_without_warnings(self) -> None:
+        from lint_skill_contracts.checks.mechanical import check_single_skill
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            for name in ("example", "other"):
+                path = root / "skills" / name / "SKILL.md"
+                path.parent.mkdir(parents=True)
+                path.write_text(
+                    f"---\nname: {name}\ndescription: {'x' * 12}\n---\none\ntwo\nthree\n",
+                    encoding="utf-8",
+                )
+            config = {
+                "skill_glob": "skills/*/SKILL.md",
+                "max_skill_lines": 6,
+                "warn_skill_lines": 2,
+                "max_description_chars": 10,
+                "warn_description_chars": 2,
+                "required_frontmatter": ["name", "user-invocable"],
+            }
+            context = lint_skill_contracts.LintContext(root=root, registry={"mechanical": config}, schema={})
+
+            result = check_single_skill(context, root / "skills" / "example" / "SKILL.md")
+
+        self.assertEqual(
+            result.failures,
+            [
+                "mechanical: skills/example/SKILL.md has 7 lines, exceeds 6; "
+                "move reference material out of SKILL.md or add a registry burndown entry",
+                "mechanical: skills/example/SKILL.md is missing frontmatter field 'user-invocable'",
+                "mechanical: skills/example/SKILL.md description is 12 chars, exceeds 10",
+            ],
+        )
+        self.assertEqual(result.warnings, [])
+
     def test_description_warnings_apply_threshold_order_cap_and_hard_limit(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             root = Path(tmp_dir)
