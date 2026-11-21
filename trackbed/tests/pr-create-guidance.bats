@@ -300,15 +300,14 @@ file_mode() {
 @test "absence lease rejects a concurrently created remote branch" {
 	run bash -c '
     set -e
+    source "$2"
     root="$1"
     remote="$root/remote.git"
     publisher="$root/publisher"
     contender="$root/contender"
 
-    git init --bare "$remote" >/dev/null
-    git init "$publisher" >/dev/null
-    git -C "$publisher" config user.name "Test User"
-    git -C "$publisher" config user.email "test@example.com"
+    init_empty_test_git_repo "$remote" --bare
+    init_empty_test_git_repo "$publisher"
     printf "base\n" >"$publisher/file.txt"
     git -C "$publisher" add file.txt
     git -C "$publisher" commit -m "base" >/dev/null
@@ -317,7 +316,7 @@ file_mode() {
     git -C "$publisher" push -u origin main >/dev/null
     git --git-dir="$remote" symbolic-ref HEAD refs/heads/main
 
-    git clone "$remote" "$contender" >/dev/null
+    clone_test_git_repo "$remote" "$contender"
     git -C "$publisher" checkout -b feature >/dev/null
     printf "publisher\n" >>"$publisher/file.txt"
     git -C "$publisher" commit -am "publisher work" >/dev/null
@@ -335,7 +334,7 @@ file_mode() {
 
     actual=$(git -C "$publisher" ls-remote --heads origin refs/heads/feature | awk "{print \$1}")
     test "$actual" = "$expected"
-  ' _ "$BATS_TEST_TMPDIR"
+  ' _ "$BATS_TEST_TMPDIR" "$BATS_TEST_DIRNAME/test_helper/common.bash"
 
 	[ "$status" -eq 0 ]
 }
@@ -402,10 +401,9 @@ file_mode() {
 	git -C "$publisher" push -u origin feature >/dev/null
 	observed=$(git -C "$publisher" rev-parse HEAD)
 
-	git clone "$remote" "$contender" >/dev/null
+	clone_test_git_repo "$remote" "$contender"
 	git -C "$contender" config user.name "Other User"
 	git -C "$contender" config user.email "other@example.com"
-	git -C "$contender" config commit.gpgsign false
 	git -C "$contender" checkout feature >/dev/null
 
 	printf "local\n" >>"$publisher/file.txt"
@@ -643,7 +641,7 @@ file_mode() {
 	publisher="$BATS_TEST_TMPDIR/publisher"
 	resolver="$BATS_TEST_DIRNAME/../skills/pr:create/scripts/resolve-origin-push-url.sh"
 	init_test_git_repo "$publisher" --origin "$remote" --file file.txt
-	git clone --bare "$remote" "$mirror" >/dev/null
+	clone_test_git_repo "$remote" "$mirror" --bare
 	git -C "$publisher" remote set-url --push origin "$remote"
 	git -C "$publisher" remote set-url --add --push origin "$mirror"
 
@@ -742,9 +740,7 @@ file_mode() {
 	verifier="$BATS_TEST_DIRNAME/../skills/pr:create/scripts/verify-clean-worktree.sh"
 	repo="$BATS_TEST_TMPDIR/repo"
 
-	git init "$repo"
-	git -C "$repo" config user.name "Test User"
-	git -C "$repo" config user.email "test@example.com"
+	init_empty_test_git_repo "$repo"
 	printf 'tracked\n' > "$repo/tracked.txt"
 	git -C "$repo" add tracked.txt
 	git -C "$repo" commit -m "initial"
@@ -760,9 +756,7 @@ file_mode() {
 	verifier="$BATS_TEST_DIRNAME/../skills/pr:create/scripts/verify-clean-worktree.sh"
 	repo="$BATS_TEST_TMPDIR/repo"
 
-	git init "$repo"
-	git -C "$repo" config user.name "Test User"
-	git -C "$repo" config user.email "test@example.com"
+	init_empty_test_git_repo "$repo"
 	printf 'tracked\n' > "$repo/tracked.txt"
 	git -C "$repo" add tracked.txt
 	git -C "$repo" commit -m "initial"
@@ -778,9 +772,7 @@ file_mode() {
 	verifier="$BATS_TEST_DIRNAME/../skills/pr:create/scripts/verify-clean-worktree.sh"
 	repo="$BATS_TEST_TMPDIR/repo"
 
-	git init "$repo"
-	git -C "$repo" config user.name "Test User"
-	git -C "$repo" config user.email "test@example.com"
+	init_empty_test_git_repo "$repo"
 	printf 'hidden\n' >"$repo/hidden.txt"
 	printf 'visible\n' >"$repo/visible.txt"
 	git -C "$repo" add hidden.txt visible.txt
@@ -807,9 +799,7 @@ file_mode() {
 	verifier="$BATS_TEST_DIRNAME/../skills/pr:create/scripts/verify-clean-worktree.sh"
 	repo="$BATS_TEST_TMPDIR/sparse-repo"
 
-	git init "$repo"
-	git -C "$repo" config user.name "Test User"
-	git -C "$repo" config user.email "test@example.com"
+	init_empty_test_git_repo "$repo"
 	mkdir -p "$repo/kept" "$repo/omitted"
 	printf 'kept\n' >"$repo/kept/file.txt"
 	printf 'omitted\n' >"$repo/omitted/file.txt"
@@ -834,7 +824,7 @@ file_mode() {
 	fake_bin="$BATS_TEST_TMPDIR/fake-bin"
 	real_git=$(command -v git)
 
-	git init "$repo"
+	init_empty_test_git_repo "$repo"
 	mkdir -p "$fake_bin"
 	printf '#!/bin/sh\nif [ "${1:-}" = status ]; then exit 73; fi\nexec "%s" "$@"\n' "$real_git" > "$fake_bin/git"
 	chmod +x "$fake_bin/git"
@@ -911,10 +901,8 @@ file_mode() {
 	repo="$BATS_TEST_TMPDIR/repo"
 	extract_commit_and_include_block "$state" "$block"
 
-	git init --shared=group "$repo"
+	init_empty_test_git_repo "$repo" --shared=group
 	cd "$repo"
-	git config user.name "Test User"
-	git config user.email "test@example.com"
 	printf 'initial\n' > tracked.txt
 	git add tracked.txt
 	git commit -m "Initial commit"
@@ -953,10 +941,8 @@ file_mode() {
 	fake_bin="$BATS_TEST_TMPDIR/fake-bin"
 	extract_commit_and_include_block "$state" "$block"
 
-	git init "$repo"
+	init_empty_test_git_repo "$repo"
 	cd "$repo"
-	git config user.name "Test User"
-	git config user.email "test@example.com"
 	printf 'initial\n' > tracked.txt
 	git add tracked.txt
 	git commit -m "Initial commit"
@@ -1096,9 +1082,7 @@ file_mode() {
 	grep -qF "{feature-branch}-recreate-backup-{recreate-input-tip}" "$state_guidance"
 	! grep -qF "If branch creation fails, inspect whether Git created the ref" "$state_guidance" || false
 
-	git init "$repo"
-	git -C "$repo" config user.name "Test User"
-	git -C "$repo" config user.email "test@example.com"
+	init_empty_test_git_repo "$repo"
 	printf 'base\n' >"$repo/file.txt"
 	git -C "$repo" add file.txt
 	git -C "$repo" commit -m "base"

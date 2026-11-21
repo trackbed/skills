@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+load 'test_helper/common'
+
 setup() {
 	PLUGIN_ROOT="$BATS_TEST_DIRNAME/.."
 	SKILL="$PLUGIN_ROOT/skills/pr:github-review/SKILL.md"
@@ -1173,9 +1175,7 @@ PY
 	[ -x "$ANCHOR_SCRIPT" ]
 	repo="$BATS_TEST_TMPDIR/anchors"
 	cafe=$(printf 'caf\303\251.ts')
-	git init -q "$repo"
-	git -C "$repo" config user.email "test@example.com"
-	git -C "$repo" config user.name "Test User"
+	init_empty_test_git_repo "$repo"
 	mkdir -p "$repo/src" "$repo/old" "$repo/new"
 	seq -f 'line %g' 1 30 >"$repo/src/a.ts"
 	seq -f 'name %g' 1 20 >"$repo/old/name.ts"
@@ -1263,9 +1263,7 @@ PY
 
 @test "comment anchor check decodes Git-quoted filenames" {
 	repo="$BATS_TEST_TMPDIR/quoted-anchors"
-	git init -q "$repo"
-	git -C "$repo" config user.email "test@example.com"
-	git -C "$repo" config user.name "Test User"
+	init_empty_test_git_repo "$repo"
 	paths=(
 		'with"quote.ts'
 		'with\slash.ts'
@@ -1750,9 +1748,7 @@ PY
 	script="$PLUGIN_ROOT/skills/pr:github-review-reply/scripts/check-fix-on-head.sh"
 	[ -x "$script" ]
 	repo="$BATS_TEST_TMPDIR/fix-on-head"
-	git init -q "$repo"
-	git -C "$repo" config user.email "test@example.com"
-	git -C "$repo" config user.name "Test User"
+	init_empty_test_git_repo "$repo"
 	mkdir -p "$repo/src"
 	printf 'one\n' >"$repo/src/a.ts"
 	printf 'two\n' >"$repo/src/b.ts"
@@ -1836,10 +1832,8 @@ PY
 
 	remote="$BATS_TEST_TMPDIR/remote.git"
 	repo="$BATS_TEST_TMPDIR/publish"
-	git init -q --bare "$remote"
-	git init -q -b feature "$repo"
-	git -C "$repo" config user.email "test@example.com"
-	git -C "$repo" config user.name "Test User"
+	init_empty_test_git_repo "$remote" --bare
+	init_empty_test_git_repo "$repo" -b feature
 	mkdir -p "$repo/src"
 	printf 'one\n' >"$repo/src/a.ts"
 	printf 'two\n' >"$repo/src/b.ts"
@@ -1907,7 +1901,7 @@ PY
 	# Someone else pushed since the run started: the commit stays local and the
 	# remote keeps their work.
 	other="$BATS_TEST_TMPDIR/other"
-	git clone -q -b feature "$remote" "$other"
+	clone_test_git_repo "$remote" "$other" -b feature
 	git -C "$other" -c user.email=o@example.com -c user.name=Other commit -q --allow-empty -m theirs
 	git -C "$other" push -q origin feature
 	theirs=$(git -C "$other" rev-parse HEAD)

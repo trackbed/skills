@@ -33,7 +33,7 @@ load_assignments() {
 
 add_fork_remote() {
 	FORK="$TMP_DIR/fork.git"
-	git init --bare "$FORK" >/dev/null
+	init_empty_test_git_repo "$FORK" --bare
 	git remote add fork "$FORK"
 	git push fork feature >/dev/null 2>&1
 	git fetch fork feature:refs/remotes/fork/feature >/dev/null 2>&1
@@ -111,10 +111,9 @@ add_fork_remote() {
 	local collaborator="$TMP_DIR/collaborator"
 	original_tip="$(git rev-parse HEAD)"
 
-	git clone "$REMOTE" "$collaborator" >/dev/null 2>&1
+	clone_test_git_repo "$REMOTE" "$collaborator"
 	git -C "$collaborator" config user.email "collaborator@example.com"
 	git -C "$collaborator" config user.name "Collaborator"
-	git -C "$collaborator" config commit.gpgsign false
 	git -C "$collaborator" switch feature >/dev/null 2>&1
 	printf 'collaborator\n' >>"$collaborator/feature.txt"
 	git -C "$collaborator" commit -am "collaborator" >/dev/null
@@ -231,7 +230,7 @@ GIT
 
 @test "rejects remotes with multiple push destinations" {
 	local mirror="$TMP_DIR/mirror.git"
-	git clone --bare "$REMOTE" "$mirror" >/dev/null 2>&1
+	clone_test_git_repo "$REMOTE" "$mirror" --bare
 	git remote set-url --push origin "$REMOTE"
 	git remote set-url --add --push origin "$mirror"
 	local original_tip

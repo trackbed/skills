@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+load 'test_helper/common'
+
 setup() {
 	cd "$BATS_TEST_DIRNAME/.."
 	GLOSSARY="shared/architecture/references/architecture-language.md"
@@ -101,10 +103,9 @@ setup() {
 	local repo="$BATS_TEST_TMPDIR/co-change"
 	mkdir -p "$repo/src/billing/internal" "$repo/src/orders"
 	cd "$repo"
-	git init -q -b main
+	init_empty_test_git_repo "$repo" -b main
 	git config user.email test@example.invalid
 	git config user.name "Co-change Test"
-	git config commit.gpgsign false
 	local round
 	for round in 1 2 3; do
 		echo "$round" >src/billing/invoice.ts

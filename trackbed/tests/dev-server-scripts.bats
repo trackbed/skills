@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+load 'test_helper/common'
+
 bats_require_minimum_version 1.5.0
 
 setup() {
@@ -656,8 +658,8 @@ JSON
 @test "detect-url --check-owner reports a server that another checkout serves" {
   local other_dir="$BATS_TEST_TMPDIR/other-checkout"
   mkdir -p "$other_dir/app"
-  git init -q "$WORK_DIR"
-  git init -q "$other_dir"
+  init_empty_test_git_repo "$WORK_DIR"
+  init_empty_test_git_repo "$other_dir"
   write_owner_mocks
 
   ANSWERING_PORTS="5173" LSOF_LISTENERS="5173=$other_dir/app" PATH="$MOCK_BIN:$PATH" run --separate-stderr "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR" --check-owner
@@ -669,7 +671,7 @@ JSON
 
 @test "detect-url --check-owner accepts a server this checkout serves" {
   mkdir -p "$WORK_DIR/web"
-  git init -q "$WORK_DIR"
+  init_empty_test_git_repo "$WORK_DIR"
   write_owner_mocks
 
   ANSWERING_PORTS="5173" LSOF_LISTENERS="5173=$WORK_DIR/web" PATH="$MOCK_BIN:$PATH" run --separate-stderr "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR" --check-owner
@@ -679,7 +681,7 @@ JSON
 }
 
 @test "detect-url --check-owner flags a server whose checkout cannot be determined" {
-  git init -q "$WORK_DIR"
+  init_empty_test_git_repo "$WORK_DIR"
   write_owner_mocks
 
   ANSWERING_PORTS="5173" PATH="$MOCK_BIN:$PATH" run --separate-stderr "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR" --check-owner
@@ -692,8 +694,8 @@ JSON
 @test "detect-url --check-owner drops another checkout's server from the common-port scan" {
   local other_dir="$BATS_TEST_TMPDIR/sibling-workspace"
   mkdir -p "$other_dir"
-  git init -q "$WORK_DIR"
-  git init -q "$other_dir"
+  init_empty_test_git_repo "$WORK_DIR"
+  init_empty_test_git_repo "$other_dir"
   write_owner_mocks
 
   ANSWERING_PORTS="3000 5173" LSOF_LISTENERS="3000=$other_dir 5173=$WORK_DIR" PATH="$MOCK_BIN:$PATH" run --separate-stderr "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR" --check-owner
@@ -706,8 +708,8 @@ JSON
 @test "detect-url --check-owner leaves an explicit port unchecked" {
   local other_dir="$BATS_TEST_TMPDIR/other-checkout"
   mkdir -p "$other_dir"
-  git init -q "$WORK_DIR"
-  git init -q "$other_dir"
+  init_empty_test_git_repo "$WORK_DIR"
+  init_empty_test_git_repo "$other_dir"
   write_owner_mocks
 
   ANSWERING_PORTS="5173" LSOF_LISTENERS="5173=$other_dir" PATH="$MOCK_BIN:$PATH" run --separate-stderr "$SCRIPT_DIR/detect-url.sh" "$WORK_DIR" --port 5173 --check-owner
@@ -732,8 +734,8 @@ JSON
 @test "detect-url prefers this workspace's Conductor range to a sibling on the framework default port" {
   local sibling_dir="$BATS_TEST_TMPDIR/sibling-workspace"
   mkdir -p "$sibling_dir"
-  git init -q "$WORK_DIR"
-  git init -q "$sibling_dir"
+  init_empty_test_git_repo "$WORK_DIR"
+  init_empty_test_git_repo "$sibling_dir"
   printf 'export default {}\n' >"$WORK_DIR/vite.config.ts"
   write_owner_mocks
 
@@ -765,8 +767,8 @@ JSON
 @test "detect-url tries the Conductor range before a config port that equals the framework default" {
   local sibling_dir="$BATS_TEST_TMPDIR/sibling-workspace"
   mkdir -p "$sibling_dir"
-  git init -q "$WORK_DIR"
-  git init -q "$sibling_dir"
+  init_empty_test_git_repo "$WORK_DIR"
+  init_empty_test_git_repo "$sibling_dir"
   printf 'export default { server: { port: 5173 } }\n' >"$WORK_DIR/vite.config.ts"
   write_owner_mocks
 
@@ -817,8 +819,8 @@ JSON
 @test "detect-url lists every monorepo app when only one names its port" {
   local sibling_dir="$BATS_TEST_TMPDIR/sibling-workspace"
   mkdir -p "$WORK_DIR/apps/web" "$WORK_DIR/apps/admin" "$sibling_dir"
-  git init -q "$WORK_DIR"
-  git init -q "$sibling_dir"
+  init_empty_test_git_repo "$WORK_DIR"
+  init_empty_test_git_repo "$sibling_dir"
   printf 'export default { server: { port: 4001 } }\n' >"$WORK_DIR/apps/web/vite.config.ts"
   printf 'module.exports = {}\n' >"$WORK_DIR/apps/admin/next.config.js"
   write_owner_mocks
