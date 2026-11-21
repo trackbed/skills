@@ -1308,28 +1308,26 @@ EOF
   [[ "$triage_text" == *'preserving its existing 5-, 6-, or 7-column schema'* ]] || false
   [[ "$triage_text" == *'Mixed — see issue files for exact guidance'* ]] || false
 
-  for skill_text in "$generate_phases_contract_text"; do
-    [[ "$skill_text" == *'scripts/siw-issue-reservation.sh'* ]] || false
-    [[ "$skill_text" == *'serializes its own invocations'* ]] || false
-    [[ "$skill_text" == *'operation claim is reclaimed only after its recorded process no longer exists'* ]] || false
-    [[ "$skill_text" == *'Immediately before the first mutation'* ]] || false
-    [[ "$skill_text" == *'owner-bound baseline manifest'* ]] || false
-    [[ "$skill_text" == *'collision-resistant owner token'* ]] || false
-    [[ "$skill_text" == *'sh <helper> new-owner'* ]] || false
-    [[ "$skill_text" == *'publish-receipt siw <owner-token>'* ]] || false
-    [[ "$skill_text" == *'verify-receipt siw <owner-token>'* ]] || false
-    [[ "$skill_text" == *'legacy-only zero-ID recovery receipt'* ]] || false
-    [[ "$skill_text" == *'legacy lock with an owned reservation'*'reject'* ]] || false
-    [[ "$skill_text" == *'every ID whose issue file, overview row, or log entry changed since acquisition'* ]] || false
-    [[ "$skill_text" == *'separate normal-path `verify-receipt`'*'unnecessary'* ]] || false
-    [[ "$skill_text" == *"During normal contention, never copy or reuse a token"* ]] || false
-    [[ "$skill_text" == *"A later recovery session may use the retained token only after the user explicitly confirms"* ]] || false
-    [[ "$skill_text" == *'without exposing its token'* ]] || false
-    [[ "$skill_text" == *'Never publish from the'*'snapshot'* ]] || false
-    [[ "$skill_text" == *'retries collisions with exclusive atomic claims'* ]] || false
-    [[ "$skill_text" == *'Never delete a reservation based on age or filename'* ]] || false
-    [[ "$skill_text" == *"never clean up a different owner's token"* ]] || false
-  done
+  [[ "$generate_phases_contract_text" == *'scripts/siw-issue-reservation.sh'* ]] || false
+  [[ "$generate_phases_contract_text" == *'serializes its own invocations'* ]] || false
+  [[ "$generate_phases_contract_text" == *'operation claim is reclaimed only after its recorded process no longer exists'* ]] || false
+  [[ "$generate_phases_contract_text" == *'Immediately before the first mutation'* ]] || false
+  [[ "$generate_phases_contract_text" == *'owner-bound baseline manifest'* ]] || false
+  [[ "$generate_phases_contract_text" == *'collision-resistant owner token'* ]] || false
+  [[ "$generate_phases_contract_text" == *'sh <helper> new-owner'* ]] || false
+  [[ "$generate_phases_contract_text" == *'publish-receipt siw <owner-token>'* ]] || false
+  [[ "$generate_phases_contract_text" == *'verify-receipt siw <owner-token>'* ]] || false
+  [[ "$generate_phases_contract_text" == *'legacy-only zero-ID recovery receipt'* ]] || false
+  [[ "$generate_phases_contract_text" == *'legacy lock with an owned reservation'*'reject'* ]] || false
+  [[ "$generate_phases_contract_text" == *'every ID whose issue file, overview row, or log entry changed since acquisition'* ]] || false
+  [[ "$generate_phases_contract_text" == *'separate normal-path `verify-receipt`'*'unnecessary'* ]] || false
+  [[ "$generate_phases_contract_text" == *"During normal contention, never copy or reuse a token"* ]] || false
+  [[ "$generate_phases_contract_text" == *"A later recovery session may use the retained token only after the user explicitly confirms"* ]] || false
+  [[ "$generate_phases_contract_text" == *'without exposing its token'* ]] || false
+  [[ "$generate_phases_contract_text" == *'Never publish from the'*'snapshot'* ]] || false
+  [[ "$generate_phases_contract_text" == *'retries collisions with exclusive atomic claims'* ]] || false
+  [[ "$generate_phases_contract_text" == *'Never delete a reservation based on age or filename'* ]] || false
+  [[ "$generate_phases_contract_text" == *"never clean up a different owner's token"* ]] || false
 
   [[ "$publication_recovery_text" == *'Build the complete provisional-to-final map'* ]] || false
   [[ "$publication_recovery_text" == *'reserve-batch siw <prefix> <owner-token> 100 <provisional-id>...'* ]] || false

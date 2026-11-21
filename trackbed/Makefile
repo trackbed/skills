@@ -59,7 +59,11 @@ SHELLCHECK_FILES = \
 	evals/_lib/*.sh \
 	evals/*/*/scaffold.sh \
 	skills/*/scripts/*.sh \
-	skills/*/assets/*.sh
+	skills/*/assets/*.sh \
+	tests/run-tests.sh \
+	$(wildcard tests/test_helper/*.bash tests/test_helper/*.sh) \
+	tests/test_helper/mocks/codex \
+	tests/test_helper/mocks/skillspector
 
 JAVASCRIPT_BROWSER_ASSETS = $(filter-out \
 	skills/pr:walkthrough/assets/d3.v7.9.0.min.js, \
@@ -70,6 +74,7 @@ lint: lint-shell lint-python lint-js skill-contracts check-bats-assertions
 
 lint-shell: check-shell-deps
 	@"$(SHELLCHECK)" --severity=$(SHELLCHECK_SEVERITY) $(SHELLCHECK_FILES)
+	@"$(SHELLCHECK)" --shell=bats --severity=warning --exclude=SC2164 tests/*.bats
 
 lint-python: check-python-deps check-ruff-deps typecheck-python
 	@"$(RUFF)" check --config "$(PYTHON_RUFF_CONFIG)" . ../.agents/skills/trackbed:skill:audit-sources/scripts

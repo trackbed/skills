@@ -178,6 +178,8 @@ make_bash_input() {
 }
 
 # Helper: Check if output indicates a block decision (exit 2 + stderr message)
+# Bats run sets status and output.
+# shellcheck disable=SC2154
 is_blocked() {
   [ "$status" -eq 2 ] && [ -n "$output" ]
 }

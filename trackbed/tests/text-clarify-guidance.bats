@@ -216,7 +216,7 @@ setup() {
 	section="$(awk '/^### 35\. /{inside = 1; next} /^### /{inside = 0} inside' "$catalog")"
 	grep -qF "institutions—not by the people" <<< "$section"
 	section="$(awk '/^### 18\. /{inside = 1; next} /^### /{inside = 0} inside' "$catalog")"
-	grep -qF "He said “the project is on track”" <<< "$section"
+	grep -qF 'He said “the project is on track”' <<< "$section"
 	section="$(awk '/^### 17\. /{inside = 1; next} /^### /{inside = 0} inside' "$catalog")"
 	grep -qF "🚀 **Launch Phase:**" <<< "$section"
 	grep -qF "experience—ensuring" "$CLARIFY/references/humanize-mode.md"

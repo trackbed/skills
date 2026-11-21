@@ -10,7 +10,8 @@ setup() {
 	# resolve a mock it had just deleted.
 	REAL_JQ="$(command -v jq)"
 	# Create temp directory for git mocking
-	export MOCK_DIR=$(mktemp -d)
+	MOCK_DIR=$(mktemp -d)
+	export MOCK_DIR
 	export PATH="$MOCK_DIR:$PATH"
 	REAL_COMMIT_REPO=""
 }

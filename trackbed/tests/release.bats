@@ -3,7 +3,8 @@
 load 'test_helper/common'
 
 setup() {
-  export RELEASE_REAL_GIT="$(command -v git)"
+  RELEASE_REAL_GIT="$(command -v git)"
+  export RELEASE_REAL_GIT
   export RELEASE_PRETTIER="$BATS_TEST_DIRNAME/../../node_modules/.bin/prettier"
   export RELEASE_TEST_PATH="$PATH"
   TMP_ROOT="$(cd "$(mktemp -d)" && pwd -P)"
@@ -21,7 +22,6 @@ setup() {
 	program = $TMP_ROOT/missing-signer
 EOF
   : >"$GIT_CONFIG_SYSTEM"
-  SCRIPT="$BATS_TEST_DIRNAME/../scripts/release.py"
   PLUGIN_ROOT="$TMP_ROOT/trackbed"
   mkdir -p "$PLUGIN_ROOT/.claude-plugin" "$PLUGIN_ROOT/scripts"
   cat >"$PLUGIN_ROOT/.claude-plugin/plugin.json" <<'EOF'

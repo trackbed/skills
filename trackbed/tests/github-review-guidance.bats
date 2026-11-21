@@ -342,7 +342,7 @@ PY
     grep -qF "not created — authorized; creation not attempted yet" "$1"
     grep -qF "clear the temporary pre-write sentinel with \`DRAFT_REVIEW_STATUS=\"\"\`" "$1"
     grep -qF "Draft comments are ready:" "$1"
-    grep -qF "Stop and wait for the user'\''s answer" "$1"
+    grep -qF "$2" "$1"
     grep -qF "Silence or an ambiguous answer is not authorization" "$1"
     grep -qF "If the user declines" "$1"
     grep -qF "never authorizes submitting the review" "$1"
@@ -358,7 +358,7 @@ create = text.index("follow Sections 2–4")
 if not materialize < offer < create:
     raise SystemExit("report materialization must precede the offer and GitHub creation flow")
 PY
-  ' _ "$SKILL"
+  ' _ "$SKILL" "Stop and wait for the user's answer"
 
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
