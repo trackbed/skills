@@ -594,6 +594,21 @@ trackbed/tests/
 
 The aggregate Python target also discovers repository-maintenance tests under `.agents/skills/trackbed:skill:audit-sources/scripts/`.
 
+#### Writing guidance tests
+
+Pin behavior in the skill that owns it. Load `test_helper/common` and use a short, distinctive flag, command, heading, or filename as the anchor. The helpers report the file and anchor when a check fails. See [the gut-check suite](../tests/gut-check-guidance.bats) for examples.
+
+```bash
+load test_helper/common
+
+@test "gut check treats intent as a sentinel" {
+  local skill="$BATS_TEST_DIRNAME/../skills/pr:gut-check/SKILL.md"
+  assert_required_text "$skill" 'optional sentinel `--intent <text>`'
+}
+```
+
+The `make -C trackbed check-bats-assertions` target scans each `*-guidance.bats` suite for direct or piped `grep -q` and `grep -qF` checks and compares the count with its ceiling in `trackbed/tests/test_helper/guidance-grep-baseline.json`. New suites start at zero. When converting existing pins, lower that suite's baseline to its new count. Keep tests that extract and execute examples from the skill where they already verify behavior.
+
 ## SkillOpt Adoption
 
 SkillOpt is currently a conservative pilot for `trackbed:skill:review` only. The deterministic eval split lives in `trackbed/evals/skill-review/`, and the repo-local SkillOpt bridge lives in `trackbed/evals/skillopt/`. Keep the external SkillOpt checkout, model credentials, run output, and candidate review artifacts outside tracked source under `.context/`.

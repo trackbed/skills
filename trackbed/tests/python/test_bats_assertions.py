@@ -102,6 +102,8 @@ class BatsAssertionCheckTests(unittest.TestCase):
         text = "cat <<'FIXTURE'\n! true\n[[ a == b ]]\nFIXTURE\n! grep x <<<y\n"
         self.assertEqual(checker.unsafe_assertions(text), [(5, 5)])
         self.assertEqual(checker.unsafe_assertions("cat <<-EOF\n\t! true\n\tEOF\n! true"), [(4, 4)])
+        self.assertEqual(checker.unsafe_assertions('! grep "first\n<<EOF\nsecond" file || false\n'), [])
+        self.assertEqual(checker.unsafe_assertions("run bash -c '\ncat <<EOF\n! true\nEOF\n'\n"), [])
 
     def test_cli_fails_with_file_and_line(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -113,6 +115,42 @@ class BatsAssertionCheckTests(unittest.TestCase):
             path.write_text('@test "false" {\n! true || false\necho later\n}\n')
             result = subprocess.run([sys.executable, str(CHECKER), str(path)], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0)
+
+    def test_raw_pins_count_commands_in_guidance_source(self):
+        text = r"""
+grep -q anchor "$skill"
+! grep -qF -- '--old' "$skill" || false
+printf '%s' "$section" | grep -qF anchor
+run bash -c '
+grep -qF anchor "$skill"
+cat <<EOF
+grep -qF fixture "$skill"
+EOF
+'
+echo "first
+<<EOF
+second"
+grep \
+  -qF anchor "$skill"
+# grep -qF anchor "$skill"
+echo 'grep -qF anchor "$skill"'
+cat <<'FIXTURE'
+grep -qF anchor "$skill"
+FIXTURE
+"""
+        self.assertEqual(checker.count_raw_pins(text), 5)
+
+    def test_cli_enforces_each_guidance_suite_ceiling(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "gut-check-guidance.bats"
+            path.write_text('grep -qF anchor "$skill"\n')
+            result = subprocess.run([sys.executable, str(CHECKER), str(path)], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn(f"{path}: 1 raw grep pins exceed baseline 0", result.stdout)
+
+            path.write_text('assert_required_text "$skill" anchor\n')
+            result = subprocess.run([sys.executable, str(CHECKER), str(path)], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout)
 
 
 if __name__ == "__main__":
