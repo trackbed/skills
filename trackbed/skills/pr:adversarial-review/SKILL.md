@@ -7,6 +7,7 @@ user-invocable: true
 trackbed-platforms: [claude-code, codex]
 permissions:
   - shell
+  - file_read
 ---
 
 # Adversarial Pull Request Review
