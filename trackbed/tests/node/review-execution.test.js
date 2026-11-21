@@ -4,7 +4,9 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { execFileSync, spawnSync } = require("node:child_process");
+const { execFile, execFileSync, spawnSync } = require("node:child_process");
+const { promisify } = require("node:util");
+const execFileAsync = promisify(execFile);
 const helper = path.resolve(
   __dirname,
   "../../skills/pr:code-review/scripts/review-execution.js",
@@ -1095,4 +1097,217 @@ test("status distinguishes stale content from Git operational errors", (t) => {
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /git.*rev-parse.*base/);
   assert.doesNotMatch(result.stdout, /"scopeFresh":false/);
+});
+
+test("the sealed fingerprint excludes an untracked siw visual report", (t) => {
+  const f = fixture(t, ["code"]);
+  f.complete();
+  f.ok("seal", "--report", f.draft());
+  fs.mkdirSync(path.join(f.root, "siw"));
+  fs.writeFileSync(
+    path.join(f.root, "siw", "REVIEW_OVERVIEW.html"),
+    "<!doctype html>",
+  );
+  f.ok("check", "--report", f.report);
+  f.git("add", "siw/REVIEW_OVERVIEW.html");
+  assert.match(
+    f.command("check", "--report", f.report).stderr,
+    /scope is stale/,
+  );
+});
+
+for (const phase of ["before", "after"]) {
+  test(`finish interrupted ${phase} the ledger commit can resume and seal`, (t) => {
+    const f = fixture(t, ["code"]);
+    const job = "code-reviewer";
+    const output = path.join(f.temp, "output.txt");
+    fs.writeFileSync(output, "Reviewer output\n");
+    const finishArgs = [
+      "--job",
+      job,
+      "--status",
+      "succeeded",
+      "--output",
+      output,
+    ];
+    f.ok("start", "--job", job, "--agent-id", "first-attempt");
+    if (phase === "before") {
+      // An older helper could have left the final output despite a running job.
+      fs.writeFileSync(
+        path.join(f.run, `${job}.txt`),
+        "Uncommitted legacy output",
+      );
+    }
+
+    const result = injected(
+      f,
+      `
+      const rename = fs.renameSync;
+      fs.renameSync = (from, to) => {
+        if (!to.endsWith("ledger.json")) return rename(from, to);
+        if (${phase === "after"}) rename(from, to);
+        process.kill(process.pid, "SIGKILL");
+      };
+      `,
+      ["finish", f.run, ...finishArgs],
+    );
+    assert.equal(result.signal, "SIGKILL", result.stderr);
+    assert.equal(
+      f.ledger().jobs[job].status,
+      phase === "before" ? "running" : "succeeded",
+    );
+    if (phase === "before") {
+      f.ok("requeue", "--job", job, "--reason", "process interrupted");
+      f.ok("start", "--job", job, "--agent-id", "retry");
+      f.ok("finish", ...finishArgs);
+    } else {
+      assert.equal(fs.existsSync(path.join(f.run, `${job}.txt`)), false);
+      const otherRoot = path.join(f.temp, "other-repo");
+      execFileSync("git", ["init", otherRoot]);
+      const foreign = spawnSync(process.execPath, [helper, "status", f.run], {
+        cwd: otherRoot,
+        encoding: "utf8",
+        timeout: 30000,
+      });
+      assert.match(foreign.stderr, /different repository/);
+      assert.equal(fs.existsSync(path.join(f.run, `${job}.txt.pending`)), true);
+      assert.equal(fs.existsSync(path.join(f.run, `${job}.txt`)), false);
+      f.ok("status");
+    }
+    assert.equal(
+      fs.readFileSync(path.join(f.run, `${job}.txt`), "utf8"),
+      "Reviewer output\n",
+    );
+    for (const id of Object.keys(f.ledger().jobs).filter((id) => id !== job))
+      f.finish(id);
+    f.ok("seal", "--report", f.draft());
+    f.ok("check", "--report", f.report);
+  });
+}
+
+test("concurrent finish calls commit both reviewer outputs", async (t) => {
+  const f = fixture(t, ["code", "errors"]);
+  const jobs = ["code-reviewer", "silent-failure-hunter"];
+  const output = path.join(f.temp, "output.txt");
+  fs.writeFileSync(output, "Reviewer output\n");
+  for (const job of jobs)
+    f.ok("start", "--job", job, "--agent-id", `host-${job}`);
+  const driver = `
+    const fs = require("node:fs");
+    const childProcess = require("node:child_process");
+    const [role, ...args] = process.argv.slice(1);
+    const ready = ${JSON.stringify(path.join(f.temp, "first-at-rename"))};
+    const contending = ${JSON.stringify(path.join(f.temp, "second-at-lock"))};
+    function waitFor(marker) {
+      const signal = new Int32Array(new SharedArrayBuffer(4));
+      while (!fs.existsSync(marker)) Atomics.wait(signal, 0, 0, 10);
+    }
+    if (role === "first") {
+      const rename = fs.renameSync;
+      fs.renameSync = (from, to) => {
+        if (to.endsWith("ledger.json")) {
+          fs.writeFileSync(ready, "");
+          waitFor(contending);
+        }
+        return rename(from, to);
+      };
+    } else {
+      waitFor(ready);
+      const exec = childProcess.execFileSync;
+      childProcess.execFileSync = (command, ...params) => {
+        if (command === "python3") {
+          const fd = fs.openSync(args[1], "r");
+          try {
+            exec("python3", ["-c", "import fcntl; fcntl.flock(3, fcntl.LOCK_EX | fcntl.LOCK_NB)"], {
+              stdio: ["ignore", "ignore", "pipe", fd],
+            });
+            throw new Error("first writer did not retain its lock");
+          } catch (error) {
+            if (!String(error.stderr).includes("BlockingIOError")) throw error;
+          } finally {
+            fs.closeSync(fd);
+          }
+          fs.writeFileSync(contending, "");
+        }
+        return exec(command, ...params);
+      };
+    }
+    require(${JSON.stringify(helper)}).main(args);
+  `;
+  await Promise.all(
+    jobs.map((job, index) =>
+      execFileAsync(
+        process.execPath,
+        [
+          "-e",
+          driver,
+          index === 0 ? "first" : "second",
+          "finish",
+          f.run,
+          "--job",
+          job,
+          "--status",
+          "succeeded",
+          "--output",
+          output,
+        ],
+        { cwd: f.root, timeout: 30000 },
+      ),
+    ),
+  );
+  for (const job of jobs) {
+    assert.equal(f.ledger().jobs[job].status, "succeeded");
+    assert.equal(
+      fs.readFileSync(path.join(f.run, `${job}.txt`), "utf8"),
+      "Reviewer output\n",
+    );
+  }
+});
+
+test("init rejects a run below an alias for the worktree", (t) => {
+  const f = fixture(t, ["code"]);
+  const alias = path.join(f.temp, "worktree-alias");
+  fs.symlinkSync(f.root, alias);
+  const caseAlias = path.join(f.temp, "REPO");
+  const aliases = fs.existsSync(caseAlias) ? [alias, caseAlias] : [alias];
+  for (const location of aliases) {
+    const result = spawnSync(
+      process.execPath,
+      [
+        helper,
+        "init",
+        path.join(location, "nested", "run"),
+        "--plan",
+        path.join(f.run, "plan.json"),
+        "--base",
+        "base",
+      ],
+      { cwd: f.root, encoding: "utf8", timeout: 30000 },
+    );
+    assert.match(result.stderr, /outside the working tree/);
+    assert.equal(fs.existsSync(path.join(f.root, "nested")), false);
+  }
+});
+
+test("finish rejects a stale scope without recording output", (t) => {
+  const f = fixture(t, ["code"]);
+  const job = "code-reviewer";
+  f.ok("start", "--job", job, "--agent-id", "host-code");
+  const output = path.join(f.temp, "output.txt");
+  fs.writeFileSync(output, "Reviewer output\n");
+  fs.writeFileSync(path.join(f.root, "source.txt"), "Changed after start\n");
+  assert.match(
+    f.command(
+      "finish",
+      "--job",
+      job,
+      "--status",
+      "succeeded",
+      "--output",
+      output,
+    ).stderr,
+    /scope is stale/,
+  );
+  assert.equal(f.ledger().jobs[job].status, "running");
+  assert.equal(fs.existsSync(path.join(f.run, `${job}.txt`)), false);
 });

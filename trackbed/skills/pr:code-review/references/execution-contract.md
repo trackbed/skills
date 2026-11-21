@@ -14,9 +14,9 @@ Read this before selecting standard or Team Mode. It applies to default, filtere
 
 ## Create evidence before launch
 
-Resolve this skill's installed directory as `REVIEW_SKILL_DIR`; use its own `scripts/review-execution.js`. Do not depend on a repository checkout or installed files from a different skill. Node.js 20+ and Git are required. Missing tooling means incomplete coverage, not permission to bypass the gate.
+Resolve this skill's installed directory as `REVIEW_SKILL_DIR`; use its own `scripts/review-execution.js`. Do not depend on a repository checkout or installed files from a different skill. The helper requires Node.js 20+, Git, and Python 3 with POSIX file locking. Run it under WSL on Windows. Missing tooling means incomplete coverage, not permission to bypass the gate.
 
-Create a fresh run directory **outside the working tree**, including for inline and validation-only runs, with `mktemp -d "${TMPDIR:-/tmp}/trackbed-code-review.XXXXXX"`. This avoids adding review evidence to the untracked diff or triggering shared-tree mutation checks. Never reuse a run directory except to resume the same interrupted run under `Resume an interrupted run`, and never manually edit generated ledgers. The orchestrator alone serializes ledger writes; reviewers return outputs and never write the ledger.
+Create a fresh run directory **outside the working tree**, including for inline and validation-only runs, with `mktemp -d "${TMPDIR:-/tmp}/trackbed-code-review.XXXXXX"`. This avoids adding review evidence to the untracked diff or triggering shared-tree mutation checks. Never reuse a run directory except to resume the same interrupted run under `Resume an interrupted run`, and never manually edit generated ledgers. The orchestrator alone records evidence. The helper locks the run directory while applying each command. It stages outputs, commits their hashes in the ledger, and then publishes the output files. The next command can recover if publishing was interrupted.
 
 After standard Steps 1–6 (Team Step 1), save a plan JSON outside the run directory:
 
@@ -67,7 +67,7 @@ Save `NO_CLEANUP` as the boolean `noCleanup` and `EMPHASIZED_DIMENSIONS` as the 
 node "$REVIEW_SKILL_DIR/scripts/review-execution.js" init "$REVIEW_RUN" --plan "$REVIEW_PLAN" --base "$BASE_REF"
 ```
 
-The helper derives the job inventory, creates `plan.json` and `ledger.json`, and captures HEAD, resolved base, index and working-file content. It excludes only ignored files, the untracked root report, and the untracked root visual pages named in the plugin's protected-report list, which the scope collection also drops; other untracked reports stay in the reviewed scope and the snapshot, and a tracked report remains evidence. Dirty submodules fail closed. Keep the returned run ID for the report.
+The helper derives the job inventory, creates `plan.json` and `ledger.json`, and captures HEAD, resolved base, index and working-file content. It excludes only ignored files, the untracked root report, and the untracked visual pages at the root or directly under `siw/` named in the plugin's protected-report list, which the scope collection also drops; other untracked reports stay in the reviewed scope and the snapshot, and a tracked report remains evidence. Dirty submodules fail closed. Keep the returned run ID for the report.
 
 ## Record actual execution
 
@@ -122,7 +122,7 @@ Before `init`, look for a run to resume: first the run directory this conversati
 node "$REVIEW_SKILL_DIR/scripts/review-execution.js" status "$CANDIDATE_RUN"
 ```
 
-`status` never writes. Resume the newest candidate whose status shows `sealed: false`, `scopeFresh: true` (same repository root and unchanged HEAD, base, index, and file content), `created` within the last 24 hours, the same `base`, `aspects`, `noCleanup`, `emphasizedDimensions`, and `resume` object as this invocation, and no `failed` job. A candidate whose `status` fails is not resumable. Otherwise run `init` for a fresh run.
+`status` leaves the ledger unchanged and reconciles staged files against it. Resume the newest candidate whose status shows `sealed: false`, `scopeFresh: true` (same repository root and unchanged HEAD, base, index, and file content), `created` within the last 24 hours, the same `base`, `aspects`, `noCleanup`, `emphasizedDimensions`, and `resume` object as this invocation, and no `failed` job. A candidate whose `status` fails is not resumable. Otherwise run `init` for a fresh run.
 
 To resume, set `REVIEW_RUN` to that directory and keep its frozen `plan.json`, including its applicability decisions; do not re-plan. Then:
 

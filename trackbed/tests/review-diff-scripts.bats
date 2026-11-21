@@ -359,7 +359,7 @@ PY
 	merge_base="$(git merge-base refs/remotes/origin/main HEAD)"
 	mkdir -p "$fake_scripts/lib"
 	cp "$SCRIPT_DIR/collect-review-diff.sh" "$fake_scripts/collect-review-diff.sh"
-	cp "$SCRIPT_DIR/lib/shell-helpers.sh" "$fake_scripts/lib/shell-helpers.sh"
+	cp "$SCRIPT_DIR/lib/shell-helpers.sh" "$SCRIPT_DIR/lib/review-artifacts.sh" "$fake_scripts/lib/"
 	cat >"$fake_scripts/resolve-base.sh" <<'SH'
 #!/usr/bin/env bash
 if [ "${1-}" != "--format" ] || [ "${2-}" != "json" ]; then
@@ -549,7 +549,7 @@ PY
 	local fake_scripts="$TMP_DIR/no-hooks/scripts"
 	mkdir -p "$fake_scripts/lib"
 	cp "$SCRIPT_DIR/collect-review-diff.sh" "$fake_scripts/collect-review-diff.sh"
-	cp "$SCRIPT_DIR/lib/shell-helpers.sh" "$fake_scripts/lib/shell-helpers.sh"
+	cp "$SCRIPT_DIR/lib/shell-helpers.sh" "$SCRIPT_DIR/lib/review-artifacts.sh" "$fake_scripts/lib/"
 
 	run "$fake_scripts/collect-review-diff.sh" --exclude-review-artifacts
 

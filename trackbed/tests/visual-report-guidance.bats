@@ -484,7 +484,7 @@ PY
 @test "the code review seal and the Codex bundle know the page" {
 	grep -qF '"review-artifact-patterns.sh",' skills/pr:code-review/scripts/review-execution.js
 	grep -qxF 'REVIEW_OVERVIEW.html' hooks/confirm-review-artifacts.txt
-	grep -qF 'the untracked root visual pages named in the plugin'"'"'s protected-report list' \
+	grep -qF 'the untracked visual pages at the root or directly under `siw/` named in the plugin'"'"'s protected-report list' \
 		skills/pr:code-review/references/execution-contract.md
 	grep -qF 'path.join(plugin.root, "scripts", "visual-report.py")' scripts/convert-plugin/codex-transformer.js
 	grep -qF '`scripts/visual-report.py`' docs/agent-portability.md
