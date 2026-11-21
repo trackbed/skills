@@ -70,7 +70,7 @@ A review counts as finished only when every reviewer it planned has reported. To
 - All modes, including `--team`, `--inline`, and loop reruns, require a locally validated completion seal tied to the current Git scope and exact report.
 - Missing reviewers, skipped stages, or stale evidence mean `INCOMPLETE`, even with zero findings.
 - Review convergence and the closeout loop recheck the seal before accepting the review.
-- Node.js 20+ and Git are required.
+- The helper requires Node.js 20+, Git, and Python 3 with POSIX file locking. On Windows, run it under WSL.
 - Temporary evidence lives outside the worktree and must remain available until consumers finish; it is never committed.
 - This evidence is self-attested and does not independently prove host execution.
 

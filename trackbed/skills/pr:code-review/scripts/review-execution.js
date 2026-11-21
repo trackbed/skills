@@ -57,7 +57,7 @@ const SKIPPABLE = {
   relevance: "Relevance validation: skipped (no findings)",
   "slop-meta": "Slop meta-review: skipped (no findings)",
 };
-// This review's untracked root report is its output, not its scope. So are the untracked root visual pages in
+// This review's untracked root report is its output, not its scope. So are the untracked root and siw/ visual pages in
 // the plugin's protected-report list, which collect-review-diff.sh drops from the reviewed scope by default.
 // Other untracked reports stay in that scope, so they stay in the snapshot too.
 const OWN_REPORT = "REVIEW_OVERVIEW.md";
@@ -84,26 +84,8 @@ function git(root, ...args) {
     maxBuffer: 64 * 1024 * 1024,
   });
 }
-/** Shell-style `*` and `?` glob as an anchored pattern. @param {string} glob */
-function globPattern(glob) {
-  const escaped = glob.replace(/[\\^$.|+()[\]{}]/g, "\\$&");
-  return new RegExp(`^${escaped.replace(/\*/g, ".*").replace(/\?/g, ".")}$`);
-}
-/** @returns {RegExp[]} */
-function visualPagePatterns() {
-  return execFileSync("bash", [REVIEW_ARTIFACT_PATTERNS])
-    .toString()
-    .split("\n")
-    .filter((entry) => entry.endsWith(".html"))
-    .map(globPattern);
-}
 /** @param {string} root @param {string} base */
 function snapshot(root, base) {
-  const visualPages = visualPagePatterns();
-  /** @param {string} name */
-  const isRootReport = (name) =>
-    !name.includes("/") &&
-    (name === OWN_REPORT || visualPages.some((match) => match.test(name)));
   const head = git(root, "rev-parse", "HEAD").toString().trim();
   const baseOid = git(root, "rev-parse", "--verify", `${base}^{commit}`)
     .toString()
@@ -112,16 +94,17 @@ function snapshot(root, base) {
     .toString()
     .split("\0")
     .filter(Boolean);
-  const untracked = git(
-    root,
-    "ls-files",
-    "--others",
-    "--exclude-standard",
-    "-z",
+  const untracked = execFileSync(
+    "bash",
+    [REVIEW_ARTIFACT_PATTERNS, "--without-visual-pages"],
+    {
+      input: git(root, "ls-files", "--others", "--exclude-standard", "-z"),
+      maxBuffer: 64 * 1024 * 1024,
+    },
   )
     .toString()
     .split("\0")
-    .filter((name) => name && !isRootReport(name));
+    .filter((name) => name && name !== OWN_REPORT);
   const files = [...new Set([...tracked, ...untracked])].sort().map((name) => {
     const file = path.join(root, name);
     let state;
@@ -253,27 +236,29 @@ function dependencies(id, jobs) {
 function readJson(file) {
   return JSON.parse(fs.readFileSync(file, "utf8"));
 }
-/** @param {string} file @param {unknown} value */
-function save(file, value) {
-  const temp = `${file}.${process.pid}.tmp`;
-  const fd = fs.openSync(temp, "wx");
+/** @param {string} directory @param {Ledger} ledger */
+function saveLedger(directory, ledger) {
+  const file = path.join(directory, "ledger.json");
+  const temp = `${file}.pending`;
   try {
-    try {
-      fs.writeFileSync(fd, `${JSON.stringify(value, null, 2)}\n`);
-    } finally {
-      fs.closeSync(fd);
-    }
+    writePending(file, `${JSON.stringify(ledger, null, 2)}\n`);
     fs.renameSync(temp, file);
   } catch (error) {
     fs.rmSync(temp, { force: true });
     throw error;
   }
 }
-/** @param {string} directory */
-function load(directory) {
-  const plan = readJson(path.join(directory, "plan.json"));
+/** @param {string} directory @param {string} root */
+function load(directory, root) {
   /** @type {Ledger} */
   const ledger = readJson(path.join(directory, "ledger.json"));
+  requireValue(
+    ledger.root === root,
+    "Evidence belongs to a different repository",
+  );
+  const planFile = path.join(directory, "plan.json");
+  const pendingPlan = `${planFile}.pending`;
+  const plan = readJson(fs.existsSync(pendingPlan) ? pendingPlan : planFile);
   requireValue(
     ledger.version === 1 && ledger.planHash === jsonHash(plan),
     "Plan changed or unsupported ledger",
@@ -294,21 +279,22 @@ function load(directory) {
       `Job changed: ${id}`,
     );
   }
+  if (fs.existsSync(pendingPlan)) fs.renameSync(pendingPlan, planFile);
+  recoverOutputs(directory, ledger);
   return { plan, ledger };
 }
 class StaleScopeError extends Error {}
 /** @param {Ledger} ledger */
 function fresh(ledger) {
-  requireValue(
-    git(process.cwd(), "rev-parse", "--show-toplevel").toString().trim() ===
-      ledger.root,
-    "Evidence belongs to a different repository",
-  );
   if (jsonHash(snapshot(ledger.root, ledger.base)) !== jsonHash(ledger.scope))
     throw new StaleScopeError("Review scope is stale; start a fresh full run");
 }
-/** @param {string} directory @param {Ledger} ledger */
-function validate(directory, ledger) {
+/** @param {string} directory @param {Ledger} ledger @param {string} [root] */
+function validate(directory, ledger, root = repositoryRoot()) {
+  requireValue(
+    ledger.root === root,
+    "Evidence belongs to a different repository",
+  );
   fresh(ledger);
   const ids = new Set();
   const abandoned = interruptedIds(ledger);
@@ -474,215 +460,190 @@ function readManifest(file) {
     },
   );
 }
-/** @param {string[]} argv */
-function main(argv) {
-  const [command, directoryArg, ...rest] = argv;
-  requireValue(
-    [
-      "init",
-      "start",
-      "finish",
-      "record",
-      "requeue",
-      "status",
-      "seal",
-      "check",
-    ].includes(command) && directoryArg,
-    "Usage: review-execution.js init|start|finish|record|requeue|status|seal|check RUN_DIR [--key value]",
-  );
-  requireValue(rest.length % 2 === 0, "Options require values");
-  /** @type {Record<string, string>} */
-  const options = {};
-  /** @type {Record<string, string[]>} */
-  const allowedOptions = {
-    init: ["plan", "base"],
-    start: ["job", "agent-id"],
-    finish: ["job", "output", "status"],
-    record: ["manifest"],
-    requeue: ["job", "reason"],
-    status: [],
-    seal: ["report"],
-    check: ["report", "aspects"],
-  };
-  const allowed = allowedOptions[command];
-  for (let i = 0; i < rest.length; i += 2) {
-    const key = rest[i].replace(/^--/, "");
-    requireValue(
-      rest[i].startsWith("--") &&
-        allowed.includes(key) &&
-        !Object.hasOwn(options, key),
-      `Invalid option: ${rest[i]}`,
-    );
-    options[key] = rest[i + 1];
+/** @param {string} file @param {string | Buffer} data */
+function writePending(file, data) {
+  const pending = `${file}.pending`;
+  fs.rmSync(pending, { force: true });
+  const fd = fs.openSync(pending, "wx", 0o600);
+  try {
+    fs.writeFileSync(fd, data);
+  } finally {
+    fs.closeSync(fd);
   }
-  const directory = path.resolve(directoryArg);
-  if (command === "init") {
+}
+
+/** @param {string} directory @param {Ledger} ledger */
+function recoverOutputs(directory, ledger) {
+  for (const [id, job] of Object.entries(ledger.jobs)) {
+    const output = path.join(directory, `${id}.txt`);
+    const pending = `${output}.pending`;
+    if (!fs.existsSync(pending)) continue;
+    if (job.outputHash === undefined) {
+      fs.unlinkSync(pending);
+      continue;
+    }
     requireValue(
-      options.plan && options.base && !options.base.startsWith("-"),
-      "init needs --plan and --base",
+      hash(fs.readFileSync(pending)) === job.outputHash,
+      `Changed pending output: ${id}`,
     );
-    const root = git(process.cwd(), "rev-parse", "--show-toplevel")
-      .toString()
-      .trim();
-    const relative = path.relative(root, directory);
-    requireValue(
-      relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative),
-      "Keep execution artifacts outside the working tree (use mktemp -d)",
-    );
-    const plan = readJson(options.plan);
-    const { jobs, coverage } = jobsFor(plan);
-    requireValue(
-      typeof plan.context === "string" && plan.context.trim(),
-      "Plan needs scope, PR metadata and previous-review context evidence",
-    );
-    const scope = snapshot(root, options.base);
-    fs.mkdirSync(directory, { recursive: true });
-    requireValue(
-      fs.readdirSync(directory).length === 0,
-      "Run directory must be empty",
-    );
-    /** @type {Ledger} */
-    const ledger = {
-      version: 1,
-      runId: crypto.randomUUID(),
-      created: new Date().toISOString(),
-      evidence: "self-attested",
-      root,
-      base: options.base,
-      scope,
-      planHash: jsonHash(plan),
-      coverage,
-      sequence: 0,
+    fs.renameSync(pending, output);
+  }
+}
+
+/** @param {string} directory @param {Ledger} ledger @param {{job: string, data: Buffer}[]} steps */
+function commitOutputs(directory, ledger, steps) {
+  const outputs = steps.map((step) => path.join(directory, `${step.job}.txt`));
+  try {
+    for (const [index, step] of steps.entries()) {
+      writePending(outputs[index], step.data);
+    }
+    saveLedger(directory, ledger);
+  } catch (error) {
+    for (const output of outputs)
+      fs.rmSync(`${output}.pending`, { force: true });
+    throw error;
+  }
+  recoverOutputs(directory, ledger);
+}
+
+/** @typedef {Record<string, string>} Options */
+/** @typedef {{directory: string, requestedDirectory: string, root: string, options: Options, plan: Plan, ledger: Ledger}} Transaction */
+/** @param {string} directory @param {Options} options @param {string} root */
+function init(directory, options, root) {
+  requireValue(
+    options.plan && options.base && !options.base.startsWith("-"),
+    "init needs --plan and --base",
+  );
+  const plan = readJson(options.plan);
+  const { jobs, coverage } = jobsFor(plan);
+  requireValue(
+    typeof plan.context === "string" && plan.context.trim(),
+    "Plan needs scope, PR metadata and previous-review context evidence",
+  );
+  const scope = snapshot(root, options.base);
+  requireValue(
+    fs
+      .readdirSync(directory)
+      .every((name) =>
+        ["plan.json.pending", "ledger.json.pending"].includes(name),
+      ),
+    "Run directory must be empty",
+  );
+  /** @type {Ledger} */
+  const ledger = {
+    version: 1,
+    runId: crypto.randomUUID(),
+    created: new Date().toISOString(),
+    evidence: "self-attested",
+    root,
+    base: options.base,
+    scope,
+    planHash: jsonHash(plan),
+    coverage,
+    sequence: 0,
+    jobs: Object.fromEntries(
+      Object.entries(jobs).map(([id, job]) => [
+        id,
+        { ...job, status: "pending" },
+      ]),
+    ),
+  };
+  const planFile = path.join(directory, "plan.json");
+  writePending(planFile, `${JSON.stringify(plan, null, 2)}\n`);
+  saveLedger(directory, ledger);
+  fs.renameSync(`${planFile}.pending`, planFile);
+  console.log(JSON.stringify(ledger));
+}
+
+/** @param {Transaction} transaction */
+function status({ plan, ledger }) {
+  let scopeFresh = true;
+  try {
+    fresh(ledger);
+  } catch (error) {
+    if (!(error instanceof StaleScopeError)) throw error;
+    scopeFresh = false;
+  }
+  console.log(
+    JSON.stringify({
+      runId: ledger.runId,
+      root: ledger.root,
+      base: ledger.base,
+      created: ledger.created ?? null,
+      sealed: Boolean(ledger.reportHash),
+      scopeFresh,
+      aspects: plan.aspects,
+      noCleanup: plan.noCleanup ?? false,
+      emphasizedDimensions: plan.emphasizedDimensions ?? [],
+      resume: plan.resume ?? null,
       jobs: Object.fromEntries(
-        Object.entries(jobs).map(([id, job]) => [
+        Object.entries(ledger.jobs).map(([id, job]) => [
           id,
-          { ...job, status: "pending" },
+          {
+            status: job.status,
+            ...(job.agentId ? { agentId: job.agentId } : {}),
+            interrupted: job.interrupted?.length ?? 0,
+          },
         ]),
       ),
-    };
-    save(path.join(directory, "plan.json"), plan);
-    save(path.join(directory, "ledger.json"), ledger);
-    console.log(JSON.stringify(ledger));
-    return;
-  }
-  const { plan, ledger } = load(directory);
-  if (command === "status") {
-    let scopeFresh = true;
-    try {
-      fresh(ledger);
-    } catch (error) {
-      if (!(error instanceof StaleScopeError)) throw error;
-      scopeFresh = false;
-    }
-    console.log(
-      JSON.stringify({
-        runId: ledger.runId,
-        root: ledger.root,
-        base: ledger.base,
-        created: ledger.created ?? null,
-        sealed: Boolean(ledger.reportHash),
-        scopeFresh,
-        aspects: plan.aspects,
-        noCleanup: plan.noCleanup ?? false,
-        emphasizedDimensions: plan.emphasizedDimensions ?? [],
-        resume: plan.resume ?? null,
-        jobs: Object.fromEntries(
-          Object.entries(ledger.jobs).map(([id, job]) => [
-            id,
-            {
-              status: job.status,
-              ...(job.agentId ? { agentId: job.agentId } : {}),
-              interrupted: job.interrupted?.length ?? 0,
-            },
-          ]),
-        ),
-      }),
-    );
-    return;
-  }
-  if (command === "requeue") {
+    }),
+  );
+}
+
+/** @param {Transaction} transaction */
+function requeue({ directory, ledger, options }) {
+  applyRequeue(ledger, options.job, options.reason);
+  saveLedger(directory, ledger);
+}
+
+/** @param {Transaction} transaction */
+function start({ directory, ledger, options }) {
+  applyStart(ledger, options.job, options["agent-id"]);
+  saveLedger(directory, ledger);
+}
+
+/** @param {Transaction} transaction */
+function finish({ directory, ledger, options }) {
+  requireValue(
+    options.job && options.status && options.output,
+    "finish needs --job, --status succeeded|failed|skipped and --output",
+  );
+  const data = fs.readFileSync(options.output);
+  applyFinish(ledger, options.job, options.status, data);
+  commitOutputs(directory, ledger, [{ job: options.job, data }]);
+}
+
+/** @param {Job} job @param {{status: string, agentId?: string}} step */
+function shouldRecordStart(job, step) {
+  return (
+    job.status === "pending" &&
+    step.status !== "skipped" &&
+    (step.status !== "failed" ||
+      Boolean(step.agentId) ||
+      job.agent === "orchestrator")
+  );
+}
+
+/** @param {Transaction} transaction */
+function record({ directory, ledger, options }) {
+  requireValue(options.manifest, "record needs --manifest <file.json>");
+  const steps = readManifest(options.manifest);
+  for (const step of steps) {
     requireValue(
-      !ledger.reportHash,
-      "Sealed run cannot change; start a fresh run",
+      Object.hasOwn(ledger.jobs, step.job),
+      `Unknown job: ${step.job}`,
     );
-    fresh(ledger);
-    applyRequeue(ledger, options.job, options.reason);
-    save(path.join(directory, "ledger.json"), ledger);
-    return;
-  }
-  if (command === "start" || command === "finish" || command === "record") {
-    requireValue(
-      !ledger.reportHash,
-      "Sealed run cannot change; start a fresh run",
-    );
-    /** @type {{job: string, status: string, agentId?: string, data: Buffer}[]} */
-    let steps;
-    if (command === "start") {
-      fresh(ledger);
-      applyStart(ledger, options.job, options["agent-id"]);
-      steps = [];
-    } else if (command === "finish") {
-      requireValue(
-        options.job && options.status && options.output,
-        "finish needs --job, --status succeeded|failed|skipped and --output",
-      );
-      steps = [
-        {
-          job: options.job,
-          status: options.status,
-          data: fs.readFileSync(options.output),
-        },
-      ];
-      applyFinish(ledger, options.job, options.status, steps[0].data);
-    } else {
-      requireValue(options.manifest, "record needs --manifest <file.json>");
-      fresh(ledger);
-      // Apply every entry to the in-memory ledger before writing anything, so a bad entry records nothing.
-      steps = readManifest(options.manifest);
-      for (const step of steps) {
-        const job = ledger.jobs[step.job];
-        requireValue(
-          Object.hasOwn(ledger.jobs, step.job),
-          `Unknown job: ${step.job}`,
-        );
-        const startsNow =
-          job.status === "pending" &&
-          !(
-            step.status === "skipped" ||
-            (step.status === "failed" &&
-              !step.agentId &&
-              job.agent !== "orchestrator")
-          );
-        if (startsNow) applyStart(ledger, step.job, step.agentId);
-        applyFinish(ledger, step.job, step.status, step.data);
-      }
+    if (shouldRecordStart(ledger.jobs[step.job], step)) {
+      applyStart(ledger, step.job, step.agentId);
     }
-    for (const step of steps)
-      requireValue(
-        !fs.existsSync(path.join(directory, `${step.job}.txt`)),
-        `Output already recorded: ${step.job}`,
-      );
-    // Roll back only outputs created by this attempt; prior evidence remains untouched.
-    const created = [];
-    try {
-      for (const step of steps) {
-        const output = path.join(directory, `${step.job}.txt`);
-        const fd = fs.openSync(output, "wx");
-        created.push(output);
-        try {
-          fs.writeFileSync(fd, step.data);
-        } finally {
-          fs.closeSync(fd);
-        }
-      }
-      save(path.join(directory, "ledger.json"), ledger);
-    } catch (error) {
-      for (const output of created) fs.rmSync(output, { force: true });
-      throw error;
-    }
-    return;
+    applyFinish(ledger, step.job, step.status, step.data);
   }
-  validate(directory, ledger);
+  commitOutputs(directory, ledger, steps);
+}
+
+/** @param {Transaction} transaction */
+function reportHash({ directory, requestedDirectory, root, ledger, options }) {
+  validate(directory, ledger, root);
   requireValue(
     options.report,
     "Report file required (save exact inline content to a temporary file)",
@@ -721,7 +682,7 @@ function main(argv) {
       `Ambiguous report field: ${prefix}`,
     );
   requireValue(
-    reportText.split("\n").includes(`Review execution: ${directory}`),
+    reportText.split("\n").includes(`Review execution: ${requestedDirectory}`),
     "Report must name this execution directory",
   );
   requireValue(
@@ -738,22 +699,11 @@ function main(argv) {
         reportText.split("\n").some((text) => text.trim() === line),
         `Report must state: ${line}`,
       );
-  if (command === "seal") {
-    requireValue(!ledger.reportHash, "Run already sealed");
-    ledger.reportHash = hash(report);
-    save(path.join(directory, "ledger.json"), ledger);
-  } else {
-    requireValue(
-      ledger.reportHash === hash(report),
-      "Missing seal or changed report",
-    );
-    if (options.aspects)
-      requireValue(
-        JSON.stringify(plan.aspects) ===
-          JSON.stringify(options.aspects.split(",")),
-        "Review aspect scope does not match consumer requirement",
-      );
-  }
+  return hash(report);
+}
+
+/** @param {Ledger} ledger */
+function printComplete(ledger) {
   console.log(
     JSON.stringify({
       status: "COMPLETE",
@@ -764,6 +714,130 @@ function main(argv) {
       jobs: ledger.jobs,
     }),
   );
+}
+
+/** @param {Transaction} transaction */
+function seal(transaction) {
+  const { directory, ledger } = transaction;
+  const report = reportHash(transaction);
+  requireValue(!ledger.reportHash, "Run already sealed");
+  ledger.reportHash = report;
+  saveLedger(directory, ledger);
+  printComplete(ledger);
+}
+
+/** @param {Transaction} transaction */
+function check(transaction) {
+  const { ledger, options, plan } = transaction;
+  requireValue(
+    ledger.reportHash === reportHash(transaction),
+    "Missing seal or changed report",
+  );
+  if (options.aspects)
+    requireValue(
+      JSON.stringify(plan.aspects) ===
+        JSON.stringify(options.aspects.split(",")),
+      "Review aspect scope does not match consumer requirement",
+    );
+  printComplete(ledger);
+}
+
+const COMMANDS = {
+  init: { options: ["plan", "base"], run: init },
+  status: { options: [], run: status },
+  requeue: { options: ["job", "reason"], run: requeue, mutation: true },
+  start: { options: ["job", "agent-id"], run: start, mutation: true },
+  finish: { options: ["job", "output", "status"], run: finish, mutation: true },
+  record: { options: ["manifest"], run: record, mutation: true },
+  seal: { options: ["report"], run: seal },
+  check: { options: ["report", "aspects"], run: check },
+};
+
+function repositoryRoot() {
+  return git(process.cwd(), "rev-parse", "--show-toplevel").toString().trim();
+}
+
+/** Resolve aliases before checking the location of a new run. @param {string} directory */
+function resolveDirectory(directory) {
+  let ancestor = directory;
+  while (!fs.existsSync(ancestor)) ancestor = path.dirname(ancestor);
+  return path.join(
+    fs.realpathSync.native(ancestor),
+    path.relative(ancestor, directory),
+  );
+}
+
+/** @param {string} directory @param {() => void} action */
+function withWriterLock(directory, action) {
+  const fd = fs.openSync(
+    directory,
+    fs.constants.O_RDONLY | fs.constants.O_DIRECTORY,
+  );
+  try {
+    // Python locks the inherited open file description. Node retains its
+    // descriptor throughout the transaction, so process exit releases the lock.
+    execFileSync(
+      "python3",
+      ["-I", "-c", "import fcntl; fcntl.flock(3, fcntl.LOCK_EX)"],
+      {
+        stdio: ["ignore", "ignore", "pipe", fd],
+      },
+    );
+    action();
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+/** @param {string[]} argv */
+function main(argv) {
+  const [command, directoryArg, ...rest] = argv;
+  requireValue(
+    Object.hasOwn(COMMANDS, command) && directoryArg,
+    "Usage: review-execution.js init|start|finish|record|requeue|status|seal|check RUN_DIR [--key value]",
+  );
+  const name = /** @type {keyof typeof COMMANDS} */ (command);
+  requireValue(rest.length % 2 === 0, "Options require values");
+  /** @type {Record<string, string>} */
+  const options = {};
+  /** @type {string[]} */
+  const allowed = COMMANDS[name].options;
+  for (let i = 0; i < rest.length; i += 2) {
+    const key = rest[i].replace(/^--/, "");
+    requireValue(
+      rest[i].startsWith("--") &&
+        allowed.includes(key) &&
+        !Object.hasOwn(options, key),
+      `Invalid option: ${rest[i]}`,
+    );
+    options[key] = rest[i + 1];
+  }
+  const requestedDirectory = path.resolve(directoryArg);
+  const directory = resolveDirectory(requestedDirectory);
+  const root = repositoryRoot();
+  const relative = path.relative(fs.realpathSync.native(root), directory);
+  requireValue(
+    relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative),
+    "Keep execution artifacts outside the working tree (use mktemp -d)",
+  );
+  if (name === "init")
+    fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
+  withWriterLock(directory, () => {
+    if (name === "init") {
+      COMMANDS.init.run(directory, options, root);
+      return;
+    }
+    const handler = COMMANDS[name];
+    const { plan, ledger } = load(directory, root);
+    if ("mutation" in handler) {
+      requireValue(
+        !ledger.reportHash,
+        "Sealed run cannot change; start a fresh run",
+      );
+      fresh(ledger);
+    }
+    handler.run({ directory, requestedDirectory, root, options, plan, ledger });
+  });
 }
 if (require.main === module) {
   try {

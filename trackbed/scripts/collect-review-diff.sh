@@ -9,6 +9,8 @@ set -euo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 # shellcheck source=lib/shell-helpers.sh
 source "$SCRIPT_DIR/lib/shell-helpers.sh"
+# shellcheck source=lib/review-artifacts.sh
+source "$SCRIPT_DIR/lib/review-artifacts.sh"
 
 RESOLVE_ARGS=(--strict)
 OUTPUT_FORMAT="shell"
@@ -218,32 +220,6 @@ require_local_review_artifact() {
   fi
 }
 
-# The hooks list is the repository's canonical review-artifact inventory. A
-# missing or empty list means the caller cannot filter what it asked to filter,
-# so stop rather than return an unfiltered scope that silently reads review
-# reports as changed content.
-load_review_artifact_patterns() {
-  local line
-
-  if [ ! -f "$REVIEW_ARTIFACT_LIST_FILE" ]; then
-    echo "Review artifact list not found at $REVIEW_ARTIFACT_LIST_FILE; refusing to filter review scope without it." >&2
-    exit 1
-  fi
-
-  while IFS= read -r line || [ -n "$line" ]; do
-    line="${line%%#*}"
-    line="${line#"${line%%[![:space:]]*}"}"
-    line="${line%"${line##*[![:space:]]}"}"
-    [ -n "$line" ] || continue
-    REVIEW_ARTIFACT_PATTERNS+=("$line")
-  done < "$REVIEW_ARTIFACT_LIST_FILE"
-
-  if [ ${#REVIEW_ARTIFACT_PATTERNS[@]} -eq 0 ]; then
-    echo "Review artifact list $REVIEW_ARTIFACT_LIST_FILE has no patterns; refusing to filter review scope without them." >&2
-    exit 1
-  fi
-}
-
 # Entries are matched against the repository-root path only, so a same-named
 # file nested in a directory stays in review scope as ordinary changed content.
 # This is deliberately narrower than hooks/confirm-review-responses.sh, the list's
@@ -279,38 +255,8 @@ filter_review_artifacts() {
 # A tracked file of the same name stays in scope as ordinary content, and a
 # missing artifact list leaves the listing as it is.
 untracked_without_visual_pages() {
-  local line untracked_file candidate pattern
-  local page_patterns=()
-
-  if [ -f "$REVIEW_ARTIFACT_LIST_FILE" ]; then
-    while IFS= read -r line || [ -n "$line" ]; do
-      line="${line%%#*}"
-      line="${line#"${line%%[![:space:]]*}"}"
-      line="${line%"${line##*[![:space:]]}"}"
-      case "$line" in
-        *.html) page_patterns+=("$line") ;;
-      esac
-    done < "$REVIEW_ARTIFACT_LIST_FILE"
-  fi
-
-  git ls-files --others --exclude-standard -z | while IFS= read -r -d '' untracked_file; do
-    candidate="${untracked_file#siw/}"
-    case "$candidate" in
-      */*) ;;
-      *)
-        for pattern in ${page_patterns[@]+"${page_patterns[@]}"}; do
-          # shellcheck disable=SC2254
-          # Artifact entries intentionally support shell-style globs.
-          case "$candidate" in
-            $pattern)
-              continue 2
-              ;;
-          esac
-        done
-        ;;
-    esac
-    printf '%s\0' "$untracked_file"
-  done
+  load_review_artifact_patterns "$REVIEW_ARTIFACT_LIST_FILE" ignore html || return
+  git ls-files --others --exclude-standard -z | untracked_paths_without_visual_pages
 }
 
 # Git's NUL output preserves path bytes that its text output would quote.
@@ -420,7 +366,10 @@ REPO_ROOT=$(git rev-parse --show-toplevel) || exit 1
 cd -- "$REPO_ROOT" || exit 1
 
 if [ "$EXCLUDE_REVIEW_ARTIFACTS" = true ]; then
-  load_review_artifact_patterns
+  if ! load_review_artifact_patterns "$REVIEW_ARTIFACT_LIST_FILE" fail; then
+    echo "Review scope requires the artifact list; refusing to filter review scope without it." >&2
+    exit 1
+  fi
 fi
 
 if [ "$STACK_CONTEXT_MODE" = true ]; then

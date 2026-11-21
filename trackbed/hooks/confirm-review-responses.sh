@@ -7,6 +7,8 @@ set -uo pipefail
 source "${CLAUDE_PLUGIN_ROOT}/hooks/lib/check-enabled.sh"
 exit_if_hook_disabled "confirm-review-responses" ""
 source "${CLAUDE_PLUGIN_ROOT}/hooks/lib/safety-hook-parser.sh"
+# shellcheck source=../scripts/lib/review-artifacts.sh
+source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/review-artifacts.sh" || exit 2
 
 ARTIFACT_LIST_FILE="${CONFIRM_REVIEW_ARTIFACT_LIST_FILE:-${CLAUDE_PLUGIN_ROOT}/hooks/confirm-review-artifacts.txt}"
 COMMAND_SUBSTITUTION_TOKEN="__CMD_SUBST_"
@@ -91,29 +93,6 @@ try (
   | add
 ) catch (["ERR", tostring] | map(. + nul) | add)
 '
-
-load_artifact_list() {
-  local list_file="$1"
-  local line
-
-  configured_artifacts=()
-  if [ -f "$list_file" ]; then
-    while IFS= read -r line || [ -n "$line" ]; do
-      # Strip the comment and surrounding whitespace with parameter expansion:
-      # this avoids one sed fork per line of the artifact file.
-      line="${line%%#*}"
-      line="${line#"${line%%[![:space:]]*}"}"
-      line="${line%"${line##*[![:space:]]}"}"
-      [ -z "$line" ] && continue
-      configured_artifacts+=("$line")
-    done < "$list_file"
-  fi
-
-  # Safe fallback when list file is missing/empty.
-  if [ ${#configured_artifacts[@]} -eq 0 ]; then
-    configured_artifacts=("REVIEW_OVERVIEW.md")
-  fi
-}
 
 matches_artifact() {
   local staged_file="$1"
@@ -679,7 +658,7 @@ collect_blocked_files() {
   while IFS= read -r -d '' effective_file; do
     [ -z "$effective_file" ] && continue
     already_blocked "$effective_file" && continue
-    for artifact in "${configured_artifacts[@]}"; do
+    for artifact in "${REVIEW_ARTIFACT_PATTERNS[@]}"; do
       if matches_artifact "$effective_file" "$artifact"; then
         blocked_files+=("$effective_file")
         break
@@ -730,7 +709,7 @@ process_decoded_contexts() {
   # payload still falls through to the END check below, so no frame reaches
   # success without being validated.
   if [ "$expected_context_count" -gt 0 ]; then
-    load_artifact_list "$ARTIFACT_LIST_FILE"
+    load_review_artifact_patterns "$ARTIFACT_LIST_FILE" fallback all REVIEW_OVERVIEW.md || return 1
   fi
 
   while [ "$decoded_context_count" -lt "$expected_context_count" ]; do

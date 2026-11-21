@@ -323,6 +323,15 @@ function sharedRuntimeFor(plugin) {
         targetPath: path.join("scripts", "review-artifact-patterns.sh"),
       },
       {
+        sourceFile: path.join(
+          plugin.root,
+          "scripts",
+          "lib",
+          "review-artifacts.sh",
+        ),
+        targetPath: path.join("scripts", "lib", "review-artifacts.sh"),
+      },
+      {
         executable: true,
         sourceFile: path.join(
           plugin.root,
