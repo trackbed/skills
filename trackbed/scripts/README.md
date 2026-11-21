@@ -47,6 +47,7 @@ Each file below stays out of `sharedRuntimeFor`. No shipped skill, agent, or hoo
 | `bootstrap-dev.sh` | `make bootstrap-check` and `make bootstrap-install` | `tests/bootstrap-dev.bats` |
 | `changed-tests.py` | `make test-changed`, selecting suites for changed files | `tests/python/test_changed_tests.py` |
 | `changelog.py` | `release.py` | `tests/python/test_changelog.py` |
+| `changed-tests.py` | `make test-changed` selects and runs suites for changed files | `tests/python/test_changed_tests.py` |
 | `check-doc-citations.py` | The Python test suite, checking `path:line` citations in maintainer guides | `tests/python/test_doc_citations.py` |
 | `check-installed-resources.js` | `make installed-resources` and `make pre-commit` | `tests/skill-resource-references.bats` |
 | `convert-plugin.js` | Codex conversion entry point for `install-codex.sh`, the `setup` checkout instructions, and CI | `tests/convert-plugin.bats` |
