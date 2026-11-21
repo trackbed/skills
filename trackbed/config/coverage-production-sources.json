@@ -24,7 +24,7 @@
       "trackbed/scripts/convert-plugin/loader.js",
       "trackbed/scripts/lib/skill-usage-cost.js",
       "trackbed/scripts/lib/skill-usage-decision-requests.js",
-      "trackbed/scripts/lib/skill-usage-hosts.js",
+      "trackbed/scripts/lib/trackbed-runtime.js",
       "trackbed/hooks/lib/conductor-slash-command.js",
       "trackbed/scripts/probe-cold-reader-isolation.js",
       "trackbed/scripts/schemas/skill-contracts.js",

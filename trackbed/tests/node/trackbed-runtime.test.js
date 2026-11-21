@@ -13,8 +13,11 @@ const {
   detectPlatform,
   openCodexRollout,
   readPluginVersion,
+  readSkillFolderResolver,
   stripConductorInstructions,
-} = require("../../scripts/lib/skill-usage-hosts.js");
+  trackbedSetting,
+  trackbedStatePath,
+} = require("../../scripts/lib/trackbed-runtime.js");
 
 const SCRIPT = path.resolve(__dirname, "../../scripts/skill-usage.js");
 const MIB = 1024 * 1024;
@@ -47,7 +50,7 @@ function runUsage(args, { input, env } = {}) {
 
 /** @param {import("node:test").TestContext} t */
 async function tempDir(t) {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "skill-usage-hosts-"));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "trackbed-runtime-"));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   return root;
 }
@@ -202,6 +205,115 @@ async function writeCodexSessions(root) {
 
   return { topFile };
 }
+
+test("resolves exact skill folders and unique aliases", async (t) => {
+  const root = await tempDir(t);
+  for (const name of [
+    "pr:create",
+    "qa",
+    "some-domain:action",
+    "some:domain-action",
+  ]) {
+    await fs.mkdir(path.join(root, name));
+  }
+  await fs.writeFile(path.join(root, "not-a-folder"), "");
+
+  const resolveSkillFolder = readSkillFolderResolver(root);
+  for (const [typed, name] of [
+    ["pr:create", "pr:create"],
+    ["pr-create", "pr:create"],
+    ["qa", "qa"],
+  ]) {
+    assert.deepEqual(resolveSkillFolder(typed), {
+      dir: path.join(root, name),
+      name,
+    });
+  }
+  assert.equal(resolveSkillFolder("some-domain-action"), null);
+  assert.equal(resolveSkillFolder("not-a-folder"), null);
+  assert.equal(resolveSkillFolder("missing"), null);
+  await fs.mkdir(path.join(root, "pr-create"));
+  assert.equal(readSkillFolderResolver(root)("pr-create")?.name, "pr-create");
+});
+
+const PATH_HELPERS = path.resolve(
+  __dirname,
+  "../../scripts/lib/trackbed-paths.sh",
+);
+
+/** @param {string} script @param {NodeJS.ProcessEnv} env */
+function runPathHelper(script, env) {
+  return spawnSync(
+    "bash",
+    ["-c", `source "$1"; ${script}`, "_", PATH_HELPERS],
+    {
+      encoding: "utf8",
+      env: { PATH: process.env.PATH, ...env },
+    },
+  );
+}
+
+test("JavaScript and Bash use the same setting precedence", async () => {
+  const cases = JSON.parse(
+    await fs.readFile(
+      path.resolve(__dirname, "../fixtures/trackbed-setting-cases.json"),
+      "utf8",
+    ),
+  );
+  for (const { label, current, legacy, expected } of cases) {
+    const env = {
+      TRACKBED_TEST_SETTING: current,
+      KRAMME_TEST_SETTING: legacy,
+    };
+    assert.equal(
+      trackbedSetting(env, "TRACKBED_TEST_SETTING", "default"),
+      expected,
+      label,
+    );
+    const shell = runPathHelper(
+      "trackbed_setting TRACKBED_TEST_SETTING default",
+      env,
+    );
+    assert.equal(shell.status, 0, shell.stderr);
+    assert.equal(shell.stdout, `${expected}\n`, label);
+    const assigned = runPathHelper(
+      'trackbed_setting TRACKBED_TEST_SETTING default result && printf "%s" "$result"',
+      env,
+    );
+    assert.equal(assigned.status, 0, assigned.stderr);
+    assert.equal(assigned.stdout, expected, label);
+  }
+});
+
+test("JavaScript and Bash resolve the same state paths", async (t) => {
+  const root = await tempDir(t);
+  const file = "skill-usage.jsonl";
+  const shellPath =
+    "resolve_trackbed_path TRACKBED_SKILL_USAGE_FILE XDG_STATE_HOME .local/state skill-usage.jsonl";
+  const missing = runPathHelper(shellPath, {});
+  assert.equal(missing.status, 1, missing.stderr);
+  assert.equal(missing.stdout, "");
+  assert.equal(trackbedStatePath(file, {}), null);
+
+  const env = { XDG_STATE_HOME: root, HOME: path.join(root, "home") };
+  const current = path.join(root, "trackbed", file);
+  const previous = path.join(root, "kramme-cc-workflow", file);
+  const checkPath = (/** @type {string} */ expected) => {
+    const shell = runPathHelper(shellPath, env);
+    assert.equal(shell.status, 0, shell.stderr);
+    assert.equal(shell.stdout, `${expected}\n`);
+    assert.equal(trackbedStatePath(file, env), expected);
+  };
+  checkPath(current);
+  await fs.mkdir(path.dirname(previous));
+  await fs.writeFile(previous, "");
+  checkPath(previous);
+  await fs.mkdir(path.dirname(current));
+  await fs.writeFile(current, "");
+  checkPath(current);
+  env.XDG_STATE_HOME = "";
+  checkPath(path.join(env.HOME, ".local", "state", "trackbed", file));
+});
 
 test("detectPlatform prefers explicit overrides over detected hosts", () => {
   const codexPayload = { turn_id: "turn-1" };

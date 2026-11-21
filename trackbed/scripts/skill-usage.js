@@ -7,15 +7,18 @@ const os = require("os");
 const path = require("path");
 const {
   PLATFORM_CODEX,
+  asRecord,
   detectPlatform,
   openCodexRollout,
   readPluginVersion,
+  readSkillFolderResolver,
+  stringValue,
   stripConductorInstructions,
-} = require("./lib/skill-usage-hosts");
+  trackbedSetting,
+  trackbedStatePath,
+} = require("./lib/trackbed-runtime");
 
-const STATE_HOME =
-  process.env.XDG_STATE_HOME || path.join(os.homedir(), ".local", "state");
-const DEFAULT_USAGE_FILE = defaultUsageFile();
+const DEFAULT_USAGE_FILE = trackbedStatePath("skill-usage.jsonl");
 const MAX_NON_JSONL_COMPAT_BYTES = 1024 * 1024;
 const MAX_JSONL_LINE_BYTES = 1024 * 1024;
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -46,8 +49,8 @@ const CODEX_SKILL_PATTERN =
   /(?:^|\s|>)[$/]((?:trackbed:|(?:kramme-cc-workflow:)?kramme[:-])[A-Za-z0-9:_-]+)/g;
 const DIRECT_SKILL_PATTERN =
   /^\/?((?:trackbed:|(?:kramme-cc-workflow:)?kramme[:-])[A-Za-z0-9:_-]+)(?:\s|$)/;
-/** @type {Map<string, string> | null} */
-let hyphenatedSkillNames = null;
+/** @type {ReturnType<typeof readSkillFolderResolver> | undefined} */
+let resolveSkillFolder;
 const SCAN_PRUNED_DIRS = new Set([
   ".cache",
   ".git",
@@ -164,7 +167,7 @@ function printHelp(exitCode) {
   scripts/skill-usage.js decisions [--file <path>] [--projects <dir>] [--since <duration|date>] [--until <duration|date>] [--plugin-version <version|unknown|all>] [--json] [--strict]
 
 Records are stored in:
-  ${DEFAULT_USAGE_FILE}
+  ${DEFAULT_USAGE_FILE ?? "(unavailable without XDG_STATE_HOME or HOME)"}
 
 Report and scan tolerate degraded input by default and expose diagnostic
 counters. Use --strict to return a non-zero status when diagnostics occur.
@@ -289,35 +292,19 @@ function parseArgs(args) {
   return parsed;
 }
 
-/**
- * Releases before 1.0.0 kept usage under `kramme-cc-workflow/`. Keep using
- * that file until a `trackbed/` one exists, so the history stays in one place.
- * @returns {string}
- */
-function defaultUsageFile() {
-  const current = path.join(STATE_HOME, "trackbed", "skill-usage.jsonl");
-  const previous = path.join(
-    STATE_HOME,
-    "kramme-cc-workflow",
-    "skill-usage.jsonl",
-  );
-  return !fs.existsSync(current) && fs.existsSync(previous)
-    ? previous
-    : current;
-}
-
-/** The override variable, or the `KRAMME_` name it had before 1.0.0. */
 function configuredUsageFile() {
-  return (
-    process.env.TRACKBED_SKILL_USAGE_FILE || process.env.KRAMME_SKILL_USAGE_FILE
-  );
+  return trackbedSetting(process.env, "TRACKBED_SKILL_USAGE_FILE");
 }
 
 /** @param {ParsedArgs} parsed */
 function usageFile(parsed) {
-  return path.resolve(
-    parsed.file || configuredUsageFile() || DEFAULT_USAGE_FILE,
-  );
+  const file = parsed.file || configuredUsageFile() || DEFAULT_USAGE_FILE;
+  if (!file) {
+    throw new Error(
+      "Set XDG_STATE_HOME, HOME, or TRACKBED_SKILL_USAGE_FILE, or pass --file.",
+    );
+  }
+  return path.resolve(file);
 }
 
 function readStdin() {
@@ -630,7 +617,15 @@ function canonicalSkillName(raw) {
   }
   if (!name) return null;
   if (name.includes(":")) return `${PLUGIN_SKILL_PREFIX}${name}`;
-  const owner = knownHyphenatedSkillNames().get(name);
+  if (!resolveSkillFolder) {
+    try {
+      resolveSkillFolder = readSkillFolderResolver(SKILLS_DIR);
+    } catch (error) {
+      reportIoFailure("read skills directory", error, SKILLS_DIR);
+      resolveSkillFolder = () => null;
+    }
+  }
+  const owner = resolveSkillFolder(name)?.name;
   return owner ? `${PLUGIN_SKILL_PREFIX}${owner}` : null;
 }
 
@@ -644,33 +639,6 @@ function recordedSkillName(skill) {
   return skill.startsWith(LEGACY_SKILL_PREFIX)
     ? `${PLUGIN_SKILL_PREFIX}${skill.slice(LEGACY_SKILL_PREFIX.length)}`
     : skill;
-}
-
-/** @returns {Map<string, string>} */
-function knownHyphenatedSkillNames() {
-  if (hyphenatedSkillNames) return hyphenatedSkillNames;
-  /** @type {Map<string, string | null>} */
-  const owners = new Map();
-  /** @type {string[]} */
-  let entries;
-  try {
-    entries = fs.readdirSync(SKILLS_DIR);
-  } catch (error) {
-    reportIoFailure("read skills directory", error, SKILLS_DIR);
-    entries = [];
-  }
-  for (const entry of entries) {
-    if (entry.startsWith(".")) continue;
-    const alias = entry.replaceAll(":", "-");
-    owners.set(alias, owners.has(alias) ? null : entry);
-  }
-  /** @type {Map<string, string>} */
-  const aliases = new Map();
-  for (const [alias, owner] of owners) {
-    if (owner) aliases.set(alias, owner);
-  }
-  hyphenatedSkillNames = aliases;
-  return aliases;
 }
 
 /** @param {unknown} value @param {number} [depth] @returns {string[]} */
@@ -1810,11 +1778,6 @@ function compactDate(value) {
   return value.replace("T", " ").replace(/\.\d{3}Z$/, "Z");
 }
 
-/** @param {unknown} value */
-function stringValue(value) {
-  return typeof value === "string" ? value : "";
-}
-
 /** @param {...unknown} values */
 function firstString(...values) {
   return values.find((value) => typeof value === "string") || "";
@@ -1827,13 +1790,6 @@ async function runCli() {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;
   }
-}
-
-/** @param {unknown} value @returns {Record<string, unknown>} */
-function asRecord(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value)
-    ? /** @type {Record<string, unknown>} */ (value)
-    : {};
 }
 
 if (require.main === module) {
