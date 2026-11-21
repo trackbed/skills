@@ -3,7 +3,7 @@
 # Upstream repository: https://github.com/EveryInc/compound-engineering-plugin
 # Upstream commit reviewed: 6f9ab03a031c054a8046659926251fb6c149269f
 # License: MIT, Copyright (c) 2025 Every.
-# Full notice: ../references/EveryInc-LICENSE
+# Full notice: ../../../scripts/lib/EveryInc-LICENSE
 #
 """Extract error signals from a Claude Code, Codex, or Cursor JSONL session file.
 
@@ -30,16 +30,18 @@ import json
 import sys
 from typing import Callable
 
-from session_common import (
-    AtomicOutput,
+from pathlib import Path
+from session_output import AtomicOutput, redact_sensitive
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts" / "lib"))
+from transcripts import (
     JsonObject,
     Platform,
     TranscriptDiagnostics,
     TranscriptShapeError,
-    iter_platform_events,
+    iter_events,
     object_field,
     object_list_field,
-    redact_sensitive,
     string_field,
     string_list_field,
 )
@@ -124,7 +126,7 @@ handlers: dict[Platform, EventHandler] = {
 }
 
 diagnostics = TranscriptDiagnostics()
-for platform, event in iter_platform_events(sys.stdin, diagnostics):
+for platform, event in iter_events(sys.stdin, diagnostics):
     try:
         handlers[platform](event)
     except TranscriptShapeError:

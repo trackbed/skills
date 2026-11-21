@@ -25,7 +25,8 @@ Before Step 1, parse `$ARGUMENTS` for `--auto` and `--effectiveness`. Treat `--a
 1. Resolve the session extraction scripts.
    - Resolve `<skill-dir>` as the directory containing this `SKILL.md` and `<skills-root>` as its parent. Use the scripts at `<skill-dir>/scripts/` in both the source checkout and an installed plugin; call this path `<session-scripts>` below.
    - Required scripts: `discover-sessions.sh`, `extract-metadata.py`, `extract-skeleton.py`, and `extract-errors.py`. When `--effectiveness` is active, also require `extract-skill-usage.py`.
-   - If the script set is unavailable, stop with `MISSING REQUIREMENT: session extraction scripts are not installed`.
+   - The scripts share `${CLAUDE_PLUGIN_ROOT}/scripts/lib/transcripts.py` for transcript parsing and discovery.
+   - If the script set or shared module is unavailable, stop with `MISSING REQUIREMENT: session extraction scripts are not installed`.
 
 2. Resolve the session source without reading raw transcripts into context.
    - If `$ARGUMENTS` includes files or directories, validate those exact paths. If an explicitly provided path is missing or unreadable, stop and report it instead of falling back to default stores. Expand directories to readable `*.jsonl` files and pass the file list to `extract-metadata.py`.

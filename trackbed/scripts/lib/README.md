@@ -11,6 +11,9 @@ script; keep behavior shared by multiple scripts here.
 | `pr_staging.py` | Opens run directories below `.trackbed/` that Git's local exclude file hides, and reads, writes, and locates their manifests, for the helpers that stage Pull Request files; callers own what a staged file may be. |
 | `review_process.py` | Runs bounded Python review commands with noninteractive environments and process-group cleanup; callers own exception mapping and deadlines. |
 | `review-artifacts.sh` | Provides `load_review_artifact_patterns` to read a protected review-report pattern list under a missing-or-empty policy, and `untracked_paths_without_visual_pages` to drop generated visual report pages from a NUL-delimited untracked path list. Shared by `confirm-review-responses.sh`, `collect-review-diff.sh`, and `review-artifact-patterns.sh`. |
+| `transcripts.py` | Reads agent JSONL events and identifies user text and tool calls. Shares Claude Code and Codex discovery and shell command splitting between the practice audit and session analysis. |
+| `sources.yaml` | Records the upstream sources and revisions for the shared transcript code. |
+| `EveryInc-LICENSE` | Contains the MIT notice for adapted session code. |
 | `review-scope.sh` | Provides `collect_review_scope` to load repository scope and normalize the caller directory, and `review_untracked_paths` to emit the raw NUL-delimited untracked subset for content handoffs. |
 | `shell-helpers.sh` | Provides required-argument validation, shell assignment quoting, JSON object emit/decode with a single Python guard, bounded command execution, signal cleanup, and a noninteractive review command environment. |
 | `trackbed-paths.sh` | Resolves trackbed state and configuration paths: override, former `KRAMME_` override, XDG or home `trackbed/` file, then pre-1.0.0 and plugin-local legacy files. Shared by every hook through `hooks/lib/check-enabled.sh` and by the setup checker. |
