@@ -1,22 +1,17 @@
 from __future__ import annotations
 
 import contextlib
-import importlib.util
 import io
 import json
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from typing import Any
 
+from tests.test_helper.script_loader import load_script
+
 SCRIPT_PATH = Path(__file__).resolve().parents[2] / "scripts" / "summarize-semantic-scan.py"
-SPEC = importlib.util.spec_from_file_location("summarize_semantic_scan", SCRIPT_PATH)
-assert SPEC is not None
-assert SPEC.loader is not None
-summarize_semantic_scan = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = summarize_semantic_scan
-SPEC.loader.exec_module(summarize_semantic_scan)
+summarize_semantic_scan = load_script("summarize_semantic_scan", SCRIPT_PATH)
 
 
 def issue(rule: str, file: str, line: int, severity: str = "MEDIUM", text: str = "why it matters") -> dict[str, Any]:

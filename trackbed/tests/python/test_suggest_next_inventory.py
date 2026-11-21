@@ -8,12 +8,10 @@ stage table to the real skill tree so a renamed producer, flag, or next step fai
 from __future__ import annotations
 
 import fnmatch
-import importlib.util
 import io
 import json
 import os
 import re
-import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -21,17 +19,13 @@ from pathlib import Path
 from typing import Any
 from unittest import mock
 
-sys.dont_write_bytecode = True
+from tests.test_helper.script_loader import load_script
 
 PLUGIN_SOURCE = Path(__file__).resolve().parents[2]
 SKILL_DIR = PLUGIN_SOURCE / "skills" / "workflow:suggest-next"
 SCRIPT_PATH = SKILL_DIR / "scripts" / "inventory.py"
 STAGE_TABLE = SKILL_DIR / "references" / "artifact-stages.json"
-SPEC = importlib.util.spec_from_file_location("suggest_next_inventory", SCRIPT_PATH)
-assert SPEC is not None
-assert SPEC.loader is not None
-inventory = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(inventory)
+inventory = load_script("suggest_next_inventory", SCRIPT_PATH)
 
 
 def run_inventory(plugin_root: Path, workdir: Path) -> tuple[int, dict[str, Any]]:

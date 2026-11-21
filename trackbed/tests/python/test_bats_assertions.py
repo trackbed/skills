@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-import importlib.util
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
+from tests.test_helper.script_loader import load_script
+
 CHECKER = Path(__file__).resolve().parents[1] / "test_helper/check_bats_assertions.py"
-SPEC = importlib.util.spec_from_file_location("check_bats_assertions", CHECKER)
-assert SPEC and SPEC.loader
-checker = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(checker)
+checker = load_script("check_bats_assertions", CHECKER)
 
 
 class BatsAssertionCheckTests(unittest.TestCase):

@@ -7,7 +7,6 @@ fake `gh` placed first on PATH that replays configured responses and records its
 
 from __future__ import annotations
 
-import importlib.util
 import io
 import json
 import os
@@ -20,12 +19,10 @@ from pathlib import Path
 from typing import Any
 from unittest import mock
 
+from tests.test_helper.script_loader import load_script
+
 SCRIPT_PATH = Path(__file__).resolve().parents[2] / "scripts" / "resolve-stack-context.py"
-SPEC = importlib.util.spec_from_file_location("resolve_stack_context", SCRIPT_PATH)
-assert SPEC is not None
-assert SPEC.loader is not None
-stack_context = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(stack_context)
+stack_context = load_script("resolve_stack_context", SCRIPT_PATH)
 
 PR_LIST = f"pr list --state open --limit 20 --json {stack_context.PR_FIELDS}"
 FAKE_GH = """#!{python}

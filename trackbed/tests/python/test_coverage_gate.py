@@ -1,7 +1,6 @@
 """Exercise the coverage gates with reports and inventory data in memory."""
 
 import copy
-import importlib.util
 import io
 import json
 import subprocess
@@ -11,11 +10,10 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
+from tests.test_helper.script_loader import load_script
+
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "coverage-gate.py"
-SPEC = importlib.util.spec_from_file_location("coverage_gate", SCRIPT)
-gate = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = gate
-SPEC.loader.exec_module(gate)
+gate = load_script("coverage_gate", SCRIPT)
 
 JS = "plugin/scripts/example.js"
 PYTHON = "plugin/hooks/example.py"

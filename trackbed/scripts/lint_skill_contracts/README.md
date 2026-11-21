@@ -65,7 +65,7 @@ behavior, check registration and aggregation, representative specialized
 checks, README helpers, and the compatibility entry point:
 
 ```bash
-python3 -m unittest trackbed/tests/python/test_lint_skill_contracts.py
+make -C trackbed test-python-file PYTHON_TEST_FILE=tests/python/test_lint_skill_contracts.py
 ```
 
 The Bats suite exercises the CLI against the live registry and integration

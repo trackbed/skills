@@ -7,11 +7,9 @@ read-only promise under test.
 
 from __future__ import annotations
 
-import importlib.util
 import io
 import json
 import subprocess
-import sys
 import unittest
 from collections.abc import Sequence
 from contextlib import redirect_stderr, redirect_stdout
@@ -19,14 +17,10 @@ from pathlib import Path
 from typing import Any
 from unittest import mock
 
+from tests.test_helper.script_loader import load_script
+
 SCRIPT_PATH = Path(__file__).resolve().parents[2] / "skills" / "pr:shape-up" / "scripts" / "shape-snapshot.py"
-SPEC = importlib.util.spec_from_file_location("shape_snapshot", SCRIPT_PATH)
-assert SPEC is not None
-assert SPEC.loader is not None
-# Keep compiled bytecode out of the skill directory, which skill scanners and the converter read.
-sys.dont_write_bytecode = True
-shape_snapshot = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(shape_snapshot)
+shape_snapshot = load_script("shape_snapshot", SCRIPT_PATH)
 
 PR_HEAD = "a" * 40
 OTHER = "b" * 40

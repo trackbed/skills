@@ -1,22 +1,17 @@
 from __future__ import annotations
 
-import importlib.util
 import io
 import json
 import subprocess
-import sys
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
+from tests.test_helper.script_loader import load_script
+
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "pr-evidence.py"
-SPEC = importlib.util.spec_from_file_location("pr_evidence", SCRIPT)
-assert SPEC is not None
-assert SPEC.loader is not None
-pr_evidence = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = pr_evidence
-SPEC.loader.exec_module(pr_evidence)
+pr_evidence = load_script("pr_evidence", SCRIPT)
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
 MP4 = b"\x00\x00\x00\x18ftypmp42" + b"\x00" * 32
 

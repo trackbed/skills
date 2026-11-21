@@ -113,7 +113,7 @@ For parser contracts or changes to `safety-hook-parser.sh`, run the direct CLI
 suite and both consumers:
 
 ```bash
-python3 -m unittest discover -s trackbed/tests/python -p test_git_command_parser.py
+make -C trackbed test-python-file PYTHON_TEST_FILE=tests/python/test_git_command_parser.py
 bats trackbed/tests/confirm-review-responses.bats trackbed/tests/block-rm-rf.bats
 ```
 

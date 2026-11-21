@@ -6,7 +6,6 @@ against a fake `gh` placed first on PATH that records its argv and replays a con
 
 from __future__ import annotations
 
-import importlib.util
 import io
 import json
 import os
@@ -22,13 +21,11 @@ from pathlib import Path
 from typing import Any
 from unittest import mock
 
+from tests.test_helper.script_loader import load_script
+
 SKILL_DIR = Path(__file__).resolve().parents[2] / "skills" / "linear:issue-to-pr"
 SCRIPT_PATH = SKILL_DIR / "scripts" / "preflight.py"
-SPEC = importlib.util.spec_from_file_location("issue_to_pr_preflight", SCRIPT_PATH)
-assert SPEC is not None
-assert SPEC.loader is not None
-preflight = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(preflight)
+preflight = load_script("issue_to_pr_preflight", SCRIPT_PATH)
 
 BRANCH = "kramme/disc-1-add-widget"
 GH_QUERY = ["pr", "list", "--head", BRANCH, "--state", "all", "--limit", "100"]
