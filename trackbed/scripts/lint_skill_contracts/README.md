@@ -14,7 +14,7 @@ the parsing, validation, synchronization, and reporting behavior.
 | Shared parsing and paths | `frontmatter.py`, `markdown.py`, `strings.py`, `io.py` | Frontmatter values, Markdown table cells, normalized strings, resolved paths, hashes, or skill discovery are wrong. |
 | Invocable names | `naming.py` | The `trackbed` plugin namespace or a qualified `trackbed:<name>` skill or agent name is wrong. |
 | Contract schema | `schema.py` | Schema loading, fallback behavior, required frontmatter fields, or source-manifest fields are wrong. |
-| Check orchestration | `checks/types.py`, `checks/registry.py` | Check ordering, shared context, or failure and warning aggregation is wrong. |
+| Check orchestration | `checks/types.py`, `checks/registry.py`, `registry_types.py` | Check ordering, shared context, the registry's static type, or failure and warning aggregation is wrong. |
 | Text and file contracts | `checks/basic.py` | Synced text, inventory, heading order, file identity, or required-file checks are wrong. |
 | Workflow guidance contracts | `checks/base_diff_scope.py`, `checks/epilogue.py`, `checks/ui_relevance.py` | Base-diff guidance, forbidden skill epilogue sections, or UI-relevance rules and fixtures are wrong. |
 | Manifest, provenance, hook, and mechanical contracts | `checks/marker_manifest.py`, `checks/source_provenance.py`, `checks/hooks_json.py`, `checks/mechanical.py` | Source manifests, copied-source licensing or immutable origin metadata, forbidden source snapshots, hook registration, frontmatter, naming, or skill line budgets are wrong. |
@@ -26,11 +26,15 @@ the parsing, validation, synchronization, and reporting behavior.
 | Compact component catalog | `catalog.py`, `checks/component_catalog.py` | The generated JSON component index drifts, omits a component, or emits a path that does not exist. |
 
 The ordered runtime boundary is `checks/registry.py`. New checks belong in a
-focused check module and must be registered there. Keep generic parsing in the
-shared helpers, and keep CLI presentation in `cli.py`.
+focused check module and must be registered there; a check that reads a new
+registry section also adds its key to `Registry` in `registry_types.py`. Keep
+generic parsing in the shared helpers, and keep CLI presentation in `cli.py`.
 
-`LintContext.registry` and `.schema` remain raw ingress dictionaries, including
-for direct callers. In `checks/basic.py`, text-contract normalization yields
+`LintContext.registry` is the `Registry` TypedDict from `registry_types.py`.
+Functions that take the registry directly annotate it, and check modules get it
+typed through `LintContext`. Its values are decoded JSON that the loader does not
+validate, so `text_contracts` is typed `object` and each read narrows it; the
+other sections are still `Any`, and `.schema` remains a raw dictionary. In `checks/basic.py`, text-contract normalization yields
 immutable `TextContract` and `TextContractInventory` records from `checks/types.py`.
 Execution consumes their typed fields and tuple paths. Normalization retains
 valid members of malformed path lists and yields one group at a time to preserve

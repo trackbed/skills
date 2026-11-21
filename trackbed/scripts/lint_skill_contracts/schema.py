@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from .io import rel, resolve
+from .registry_types import Registry
 
 DEFAULT_CONTRACT_SCHEMA_PATH = Path(__file__).resolve().parent.parent / "schemas" / "skill-contracts.json"
 
@@ -33,7 +34,7 @@ def _load_default_contract_schema_with_error() -> tuple[dict[str, Any], str | No
 DEFAULT_CONTRACT_SCHEMA, DEFAULT_CONTRACT_SCHEMA_ERROR = _load_default_contract_schema_with_error()
 
 
-def contract_schema_path(root: Path, registry: dict[str, Any]) -> Path:
+def contract_schema_path(root: Path, registry: Registry) -> Path:
     raw_path = registry.get("contract_schema")
     if isinstance(raw_path, str) and raw_path.strip():
         return resolve(root, raw_path)
@@ -42,7 +43,7 @@ def contract_schema_path(root: Path, registry: dict[str, Any]) -> Path:
 
 def load_contract_schema(
     root: Path,
-    registry: dict[str, Any],
+    registry: Registry,
     failures: list[str],
 ) -> dict[str, Any]:
     path = contract_schema_path(root, registry)

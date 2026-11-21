@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Any
 
 from ..io import read_text, rel, resolve, skill_paths
 from .types import CheckResult, LintContext
@@ -12,7 +13,7 @@ def _line_number(text: str, offset: int) -> int:
 
 
 def _registered_paths(context: LintContext, result: CheckResult) -> list[Path]:
-    config = context.registry.get("base_diff_scope", {})
+    config: Any = context.registry.get("base_diff_scope", {})
     paths: dict[str, Path] = {}
 
     for copy in config.get("paths", []):

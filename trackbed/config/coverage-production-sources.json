@@ -211,6 +211,9 @@
       "trackbed/scripts/lint_skill_contracts/io.py": [
         "trackbed/tests/lint-skill-contracts.bats"
       ],
+      "trackbed/scripts/lint_skill_contracts/registry_types.py": [
+        "trackbed/tests/lint-skill-contracts.bats"
+      ],
       "trackbed/scripts/release.py": ["trackbed/tests/release.bats"],
       "trackbed/scripts/plan_archive.py": [
         "trackbed/tests/plan-to-pr-validation.bats"

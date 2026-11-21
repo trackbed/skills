@@ -4,38 +4,41 @@ import re
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+
+from json_object import JsonObject
 
 from ..frontmatter import parse_frontmatter
 from ..io import read_text, rel, resolve, skill_paths
+from ..registry_types import Registry
 from ..strings import normalize_value, strip_quotes
 from .types import CheckResult, LintContext, TextContract, TextContractInventory
 
 
 def iter_registry_entries(
-    registry: dict[str, Any],
+    entries: object,
     key: str,
     failures: list[str],
-) -> Iterator[tuple[str, dict[str, Any]]]:
-    entries = registry.get(key, [])
+) -> Iterator[tuple[str, JsonObject]]:
     if not isinstance(entries, list):
         failures.append(f"{key}: registry entry must be a list")
         return
-    for index, entry in enumerate(entries):
+    items: list[object] = entries
+    for index, entry in enumerate(items):
         if not isinstance(entry, dict):
             failures.append(f"{key}[{index}]: entry must be an object")
             continue
+        record: JsonObject = entry
         label = f"{key}[{index}]"
-        name = entry.get("name")
+        name = record.get("name")
         if not isinstance(name, str) or not name:
             failures.append(f"{label}: entry missing required string key 'name'")
         else:
             label = name
-        yield label, entry
+        yield label, record
 
 
 def require_str_field(
-    entry: dict[str, Any],
+    entry: JsonObject,
     key: str,
     label: str,
     failures: list[str],
@@ -48,7 +51,7 @@ def require_str_field(
 
 
 def require_str_list_field(
-    entry: dict[str, Any],
+    entry: JsonObject,
     key: str,
     label: str,
     failures: list[str],
@@ -101,10 +104,10 @@ class _TextContractCache:
         return self.inventories[key]
 
 
-def _normalize_text_contracts(registry: dict[str, Any], failures: list[str]) -> Iterator[TextContract]:
+def _normalize_text_contracts(registry: Registry, failures: list[str]) -> Iterator[TextContract]:
     # Yield one group at a time so its execution diagnostics precede the next
     # group's validation diagnostics, including partially valid path lists.
-    for name, group in iter_registry_entries(registry, "text_contracts", failures):
+    for name, group in iter_registry_entries(registry.get("text_contracts", []), "text_contracts", failures):
         regex = require_str_field(group, "extract_regex", name, failures)
         paths = require_str_list_field(group, "paths", name, failures)
         if regex is None or paths is None:
@@ -180,8 +183,9 @@ def _normalize_text_contract_inventory(
         failures.append(f"{name}: inventory must be an object")
         return None
 
-    pattern = inventory.get("glob")
-    marker = inventory.get("marker")
+    fields: JsonObject = inventory
+    pattern = fields.get("glob")
+    marker = fields.get("marker")
     if not isinstance(pattern, str) or not pattern:
         failures.append(f"{name}: inventory glob must be a non-empty string")
         return None
@@ -238,7 +242,9 @@ def heading_lines(text: str) -> list[tuple[int, str]]:
 def check_ordered_heading_contracts(context: LintContext) -> CheckResult:
     result = CheckResult()
     root = context.root
-    for name, group in iter_registry_entries(context.registry, "ordered_heading_contracts", result.failures):
+    for name, group in iter_registry_entries(
+        context.registry.get("ordered_heading_contracts", []), "ordered_heading_contracts", result.failures
+    ):
         expected = require_str_list_field(group, "headings", name, result.failures)
         paths = require_str_list_field(group, "paths", name, result.failures)
         if expected is None or paths is None:
@@ -269,7 +275,9 @@ def check_ordered_heading_contracts(context: LintContext) -> CheckResult:
 def check_required_file_contracts(context: LintContext) -> CheckResult:
     result = CheckResult()
     root = context.root
-    for name, contract in iter_registry_entries(context.registry, "required_file_contracts", result.failures):
+    for name, contract in iter_registry_entries(
+        context.registry.get("required_file_contracts", []), "required_file_contracts", result.failures
+    ):
         copy = require_str_field(contract, "path", name, result.failures)
         if copy is None:
             continue

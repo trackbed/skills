@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Any
+from typing import cast
 
 from json_object import load_json_object
 
 from .checks import run
+from .registry_types import Registry
 
 
 def add_arguments(parser: argparse.ArgumentParser, defaults: argparse.Namespace) -> argparse.ArgumentParser:
@@ -35,8 +36,10 @@ def parse_cli() -> argparse.Namespace:
     return add_arguments(parser, defaults).parse_args()
 
 
-def load_registry(path: Path) -> dict[str, Any]:
-    return load_json_object(path, "registry")
+def load_registry(path: Path) -> Registry:
+    # Every Registry field accepts any decoded JSON value, so the cast claims
+    # nothing beyond the JSON object that load_json_object already checked.
+    return cast(Registry, load_json_object(path, "registry"))
 
 
 def main() -> int:

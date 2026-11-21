@@ -175,7 +175,7 @@ class ChangelogGenerator:
 
     CATEGORY_ORDER = ["Added", "Changed", "Deprecated", "Removed", "Fixed", "Security"]
 
-    def __init__(self, repo_root: Path):
+    def __init__(self, repo_root: Path) -> None:
         self.repo_root = repo_root
         self.parser = CommitParser()
 
@@ -276,7 +276,7 @@ class ChangelogUpdater:
     VERSION_HEADER_PATTERN = re.compile(r"^## \[(\d+\.\d+\.\d+)\]", re.MULTILINE)
     LINK_PATTERN = re.compile(r"^\[(\d+\.\d+\.\d+)\]:")
 
-    def __init__(self, changelog_path: Path):
+    def __init__(self, changelog_path: Path) -> None:
         self.changelog_path = changelog_path
 
     def read(self) -> str:
