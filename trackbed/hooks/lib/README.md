@@ -12,6 +12,7 @@ cross-hook parsing and toggle behavior here.
 | `git_command_parser.py` | Executable entry point for the command-safety parser. Holds no parsing logic; it re-exports the dispatcher from `command_safety/` so both `python3 -m git_command_parser` and the direct script path keep working. The module form is the hook-facing one and the only form that works under `PYTHONSAFEPATH=1`, because `safety-hook-parser.sh` passes an explicit `PYTHONPATH=.`. |
 | `command_safety/` | The parser itself. Handles shell wrappers, environment propagation, command substitutions, heredocs, and git subcommands, then emits JSON with allow/block details. See the module map below. |
 | `safety-hook-parser.sh` | Provides fail-closed dependency checks, hook input extraction, parser invocation, and parser-output validation for command-safety hook wrappers. |
+| `conductor-slash-command.js` | Node logic behind the `conductor-slash-command.sh` UserPromptSubmit hook: when Conductor's `<system_instruction>` block hides a `/trackbed:<skill>` command at the start of the first message, it tells the model which skill the user typed and how to run it. |
 
 ### `command_safety/` module map
 
@@ -21,6 +22,7 @@ here would break every gate at once.
 
 | Module | Responsibility |
 | --- | --- |
+| `__init__.py` | Package marker that documents this layering. It imports and re-exports nothing, because every gate executes it before loading its one mode. |
 | `structs.py` | `_StructValue`, the `__slots__` value-object base the result types share instead of `dataclasses`. |
 | `syntax.py` | Shell syntax primitives: quoting and ANSI-C decoding, command-substitution readers, token normalization (splitting shlex-joined operators such as `);` and rejoining redirections such as `2>&1`), redirection and heredoc-prefix helpers, basename and assignment helpers, and the shared shell keyword/executable/option sets. Imports nothing else in the package. |
 | `heredoc.py` | `HeredocScanner`: finds the `<<` operators that open a heredoc body. It carries quote, `$(...)`, backtick, `$'...'`, and arithmetic context across command lines, ignores `<<` in comments, and reports where the owning command's text starts on the operator's line and whether that command began on an earlier line. Imports nothing else in the package. |

@@ -8,6 +8,7 @@ These scripts provide one detection contract for browser-facing workflows. They 
 - `detect-project-type.sh` detects `rails`, `next`, `vite`, `nuxt`, `astro`, `remix`, `sveltekit`, `procfile`, `multiple`, or `unknown`.
 - `resolve-package-manager.sh` detects the JS package manager from lockfiles and emits the dev command tail.
 - `read-launch-json.sh` reads `.claude/launch.json` and emits a selected config as JSON.
+- `framework-registry.sh` is the canonical registry of config-file-backed framework signatures and of dev-server port probes and defaults; `detect-project-type.sh` and `resolve-port.sh` source it.
 - `resolve-port.sh` resolves the intended dev-server port. With `--no-default`, it prints nothing when only a framework default applies, including a port that project files name but that equals the default.
 
 ## URL Detection Contract
