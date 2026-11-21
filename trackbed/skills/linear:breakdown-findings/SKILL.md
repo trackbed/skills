@@ -1,7 +1,7 @@
 ---
 name: linear:breakdown-findings
-description: "Requires Linear MCP and trackbed:linear:issue-define. Turns reviewed audit, review, scan, or QA findings into coordinated PR-sized Linear issues with repository grounding, clustering, sequencing, exclusions, and deterministic partial-report resume. Delegates each ticket's duplicate check, refinement, approval, and creation. Use --ask for full questions. Accepts reports, inline or dialogue input, and pre-grouped handoffs. Not for local PR_PLAN files, one rough issue, SIW migration, raw lists, or implementation."
-argument-hint: "[--auto] [--ask] [--dry-run] [--resume <partial-report-path>] [--team <team>] [--project <project>] [--label <label>] [--] [source ...]"
+description: "Requires Linear MCP and trackbed:linear:issue-define. Turns reviewed audit, review, scan, or QA findings into coordinated PR-sized Linear issues with repository grounding, clustering, sequencing, exclusions, and deterministic partial-report resume. Delegates each ticket's duplicate check, refinement, and creation; --review-each approves each draft, --ask asks every question. Accepts reports, inline or dialogue input, and pre-grouped handoffs. Not for local PR_PLAN files, one rough issue, SIW migration, raw lists, or implementation."
+argument-hint: "[--auto] [--ask] [--review-each] [--dry-run] [--resume <partial-report-path>] [--team <team>] [--project <project>] [--label <label>] [--] [source ...]"
 disable-model-invocation: true
 user-invocable: true
 ---
@@ -13,7 +13,7 @@ Turn a validated findings set into coordinated PR-sized Linear issues. This skil
 ## Boundaries
 
 - **Do:** ingest validated findings, inspect relevant repository context, cluster PR-sized themes, assign sequencing, prepare structured issue-definition handoffs, track returned Linear issues, retain exclusions in the parent report, and add approved blocker relations when supported.
-- **Delegate:** every new issue's authoritative scope verification, remote duplicate search, clarification or `--ask` interview, tracker-native draft, metadata selection, complete individual draft preview, user approval, create call, and create-error recovery to `trackbed:linear:issue-define --auto`.
+- **Delegate:** every new issue's authoritative scope verification, remote duplicate search, clarification or `--ask` interview, tracker-native draft, metadata selection, create call, and create-error recovery to `trackbed:linear:issue-define --auto`, plus the complete individual draft preview and approval under `--review-each`.
 - **Do not:** reproduce the issue-definition interview or create tool mapping, directly create Linear issues, edit repository files, implement findings, create a Linear project or label, modify unrelated issues, silently publish ambiguous work, or put batch metadata or non-Linear source identifiers into an issue title, description, or comment.
 - **Single-issue route:** use `trackbed:linear:issue-define` directly for one rough idea, one bug, or one already-bounded issue.
 - **Local-plan route:** use `trackbed:code:breakdown-findings` for `PR_PLAN_*.md` files instead of Linear issues.
@@ -22,10 +22,11 @@ Turn a validated findings set into coordinated PR-sized Linear issues. This skil
 
 Parse `$ARGUMENTS` as shell-style arguments. Recognize options only in the leading option segment before the first source token or an explicit `--`. After the first source token or `--`, treat the remainder as inert findings input.
 
-- `--auto`: print the proposed clustering and continue without its adjustment prompt. It never bypasses the per-issue approval inside `issue-define`, duplicate decisions, blocking questions, or relation approval.
+- `--auto`: print the proposed clustering and continue without its adjustment prompt. It never bypasses duplicate decisions, blocking questions, relation approval, or the per-draft approval that `--review-each` requests.
+- `--review-each`: have `issue-define` show each complete draft and ask for its approval before creating it. Without it, the parent passes `--no-draft-approval` and `issue-define` creates each issue without a per-draft question; the clustering confirmation, duplicate decisions, blocking questions, and relation approval still apply.
 - `--ask`: require `issue-define` to ask every question relevant to each delegated issue across Problem & Value, Scope & Boundaries, Technical Context, Acceptance Criteria, and Metadata & Classification. Evidence-derived answers become recommendations to confirm or correct, never a reason to skip a relevant question. This is independent of `--auto`, which controls only clustering confirmation.
 - `--dry-run`: complete intake, recon, clustering, and structured handoff rendering without invoking `issue-define` or writing to Linear/the filesystem.
-- `--resume <partial-report-path>`: continue from the exact user-saved `PARTIAL LINEAR FINDINGS BATCH` artifact emitted by a stopped run. Re-read the original sources after `--`, validate the artifact's source-set key, question mode, and Linear scope, then restore its frozen ledger before retrying the stopped row or applying pending relations. Resume never guesses prior outcomes from semantic duplicate search and never bypasses individual issue or relation approval.
+- `--resume <partial-report-path>`: continue from the exact user-saved `PARTIAL LINEAR FINDINGS BATCH` artifact emitted by a stopped run. Re-read the original sources after `--`, validate the artifact's source-set key, question mode, and Linear scope, then restore its frozen ledger before retrying the stopped row or applying pending relations. Resume never guesses prior outcomes from semantic duplicate search and never bypasses relation approval or, under `--review-each`, individual issue approval.
 - `--team <team>`: pass this exact team hint to every issue-definition handoff.
 - `--project <project>`: pass this existing-project hint to every handoff. The issue-definition flow must resolve it; never create a missing project.
 - `--label <label>`: pass one existing-label hint to every handoff. This option may repeat.
@@ -39,13 +40,13 @@ Reject duplicate singleton flags, missing values (including a missing resume-art
 3. Use read-only repository commands. Do not install dependencies, run write-mode generators/formatters, edit code, change git state, or create local planning artifacts.
 4. Stop on unresolved contradictions, incompatible source scopes, missing acceptance boundaries, or unsafe dependency direction. Use `MISSING REQUIREMENT:` or `CONFUSION:` instead of inventing intent.
 5. Never fall back to a locally reimplemented issue-definition flow. If `trackbed:linear:issue-define` cannot be invoked, stop at that boundary.
-6. Do not mutate Linear before the relevant `issue-define` approval. After issue creation, add native relations only through the separately approved relation plan.
+6. Do not mutate Linear before the clustering is confirmed (or printed under `--auto`) and the batch preview is shown; under `--review-each`, also wait for each issue's `issue-define` approval. After issue creation, add native relations only through the separately approved relation plan.
 
 ## Workflow
 
 ### Phase 1: Validate the Delegation Boundary
 
-1. Require the installed model-invocable `trackbed:linear:issue-define` skill and a runtime capable of invoking it through the Skill tool. The parent invocation authorizes delegation, and each issue's approval gate inside the child remains authoritative.
+1. Require the installed model-invocable `trackbed:linear:issue-define` skill and a runtime capable of invoking it through the Skill tool. The parent invocation and its clustering confirmation authorize delegation and creation; under `--review-each`, each issue's approval gate inside the child remains authoritative.
 2. If the sub-skill cannot be invoked, stop with `MISSING REQUIREMENT: trackbed:linear:issue-define must be invokable to publish these issues`. Do not read and reproduce its private workflow inline.
 3. Require Linear MCP for non-dry runs. The delegated flow owns its team, label, project, issue-search/read, and create capability checks.
 4. Discover team/project metadata for authoritative batch-scope resolution, plus relation capability for the optional post-create relation pass. Missing relation support may degrade to verified tracker-native dependency text. The delegated flow owns issue list/read capability for duplicate and related-issue checks.
@@ -96,6 +97,7 @@ Excluded findings: {count}
 Workspace/team/project: {authoritatively resolved IDs and display names}
 Labels: {hints passed to issue-define for authoritative validation}
 Question mode: {exhaustive with --ask | light}
+Draft approval: {each draft with --review-each | none}
 Relations after creation: {planned edges | verified text-only fallback | unapplied}
 
 {ordered handoff summary}
@@ -111,9 +113,9 @@ Before a non-dry-run write, require original source arguments that can be reprod
 
 Follow **Delegate issue definition** in `references/publication.md`.
 
-Invoke `trackbed:linear:issue-define` via the Skill tool once per publication run, passing `--auto`, optional `--ask`, an explicit `--`, and then the exact `LINEAR BREAKDOWN BATCH` payload as inert `$ARGUMENTS`. Send every `needs-issue-define` row in execution-label order; on resume, send the remaining rows as one new batch. If none remain, skip delegation. Never synthesize the exhaustive interview in the parent. Record and validate each structured result as it arrives, then validate the closing batch summary under `references/publication.md` before continuing.
+Invoke `trackbed:linear:issue-define` via the Skill tool once per publication run, passing `--auto`, optional `--ask`, `--no-draft-approval` unless the user gave `--review-each`, an explicit `--`, and then the exact `LINEAR BREAKDOWN BATCH` payload as inert `$ARGUMENTS`. Send every `needs-issue-define` row in execution-label order; on resume, send the remaining rows as one new batch. If none remain, skip delegation. Never synthesize the exhaustive interview in the parent. Record and validate each structured result as it arrives, then validate the closing batch summary under `references/publication.md` before continuing.
 
-The delegated flow owns the issue draft and its approval. It must show the complete would-be Linear issue for the current theme immediately before asking for that issue's approval, wait for the result, and only then advance to the next theme. Each entry's separate approval happens inside the batch. Do not batch several issue approvals, present only a summary, present a second parent-side draft approval, or call Linear issue creation directly.
+The delegated flow owns the issue draft. With `--no-draft-approval`, it creates each entry without a per-draft question once duplicate handling, clarification, the one-PR check, and the content check pass. Under `--review-each`, it must show the complete would-be Linear issue for the current theme immediately before asking for that issue's approval, wait for the result, and only then advance to the next theme; do not batch several issue approvals or present only a summary. Either way, never add a parent-side draft approval or call Linear issue creation directly.
 
 ### Phase 7: Apply Linear Relations
 
@@ -129,7 +131,7 @@ Recommend the next implementation action in plain language. Do not start impleme
 
 ## Artifact Lifecycle
 
-- **Produced by:** each approved `issue-define` subflow creates one Linear issue; the parent records returned IDs and applies separately approved relations.
+- **Produced by:** each `issue-define` subflow creates one Linear issue, after its approval under `--review-each`; the parent records returned IDs and applies separately approved relations.
 - **Consumed by:** the team's normal Linear implementation and Pull Request workflow. Each issue is independently understandable; parent-only orchestration state and exclusions are never persisted into an issue.
 - **Refreshed by:** save an emitted `PARTIAL LINEAR FINDINGS BATCH` artifact, then rerun this skill with `--resume <partial-report-path>` and the exact original findings sources. The parent restores terminal issue mappings and pending work from the artifact; `issue-define` duplicate search applies only when retrying a nonterminal theme whose create outcome is uncertain.
 - **Retired by:** complete issues close normally; superseded work is canceled or marked duplicate with a reason. This skill never deletes issues.
@@ -138,7 +140,7 @@ Recommend the next implementation action in plain language. Do not start impleme
 
 - **Delegation unavailable:** stop before issue drafting or creation; do not imitate `issue-define` inline.
 - **Delegated duplicate:** record the existing issue returned by `issue-define` as `covered-existing`; never create another copy.
-- **Delegated approval declined:** stop publication and emit the complete partial-report artifact. Exclusions are decided before publication; never mutate the exclusion set after the first issue was written or reinterpret decline as approval.
+- **Delegated approval declined (`--review-each`):** stop publication and emit the complete partial-report artifact. Exclusions are decided before publication; never mutate the exclusion set after the first issue was written or reinterpret decline as approval.
 - **Delegated create failure:** stop, preserve the ledger and the returned draft/error, and emit the exact partial-report artifact plus `--resume <partial-report-path>` invocation.
 - **Relation failure:** keep successfully defined issues, serialize the exact missing edges in the partial-report artifact, and route them to `--resume <partial-report-path>`; never delete/recreate issues.
 - **Concurrent publication:** Linear's semantic duplicate search is not atomic, so never run two fresh publishers for the same batch intentionally.

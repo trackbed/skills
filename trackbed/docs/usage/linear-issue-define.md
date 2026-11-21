@@ -1,6 +1,6 @@
 # linear:issue-define
 
-Use it to create a new Linear issue from a description, or to improve an existing one by passing its ID. It explores the codebase, interviews you, and drafts a structured issue, then writes to Linear only after you approve the draft. Every issue must fit one Pull Request, so larger work becomes a parent issue with one sub-issue per Pull Request. It never changes code; to implement the issue, use `trackbed:linear:issue-implement`.
+Use it to create a new Linear issue from a description, or to improve an existing one by passing its ID. It explores the codebase, interviews you, and drafts a structured issue, then writes to Linear only after you approve the draft, unless a `trackbed:linear:breakdown-findings` batch passes `--no-draft-approval`. Every issue must fit one Pull Request, so larger work becomes a parent issue with one sub-issue per Pull Request. It never changes code; to implement the issue, use `trackbed:linear:issue-implement`.
 
 ## Before you run it
 
@@ -19,8 +19,9 @@ Use it to create a new Linear issue from a description, or to improve an existin
 
 | Option | Effect |
 | --- | --- |
-| `--auto` | Create a new issue with at most two clarifying questions instead of the full interview. You still approve the draft. It stops when the input names an existing issue. `trackbed:linear:breakdown-findings` uses it to create each of its issues. |
+| `--auto` | Create a new issue with at most two clarifying questions instead of the full interview. You still approve the draft, unless a breakdown batch passes `--no-draft-approval`. It stops when the input names an existing issue. `trackbed:linear:breakdown-findings` uses it to create each of its issues. |
 | `--ask` | With `--auto`, ask every relevant interview question before drafting. It is rejected without `--auto`, because the normal run already asks them. |
+| `--no-draft-approval` | Create each issue in a `trackbed:linear:breakdown-findings` batch without asking you to approve its draft. That skill passes it unless you ask it for `--review-each`; any other use is rejected. |
 
 ## Examples
 

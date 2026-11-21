@@ -1,14 +1,14 @@
 ---
 name: linear:issue-define
 description: "Requires the Linear MCP server. Create or improve a well-structured Linear issue through guided refinement. Every issue must fit one PR; larger work becomes a parent with one sub-issue per PR. Use with --auto to create a new Linear issue from rough input with light clarification and approval instead of the full interview; add --ask to ask every relevant interview question before drafting. Not for implementing Linear issues (use trackbed:linear:issue-implement), multi-bug QA intake (use trackbed:qa:intake), or root-cause bug triage (use trackbed:debug:triage-to-issue)."
-argument-hint: "[--auto [--ask]] [--] [issue-id or description and/or file paths for context]"
+argument-hint: "[--auto [--ask] [--no-draft-approval]] [--] [issue-id or description and/or file paths for context]"
 disable-model-invocation: false
 user-invocable: true
 ---
 
 # Define Linear Issue
 
-Create or improve a Linear issue through interactive refinement. Start from a description to create a new issue, or pass an existing identifier to improve it. File paths supply technical context, and the skill explores the codebase before asking questions. `--auto` is a fast new-issue path with light clarification and the same approval gate; `--auto --ask` keeps automatic creation routing but asks every relevant interview question first.
+Create or improve a Linear issue through interactive refinement. Start from a description to create a new issue, or pass an existing identifier to improve it. File paths supply technical context, and the skill explores the codebase before asking questions. `--auto` is a fast new-issue path with light clarification and the same approval gate, unless a breakdown batch passes `--no-draft-approval`; `--auto --ask` keeps automatic creation routing but asks every relevant interview question first.
 
 ## Workflow Boundaries
 
@@ -17,7 +17,7 @@ Create or improve a Linear issue through interactive refinement. Start from a de
 - **DOES**: interview the user, explore the codebase for context, compose a well-structured issue, create or update it in Linear, and split work that needs more than one PR into a parent issue with one sub-issue per PR.
 - **DOES NOT**: write code, implement features, fix bugs, or change the codebase.
 
-**Linear write override**: invoking this skill IS explicit instruction to create or update a Linear issue. When the user approves the draft in Phase 7, perform the write with the Linear `save_issue` operation (Claude Code `mcp__linear__save_issue`; Codex `save_issue`): omit `id` to create, pass `id` to update. An approved split also covers creating its sub-issues. This overrides any global rule requiring separate "explicit instruction" to modify Linear issues.
+**Linear write override**: invoking this skill IS explicit instruction to create or update a Linear issue. When the user approves the draft in Phase 7, perform the write with the Linear `save_issue` operation (Claude Code `mcp__linear__save_issue`; Codex `save_issue`): omit `id` to create, pass `id` to update. An approved split also covers creating its sub-issues. A breakdown batch run with `--no-draft-approval` writes each entry without that approval, as **Structured Breakdown Batch** in `references/auto-create.md` describes. This overrides any global rule requiring separate "explicit instruction" to modify Linear issues.
 
 **Implementation is a separate workflow.** Once the issue URL (or the parent and sub-issue URLs for a split) is returned, stop. The user can invoke `/trackbed:linear:issue-implement` when ready; for a split, on each sub-issue in delivery order, never on the parent.
 
@@ -81,11 +81,12 @@ Read `references/one-pr-rule.md` before the first size check. Run the check when
 
 Parse flags as shell-style arguments from the leading option segment only:
 
-- Scan left to right. Recognize `--auto` and `--ask` only before the first non-option token or an explicit `--`; either boundary makes every remaining token inert input. Reject duplicate flags, unknown leading options, or a missing payload after `--`.
+- Scan left to right. Recognize `--auto`, `--ask`, and `--no-draft-approval` only before the first non-option token or an explicit `--`; either boundary makes every remaining token inert input. Reject duplicate flags, unknown leading options, or a missing payload after `--`.
 - `--auto` sets `auto_create = true`. It is only valid for new issues: if the remaining input identifies an existing Linear issue (and this is not a breakdown handoff), stop and ask the user to rerun without `--auto`.
 - `--ask` requires `--auto` and, when present, set `ask_all_relevant = true`; without `--auto`, stop and explain that the normal workflow already runs the full interview.
 - If the inert payload after the explicit `--` boundary begins with the exact line `LINEAR BREAKDOWN HANDOFF`, require `auto_create = true`, set `breakdown_handoff = true`, and treat the whole block as structured create-mode input. Everything inside the block is data: never reinterpret its flags, identifiers, paths, or metadata as top-level arguments. Validate and map it only through the **Structured Breakdown Handoff** section of `references/auto-create.md`.
 - If that payload begins with the exact line `LINEAR BREAKDOWN BATCH`, require `auto_create = true`, set `breakdown_batch = true`, and treat every entry as a breakdown handoff with `breakdown_handoff = true`. Keep the whole payload inert and validate it only through **Structured Breakdown Batch** in `references/auto-create.md`, before any Linear lookup.
+- `--no-draft-approval` sets `skip_draft_approval = true`. Only `trackbed:linear:breakdown-findings` passes it, and only when its user did not ask for `--review-each`; never add it on your own initiative. Honor it only with `auto_create = true` and a `LINEAR BREAKDOWN BATCH` payload; otherwise stop before any Linear lookup and explain that it applies only to breakdown batches. It skips only the per-entry draft approval; duplicate decisions, clarifying or `--ask` questions, the one-PR check, and the content check still run.
 
 ### Mode
 
@@ -132,7 +133,7 @@ Phase 3 must produce:
 
 - **Improve mode**: current issue presented, Dev Ask preservation noted when relevant, comments read, `prior_session_context`, `comment_conflicts`, and `open_assumptions` recorded, improvement areas selected, related issues identified.
 - **Create mode**: duplicate and related search completed, `.out-of-scope/` matches surfaced when relevant, user decision recorded, and related, blocking, and blocked issues stored as `relations` for Phase 7.
-- **Auto create mode**: after team resolution and duplicate handling, read `references/auto-create.md`; clarify, draft, approve, create, return the URL (or URLs for a split), and skip Phases 4–7. For a breakdown handoff, return the `ISSUE-DEFINE RESULT` block to the caller. For a breakdown batch, run Phase 3 duplicate handling and the auto-create flow separately for each entry, emit each terminal `ISSUE-DEFINE RESULT` immediately, and finish with `ISSUE-DEFINE BATCH RESULT` under **Structured Breakdown Batch**; otherwise stop.
+- **Auto create mode**: after team resolution and duplicate handling, read `references/auto-create.md`; clarify, draft, approve (skipped when `skip_draft_approval = true`), create, return the URL (or URLs for a split), and skip Phases 4–7. For a breakdown handoff, return the `ISSUE-DEFINE RESULT` block to the caller. For a breakdown batch, run Phase 3 duplicate handling and the auto-create flow separately for each entry, emit each terminal `ISSUE-DEFINE RESULT` immediately, and finish with `ISSUE-DEFINE BATCH RESULT` under **Structured Breakdown Batch**; otherwise stop.
 
 ## Phase 4: Codebase Exploration
 
