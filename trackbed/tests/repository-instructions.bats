@@ -142,3 +142,18 @@ PYTEST
 	[ "$status" -eq 0 ]
 }
 
+@test "AGENTS.md links the add-a-script checklist, which names all four requirements" {
+	project_root="$(cd "$BATS_TEST_DIRNAME/../.." && pwd)"
+	run python3 - "$project_root" <<'PYTEST'
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1])
+adding = (root / "AGENTS.md").read_text().split("## Adding Components", 1)[1].split("\n## ", 1)[0]
+assert "trackbed/scripts/README.md#adding-a-script" in adding
+checklist = (root / "trackbed/scripts/README.md").read_text().split("\n## Adding a Script\n", 1)[1]
+for requirement in ["coverage-production-sources.json", "sharedRuntimeFor", "Node core modules", "jsconfig.json"]:
+    assert requirement in checklist, requirement
+PYTEST
+	[ "$status" -eq 0 ]
+}
