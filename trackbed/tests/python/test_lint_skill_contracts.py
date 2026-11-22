@@ -6,7 +6,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tests.test_helper.script_loader import load_script
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "scripts"
 SCRIPT_PATH = SCRIPTS_DIR / "lint-skill-contracts.py"

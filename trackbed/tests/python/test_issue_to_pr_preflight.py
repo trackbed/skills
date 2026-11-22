@@ -21,7 +21,10 @@ from pathlib import Path
 from typing import Any
 from unittest import mock
 
-from tests.test_helper.script_loader import load_script
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
 
 SKILL_DIR = Path(__file__).resolve().parents[2] / "skills" / "linear:issue-to-pr"
 SCRIPT_PATH = SKILL_DIR / "scripts" / "preflight.py"

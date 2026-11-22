@@ -19,7 +19,10 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
-from tests.test_helper.script_loader import load_script
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
 
 SCRIPT_PATH = Path(__file__).resolve().parents[2] / "skills" / "code:audit-practice" / "scripts" / "session-signals.py"
 # The script imports its sibling signal_patterns module, which script-form runs find on sys.path[0].

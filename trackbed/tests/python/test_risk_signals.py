@@ -11,7 +11,10 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from typing import Any
 
-from tests.test_helper.script_loader import load_script
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
 
 SKILL_DIR = Path(__file__).resolve().parents[2] / "skills" / "pr:triage-risk"
 SCRIPT_PATH = Path(__file__).resolve().parents[2] / "scripts" / "risk-signals.py"

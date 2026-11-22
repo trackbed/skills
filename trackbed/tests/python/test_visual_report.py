@@ -12,7 +12,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tests.test_helper.script_loader import load_script
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
 
 PLUGIN = Path(__file__).resolve().parents[2]
 SCRIPT_PATH = PLUGIN / "scripts" / "visual-report.py"

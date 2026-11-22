@@ -9,7 +9,10 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
-from tests.test_helper.script_loader import load_script
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
 
 SCRIPT_PATH = (
     Path(__file__).resolve().parents[2] / "skills" / "pr:review-convergence" / "scripts" / "convergence-state.py"

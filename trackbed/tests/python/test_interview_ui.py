@@ -28,7 +28,10 @@ from pathlib import Path
 from typing import Any
 from unittest import mock
 
-from tests.test_helper.script_loader import load_script
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
 
 PLUGIN = Path(__file__).resolve().parents[2]
 SKILL_DIR = PLUGIN / "skills" / "discovery:interview"

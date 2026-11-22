@@ -11,7 +11,10 @@ import sys
 import unittest
 from pathlib import Path
 
-from tests.test_helper.script_loader import load_script
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
 
 PARSER_LIB_DIR = Path(__file__).resolve().parents[2] / "hooks" / "lib"
 PARSER_PATH = PARSER_LIB_DIR / "git_command_parser.py"

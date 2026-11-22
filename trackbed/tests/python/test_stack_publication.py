@@ -11,7 +11,10 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
-from tests.test_helper.script_loader import load_script
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
 
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts/git-rewrite/stack-publication.py"
 

@@ -17,7 +17,10 @@ from pathlib import Path
 from typing import Any
 from unittest import mock
 
-from tests.test_helper.script_loader import load_script
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
 
 SCRIPT_PATH = Path(__file__).resolve().parents[2] / "skills" / "pr:shape-up" / "scripts" / "shape-snapshot.py"
 shape_snapshot = load_script("shape_snapshot", SCRIPT_PATH)

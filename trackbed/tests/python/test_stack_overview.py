@@ -19,7 +19,10 @@ from pathlib import Path
 from typing import Any
 from unittest import mock
 
-from tests.test_helper.script_loader import load_script
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
 
 SCRIPT_PATH = Path(__file__).resolve().parents[2] / "skills" / "pr:github-review" / "scripts" / "stack-overview.py"
 stack_overview = load_script("stack_overview", SCRIPT_PATH)
