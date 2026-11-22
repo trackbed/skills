@@ -455,6 +455,7 @@ Each row gives a one-line summary. The full description lives in the skill's `SK
 | Respond to review comments on my PR | `/trackbed:pr:github-review-reply` |
 | Run tests, linting, and type checks | `/trackbed:verify:run` |
 | Investigate a bug | `/trackbed:debug:investigate` |
+| Learn which design decisions would have prevented recent bugs | `/trackbed:code:learn-from-fixes` |
 | Test a running app | `/trackbed:qa` |
 | Find refactoring candidates or tech debt | `/trackbed:code:refactor-opportunities`, or add `--for <spec>` before building a planned change |
 | Stop agents from repeating a mistake by turning it into a type, lint rule, or check | `/trackbed:code:encode-constraint` |
@@ -563,11 +564,12 @@ Plan-driven implementation, migrations, deprecations, design and security guidan
 
 #### Audits
 
-Codebase, dependency, test-suite, and agent-practice audits that report findings without changing code.
+Codebase, dependency, test-suite, bug-fix history, and agent-practice audits that report findings without changing code.
 
 | Skill | Invocation | Arguments | Description |
 | --- | --- | --- | --- |
 | `/trackbed:code:refactor-opportunities` | User, Auto | `[--subagent-model <model>] [full \| pr \| path <file-or-folder> \| feature <name>] [--for <spec-file \| description>] [--ranked [--solo] [--output <path>] [--max-findings N] [--base <ref>]] [--visual]` | Find refactoring candidates, tech debt, and implicit state machines in a repo, PR, path, or feature, or before a change (`--for`); `--ranked` ranks weaknesses. |
+| `/trackbed:code:learn-from-fixes` | User, Auto | `[--since <duration\|date\|ref>] [--path <dir>]` | Read a window of merged bug fixes and name the from-scratch architecture decisions or feature adjustments that would have prevented them. Read-only. |
 | `/trackbed:code:outside-view` | User | `[--subagent-model <model>] [--raters N] [--output <path>] [--visual] [--compare <report-path>] [--cross-model]` | Rate a codebase with unprimed raters to surface unknown-unknown quality problems, especially in AI-engineered code. |
 | `/trackbed:code:agent-readiness` | User | `[--subagent-model <model>] [--auto] [--visual]` | Score how well a codebase suits AI coding agents across five dimensions and get a prioritized refactoring plan. |
 | `/trackbed:code:audit-agent-config` | User, Auto | `[scope-path]` | Audit the repository's agent instructions, skills, hooks, MCP servers, and permissions for redundant, outdated, or conflicting entries. Read-only. |

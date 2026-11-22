@@ -1792,6 +1792,7 @@
       "trackbed:code:deprecate": "Plan and run the deprecation of code, features, APIs, or persistent data shapes: build the replacement, announce, migrate incrementally, then remove.",
       "trackbed:code:encode-constraint": "Turn an observed agent mistake or review nit into a type, lint rule, or check that rejects it, proven to fail on the mistake and pass on the repository.",
       "trackbed:code:harden-security": "Apply secure defaults when code handles untrusted input, authentication, sessions, dependencies, or personal data.",
+      "trackbed:code:learn-from-fixes": "Read a window of merged bug fixes and name the from-scratch architecture decisions or feature adjustments that would have prevented them. Read-only.",
       "trackbed:code:migrate": "(experimental) Plan and run framework or library version upgrades, such as Angular, React, or Node, in phases with verification gates.",
       "trackbed:code:optimize": "(experimental) Run repeatable, metric-driven optimization experiments when a measurable outcome needs variants instead of guess-and-check.",
       "trackbed:code:outside-view": "Rate a codebase with unprimed raters to surface unknown-unknown quality problems, especially in AI-engineered code.",
