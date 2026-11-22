@@ -23,7 +23,7 @@ Each file below is listed in `sharedRuntimeFor` and ships in the converted Codex
 | `pr-evidence.py` | `pr:create`, `pr:generate-description` | `tests/python/test_pr_evidence.py` |
 | `resolve-base.sh` | Branch-aware skills such as `pr:generate-description`, `git:recreate-commits`, `code:plan-to-pr`, and `linear:issue-implement` | `tests/resolve-base.bats` |
 | `resolve-stack-context.py` | `pr:github-review`, `pr:review-convergence`, `collect-review-diff.sh` | `tests/python/test_resolve_stack_context.py` |
-| `resolve-stack-membership.sh` | `pr:create`, `pr:fix-ci`, `pr:rebase`, `pr:stack`, `git:recreate-commits` | `tests/resolve-stack-membership.bats` |
+| `resolve-stack-membership.sh` | `pr:create`, `pr:fix-ci`, `pr:rebase`, `pr:review-queue`, `pr:stack`, `git:recreate-commits` | `tests/resolve-stack-membership.bats` |
 | `review-artifact-patterns.sh` | `pr:code-review`, `code:refactor-pass` | `tests/review-artifact-patterns.bats` |
 | `review-tree-fingerprint.sh` | `pr:code-review`, `pr:product-review`, `pr:generate-description` | `tests/review-shared-tree.bats` |
 | `risk-signals.py` | `pr:triage-risk`, `pr:review-convergence` | `tests/python/test_risk_signals.py` |

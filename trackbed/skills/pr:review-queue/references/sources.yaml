@@ -1,0 +1,9 @@
+sources:
+  - id: ashrafi-stop-babysitting-prs
+    url: https://api.fxtwitter.com/jalalash/status/2122066461007175851
+    title: "Jalal Ashrafi - Stop babysitting your PRs"
+    rationale: "Giving each of the author's open Pull Requests one state and one next action, computed by code that a timer can run, is inspired by its loop over open Pull Requests."
+    usage: inspiration
+    last_reviewed_at: 2026-11-21
+    fetch_mode: availability
+    baseline_hash: "sha256:af6461e530c61b943cb17c61f402bf9556608d2b0e0574227f2fff8a31239513"
