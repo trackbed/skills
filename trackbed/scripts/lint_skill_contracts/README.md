@@ -17,7 +17,7 @@ package works without the scripts folder on the import path.
 | --- | --- | --- |
 | Compatibility entry point | `../lint-skill-contracts.py`, `__init__.py` | The legacy script cannot load the package or reach `main`. |
 | CLI and reporting | `cli.py` | Arguments, registry loading, exit status, warning output, or failure output is wrong. |
-| Shared parsing and paths | `frontmatter.py`, `markdown.py`, `strings.py`, `io.py` | Frontmatter values, Markdown table cells, normalized strings, resolved paths, hashes, skill discovery, or registry JSON loading are wrong. |
+| Shared parsing and paths | `frontmatter.py`, `markdown.py`, `strings.py`, `io.py` | Frontmatter values, Markdown table cells, normalized strings, resolved paths, skill discovery, or registry JSON loading are wrong. |
 | Invocable names | `naming.py` | The `trackbed` plugin namespace or a qualified `trackbed:<name>` skill or agent name is wrong. |
 | Contract schema | `schema.py` | Schema loading, fallback behavior, required frontmatter fields, or source-manifest fields are wrong. |
 | Check orchestration | `checks/__init__.py`, `checks/types.py`, `checks/registry.py`, `registry_types.py` | Check ordering, shared context, the registry's static type, or failure and warning aggregation is wrong. |

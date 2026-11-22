@@ -41,8 +41,10 @@ from lint_skill_contracts.frontmatter import (  # noqa: E402
 from lint_skill_contracts.markdown import normalize_markdown_cell, split_markdown_table_row  # noqa: E402
 from lint_skill_contracts.readme import (  # noqa: E402
     AgentReference,
+    ComponentSync,
     HookReference,
     SkillReference,
+    agent_component_sync,
     load_hook_references,
     load_skill_references,
     render_agent_reference_row,
@@ -998,6 +1000,133 @@ class ReadmeSummariesTest(unittest.TestCase):
         self.assertEqual(failures, [])
 
 
+SYNC_MARKERS = {
+    "skill": ("<!-- BEGIN SOURCE-SYNCED SKILL ROWS -->", "<!-- END SOURCE-SYNCED SKILL ROWS -->"),
+    "agent": ("<!-- BEGIN SOURCE-SYNCED AGENT ROWS -->", "<!-- END SOURCE-SYNCED AGENT ROWS -->"),
+}
+
+
+class ComponentSyncMessagesTest(unittest.TestCase):
+    def _write_skill(self, root: Path, name: str) -> None:
+        skill = root / "skills" / name
+        skill.mkdir(parents=True)
+        (skill / "SKILL.md").write_text(
+            f"---\nname: {name}\ndescription: Sample skill\n"
+            f"disable-model-invocation: true\nuser-invocable: true\n---\n# trackbed:{name}\n",
+            encoding="utf-8",
+        )
+
+    def _write_readme(self, root: Path, kind: str, rows: list[str]) -> None:
+        start, end = SYNC_MARKERS[kind]
+        (root / "README.md").write_text("\n".join(["# Plugin", "", start, *rows, end, ""]), encoding="utf-8")
+
+    def _skill_sync(self, root: Path) -> ComponentSync:
+        start, end = SYNC_MARKERS["skill"]
+        config = {
+            "skills_dir": "skills",
+            "start_marker": start,
+            "end_marker": end,
+            "allow_readme_only_skills": ["trackbed:legacy"],
+        }
+        return skill_component_sync(root, config, DEFAULT_CONTRACT_SCHEMA)
+
+    def _agent_sync(self, root: Path) -> ComponentSync:
+        start, end = SYNC_MARKERS["agent"]
+        return agent_component_sync(root, {"agents_dir": "agents", "start_marker": start, "end_marker": end})
+
+    def test_skill_check_reports_missing_extra_and_stale_rows_but_allows_listed_readme_only_rows(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_skill(root, "sample")
+            self._write_skill(root, "fresh")
+            self._write_readme(
+                root,
+                "skill",
+                [
+                    "| Skill | Invocation | Arguments | Description |",
+                    "| --- | --- | --- | --- |",
+                    "| `/trackbed:sample` | User | — | Stale text |",
+                    "| `/trackbed:legacy` | User | — | Allowed README-only row |",
+                    "| `/trackbed:ghost` | User | — | Ghost |",
+                ],
+            )
+            failures: list[str] = []
+            self._skill_sync(root).check(failures)
+
+        self.assertEqual(
+            failures,
+            [
+                "readme skill sync: README.md is missing skill 'trackbed:fresh' from skills",
+                "readme skill sync: README.md:8 documents 'trackbed:ghost', "
+                "but skills/trackbed:ghost/SKILL.md does not exist",
+                "readme skill sync: README.md:6 'trackbed:sample' description differs from SKILL.md frontmatter; "
+                "expected 'Sample skill', got 'Stale text'",
+            ],
+        )
+
+    def test_skill_render_reuses_the_missing_and_extra_row_checks(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            self._write_skill(root, "sample")
+            self._write_skill(root, "fresh")
+            self._write_readme(
+                root,
+                "skill",
+                [
+                    "| Skill | Invocation | Arguments | Description |",
+                    "| --- | --- | --- | --- |",
+                    "| `/trackbed:sample` | User | — | Sample skill |",
+                    "| `/trackbed:ghost` | User | — | Ghost |",
+                ],
+            )
+            failures: list[str] = []
+            rendered = self._skill_sync(root).render((root / "README.md").read_text(encoding="utf-8"), failures)
+
+        self.assertIsNone(rendered)
+        self.assertEqual(
+            failures,
+            [
+                "readme skill sync: README.md is missing skill 'trackbed:fresh' from skills",
+                "readme skill sync: README.md:7 documents 'trackbed:ghost', "
+                "but skills/trackbed:ghost/SKILL.md does not exist",
+            ],
+        )
+
+    def test_agent_check_reports_extra_stale_and_short_rows(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            root = Path(tmp_dir)
+            agents = root / "agents"
+            agents.mkdir()
+            for name in ("reviewer", "checker"):
+                (agents / f"{name}.md").write_text(
+                    f"---\nname: {name}\ndescription: Reviews code\n---\n# trackbed:{name}\n",
+                    encoding="utf-8",
+                )
+            self._write_readme(
+                root,
+                "agent",
+                [
+                    "| Agent | Description |",
+                    "| --- | --- |",
+                    "| `trackbed:reviewer` | Stale text |",
+                    "| `trackbed:checker` |",
+                    "| `trackbed:ghost` | Ghost |",
+                ],
+            )
+            failures: list[str] = []
+            self._agent_sync(root).check(failures)
+
+        self.assertEqual(
+            failures,
+            [
+                "readme agent sync: README.md:8 documents 'trackbed:ghost', but agent source is missing from agents",
+                "readme agent sync: README.md:6 'trackbed:reviewer' description differs from source metadata; "
+                "expected 'Reviews code', got 'Stale text'",
+                "readme agent sync: README.md:7 row for 'trackbed:checker' must include Agent, Description columns",
+            ],
+        )
+
+
 class ReadmeProseCheckTest(unittest.TestCase):
     def test_blocks_are_paragraphs_and_list_items_outside_tables_code_and_comments(self) -> None:
         text = "\n".join(
@@ -1455,7 +1584,7 @@ class CompatibilityEntryPointTest(unittest.TestCase):
         self.assertTrue(callable(compat.main))
         self.assertFalse(hasattr(compat, "CHECKS"))
 
-    def test_legacy_script_loads_when_loaded_as_package_name(self) -> None:
+    def test_legacy_script_exposes_main_when_loaded_as_package_name(self) -> None:
         self.addCleanup(sys.modules.__setitem__, "lint_skill_contracts", sys.modules["lint_skill_contracts"])
         compat = load_script("lint_skill_contracts", SCRIPT_PATH)
 

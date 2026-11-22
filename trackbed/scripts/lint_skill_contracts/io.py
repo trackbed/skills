@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 
@@ -20,14 +19,6 @@ def resolve(root: Path, path: str) -> Path:
 
 def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
-
-
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def skill_paths(root: Path, pattern: str) -> list[Path]:

@@ -11,8 +11,7 @@ from unittest.mock import patch
 SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-import lint_skill_contracts.schema as contract_schema  # noqa: E402
-from lint_skill_contracts import io  # noqa: E402
+from lint_skill_contracts import schema as schema_module  # noqa: E402
 from lint_skill_contracts.checks import basic  # noqa: E402
 from lint_skill_contracts.checks.basic import (  # noqa: E402
     check_ordered_heading_contracts,
@@ -20,7 +19,7 @@ from lint_skill_contracts.checks.basic import (  # noqa: E402
     check_text_contracts,
 )
 from lint_skill_contracts.checks.types import LintContext, TextContract, TextContractInventory  # noqa: E402
-from lint_skill_contracts.schema import load_contract_schema  # noqa: E402
+from lint_skill_contracts.io import load_json_object  # noqa: E402
 
 
 class ValidatedTextContractTest(unittest.TestCase):
@@ -363,7 +362,7 @@ class JsonObjectLoaderTest(unittest.TestCase):
             path.chmod(0o000)
             try:
                 with self.assertRaises(SystemExit) as ctx:
-                    io.load_json_object(path, "registry")
+                    load_json_object(path, "registry")
             finally:
                 path.chmod(0o644)
 
@@ -375,7 +374,6 @@ class JsonObjectLoaderTest(unittest.TestCase):
 
 class DefaultContractSchemaTest(unittest.TestCase):
     def test_unreadable_default_schema_reports_error_without_crashing(self) -> None:
-        schema_module = contract_schema
         original_path = schema_module.DEFAULT_CONTRACT_SCHEMA_PATH
         with tempfile.TemporaryDirectory() as tmp_dir:
             missing_path = Path(tmp_dir) / "missing-schema.json"
@@ -391,7 +389,6 @@ class DefaultContractSchemaTest(unittest.TestCase):
         self.assertIn("cannot read", error)
 
     def test_non_object_default_schema_reports_error(self) -> None:
-        schema_module = contract_schema
         original_path = schema_module.DEFAULT_CONTRACT_SCHEMA_PATH
         with tempfile.TemporaryDirectory() as tmp_dir:
             array_path = Path(tmp_dir) / "schema.json"
@@ -406,12 +403,11 @@ class DefaultContractSchemaTest(unittest.TestCase):
         self.assertIn("must be a JSON object", error or "")
 
     def test_load_contract_schema_surfaces_default_schema_error_on_fallback(self) -> None:
-        schema_module = contract_schema
         original_error = schema_module.DEFAULT_CONTRACT_SCHEMA_ERROR
         schema_module.DEFAULT_CONTRACT_SCHEMA_ERROR = "default contract schema: sentinel failure"
         try:
             failures: list[str] = []
-            schema = load_contract_schema(
+            schema = schema_module.load_contract_schema(
                 Path("/tmp/repo"),
                 {"contract_schema": "does-not-exist.json"},
                 failures,

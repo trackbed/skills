@@ -389,8 +389,8 @@ class ComponentSync:
     label: str
     config: dict[str, Any]
     root: Path
-    readme: str
-    source: str
+    readme_relative: str
+    source_relative: str
     kind: str
     loader: Callable[[list[str]], dict[str, Any]]
     name_from_cell: Callable[[str], str | None]
@@ -402,9 +402,9 @@ class ComponentSync:
     allow_readme_only: frozenset[str] = frozenset()
 
     def check(self, failures: list[str]) -> None:
-        readme_path = resolve(self.root, self.readme)
+        readme_path = resolve(self.root, self.readme_relative)
         if not readme_path.exists():
-            failures.append(f"{self.label}: registered path is missing: {self.readme}")
+            failures.append(f"{self.label}: registered path is missing: {self.readme_relative}")
             return
 
         readme = read_text(readme_path)
@@ -450,7 +450,9 @@ class ComponentSync:
     ) -> None:
         for name in sorted(references):
             if name not in documented:
-                failures.append(f"{self.label}: {self.readme} is missing {self.kind} {name!r} from {self.source}")
+                failures.append(
+                    f"{self.label}: {self.readme_relative} is missing {self.kind} {name!r} from {self.source_relative}"
+                )
 
     def _check_extra_rows(
         self,
@@ -462,10 +464,10 @@ class ComponentSync:
             if name in references or name in self.allow_readme_only:
                 continue
             if self.source_file is None:
-                missing = f"{self.kind} source is missing from {self.source}"
+                missing = f"{self.kind} source is missing from {self.source_relative}"
             else:
-                missing = f"{self.source}/{name}/{self.source_file} does not exist"
-            failures.append(f"{self.label}: {self.readme}:{line_no} documents {name!r}, but {missing}")
+                missing = f"{self.source_relative}/{name}/{self.source_file} does not exist"
+            failures.append(f"{self.label}: {self.readme_relative}:{line_no} documents {name!r}, but {missing}")
 
     def _check_row_values(
         self,
@@ -473,7 +475,6 @@ class ComponentSync:
         references: dict[str, Any],
         failures: list[str],
     ) -> None:
-        source_label = "source metadata" if readme_summaries_configured(self.config) else self.source_label
         max_column = max(column for _attribute, column in self.columns.values())
         for name, (line_no, cells) in documented.items():
             reference = references.get(name)
@@ -482,7 +483,7 @@ class ComponentSync:
             if len(cells) <= max_column:
                 columns = ", ".join(field.title() for field in self.columns)
                 failures.append(
-                    f"{self.label}: {self.readme}:{line_no} row for {name!r} must include {columns} columns"
+                    f"{self.label}: {self.readme_relative}:{line_no} row for {name!r} must include {columns} columns"
                 )
                 continue
 
@@ -491,8 +492,8 @@ class ComponentSync:
                 expected = normalize_markdown_cell(getattr(reference, attribute))
                 if actual != expected:
                     failures.append(
-                        f"{self.label}: {self.readme}:{line_no} {name!r} "
-                        f"{field} differs from {source_label}; expected "
+                        f"{self.label}: {self.readme_relative}:{line_no} {name!r} "
+                        f"{field} differs from {self.source_label}; expected "
                         f"{shorten(expected)!r}, got {shorten(actual)!r}"
                     )
 
@@ -516,8 +517,8 @@ def skill_component_sync(root: Path, config: dict[str, Any], schema: dict[str, A
         label=label,
         config=config,
         root=root,
-        readme=config.get("readme", "README.md"),
-        source=skills_relative,
+        readme_relative=config.get("readme", "README.md"),
+        source_relative=skills_relative,
         kind="skill",
         loader=load,
         name_from_cell=skill_name_from_readme_cell,
@@ -531,7 +532,7 @@ def skill_component_sync(root: Path, config: dict[str, Any], schema: dict[str, A
             },
         ),
         row_renderer=render_skill_reference_row,
-        source_label="SKILL.md frontmatter",
+        source_label="source metadata" if readme_summaries_configured(config) else "SKILL.md frontmatter",
         source_file="SKILL.md",
         allow_readme_only=frozenset(config.get("allow_readme_only_skills", [])),
     )
@@ -549,8 +550,8 @@ def agent_component_sync(root: Path, config: dict[str, Any]) -> ComponentSync:
         label=label,
         config=config,
         root=root,
-        readme=config.get("readme", "README.md"),
-        source=agents_relative,
+        readme_relative=config.get("readme", "README.md"),
+        source_relative=agents_relative,
         kind="agent",
         loader=load,
         name_from_cell=agent_name_from_readme_cell,
@@ -565,8 +566,8 @@ def hook_component_sync(root: Path, config: dict[str, Any]) -> ComponentSync:
         label="readme hook sync",
         config=config,
         root=root,
-        readme=config.get("readme", "README.md"),
-        source=config.get("hooks_json", "trackbed/hooks/hooks.json"),
+        readme_relative=config.get("readme", "README.md"),
+        source_relative=config.get("hooks_json", "trackbed/hooks/hooks.json"),
         kind="hook",
         loader=lambda failures: load_hook_references(root, config, failures),
         name_from_cell=hook_name_from_readme_cell,
