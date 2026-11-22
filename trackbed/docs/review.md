@@ -231,6 +231,17 @@ A caller-only validation mode instead reruns the applicable gates once when auth
 
 To review one of them, run `/trackbed:pr:github-review` with its URL.
 
+### Your Own Open Pull Requests
+
+`/trackbed:pr:review-queue --mine` turns the view around: it lists the open Pull Requests you authored and gives each one exactly one state and one next action. It only reads, and plain code computes it without a model, so a timer can run the same script later.
+
+- **States** apply in a fixed order, and the first match wins: draft, conflicts, CI failing, AI feedback, human feedback, CI running, behind, awaiting review, ready, and unknown. A merge state GitHub has not computed yet is read once more before it counts as unknown.
+- **Next actions:** `/trackbed:pr:shape-up` for conflicts, failing CI, AI reviewer threads, and a branch that is behind; `/trackbed:pr:github-review-reply` for feedback from a person; your merge decision when it is ready; waiting while CI runs or a review is missing; nothing for a draft. A branch that is behind gets a rebase only when nothing else applies.
+- **Worktree:** each Pull Request names the clean local worktree that has its branch checked out at the published head, following the batch rebase's rules. When there is none, such as a dirty worktree or a stacked branch, the next action says so instead of naming a run.
+- **Rechecks** pass the previous snapshot time as `--since`, which also lists the Pull Requests that merged or closed since then.
+
+The [author mode reference](../skills/pr:review-queue/references/author-mode.md) documents the states, next actions, and JSON fields.
+
 ### Review Workspaces in Conductor
 
 In a local Conductor workspace whose agent has Conductor's workspace tools, the queue also looks for each waiting Pull Request's review workspace and adds a `Workspace` column.
