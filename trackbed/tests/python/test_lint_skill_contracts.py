@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "scripts"
 SCRIPT_PATH = SCRIPTS_DIR / "lint-skill-contracts.py"
@@ -14,23 +18,6 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 import lint_skill_contracts  # noqa: E402
 from lint_skill_contracts.catalog import skill_catalog_entries  # noqa: E402
 from lint_skill_contracts.frontmatter import frontmatter_boolean_value, frontmatter_type_errors  # noqa: E402
-
-
-def load_compat_script(module_name="lint_skill_contracts_cli"):
-    spec = importlib.util.spec_from_file_location(module_name, SCRIPT_PATH)
-    assert spec is not None
-    assert spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    previous = sys.modules.get(module_name)
-    sys.modules[spec.name] = module
-    try:
-        spec.loader.exec_module(module)
-        return module
-    finally:
-        if previous is None:
-            sys.modules.pop(module_name, None)
-        else:
-            sys.modules[module_name] = previous
 
 
 class MarkdownTableHelpersTest(unittest.TestCase):
@@ -1438,13 +1425,14 @@ color: blue
 
 class CompatibilityEntryPointTest(unittest.TestCase):
     def test_legacy_script_reexports_package_api(self) -> None:
-        compat = load_compat_script()
+        compat = load_script("lint_skill_contracts_cli", SCRIPT_PATH)
 
         self.assertEqual(compat.CHECKS[-1][0], "mechanical")
         self.assertIsNotNone(compat.main)
 
     def test_legacy_script_reexports_when_loaded_as_package_name(self) -> None:
-        compat = load_compat_script("lint_skill_contracts")
+        self.addCleanup(sys.modules.__setitem__, "lint_skill_contracts", lint_skill_contracts)
+        compat = load_script("lint_skill_contracts", SCRIPT_PATH)
 
         self.assertEqual(compat.CHECKS[-1][0], "mechanical")
         self.assertIsNotNone(compat.main)

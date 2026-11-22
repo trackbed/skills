@@ -50,7 +50,7 @@ CODEX_ERRORS = """\
 class SessionExtractorTests(unittest.TestCase):
     def run_script(self, name, stdin="", *args, timeout=None):
         return subprocess.run(
-            [sys.executable, str(SCRIPTS / name), *map(str, args)],
+            [sys.executable, "-B", str(SCRIPTS / name), *map(str, args)],
             input=stdin,
             text=True,
             capture_output=True,
@@ -88,6 +88,7 @@ runpy.run_path(script_path, run_name="__main__")
         return subprocess.run(
             [
                 sys.executable,
+                "-B",
                 "-c",
                 runner,
                 str(SCRIPTS / name),
@@ -101,7 +102,7 @@ runpy.run_path(script_path, run_name="__main__")
 
     def run_atomic_output_script(self, name, output_path):
         process = subprocess.Popen(
-            [sys.executable, str(SCRIPTS / name), "--output", str(output_path)],
+            [sys.executable, "-B", str(SCRIPTS / name), "--output", str(output_path)],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -1052,7 +1053,7 @@ runpy.run_path(script_path, run_name="__main__")
     def _peak_rss(self, name, args, stdin_path):
         with stdin_path.open("rb") as stdin:
             process = subprocess.Popen(
-                [sys.executable, str(SCRIPTS / name), *map(str, args)],
+                [sys.executable, "-B", str(SCRIPTS / name), *map(str, args)],
                 stdin=stdin,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,

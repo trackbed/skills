@@ -1,20 +1,18 @@
 from __future__ import annotations
 
 import contextlib
-import importlib.util
 import io
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
+
 SCRIPT_PATH = Path(__file__).resolve().parents[2] / "scripts" / "check-doc-citations.py"
-SPEC = importlib.util.spec_from_file_location("check_doc_citations", SCRIPT_PATH)
-assert SPEC is not None
-assert SPEC.loader is not None
-check_doc_citations = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = check_doc_citations
-SPEC.loader.exec_module(check_doc_citations)
+check_doc_citations = load_script("check_doc_citations", SCRIPT_PATH)
 
 
 class CheckGuideTests(unittest.TestCase):

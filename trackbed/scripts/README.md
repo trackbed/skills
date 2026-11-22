@@ -49,7 +49,7 @@ Each file below stays out of `sharedRuntimeFor`. No shipped skill, agent, or hoo
 | `changelog.py` | `release.py` | `tests/python/test_changelog.py` |
 | `check-doc-citations.py` | The Python test suite, checking `path:line` citations in maintainer guides | `tests/python/test_doc_citations.py` |
 | `check-installed-resources.js` | `make installed-resources` and `make pre-commit` | `tests/skill-resource-references.bats` |
-| `check-skill-edit.sh` | The project Claude Code `PostToolUse` hook in `.claude/settings.json`, checking skill edits | `tests/check-skill-edit.bats` |
+| `check-skill-edit.sh` | The project Claude Code `PostToolUse` hook in `.claude/settings.json`, checking skill edits under `skills/` | `tests/check-skill-edit.bats` |
 | `convert-plugin.js` | Codex conversion entry point for `install-codex.sh`, the `setup` checkout instructions, and CI | `tests/convert-plugin.bats` |
 | `coverage-gate.py` | The `make coverage` targets, which check the coverage inventory and per-file floors | `tests/python/test_coverage_gate.py` |
 | `generate-component-reference.py` | Contributors regenerating `docs/component-catalog.json` after component changes | `tests/lint-skill-contracts.bats` |

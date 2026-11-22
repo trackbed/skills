@@ -12,7 +12,7 @@ class SessionSkillUsageTests(unittest.TestCase):
     def run_skill_usage(self, session, *known_skills):
         args = [item for skill in known_skills for item in ("--known-skill", skill)]
         result = subprocess.run(
-            [sys.executable, str(EXTRACTOR), *args],
+            [sys.executable, "-B", str(EXTRACTOR), *args],
             input=session,
             text=True,
             capture_output=True,

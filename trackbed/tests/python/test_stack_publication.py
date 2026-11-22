@@ -1,6 +1,5 @@
 """Isolated Git repositories exercise frozen multi-ref publication."""
 
-import importlib.util
 import io
 import json
 import os
@@ -11,6 +10,11 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
+
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
 
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts/git-rewrite/stack-publication.py"
 
@@ -52,9 +56,7 @@ class StackPublicationTests(unittest.TestCase):
         args = ["python3", str(SCRIPT), operation, "--state", str(self.state)]
         if operation == "capture":
             args += ["--remote", "origin"]
-        spec = importlib.util.spec_from_file_location("stack_publication", SCRIPT)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = load_script("stack_publication", SCRIPT)
         out, err = io.StringIO(), io.StringIO()
         previous = os.getcwd()
         try:

@@ -1,22 +1,20 @@
 from __future__ import annotations
 
 import contextlib
-import importlib.util
 import io
 import subprocess
-import sys
 import tempfile
 import unittest
 from datetime import date
 from pathlib import Path
 
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
+
 SCRIPT_PATH = Path(__file__).resolve().parents[2] / "scripts" / "changelog.py"
-SPEC = importlib.util.spec_from_file_location("changelog", SCRIPT_PATH)
-assert SPEC is not None
-assert SPEC.loader is not None
-changelog = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = changelog
-SPEC.loader.exec_module(changelog)
+changelog = load_script("changelog", SCRIPT_PATH)
 
 
 def parse_commit(

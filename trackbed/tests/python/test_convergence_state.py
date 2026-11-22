@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.util
 import io
 import json
 import os
@@ -10,19 +9,15 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
+
 SCRIPT_PATH = (
     Path(__file__).resolve().parents[2] / "skills" / "pr:review-convergence" / "scripts" / "convergence-state.py"
 )
 RISK_SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "risk-signals.py"
-
-
-def load_module():
-    spec = importlib.util.spec_from_file_location("convergence_state", SCRIPT_PATH)
-    assert spec is not None
-    assert spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
 
 
 def run_git(cwd: Path, *args: str) -> str:
@@ -31,7 +26,7 @@ def run_git(cwd: Path, *args: str) -> str:
 
 class ConvergenceStateTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.module = load_module()
+        self.module = load_script("convergence_state", SCRIPT_PATH)
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.repo = Path(self.tmp.name).resolve()

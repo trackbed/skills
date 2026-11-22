@@ -6,7 +6,6 @@ configured response per call.
 
 from __future__ import annotations
 
-import importlib.util
 import io
 import json
 import os
@@ -19,19 +18,16 @@ from pathlib import Path
 from typing import Any
 from unittest import mock
 
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
+
 SKILL_DIR = Path(__file__).resolve().parents[2] / "skills" / "linear:next"
 SCRIPT_PATH = SKILL_DIR / "scripts" / "cloud-launch.py"
-SPEC = importlib.util.spec_from_file_location("linear_next_cloud_launch", SCRIPT_PATH)
-assert SPEC is not None
-assert SPEC.loader is not None
-cloud_launch = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(cloud_launch)
+cloud_launch = load_script("linear_next_cloud_launch", SCRIPT_PATH)
 PREFLIGHT_PATH = SKILL_DIR.parent / "linear:issue-to-pr" / "scripts" / "preflight.py"
-PREFLIGHT_SPEC = importlib.util.spec_from_file_location("issue_to_pr_preflight_for_launch", PREFLIGHT_PATH)
-assert PREFLIGHT_SPEC is not None
-assert PREFLIGHT_SPEC.loader is not None
-preflight = importlib.util.module_from_spec(PREFLIGHT_SPEC)
-PREFLIGHT_SPEC.loader.exec_module(preflight)
+preflight = load_script("issue_to_pr_preflight_for_launch", PREFLIGHT_PATH)
 
 FAKE_CONDUCTOR = """#!{python}
 import json, os, sys, time

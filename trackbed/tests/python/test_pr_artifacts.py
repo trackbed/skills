@@ -1,27 +1,25 @@
 from __future__ import annotations
 
 import hashlib
-import importlib.util
 import io
 import json
 import os
 import shutil
 import stat
 import subprocess
-import sys
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest import mock
 
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
+
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "pr-artifacts.py"
-SPEC = importlib.util.spec_from_file_location("pr_artifacts", SCRIPT)
-assert SPEC is not None
-assert SPEC.loader is not None
-pr_artifacts = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = pr_artifacts
-SPEC.loader.exec_module(pr_artifacts)
+pr_artifacts = load_script("pr_artifacts", SCRIPT)
 PR_URL = "https://github.com/acme/app/pull/7"
 
 # Answers each POST the way `gh api --include` does: a status line, headers, a blank line, the body.

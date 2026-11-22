@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import contextlib
-import importlib.util
 import io
 import json
 import os
@@ -11,6 +10,11 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
+
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
 
 PARSER_LIB_DIR = Path(__file__).resolve().parents[2] / "hooks" / "lib"
 PARSER_PATH = PARSER_LIB_DIR / "git_command_parser.py"
@@ -27,17 +31,6 @@ COMMIT_PARSE_ERROR_REASON = "parse failed"
 COMMIT_DEFAULT_PARSE_ERROR_REASON = "Unable to safely parse command."
 # Unterminated ANSI-C quote: the shortest command that reaches the parse-error path.
 UNPARSEABLE_COMMIT_COMMAND = "git commit -m $'x"
-
-
-def load_entry_point_module():
-    """Load the executable shim the hooks and direct callers invoke."""
-    spec = importlib.util.spec_from_file_location("git_command_parser", PARSER_PATH)
-    assert spec is not None
-    assert spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
 
 
 def json_line(value) -> str:
@@ -67,7 +60,7 @@ from command_safety import rm_rf as parser_rm_rf  # noqa: E402
 from command_safety import syntax as parser_syntax  # noqa: E402
 from command_safety import vocabulary as parser_vocabulary  # noqa: E402
 
-ENTRY_POINT = load_entry_point_module()
+ENTRY_POINT = load_script("git_command_parser", PARSER_PATH)
 
 
 class CommitReplayContractTest(unittest.TestCase):

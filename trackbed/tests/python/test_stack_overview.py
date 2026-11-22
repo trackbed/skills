@@ -7,7 +7,6 @@ against a fake `gh` placed first on PATH that replays configured Pull Request vi
 
 from __future__ import annotations
 
-import importlib.util
 import io
 import json
 import os
@@ -20,14 +19,13 @@ from pathlib import Path
 from typing import Any
 from unittest import mock
 
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
+
 SCRIPT_PATH = Path(__file__).resolve().parents[2] / "skills" / "pr:github-review" / "scripts" / "stack-overview.py"
-SPEC = importlib.util.spec_from_file_location("stack_overview", SCRIPT_PATH)
-assert SPEC is not None
-assert SPEC.loader is not None
-# Keep compiled bytecode out of the skill directory, which skill scanners and the converter read.
-sys.dont_write_bytecode = True
-stack_overview = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(stack_overview)
+stack_overview = load_script("stack_overview", SCRIPT_PATH)
 
 FAKE_GH = """#!{python}
 import json, os, sys

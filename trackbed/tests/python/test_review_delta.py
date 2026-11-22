@@ -7,7 +7,6 @@ first on PATH that replays a configured reviews response.
 
 from __future__ import annotations
 
-import importlib.util
 import io
 import json
 import os
@@ -20,14 +19,13 @@ from pathlib import Path
 from typing import Any
 from unittest import mock
 
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
+
 SCRIPT_PATH = Path(__file__).resolve().parents[2] / "skills" / "pr:github-review" / "scripts" / "review-delta.py"
-SPEC = importlib.util.spec_from_file_location("review_delta", SCRIPT_PATH)
-assert SPEC is not None
-assert SPEC.loader is not None
-# Keep compiled bytecode out of the skill directory, which skill scanners and the converter read.
-sys.dont_write_bytecode = True
-review_delta = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(review_delta)
+review_delta = load_script("review_delta", SCRIPT_PATH)
 
 REVIEWS_CALL = "api --paginate --slurp repos/acme/demo/pulls/12/reviews"
 FAKE_GH = """#!{python}

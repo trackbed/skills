@@ -6,7 +6,6 @@ script's entry point against them, so discovery, parsing, and the aggregate summ
 
 from __future__ import annotations
 
-import importlib.util
 import io
 import json
 import os
@@ -20,14 +19,15 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
+
 SCRIPT_PATH = Path(__file__).resolve().parents[2] / "skills" / "code:audit-practice" / "scripts" / "session-signals.py"
-SPEC = importlib.util.spec_from_file_location("session_signals", SCRIPT_PATH)
-assert SPEC is not None
-assert SPEC.loader is not None
 # The script imports its sibling signal_patterns module, which script-form runs find on sys.path[0].
 sys.path.insert(0, str(SCRIPT_PATH.parent))
-signals = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(signals)
+signals = load_script("session_signals", SCRIPT_PATH)
 
 
 def user(text: Any, **fields: Any) -> dict[str, Any]:

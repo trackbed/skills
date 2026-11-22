@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import hashlib
-import importlib.util
 import io
 import json
 import subprocess
-import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -13,13 +11,13 @@ from pathlib import Path
 from typing import Any
 from unittest import mock
 
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
+
 SCRIPT_PATH = Path(__file__).resolve().parents[2] / "scripts" / "code-outline.py"
-SPEC = importlib.util.spec_from_file_location("code_outline", SCRIPT_PATH)
-assert SPEC is not None
-assert SPEC.loader is not None
-code_outline = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = code_outline
-SPEC.loader.exec_module(code_outline)
+code_outline = load_script("code_outline", SCRIPT_PATH)
 
 TYPESCRIPT_TREE = {
     "src/core/pricing.ts": (

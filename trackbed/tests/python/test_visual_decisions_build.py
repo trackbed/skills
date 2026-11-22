@@ -11,7 +11,7 @@ import base64
 import contextlib
 import copy
 import hashlib
-import importlib.util
+import importlib
 import io
 import json
 import os
@@ -25,7 +25,10 @@ from pathlib import Path
 from typing import Any
 from unittest import mock
 
-sys.dont_write_bytecode = True
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
 
 PLUGIN = Path(__file__).resolve().parents[2]
 SKILL_DIR = PLUGIN / "skills" / "visual:decisions"
@@ -36,11 +39,7 @@ FIXTURE = json.loads(
 SCRIPTS = SKILL_DIR / "scripts"
 # The command imports its sibling modules, which a script-form run finds on sys.path[0].
 sys.path.insert(0, str(SCRIPTS))
-SPEC = importlib.util.spec_from_file_location("build_decisions", SCRIPTS / "build-decisions.py")
-assert SPEC is not None
-assert SPEC.loader is not None
-builder = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(builder)
+builder = load_script("build_decisions", SCRIPTS / "build-decisions.py")
 images = importlib.import_module("visual_evidence_images")
 inline_page = importlib.import_module("inline_page")
 evidence_module = importlib.import_module("decisions_evidence")

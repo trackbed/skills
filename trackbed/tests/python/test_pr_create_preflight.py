@@ -7,7 +7,6 @@ membership runs the real shared resolver against that fake `gh`.
 
 from __future__ import annotations
 
-import importlib.util
 import io
 import json
 import os
@@ -21,13 +20,14 @@ from pathlib import Path
 from typing import Any
 from unittest import mock
 
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
+
 SKILL_DIR = Path(__file__).resolve().parents[2] / "skills" / "pr:create"
 SCRIPT_PATH = SKILL_DIR / "scripts" / "pr-create-preflight.py"
-SPEC = importlib.util.spec_from_file_location("pr_create_preflight", SCRIPT_PATH)
-assert SPEC is not None
-assert SPEC.loader is not None
-preflight = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(preflight)
+preflight = load_script("pr_create_preflight", SCRIPT_PATH)
 
 BRANCH = "kramme/disc-1-add-widget"
 FAKE_GH = """#!{python}

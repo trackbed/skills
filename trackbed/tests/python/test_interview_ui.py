@@ -12,7 +12,7 @@ import base64
 import contextlib
 import copy
 import hashlib
-import importlib.util
+import importlib
 import io
 import json
 import re
@@ -28,7 +28,10 @@ from pathlib import Path
 from typing import Any
 from unittest import mock
 
-sys.dont_write_bytecode = True
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
 
 PLUGIN = Path(__file__).resolve().parents[2]
 SKILL_DIR = PLUGIN / "skills" / "discovery:interview"
@@ -37,11 +40,7 @@ ROUND_FIXTURE = PLUGIN / "tests" / "fixtures" / "interview-ui-round.json"
 CASES = json.loads((PLUGIN / "tests" / "fixtures" / "interview-ui-answers-cases.json").read_text(encoding="utf-8"))
 # The command imports its sibling modules, which a script-form run finds on sys.path[0].
 sys.path.insert(0, str(SCRIPTS))
-SPEC = importlib.util.spec_from_file_location("interview_ui", SCRIPTS / "interview-ui.py")
-assert SPEC is not None
-assert SPEC.loader is not None
-helper = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(helper)
+helper = load_script("interview_ui", SCRIPTS / "interview-ui.py")
 rounds = importlib.import_module("interview_ui_round")
 answers_module = importlib.import_module("interview_ui_answers")
 figures = importlib.import_module("interview_ui_figures")

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.util
 import io
 import json
 import os
@@ -12,16 +11,16 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from typing import Any
 
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
+
 SKILL_DIR = Path(__file__).resolve().parents[2] / "skills" / "pr:triage-risk"
 SCRIPT_PATH = Path(__file__).resolve().parents[2] / "scripts" / "risk-signals.py"
-SPEC = importlib.util.spec_from_file_location("risk_signals", SCRIPT_PATH)
-assert SPEC is not None
-assert SPEC.loader is not None
 # The script imports its sibling risk_patterns module, which script-form runs find on sys.path[0].
 sys.path.insert(0, str(SCRIPT_PATH.parent))
-risk_signals = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = risk_signals
-SPEC.loader.exec_module(risk_signals)
+risk_signals = load_script("risk_signals", SCRIPT_PATH)
 
 # Assembled at runtime so no credential-shaped literal is committed.
 FAKE_AWS_KEY_ID = "AKIA" + "ABCDEFGHIJKLMNOP"

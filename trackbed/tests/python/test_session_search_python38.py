@@ -19,7 +19,7 @@ class SessionSearchPython38Tests(unittest.TestCase):
         ):
             with self.subTest(name=name):
                 result = subprocess.run(
-                    [sys.executable, str(SCRIPTS / name)],
+                    [sys.executable, "-B", str(SCRIPTS / name)],
                     input="",
                     text=True,
                     capture_output=True,

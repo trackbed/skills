@@ -5,14 +5,17 @@ from __future__ import annotations
 import base64
 import contextlib
 import hashlib
-import importlib.util
 import io
 import re
 import stat
-import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
 
 PLUGIN = Path(__file__).resolve().parents[2]
 SCRIPT_PATH = PLUGIN / "scripts" / "visual-report.py"
@@ -24,13 +27,7 @@ NEEDS_SHAPE = (
     "as the skill names it"
 )
 
-sys.dont_write_bytecode = True
-SPEC = importlib.util.spec_from_file_location("visual_report", SCRIPT_PATH)
-assert SPEC is not None
-assert SPEC.loader is not None
-visual_report = importlib.util.module_from_spec(SPEC)
-sys.modules[SPEC.name] = visual_report
-SPEC.loader.exec_module(visual_report)
+visual_report = load_script("visual_report", SCRIPT_PATH)
 
 PAGE = """<!doctype html>
 <html lang="en">

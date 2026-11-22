@@ -1,20 +1,31 @@
 from __future__ import annotations
 
-import importlib.util
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
+if __package__:
+    from .script_loader import load_script
+else:
+    from script_loader import load_script
+
 CHECKER = Path(__file__).resolve().parents[1] / "test_helper/check_bats_assertions.py"
-SPEC = importlib.util.spec_from_file_location("check_bats_assertions", CHECKER)
-assert SPEC and SPEC.loader
-checker = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(checker)
+checker = load_script("check_bats_assertions", CHECKER)
 
 
 class BatsAssertionCheckTests(unittest.TestCase):
+    def test_suite_can_run_directly(self):
+        with tempfile.TemporaryDirectory() as cwd:
+            result = subprocess.run(
+                [sys.executable, "-E", str(Path(__file__).resolve()), "--help"],
+                cwd=cwd,
+                capture_output=True,
+                text=True,
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_rejects_negation_and_conditional_even_before_success(self):
         for assertion in (
             "! true",
