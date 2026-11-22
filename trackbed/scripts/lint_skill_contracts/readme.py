@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
@@ -178,20 +179,6 @@ def readme_component_rows(
             continue
         rows[name] = (index, cells)
     return rows
-
-
-def readme_skill_rows(
-    readme: str,
-    config: dict[str, Any],
-    failures: list[str],
-) -> dict[str, tuple[int, list[str]]]:
-    return readme_component_rows(
-        readme,
-        config,
-        failures,
-        "readme skill sync",
-        skill_name_from_readme_cell,
-    )
 
 
 def load_skill_references(
@@ -390,287 +377,221 @@ def load_hook_references(
     return references
 
 
-def check_readme_extra_skill_rows(
-    readme_relative: str,
-    skills_relative: str,
-    documented_skills: dict[str, tuple[int, list[str]]],
-    references: dict[str, SkillReference],
-    allow_readme_only: set[str],
-    failures: list[str],
-) -> None:
-    for name, (line_no, _cells) in documented_skills.items():
-        if name in allow_readme_only and name not in references:
-            continue
-        if name not in references:
-            failures.append(
-                f"readme skill sync: {readme_relative}:{line_no} documents {name!r}, "
-                f"but {skills_relative}/{name}/SKILL.md does not exist"
-            )
+@dataclass(frozen=True)
+class ComponentSync:
+    """The README rows for one component kind, resolved from its registry config, and the source they mirror.
 
+    `columns` maps each README column to the reference attribute it shows and its
+    column index. Agent and hook tables are regenerated whole under `table_header`;
+    skill rows are rewritten in place because the README splits them across tables.
+    """
 
-def check_readme_extra_component_rows(
-    label: str,
-    readme_relative: str,
-    source_relative: str,
-    component_type: str,
-    documented_rows: dict[str, tuple[int, list[str]]],
-    references: dict[str, Any],
-    failures: list[str],
-) -> None:
-    for name, (line_no, _cells) in documented_rows.items():
-        if name not in references:
-            failures.append(
-                f"{label}: {readme_relative}:{line_no} documents {name!r}, "
-                f"but {component_type} source is missing from {source_relative}"
-            )
+    label: str
+    config: dict[str, Any]
+    root: Path
+    readme_relative: str
+    source_relative: str
+    kind: str
+    loader: Callable[[list[str]], dict[str, Any]]
+    name_from_cell: Callable[[str], str | None]
+    columns: dict[str, tuple[str, int]]
+    row_renderer: Callable[[Any], str]
+    table_header: tuple[str, ...] = ()
+    source_label: str = "source metadata"
+    source_file: str | None = None
+    allow_readme_only: frozenset[str] = frozenset()
 
+    def check(self, failures: list[str]) -> None:
+        readme_path = resolve(self.root, self.readme_relative)
+        if not readme_path.exists():
+            failures.append(f"{self.label}: registered path is missing: {self.readme_relative}")
+            return
 
-def check_readme_missing_rows(
-    label: str,
-    readme_relative: str,
-    source_relative: str,
-    component_type: str,
-    documented_rows: dict[str, tuple[int, list[str]]],
-    references: dict[str, Any],
-    failures: list[str],
-) -> None:
-    for name in sorted(references):
-        if name not in documented_rows:
-            failures.append(f"{label}: {readme_relative} is missing {component_type} {name!r} from {source_relative}")
+        readme = read_text(readme_path)
+        references = self.loader(failures)
+        documented = self._documented_rows(readme, failures)
+        self._check_missing_rows(documented, references, failures)
+        self._check_extra_rows(documented, references, failures)
+        self._check_row_values(documented, references, failures)
 
+    def render(self, readme: str, failures: list[str]) -> str | None:
+        references = self.loader(failures)
+        if self.table_header:
+            if failures:
+                return None
+            rows = [self.row_renderer(reference) for reference in references.values()]
+            block = [*self.table_header, *rows]
+            return replace_generated_readme_block(readme, self.config, failures, self.label, block)
 
-def check_readme_row_values(
-    label: str,
-    readme_relative: str,
-    documented_rows: dict[str, tuple[int, list[str]]],
-    references: dict[str, Any],
-    required_columns: dict[str, int],
-    expected_values_for_reference,
-    source_label: str,
-    failures: list[str],
-) -> None:
-    max_column = max(required_columns.values())
-    for name, (line_no, cells) in documented_rows.items():
-        reference = references.get(name)
-        if reference is None:
-            continue
-        if len(cells) <= max_column:
-            columns = ", ".join(field.title() for field in required_columns)
-            failures.append(f"{label}: {readme_relative}:{line_no} row for {name!r} must include {columns} columns")
-            continue
+        documented = self._documented_rows(readme, failures)
+        self._check_missing_rows(documented, references, failures)
+        self._check_extra_rows(documented, references, failures)
+        if failures:
+            return None
 
-        expected_values = expected_values_for_reference(reference)
-        for field, column in required_columns.items():
-            actual = normalize_markdown_cell(cells[column])
-            expected = normalize_markdown_cell(expected_values[field])
-            if actual != expected:
+        lines = readme.splitlines()
+        for name, (line_no, _cells) in documented.items():
+            reference = references.get(name)
+            if reference is not None:
+                lines[line_no - 1] = self.row_renderer(reference)
+        rendered = "\n".join(lines)
+        if readme.endswith("\n"):
+            rendered += "\n"
+        return rendered
+
+    def _documented_rows(self, readme: str, failures: list[str]) -> dict[str, tuple[int, list[str]]]:
+        return readme_component_rows(readme, self.config, failures, self.label, self.name_from_cell)
+
+    def _check_missing_rows(
+        self,
+        documented: dict[str, tuple[int, list[str]]],
+        references: dict[str, Any],
+        failures: list[str],
+    ) -> None:
+        for name in sorted(references):
+            if name not in documented:
                 failures.append(
-                    f"{label}: {readme_relative}:{line_no} {name!r} "
-                    f"{field} differs from {source_label}; expected "
-                    f"{shorten(expected)!r}, got {shorten(actual)!r}"
+                    f"{self.label}: {self.readme_relative} is missing {self.kind} {name!r} from {self.source_relative}"
                 )
 
+    def _check_extra_rows(
+        self,
+        documented: dict[str, tuple[int, list[str]]],
+        references: dict[str, Any],
+        failures: list[str],
+    ) -> None:
+        for name, (line_no, _cells) in documented.items():
+            if name in references or name in self.allow_readme_only:
+                continue
+            if self.source_file is None:
+                missing = f"{self.kind} source is missing from {self.source_relative}"
+            else:
+                missing = f"{self.source_relative}/{name}/{self.source_file} does not exist"
+            failures.append(f"{self.label}: {self.readme_relative}:{line_no} documents {name!r}, but {missing}")
 
-def check_simple_readme_component_sync(
-    label: str,
-    readme_relative: str,
-    source_relative: str,
-    component_type: str,
-    documented_rows: dict[str, tuple[int, list[str]]],
-    references: dict[str, Any],
-    required_columns: dict[str, int],
-    expected_values_for_reference,
-    failures: list[str],
-) -> None:
-    check_readme_missing_rows(
-        label,
-        readme_relative,
-        source_relative,
-        component_type,
-        documented_rows,
-        references,
-        failures,
-    )
+    def _check_row_values(
+        self,
+        documented: dict[str, tuple[int, list[str]]],
+        references: dict[str, Any],
+        failures: list[str],
+    ) -> None:
+        max_column = max(column for _attribute, column in self.columns.values())
+        for name, (line_no, cells) in documented.items():
+            reference = references.get(name)
+            if reference is None:
+                continue
+            if len(cells) <= max_column:
+                columns = ", ".join(field.title() for field in self.columns)
+                failures.append(
+                    f"{self.label}: {self.readme_relative}:{line_no} row for {name!r} must include {columns} columns"
+                )
+                continue
 
-    check_readme_extra_component_rows(
-        label,
-        readme_relative,
-        source_relative,
-        component_type,
-        documented_rows,
-        references,
-        failures,
-    )
-
-    check_readme_row_values(
-        label,
-        readme_relative,
-        documented_rows,
-        references,
-        required_columns,
-        expected_values_for_reference,
-        "source metadata",
-        failures,
-    )
+            for field, (attribute, column) in self.columns.items():
+                actual = normalize_markdown_cell(cells[column])
+                expected = normalize_markdown_cell(getattr(reference, attribute))
+                if actual != expected:
+                    failures.append(
+                        f"{self.label}: {self.readme_relative}:{line_no} {name!r} "
+                        f"{field} differs from {self.source_label}; expected "
+                        f"{shorten(expected)!r}, got {shorten(actual)!r}"
+                    )
 
 
-def check_readme_skill_rows_sync(
-    root: Path,
-    registry: Registry,
-    schema: dict[str, Any],
-    failures: list[str],
-) -> None:
-    config = registry.get("readme_skill_sync")
-    if not config:
-        return
-
-    readme_relative = config.get("readme", "README.md")
-    skills_relative = config.get("skills_dir", "trackbed/skills")
-    readme_path = resolve(root, readme_relative)
-
-    if not readme_path.exists():
-        failures.append(f"readme skill sync: registered path is missing: {readme_relative}")
-        return
-
-    readme = read_text(readme_path)
-    references = load_skill_references(root, skills_relative, failures, schema)
-    references = apply_readme_summaries("readme skill sync", "skill", references, config, failures)
-    documented_skills = readme_skill_rows(readme, config, failures)
-
-    check_readme_missing_rows(
-        "readme skill sync",
-        readme_relative,
-        skills_relative,
-        "skill",
-        documented_skills,
-        references,
-        failures,
-    )
-
-    allow_readme_only = set(config.get("allow_readme_only_skills", []))
-    check_readme_extra_skill_rows(
-        readme_relative,
-        skills_relative,
-        documented_skills,
-        references,
-        allow_readme_only,
-        failures,
-    )
-    required_columns = {
-        "skill": int(config.get("skill_column", 0)),
-        "invocation": int(config.get("invocation_column", 1)),
-        "arguments": int(config.get("arguments_column", 2)),
-        "description": int(config.get("description_column", 3)),
+def resolved_columns(config: dict[str, Any], columns: dict[str, tuple[str, int]]) -> dict[str, tuple[str, int]]:
+    return {
+        field: (attribute, int(config.get(f"{field}_column", default)))
+        for field, (attribute, default) in columns.items()
     }
 
-    check_readme_row_values(
-        "readme skill sync",
-        readme_relative,
-        documented_skills,
-        references,
-        required_columns,
-        lambda reference: {
-            "skill": reference.display_name,
-            "invocation": reference.invocation,
-            "arguments": reference.arguments,
-            "description": reference.description,
-        },
-        "source metadata" if readme_summaries_configured(config) else "SKILL.md frontmatter",
-        failures,
+
+def skill_component_sync(root: Path, config: dict[str, Any], schema: dict[str, Any] | None) -> ComponentSync:
+    label = "readme skill sync"
+    skills_relative = config.get("skills_dir", "trackbed/skills")
+
+    def load(failures: list[str]) -> dict[str, Any]:
+        references = load_skill_references(root, skills_relative, failures, schema)
+        return apply_readme_summaries(label, "skill", references, config, failures)
+
+    return ComponentSync(
+        label=label,
+        config=config,
+        root=root,
+        readme_relative=config.get("readme", "README.md"),
+        source_relative=skills_relative,
+        kind="skill",
+        loader=load,
+        name_from_cell=skill_name_from_readme_cell,
+        columns=resolved_columns(
+            config,
+            {
+                "skill": ("display_name", 0),
+                "invocation": ("invocation", 1),
+                "arguments": ("arguments", 2),
+                "description": ("description", 3),
+            },
+        ),
+        row_renderer=render_skill_reference_row,
+        source_label="source metadata" if readme_summaries_configured(config) else "SKILL.md frontmatter",
+        source_file="SKILL.md",
+        allow_readme_only=frozenset(config.get("allow_readme_only_skills", [])),
     )
 
 
-def check_readme_agent_sync(
-    root: Path,
-    registry: Registry,
-    failures: list[str],
-) -> None:
-    config = registry.get("readme_agent_sync")
-    if not config:
-        return
-
-    readme_relative = config.get("readme", "README.md")
+def agent_component_sync(root: Path, config: dict[str, Any]) -> ComponentSync:
+    label = "readme agent sync"
     agents_relative = config.get("agents_dir", "trackbed/agents")
-    readme_path = resolve(root, readme_relative)
 
-    if not readme_path.exists():
-        failures.append(f"readme agent sync: registered path is missing: {readme_relative}")
-        return
+    def load(failures: list[str]) -> dict[str, Any]:
+        references = load_agent_references(root, agents_relative, failures)
+        return apply_readme_summaries(label, "agent", references, config, failures)
 
-    readme = read_text(readme_path)
-    references = load_agent_references(root, agents_relative, failures)
-    references = apply_readme_summaries("readme agent sync", "agent", references, config, failures)
-    documented_agents = readme_component_rows(
-        readme,
-        config,
-        failures,
-        "readme agent sync",
-        agent_name_from_readme_cell,
-    )
-    check_simple_readme_component_sync(
-        "readme agent sync",
-        readme_relative,
-        agents_relative,
-        "agent",
-        documented_agents,
-        references,
-        {
-            "agent": int(config.get("agent_column", 0)),
-            "description": int(config.get("description_column", 1)),
-        },
-        lambda reference: {
-            "agent": reference.name,
-            "description": reference.description,
-        },
-        failures,
+    return ComponentSync(
+        label=label,
+        config=config,
+        root=root,
+        readme_relative=config.get("readme", "README.md"),
+        source_relative=agents_relative,
+        kind="agent",
+        loader=load,
+        name_from_cell=agent_name_from_readme_cell,
+        columns=resolved_columns(config, {"agent": ("name", 0), "description": ("description", 1)}),
+        row_renderer=render_agent_reference_row,
+        table_header=("| Agent | Description |", "| --- | --- |"),
     )
 
 
-def check_readme_hook_sync(
-    root: Path,
-    registry: Registry,
-    failures: list[str],
-) -> None:
-    config = registry.get("readme_hook_sync")
-    if not config:
-        return
-
-    readme_relative = config.get("readme", "README.md")
-    hooks_relative = config.get("hooks_json", "trackbed/hooks/hooks.json")
-    readme_path = resolve(root, readme_relative)
-
-    if not readme_path.exists():
-        failures.append(f"readme hook sync: registered path is missing: {readme_relative}")
-        return
-
-    readme = read_text(readme_path)
-    references = load_hook_references(root, config, failures)
-    documented_hooks = readme_component_rows(
-        readme,
-        config,
-        failures,
-        "readme hook sync",
-        hook_name_from_readme_cell,
+def hook_component_sync(root: Path, config: dict[str, Any]) -> ComponentSync:
+    return ComponentSync(
+        label="readme hook sync",
+        config=config,
+        root=root,
+        readme_relative=config.get("readme", "README.md"),
+        source_relative=config.get("hooks_json", "trackbed/hooks/hooks.json"),
+        kind="hook",
+        loader=lambda failures: load_hook_references(root, config, failures),
+        name_from_cell=hook_name_from_readme_cell,
+        columns=resolved_columns(
+            config,
+            {"hook": ("name", 0), "event": ("event", 1), "description": ("description", 2)},
+        ),
+        row_renderer=render_hook_reference_row,
+        table_header=("| Hook | Event | Description |", "| --- | --- | --- |"),
     )
-    check_simple_readme_component_sync(
-        "readme hook sync",
-        readme_relative,
-        hooks_relative,
-        "hook",
-        documented_hooks,
-        references,
-        {
-            "hook": int(config.get("hook_column", 0)),
-            "event": int(config.get("event_column", 1)),
-            "description": int(config.get("description_column", 2)),
-        },
-        lambda reference: {
-            "hook": reference.name,
-            "event": reference.event,
-            "description": reference.description,
-        },
-        failures,
-    )
+
+
+def component_syncs(root: Path, registry: Registry, schema: dict[str, Any] | None) -> list[ComponentSync]:
+    syncs: list[ComponentSync] = []
+    skill_config = registry.get("readme_skill_sync")
+    if skill_config:
+        syncs.append(skill_component_sync(root, skill_config, schema))
+    agent_config = registry.get("readme_agent_sync")
+    if agent_config:
+        syncs.append(agent_component_sync(root, agent_config))
+    hook_config = registry.get("readme_hook_sync")
+    if hook_config:
+        syncs.append(hook_component_sync(root, hook_config))
+    return syncs
 
 
 def check_readme_skill_sync(
@@ -679,9 +600,8 @@ def check_readme_skill_sync(
     schema: dict[str, Any],
     failures: list[str],
 ) -> None:
-    check_readme_skill_rows_sync(root, registry, schema, failures)
-    check_readme_agent_sync(root, registry, failures)
-    check_readme_hook_sync(root, registry, failures)
+    for sync in component_syncs(root, registry, schema):
+        sync.check(failures)
 
 
 def render_agent_reference_row(reference: AgentReference) -> str:
@@ -713,101 +633,6 @@ def replace_generated_readme_block(
     if readme.endswith("\n"):
         rendered += "\n"
     return rendered
-
-
-def render_readme_skill_rows_sync(
-    root: Path,
-    registry: Registry,
-    schema: dict[str, Any],
-    readme: str,
-    failures: list[str],
-) -> str | None:
-    config = registry.get("readme_skill_sync")
-    if not config:
-        return readme
-
-    readme_relative = config.get("readme", "README.md")
-    skills_relative = config.get("skills_dir", "trackbed/skills")
-    references = load_skill_references(root, skills_relative, failures, schema)
-    references = apply_readme_summaries("readme skill sync", "skill", references, config, failures)
-    documented_skills = readme_skill_rows(readme, config, failures)
-    allow_readme_only = set(config.get("allow_readme_only_skills", []))
-    for name in sorted(references):
-        if name not in documented_skills:
-            failures.append(f"readme skill sync: {readme_relative} is missing skill {name!r} from {skills_relative}")
-    check_readme_extra_skill_rows(
-        readme_relative,
-        skills_relative,
-        documented_skills,
-        references,
-        allow_readme_only,
-        failures,
-    )
-    if failures:
-        return None
-
-    lines = readme.splitlines()
-    trailing_newline = readme.endswith("\n")
-    for name, (line_no, _cells) in documented_skills.items():
-        reference = references.get(name)
-        if reference is None:
-            continue
-        lines[line_no - 1] = render_skill_reference_row(reference)
-
-    rendered = "\n".join(lines)
-    if trailing_newline:
-        rendered += "\n"
-    return rendered
-
-
-def render_readme_agent_sync(
-    root: Path,
-    registry: Registry,
-    readme: str,
-    failures: list[str],
-) -> str | None:
-    config = registry.get("readme_agent_sync")
-    if not config:
-        return readme
-
-    agents_relative = config.get("agents_dir", "trackbed/agents")
-    references = load_agent_references(root, agents_relative, failures)
-    references = apply_readme_summaries("readme agent sync", "agent", references, config, failures)
-    if failures:
-        return None
-    rows = [render_agent_reference_row(reference) for reference in references.values()]
-    block_lines = ["| Agent | Description |", "| --- | --- |", *rows]
-    return replace_generated_readme_block(
-        readme,
-        config,
-        failures,
-        "readme agent sync",
-        block_lines,
-    )
-
-
-def render_readme_hook_sync(
-    root: Path,
-    registry: Registry,
-    readme: str,
-    failures: list[str],
-) -> str | None:
-    config = registry.get("readme_hook_sync")
-    if not config:
-        return readme
-
-    references = load_hook_references(root, config, failures)
-    if failures:
-        return None
-    rows = [render_hook_reference_row(reference) for reference in references.values()]
-    block_lines = ["| Hook | Event | Description |", "| --- | --- | --- |", *rows]
-    return replace_generated_readme_block(
-        readme,
-        config,
-        failures,
-        "readme hook sync",
-        block_lines,
-    )
 
 
 def readme_relative_for_component_sync(
@@ -844,15 +669,10 @@ def render_readme_component_sync(
         return None, [f"component reference sync: registered path is missing: {readme_relative}"]
 
     rendered: str | None = read_text(readme_path)
-    rendered = render_readme_skill_rows_sync(root, registry, schema, rendered, failures)
-    if rendered is not None:
-        rendered = render_readme_agent_sync(root, registry, rendered, failures)
-    if rendered is not None:
-        rendered = render_readme_hook_sync(root, registry, rendered, failures)
+    for sync in component_syncs(root, registry, schema):
+        if rendered is None:
+            break
+        rendered = sync.render(rendered, failures)
     if failures:
         return None, failures
     return rendered, []
-
-
-def render_readme_skill_sync(root: Path, registry: Registry) -> tuple[str | None, list[str]]:
-    return render_readme_component_sync(root, registry)

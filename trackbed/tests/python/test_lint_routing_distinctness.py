@@ -8,7 +8,12 @@ from pathlib import Path
 SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-import lint_skill_contracts  # noqa: E402
+from lint_skill_contracts.checks.routing_distinctness import (  # noqa: E402
+    check_routing_distinctness,
+    description_tokens,
+    jaccard,
+)
+from lint_skill_contracts.checks.types import LintContext  # noqa: E402
 
 ALPHA_DESCRIPTION = "Review branch changes accessibility problems report findings"
 BETA_DESCRIPTION = "Review branch changes accessibility problems report findings keyboard focus contrast"
@@ -19,7 +24,7 @@ BETA_PATH = "trackbed/skills/beta/SKILL.md"
 
 class RoutingDistinctnessHelperTest(unittest.TestCase):
     def test_description_tokens_drop_stopwords_and_the_skill_name(self) -> None:
-        tokens = lint_skill_contracts.description_tokens(
+        tokens = description_tokens(
             "Review the review skill for drift",
             "trackbed:skill:review",
             {"the"},
@@ -28,8 +33,8 @@ class RoutingDistinctnessHelperTest(unittest.TestCase):
         self.assertEqual(tokens, {"for", "drift"})
 
     def test_jaccard_scores_overlap_and_tolerates_empty_token_sets(self) -> None:
-        self.assertEqual(lint_skill_contracts.jaccard({"a"}, {"a", "b"}), 0.5)
-        self.assertEqual(lint_skill_contracts.jaccard(set(), set()), 0.0)
+        self.assertEqual(jaccard({"a"}, {"a", "b"}), 0.5)
+        self.assertEqual(jaccard(set(), set()), 0.0)
 
 
 class RoutingDistinctnessCheckTest(unittest.TestCase):
@@ -52,7 +57,7 @@ class RoutingDistinctnessCheckTest(unittest.TestCase):
         )
         return f"trackbed/skills/{name}/SKILL.md"
 
-    def _context(self, root: Path, **overrides: object) -> lint_skill_contracts.LintContext:
+    def _context(self, root: Path, **overrides: object) -> LintContext:
         config: dict[str, object] = {
             "skill_glob": "trackbed/skills/*/SKILL.md",
             "warn_similarity": 0.3,
@@ -60,7 +65,7 @@ class RoutingDistinctnessCheckTest(unittest.TestCase):
             "stopwords": [],
         }
         config.update(overrides)
-        return lint_skill_contracts.LintContext(root=root, registry={"routing_distinctness": config}, schema={})
+        return LintContext(root=root, registry={"routing_distinctness": config}, schema={})
 
     def test_reports_an_over_threshold_pair_without_a_recorded_boundary(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -68,7 +73,7 @@ class RoutingDistinctnessCheckTest(unittest.TestCase):
             self._write_skill(root, "alpha", ALPHA_DESCRIPTION)
             self._write_skill(root, "beta", BETA_DESCRIPTION)
 
-            result = lint_skill_contracts.check_routing_distinctness(self._context(root))
+            result = check_routing_distinctness(self._context(root))
 
         self.assertEqual(
             result.failures,
@@ -95,7 +100,7 @@ class RoutingDistinctnessCheckTest(unittest.TestCase):
                 ],
             )
 
-            result = lint_skill_contracts.check_routing_distinctness(context)
+            result = check_routing_distinctness(context)
 
         self.assertEqual(result.failures, [])
         self.assertEqual(result.warnings, [])
@@ -110,7 +115,7 @@ class RoutingDistinctnessCheckTest(unittest.TestCase):
                 recorded_boundaries=[{"skills": [ALPHA_PATH, BETA_PATH], "boundary": "   "}],
             )
 
-            result = lint_skill_contracts.check_routing_distinctness(context)
+            result = check_routing_distinctness(context)
 
         self.assertIn(
             f"routing distinctness: recorded_boundaries entry 1 requires a non-empty boundary stating a "
@@ -133,7 +138,7 @@ class RoutingDistinctnessCheckTest(unittest.TestCase):
                 ],
             )
 
-            result = lint_skill_contracts.check_routing_distinctness(context)
+            result = check_routing_distinctness(context)
 
         self.assertEqual(
             result.failures,
@@ -149,7 +154,7 @@ class RoutingDistinctnessCheckTest(unittest.TestCase):
             self._write_skill(root, "alpha", ALPHA_DESCRIPTION)
             self._write_skill(root, "gamma", GAMMA_DESCRIPTION)
 
-            result = lint_skill_contracts.check_routing_distinctness(self._context(root))
+            result = check_routing_distinctness(self._context(root))
 
         self.assertEqual(result.failures, [])
         self.assertEqual(result.warnings, [])
@@ -160,7 +165,7 @@ class RoutingDistinctnessCheckTest(unittest.TestCase):
             self._write_skill(root, "alpha", ALPHA_DESCRIPTION, auto_invocable=False)
             self._write_skill(root, "beta", BETA_DESCRIPTION, auto_invocable=False)
 
-            result = lint_skill_contracts.check_routing_distinctness(self._context(root))
+            result = check_routing_distinctness(self._context(root))
 
         self.assertEqual(result.failures, [])
         self.assertEqual(
@@ -178,7 +183,7 @@ class RoutingDistinctnessCheckTest(unittest.TestCase):
             self._write_skill(root, "alpha", ALPHA_DESCRIPTION)
             self._write_skill(root, "beta", BETA_DESCRIPTION, auto_invocable=False)
 
-            result = lint_skill_contracts.check_routing_distinctness(self._context(root))
+            result = check_routing_distinctness(self._context(root))
 
         self.assertEqual(result.failures, [])
         self.assertEqual(
@@ -205,7 +210,7 @@ class RoutingDistinctnessCheckTest(unittest.TestCase):
                 ],
             )
 
-            result = lint_skill_contracts.check_routing_distinctness(context)
+            result = check_routing_distinctness(context)
 
         self.assertEqual(result.failures, [])
         self.assertEqual(
@@ -222,7 +227,7 @@ class RoutingDistinctnessCheckTest(unittest.TestCase):
             self._write_skill(root, "alpha", ALPHA_DESCRIPTION, auto_invocable=False)
             self._write_skill(root, "beta", BETA_DESCRIPTION, auto_invocable=False)
 
-            result = lint_skill_contracts.check_routing_distinctness(self._context(root, fail_population="all"))
+            result = check_routing_distinctness(self._context(root, fail_population="all"))
 
         self.assertTrue(any("descriptions score 0.70" in failure for failure in result.failures))
 
@@ -232,7 +237,7 @@ class RoutingDistinctnessCheckTest(unittest.TestCase):
             self._write_skill(root, "alpha", ALPHA_DESCRIPTION)
             self._write_skill(root, "beta", BETA_DESCRIPTION)
 
-            result = lint_skill_contracts.check_routing_distinctness(self._context(root, fail_similarity=0.9))
+            result = check_routing_distinctness(self._context(root, fail_similarity=0.9))
 
         self.assertEqual(result.failures, [])
         self.assertEqual(
@@ -255,7 +260,7 @@ class RoutingDistinctnessCheckTest(unittest.TestCase):
                 recorded_boundaries={},
             )
 
-            result = lint_skill_contracts.check_routing_distinctness(context)
+            result = check_routing_distinctness(context)
 
         self.assertEqual(
             result.failures,
@@ -272,9 +277,9 @@ class RoutingDistinctnessCheckTest(unittest.TestCase):
             root = Path(tmp_dir)
             self._write_skill(root, "alpha", ALPHA_DESCRIPTION)
             self._write_skill(root, "beta", BETA_DESCRIPTION)
-            context = lint_skill_contracts.LintContext(root=root, registry={}, schema={})
+            context = LintContext(root=root, registry={}, schema={})
 
-            result = lint_skill_contracts.check_routing_distinctness(context)
+            result = check_routing_distinctness(context)
 
         self.assertEqual(result.failures, [])
         self.assertEqual(result.warnings, [])

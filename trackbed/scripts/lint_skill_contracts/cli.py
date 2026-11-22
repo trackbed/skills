@@ -4,9 +4,8 @@ import argparse
 from pathlib import Path
 from typing import cast
 
-from json_object import load_json_object
-
 from .checks import run, run_single_skill
+from .io import load_json_object
 from .registry_types import Registry
 
 

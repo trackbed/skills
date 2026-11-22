@@ -14,11 +14,6 @@ def load_contract_schema_file(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def load_default_contract_schema() -> dict[str, Any]:
-    schema, _error = _load_default_contract_schema_with_error()
-    return schema
-
-
 def _load_default_contract_schema_with_error() -> tuple[dict[str, Any], str | None]:
     try:
         schema = load_contract_schema_file(DEFAULT_CONTRACT_SCHEMA_PATH)
@@ -74,17 +69,6 @@ def schema_skill_frontmatter_fields(
     frontmatter = contracts.get("skill_frontmatter", {})
     fields = frontmatter.get("fields", {}) if isinstance(frontmatter, dict) else {}
     return fields if isinstance(fields, dict) else {}
-
-
-def skill_frontmatter_fields_by_type(
-    type_name: str,
-    schema: dict[str, Any] | None = None,
-) -> list[str]:
-    return [
-        field
-        for field, contract in schema_skill_frontmatter_fields(schema).items()
-        if isinstance(contract, dict) and contract.get("type") == type_name
-    ]
 
 
 def skill_frontmatter_required_fields(schema: dict[str, Any] | None = None) -> list[str]:

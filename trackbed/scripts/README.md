@@ -54,7 +54,6 @@ Each file below stays out of `sharedRuntimeFor`. No shipped skill, agent, or hoo
 | `coverage-gate.py` | The `make coverage` targets, which check the coverage inventory and per-file floors | `tests/python/test_coverage_gate.py` |
 | `generate-component-reference.py` | Contributors regenerating `docs/component-catalog.json` after component changes | `tests/lint-skill-contracts.bats` |
 | `install-codex.sh` | Codex checkout installs and the installer CI workflow | `tests/convert-plugin.bats` |
-| `json_object.py` | `lint-skill-contracts.py` and `generate-component-reference.py` | `tests/python/test_lint_skill_contract_inputs.py` |
 | `lint-skill-contracts.py` | `make skill-contracts` and `make lint`; implementation in `lint_skill_contracts/` | `tests/python/test_lint_skill_contracts.py` |
 | `probe-cold-reader-isolation.js` | On-demand live check of the `cold-reader` agent | `tests/node/probe-cold-reader-isolation.test.js` |
 | `release.py` | The release workflow ([release guide](../RELEASE.md)) | `tests/release.bats` |

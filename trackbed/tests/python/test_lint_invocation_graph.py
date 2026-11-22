@@ -8,7 +8,8 @@ from pathlib import Path
 SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-import lint_skill_contracts  # noqa: E402
+from lint_skill_contracts.checks.invocation_graph import check_invocation_graph  # noqa: E402
+from lint_skill_contracts.checks.types import CheckResult, LintContext  # noqa: E402
 
 PARENT = "trackbed:test:parent"
 CHILD = "trackbed:test:child"
@@ -63,22 +64,20 @@ class InvocationGraphCheckTest(unittest.TestCase):
             ),
         )
 
-    def _run(
-        self, parent_body: str, *, model_disabled: bool = True, **config: object
-    ) -> lint_skill_contracts.CheckResult:
+    def _run(self, parent_body: str, *, model_disabled: bool = True, **config: object) -> CheckResult:
         self._skill(PARENT, parent_body)
         self._skill(CHILD, model_disabled=model_disabled)
         settings: dict[str, object] = {"allowlist": []}
         settings.update(config)
-        context = lint_skill_contracts.LintContext(root=self.root, registry={"invocation_graph": settings}, schema={})
-        return lint_skill_contracts.check_invocation_graph(context)
+        context = LintContext(root=self.root, registry={"invocation_graph": settings}, schema={})
+        return check_invocation_graph(context)
 
     def test_skips_when_the_registry_has_no_config(self) -> None:
         self._skill(PARENT, f"Invoke `{CHILD}`.")
         self._skill(CHILD, model_disabled=True)
-        context = lint_skill_contracts.LintContext(root=self.root, registry={}, schema={})
+        context = LintContext(root=self.root, registry={}, schema={})
 
-        result = lint_skill_contracts.check_invocation_graph(context)
+        result = check_invocation_graph(context)
 
         self.assertEqual((result.failures, result.warnings), ([], []))
 
@@ -147,22 +146,18 @@ class InvocationGraphCheckTest(unittest.TestCase):
     def test_fenced_lines_are_ignored_for_handoffs_but_checked_for_hidden_commands(self) -> None:
         self._skill(CHILD, user_invocable="false")
         self._skill(PARENT, f"```text\nInvoke `{CHILD}` now.\n/{CHILD}\n```")
-        context = lint_skill_contracts.LintContext(
-            root=self.root, registry={"invocation_graph": {"allowlist": []}}, schema={}
-        )
+        context = LintContext(root=self.root, registry={"invocation_graph": {"allowlist": []}}, schema={})
 
-        result = lint_skill_contracts.check_invocation_graph(context)
+        result = check_invocation_graph(context)
 
         self.assertEqual(result.failures, [hidden(9)])
 
     def test_hidden_command_rule_matches_slash_and_dollar_prefixes_only(self) -> None:
         self._skill(PARENT, f"Type `/{CHILD}`.\nOr mention `${CHILD}`.\nThe `{CHILD}` convention applies.")
         self._skill(CHILD, user_invocable="false")
-        context = lint_skill_contracts.LintContext(
-            root=self.root, registry={"invocation_graph": {"allowlist": []}}, schema={}
-        )
+        context = LintContext(root=self.root, registry={"invocation_graph": {"allowlist": []}}, schema={})
 
-        result = lint_skill_contracts.check_invocation_graph(context)
+        result = check_invocation_graph(context)
 
         self.assertEqual(result.failures, [hidden(7), hidden(8)])
 
@@ -173,11 +168,9 @@ class InvocationGraphCheckTest(unittest.TestCase):
             f"trackbed/skills/{PARENT}/references/notes.md",
             f"Read `skills/{CHILD}/SKILL.md` and invoke `trackbed:test:agent`.\n",
         )
-        context = lint_skill_contracts.LintContext(
-            root=self.root, registry={"invocation_graph": {"allowlist": []}}, schema={}
-        )
+        context = LintContext(root=self.root, registry={"invocation_graph": {"allowlist": []}}, schema={})
 
-        result = lint_skill_contracts.check_invocation_graph(context)
+        result = check_invocation_graph(context)
 
         self.assertEqual(result.failures, [])
 
@@ -187,11 +180,9 @@ class InvocationGraphCheckTest(unittest.TestCase):
         self._write(f"trackbed/skills/{PARENT}/references/flow.md", f"Invoke `{CHILD}` now.\n")
         self._write("trackbed/shared/topic/references/flow.md", f"Invoke `{CHILD}` now.\n")
         self._write("trackbed/agents/test-agent.md", f"Invoke `{CHILD}` now.\n")
-        context = lint_skill_contracts.LintContext(
-            root=self.root, registry={"invocation_graph": {"allowlist": []}}, schema={}
-        )
+        context = LintContext(root=self.root, registry={"invocation_graph": {"allowlist": []}}, schema={})
 
-        result = lint_skill_contracts.check_invocation_graph(context)
+        result = check_invocation_graph(context)
 
         self.assertEqual(
             result.failures,
