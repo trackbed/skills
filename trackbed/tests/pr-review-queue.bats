@@ -857,3 +857,12 @@ EOF
 	grep -Fq 'Never create a `failed` or `unknown` PR again in this run.' "$CONDUCTOR"
 	grep -Fq 'it posts nothing to GitHub without asking you in its own workspace' "$CONDUCTOR"
 }
+
+@test "SKILL.md routes --mine to the read-only author mode" {
+	grep -Fq '[--mine] [--repo OWNER/NAME | --all-repos]' "$SKILL"
+	grep -Fq 'If `$ARGUMENTS` contains `--mine`' "$SKILL"
+	grep -Fq 'read `references/author-mode.md` and follow it instead of Steps 1-7' "$SKILL"
+	local author="$BATS_TEST_DIRNAME/../skills/pr:review-queue/references/author-mode.md"
+	grep -Fq 'python3 "{author-script}" [--repo OWNER/NAME | --all-repos] [--since ISO-8601]' "$author"
+	grep -Fq 'Never rebase, push, comment, approve, merge, re-run a job, or start a workspace.' "$author"
+}
