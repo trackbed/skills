@@ -1,4 +1,145 @@
 #!/bin/sh
+#
+# Serialize SIW issue-ID reservation and publication between concurrent writers.
+#
+# Workflows that write SIW issues (siw:generate-phases, debug:triage-to-issue)
+# use this helper to take exclusive publication ownership of a siw/ directory,
+# reserve issue IDs without collisions, record a receipt that proves what they
+# published, and release ownership again. It reads OPEN_ISSUES_OVERVIEW.md,
+# LOG.md, and issues/ISSUE-*.md but never edits them.
+#
+# Recovery contract: trackbed/skills/siw:generate-phases/references/publication-recovery.md
+# Tests:             trackbed/tests/siw-issue-reservation.bats
+#
+# Subcommands. The usage() text below lists their arguments. <siw-dir> must be
+# an existing directory named siw that contains OPEN_ISSUES_OVERVIEW.md. Issue
+# IDs look like G-001 or P1-001, and an ISSUE- prefix is accepted. Every
+# subcommand except new-owner first takes the operation lock, so subcommands on
+# one siw/ directory run one at a time; acquire drops it between its tries. The
+# subcommands after acquire require the caller to hold the publication lock,
+# except that release-publication also runs when no lock exists.
+#
+#   new-owner            Print a new owner token. Touches no files.
+#   acquire              Take the publication lock, or re-enter it with the same
+#                        token, and write the baseline. A new lock also deletes
+#                        any receipt and baseline an earlier owner left, and
+#                        re-entry deletes another owner's receipt. Tries
+#                        max-attempts times (default 30) while another owner
+#                        holds the lock.
+#   reserve              Reserve one ID above the highest <prefix> (G or P<n>)
+#                        number in the overview, issue files, and reservations,
+#                        and print it. max-attempts (default 100) bounds the
+#                        collisions tried. A request key the same owner repeats
+#                        for the same prefix returns the ID it reserved before.
+#   reserve-batch        Reserve one ID per request key, printing "<key> <id>".
+#   reserve-exact        Reserve the named ID. Succeeds again for the same owner.
+#   publish-receipt      Check that the overview, log, and issue files agree for
+#                        the listed IDs and that every changed ID and every
+#                        reservation this owner holds is listed, then write and
+#                        verify the receipt.
+#   verify-receipt       Verify the receipt against the current SIW state.
+#   release              Delete this owner's reservations for the named IDs once
+#   release-batch        a valid receipt or an unchanged state proves
+#                        publication. Every named ID must have an issue file.
+#   abandon              Delete an owned reservation before its issue file exists,
+#                        only while the SIW state still matches the baseline.
+#   release-publication  Delete the publication lock, receipt, and baseline once
+#                        the owner holds no reservations and publication is
+#                        proven. Without a lock, delete this owner's receipt and
+#                        baseline, and fail if either belongs to another owner
+#                        or is malformed.
+#
+# Exit codes, the same for every subcommand:
+#   0  Success. Once their other checks pass, abandon also exits 0 when the
+#      reservation is already gone, release and release-batch when none of the
+#      named reservations remain (without checking the receipt), and
+#      release-publication when no publication lock and no other owner's
+#      receipt or baseline exist.
+#   1  Refused or failed: invalid input, a lock or reservation held by another
+#      owner, malformed state, a receipt mismatch, or exhausted retries. The
+#      helper's own message on stderr starts with "ERROR:". A caught HUP, INT, or TERM also exits 1 after
+#      cleanup.
+#   2  Unknown subcommand or wrong argument count; prints the usage text.
+# An unexpected command failure under set -e exits with that command's status.
+#
+# Files written inside <siw-dir>:
+#   .issue-reservation-operation.lock   Operation lock, held while a subcommand
+#                                       runs.
+#   .issue-reservation-operation.guard  Held only while deleting a stale
+#                                       operation lock.
+#   .issue-publication.lock             Publication lock, held from acquire to
+#                                       release-publication.
+#   .issue-publication.baseline         "version 1", "owner <token>",
+#                                       "state <hash>", then the state manifest
+#                                       that hashes to <hash>.
+#   .issue-publication.receipt          "version 2", "owner <token>",
+#                                       "state <hash>", "overview <hash>",
+#                                       "log <hash>", one "issue <id>" per ID.
+#   .issue-id-reservations/ISSUE-<id>   One reservation claim per reserved ID.
+#   issues/, .issue-id-reservations/    Created by reserve, reserve-batch, and
+#                                       reserve-exact when missing.
+# Exit traps remove the temporary .siw-* files in <siw-dir> and
+# .issue-id-reservations/ and the siw-* files in ${TMPDIR:-/tmp}, and release a
+# held operation lock and guard. Hashes are lowercase SHA-256. The state
+# manifest records the overview and log hashes, the hashes of their text outside
+# issue rows and log entries, each issue file's hash and heading check, and the
+# overview rows and log entries that name an ID.
+#
+# Claim format. A lock, guard, or reservation is a regular file, never a symlink
+# or directory, holding one or two lines: the owner token, then an optional
+# record. Tokens and records use only letters, digits, '.', '_', ':', and '-'.
+#   Operation lock and guard: operation:<pid>:<nonce>
+#   Publication lock:         state:<baseline hash>. A lock without this line
+#                             comes from an older helper and has no trustworthy
+#                             baseline (a legacy lock).
+#   Reservation:              the request key, exact-<id> for reserve-exact, or
+#                             no second line.
+# A claim is written to a temporary file in the same directory and hard-linked
+# into place. ln fails when the path exists, so only one writer creates it.
+# Apart from stale operation-lock recovery, only the owner token that wrote a
+# claim removes it.
+#
+# Stale claims. Only the operation lock is ever reclaimed automatically. It is
+# stale when kill -0 fails for its <pid>, or when <pid> is this process's own
+# PID. The helper then takes the guard, deletes the lock only if it still holds
+# the same owner token and record, and drops the guard. A guard left by a
+# killed helper blocks recovery until someone removes it by hand, and the
+# helper's failure message names it. The publication lock and reservations are
+# never reclaimed by age, PID, or filename; the recovery contract covers resuming
+# them with the retained owner token.
+#
+# Retry tuning: SIW_OPERATION_MAX_ATTEMPTS (default 300) and
+# SIW_OPERATION_RETRY_DELAY (default 0.01 seconds) govern the operation lock;
+# SIW_RESERVATION_RETRY_DELAY (default 1 second) separates publication-lock tries.
+#
+# Helper globals. POSIX sh has no local variables, so helpers return values in
+# these globals, and the next call that sets one overwrites it:
+#   validate_issue_id               issue_prefix, issue_number
+#   normalize_issue_id              normalized_issue_id, plus the two above
+#   resolve_siw_dir                 siw_dir
+#   read_claim, read_owner,         recorded_owner, recorded_request_key
+#     require_owner
+#   require_publication_owner,      publication_baseline_hash (empty for a
+#     acquire_publication             legacy lock)
+#   create_owned_claim              claim_error, why creation failed
+#   select_hash_backend             hash_backend, hash_backend_command
+#   hash_file                       calculated_hash
+#   read_publication_hash_pair      hash_pair_hash, hash_pair_path
+#   calculate_publication_state     publication_state_hash, overview_hash,
+#                                   log_hash, publication_log_missing, and
+#                                   state_temp (the manifest path)
+#   read_publication_baseline       publication_baseline_owner,
+#                                   publication_baseline_state_hash, and
+#                                   baseline_state_temp (the manifest path)
+#   read_publication_receipt_owner  publication_receipt_owner
+#   locate_issue_file               issue_file (empty when none exists)
+#   scan_reservation_claims         reservation_high, reservation_request_mappings
+#   find_request_reservation        reserved_issue_id
+#   normalize_receipt_issue_ids     receipt_issue_ids
+#   derive_changed_issue_ids        changed_ids_temp (the changed-ID list path)
+# The exit traps read the temporary-path globals (claim_temp, state_temp,
+# baseline_temp, receipt_temp, and the others cleanup_all clears) and the
+# operation_lock_held and operation_guard_held flags.
 
 set -eu
 
