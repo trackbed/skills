@@ -746,7 +746,7 @@
         return;
       }
       /** @type {Response | null} */
-      let response = null;
+      let response;
       try {
         response = await fetch("/answers", {
           method: "POST",

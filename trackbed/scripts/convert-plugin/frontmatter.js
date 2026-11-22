@@ -268,7 +268,7 @@ function quoteLegacyPlainScalar(value, options = {}) {
 function shouldQuoteLegacyPlainScalar(value, options = {}) {
   if (!value) return false;
   if (/^["']/.test(value)) return false;
-  if (/^[\[{]/.test(value)) {
+  if (/^[[{]/.test(value)) {
     if (LEGACY_STRING_FLOW_KEYS.has(String(options.key ?? "").trim())) {
       return true;
     }

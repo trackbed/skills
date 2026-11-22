@@ -2,7 +2,6 @@
 
 const assert = require("node:assert/strict");
 const { createHash } = require("node:crypto");
-const fs = require("fs/promises");
 const path = require("path");
 const test = require("node:test");
 

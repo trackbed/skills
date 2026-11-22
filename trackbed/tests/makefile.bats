@@ -32,6 +32,7 @@ setup_check_deps_repo() {
   done
   create_fake_tool "$CHECK_DEPS_REPO/node_modules/.bin/prettier"
   create_fake_tool "$CHECK_DEPS_REPO/node_modules/.bin/tsc"
+  create_fake_tool "$CHECK_DEPS_REPO/node_modules/.bin/eslint"
 
   cat >"$CHECK_DEPS_REPO/trackbed/skills/test/SKILL.md" <<'MD'
 ---

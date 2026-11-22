@@ -79,6 +79,6 @@ Each file below stays out of `sharedRuntimeFor`. No shipped skill, agent, or hoo
 1. Register the file in the coverage inventory, [`config/coverage-production-sources.json`](../config/coverage-production-sources.json): under `javascript.measured` or `python.measured` when the native coverage report includes it, otherwise under that language's `contract_only` with the top-level Bats suites that cover it, as the [development guide](../docs/development.md) describes. Shell scripts always use `shell.contract_only`.
 2. For a runtime helper, add an entry to `sharedRuntimeFor` in [`convert-plugin/codex-transformer.js`](convert-plugin/codex-transformer.js), with `executable: true` for a script that callers run directly. Without the entry, the Codex plugin ships without the file and every skill that calls it breaks there.
 3. In shipped JavaScript, require only Node core modules and files inside the plugin: the converted plugin installs no npm dependencies.
-4. Add every new JavaScript file to the `include` list in [`jsconfig.json`](../jsconfig.json) so `make lint` type-checks it.
+4. Add every new JavaScript file to the `include` list in [`jsconfig.json`](../jsconfig.json) so `make lint` type-checks it and applies the type-aware ESLint rules in [`eslint.config.mjs`](../eslint.config.mjs).
 
 Then add a row to the matching table above and to the [code map](../docs/code-map.md), and name the `${CLAUDE_PLUGIN_ROOT}/scripts/...` path in the body of every `SKILL.md` that runs it.

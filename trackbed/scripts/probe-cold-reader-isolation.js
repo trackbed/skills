@@ -424,7 +424,7 @@ async function main(argv, dependencies = {}) {
 }
 
 if (require.main === module)
-  main(process.argv.slice(2)).then((code) => {
+  void main(process.argv.slice(2)).then((code) => {
     process.exitCode = code;
   });
 

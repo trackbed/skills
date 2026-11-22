@@ -420,6 +420,7 @@ test("summarizeSession includes agents nested in workflow directories", async (t
 
 test("summarizeSession excludes a transcript after a read failure", async () => {
   const { deps, calls } = createDeps();
+  // eslint-disable-next-line require-yield -- the stub fails before reading a line
   deps.readLines = async function* () {
     throw Object.assign(new Error("permission denied"), { code: "EACCES" });
   };

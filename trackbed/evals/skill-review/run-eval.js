@@ -162,7 +162,9 @@ function readJsonFile(filePath) {
   try {
     return JSON.parse(fs.readFileSync(filePath, "utf8"));
   } catch (error) {
-    throw new Error(`failed to read JSON ${filePath}: ${errorMessage(error)}`);
+    throw new Error(`failed to read JSON ${filePath}: ${errorMessage(error)}`, {
+      cause: error,
+    });
   }
 }
 
