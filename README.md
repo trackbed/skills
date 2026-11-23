@@ -342,6 +342,8 @@ See the [SIW guide](trackbed/docs/siw.md) for the full workflow reference.
 
 `/trackbed:pr:shape-up` also runs without prompts of its own: it rebases with a lease, pushes CI fixes, and posts replies to AI reviewers, but never to people. See [shaping up an open Pull Request](trackbed/docs/shipping.md#shaping-up-an-open-pull-request).
 
+In Conductor, `/trackbed:conductor:showtime` takes one pass over every workspace of the repository: it sends idle chats the command they need, asks before merging the Pull Requests that pass its merge gate, and sorts the sidebar. `--auto` merges without asking. See [driving Conductor workspaces to merge](trackbed/docs/shipping.md#driving-conductor-workspaces-to-merge).
+
 More review skills cover product, convention, UX, and GitHub-reviewer flows. Which one should you use?
 
 | Need | Use |
@@ -359,6 +361,7 @@ More review skills cover product, convention, UX, and GitHub-reviewer flows. Whi
 | Review someone else's GitHub PR as the assigned reviewer | `/trackbed:pr:github-review` |
 | Triage and respond to review comments on your own PR | `/trackbed:pr:github-review-reply` |
 | Rebase, fix CI, and answer AI reviewer comments on your open PR in one run | `/trackbed:pr:shape-up` |
+| Move every Conductor workspace of the repository toward a merged PR, and merge the ones that are ready | `/trackbed:conductor:showtime` |
 | Implement fixes from local review findings | `/trackbed:pr:resolve-review` |
 | Whether an open PR's title and body still match the branch diff | `/trackbed:pr:generate-description --check` |
 
@@ -451,6 +454,7 @@ Each row gives a one-line summary. The full description lives in the skill's `SK
 | Open a PR | `/trackbed:pr:create` |
 | Fix failing CI on my PR | `/trackbed:pr:fix-ci` |
 | Get my open PR ready to merge: rebase, green CI, and AI reviewer comments answered | `/trackbed:pr:shape-up` |
+| Move all my Conductor workspaces toward merged PRs | `/trackbed:conductor:showtime` |
 | See which PRs wait on my review | `/trackbed:pr:review-queue` |
 | See what each of my open PRs needs next | `/trackbed:pr:review-queue --mine` |
 | Review someone else's PR | `/trackbed:pr:github-review` |
@@ -538,6 +542,7 @@ PR creation, review, iteration, and resolution. See the [review guide](trackbed/
 | `/trackbed:pr:review-queue` | User, Auto | `[--mine] [--repo OWNER/NAME \| --all-repos] [--since ISO-8601] [OWNER/NAME#N ...]` | See which PRs wait on your review and whether each looks ready, or with `--mine` what each of your own open PRs needs next. Read-only on GitHub. |
 | `/trackbed:pr:fix-ci` | User, Auto | `[--fixup] [--manual] [--no-consolidate] [--rebase\|--no-rebase] [--scope-plan <archived-plan>]` | Repair failing CI checks and reviewer feedback on an open PR with targeted pushes until checks pass; `--manual` keeps the prompts. |
 | `/trackbed:pr:shape-up` | User | — | Get an open PR ready to merge: rebase when behind its target, fix CI until checks are green, and fix and answer AI reviewer comments. Does only what is needed. |
+| `/trackbed:conductor:showtime` | User | `[--auto] [--dry-run] [--idle-minutes <n>]` | In Conductor, move every workspace of a repository toward a merged PR: nudge idle chats, merge PRs that pass the gate, archive, and sort the sidebar. |
 | `/trackbed:pr:generate-description` | User, Auto | `[--manual] [--no-update] [--check [--strict]] [--no-capture] [--base <ref>] [--base-commit <oid>] [--linear-issue <ISSUE-ID>] [--evidence-manifest <path>] [--independent-review-line <line>]` | Write a PR title and body from the diff, commits, and Linear context, updating an open PR unless `--manual`; `--check` reports drift. |
 | `/trackbed:pr:walkthrough` | User | `[--report [branch\|commit\|PR#\|range] \| --report --base <ref> \| --base <ref>] [--output <path>]` | Generate a visual HTML walkthrough of a branch or PR; `--report` produces a shareable before/after architecture report. |
 | `/trackbed:pr:gut-check` | User, Auto | `[--base <branch>] [--intent <text>]` | Get a fast first-reader reaction: does anything on this branch look strange, unusual, or unnecessary? |

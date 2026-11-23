@@ -173,6 +173,10 @@
       "trackbed/skills/workflow:suggest-next/scripts/inventory.py",
       "trackbed/skills/pr:shape-up/scripts/shape-snapshot.py",
       "trackbed/skills/pr:review-queue/scripts/author-queue.py",
+      "trackbed/skills/conductor:showtime/scripts/showtime.py",
+      "trackbed/skills/conductor:showtime/scripts/showtime_reads.py",
+      "trackbed/skills/conductor:showtime/scripts/showtime_requests.py",
+      "trackbed/skills/conductor:showtime/scripts/showtime_rules.py",
       "trackbed/skills/pr:github-review/scripts/review-delta.py",
       "trackbed/skills/pr:github-review/scripts/stack-overview.py",
       "trackbed/skills/pr:review-convergence/scripts/convergence-state.py",
@@ -667,6 +671,24 @@
       "kind": "executable",
       "suite": "trackbed/tests/python/test_author_queue.py",
       "skills": ["trackbed/skills/pr:review-queue/SKILL.md"]
+    },
+    {
+      "kind": "executable",
+      "suite": "trackbed/tests/python/test_showtime.py",
+      "skills": ["trackbed/skills/conductor:showtime/SKILL.md"]
+    },
+    {
+      "kind": "executable",
+      "suite": "trackbed/tests/python/test_showtime_rules.py",
+      "skills": ["trackbed/skills/conductor:showtime/SKILL.md"]
+    },
+    {
+      "kind": "guidance",
+      "suite": "trackbed/tests/conductor-showtime-guidance.bats",
+      "skills": [
+        "trackbed/skills/conductor:showtime/SKILL.md",
+        "trackbed/skills/pr:create/SKILL.md"
+      ]
     },
     {
       "kind": "executable",

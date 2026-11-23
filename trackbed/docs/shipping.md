@@ -8,6 +8,7 @@ This guide covers the skills that implement work and publish it as a Pull Reques
 | Implement a saved plan the same way | `/trackbed:code:plan-to-pr <plan> --ship` | [Plan to Pull Request](#plan-to-pull-request) |
 | Publish the branch you have | `/trackbed:pr:create` | [Publishing a Pull Request](#publishing-a-pull-request) |
 | Get an open Pull Request ready to merge | `/trackbed:pr:shape-up` | [Shaping Up an Open Pull Request](#shaping-up-an-open-pull-request) |
+| Move every Conductor workspace of a repository toward merge | `/trackbed:conductor:showtime` | [Driving Conductor Workspaces to Merge](#driving-conductor-workspaces-to-merge) |
 | Rewrite a branch's commits into a clear history | `/trackbed:git:recreate-commits` | [Rewriting History](#rewriting-history) |
 | Start new work from a branch other than the default | `git config --local trackbed.baseBranch <branch>` | [Base Branch](#base-branch) |
 
@@ -142,7 +143,7 @@ These five skills run in auto mode when you type them. Pass `--manual` to keep t
 - `/trackbed:pr:fix-ci --no-consolidate` also turns off auto mode, so `--ship` never rebases an open Pull Request without your `--rebase` flag or your answer; `--manual` asks every time.
 - `--check`, `--all-open`, and `--scope-plan` keep their own gates.
 - The default covers only the message being answered: a slash command or `$` mention at its start, or the skill's name later in it when your wording asks for a run. A saved prompt your host sends as your message counts too. The parent delegations each skill names keep the gates their own flags select.
-- A mention that only discusses the skill, a request from an earlier message, and a request that arrives through another agent, including a subagent that preloads the skill, do not. In those cases, and when the model picks one of these skills for a request that does not name it, the skill behaves as `--manual`, or as `--no-update` for `trackbed:pr:generate-description`.
+- A mention that only discusses the skill, a request from an earlier message, and a request that arrives through another agent, including a subagent that preloads the skill or a Conductor message that another chat sent, do not. In those cases, and when the model picks one of these skills for a request that does not name it, the skill behaves as `--manual`, or as `--no-update` for `trackbed:pr:generate-description`.
 
 The [decision record](decisions/2026-10-31-unattended-default-for-shipping-skills.md) covers the tradeoffs.
 
@@ -217,6 +218,34 @@ Review archives stay local during automatic collection. A direct `/trackbed:pr:c
 - The final report says `in shape` only when a fresh read of the Pull Request shows no need left.
 
 The delegation is recorded in the [orchestration-children decision](decisions/2026-08-29-model-invocable-orchestration-children.md#pull-request-shape-up-delegations).
+
+## Driving Conductor Workspaces to Merge
+
+`/trackbed:conductor:showtime` takes one pass over every Conductor workspace of the current repository and moves each one a step toward a merged Pull Request. It runs only in a local Conductor workspace. Run it again for the next step, or under `/loop` in Claude Code to keep going.
+
+A helper script reads the workspaces, their chats, your open Pull Requests, and each checkout, and places every workspace on one stage:
+
+| Stage | What it means | What the pass does |
+| --- | --- | --- |
+| Agent working, Checks running | A chat is running, or required checks are pending | Nothing |
+| Work done, no PR | Committed work, a clean checkout, and no Pull Request | Sends the chat `trackbed:pr:create` |
+| PR not in shape | A conflict, a branch that must be up to date and is behind, a failing required check, stale checks, or an open thread from an AI reviewer | Sends the chat `trackbed:pr:shape-up` |
+| Merge-ready | The Pull Request passes the merge gate and matches no hold rule | Merges it (asks first without `--auto`) |
+| Held | It passes the gate and matches a hold rule | Reports it with the reason |
+| Merged | The checkout is at the head of a merged Pull Request | Archives the workspace (asks first without `--auto`) |
+| Everything else | A question, a setup failure, uncommitted changes, human review, a draft, a missing required review, a branch behind a past Pull Request | Reports it in the table; the ones that need you appear under "Waiting on you" |
+
+- **It never changes code.** A change happens in the workspace's own chat, through one of those two commands, each with every gate it has when you type it.
+- **Commands go to idle chats only.** A chat must have been idle for ten minutes, and a chat whose last message is a question gets none. The same problem gets at most two commands.
+- **The merge gate.** A Pull Request merges only when it is your own, targets the default branch, and is not a draft; its required checks are green; it has no unresolved review thread, no conflict, no missing required review, and no other branch-protection block; its chat is idle and its checkout has nothing uncommitted; and its checks are not stale.
+- **Stale checks.** Checks are stale when a commit that reached the default branch after the Pull Request's head commit touches a file it changes, CI configuration, a lockfile, or shared build tooling. Such a Pull Request is rebased by `trackbed:pr:shape-up` and must go green again.
+- **Hold rules.** A Pull Request that passes the gate is held when its risk signals are high or could not be computed, when it is marked as a breaking change, or when a person's latest review requests changes or a person's comment is unanswered.
+- **Merging.** The helper rechecks the gate for each PR in the repository at `origin`, merges synchronously with the approved head pinned, skips a PR the recheck refuses, and rebuilds the board once when the train ends. Repositories requiring a merge queue need to use GitHub for that step.
+- **The sidebar.** Workspaces move into the sections "Working", "Needs me", "Needs a nudge", "Merge-ready", and "Merged". One you placed in a section of your own, or pinned, stays there.
+
+Without `--auto`, you can approve the PR commits and archive candidates shown in the preview. With `--auto`, the pass merges unheld PRs, archives eligible workspaces, and answers a chat that stopped on a [decision request](#decision-requests) with the first option when that option alone is marked recommended. A chat that waits on a dialog or a permission prompt is never answered. Conductor applies **Delete branch on archive** to each archive.
+
+An open Pull Request whose workspace is gone can still pass the gate and merge. Showtime starts no new work; `/trackbed:linear:next` does that. The design is recorded in the [showtime decision](decisions/2026-11-22-conductor-showtime.md).
 
 ## Rewriting History
 
