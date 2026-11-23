@@ -26,9 +26,9 @@ Each file below is listed in `sharedRuntimeFor` and ships in the converted Codex
 | `resolve-stack-membership.sh` | `pr:create`, `pr:fix-ci`, `pr:rebase`, `pr:review-queue`, `pr:stack`, `git:recreate-commits` | `tests/resolve-stack-membership.bats` |
 | `review-artifact-patterns.sh` | `pr:code-review`, `code:refactor-pass` | `tests/review-artifact-patterns.bats` |
 | `review-tree-fingerprint.sh` | `pr:code-review`, `pr:product-review`, `pr:generate-description` | `tests/review-shared-tree.bats` |
-| `risk-signals.py` | `pr:triage-risk`, `pr:review-convergence` | `tests/python/test_risk_signals.py` |
-| `risk_classification.py` | `pr:triage-risk`, `pr:review-convergence`, `pr:github-review` | `tests/python/test_risk_signals.py` |
-| `risk_patterns.py` | `risk-signals.py`, `pr:triage-risk`, `pr:review-convergence`, `pr:github-review` | `tests/python/test_risk_signals.py` |
+| `risk-signals.py` | `pr:triage-risk`, `pr:review-convergence`, `conductor:showtime` | `tests/python/test_risk_signals.py` |
+| `risk_classification.py` | `pr:triage-risk`, `pr:review-convergence`, `pr:github-review`, `conductor:showtime` | `tests/python/test_risk_signals.py` |
+| `risk_patterns.py` | `risk-signals.py`, `pr:triage-risk`, `pr:review-convergence`, `pr:github-review`, `conductor:showtime` | `tests/python/test_risk_signals.py` |
 | `siw-issue-reservation.sh` | `siw:generate-phases`, `debug:triage-to-issue` | `tests/siw-issue-reservation.bats` |
 | `skill-usage.js` | `skill-usage-stats` hook, `session:automate-repeats` | `tests/node/skill-usage.test.js` |
 | `validate-archive-scope.py` | `code:plan-to-pr`, `pr:fix-ci`, `pr:review-convergence` | `tests/plan-to-pr-validation.bats` |
