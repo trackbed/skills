@@ -26,7 +26,7 @@ setup() {
 		grep -qF "$other" "$skill"
 	done
 	grep -qF 'Auto mode is reserved for a direct user invocation and for that guarded delegation.' "$RECREATE"
-	grep -qF 'Auto mode is reserved for a direct user invocation and for those two parent delegations, which always pass `--require-generated-description`.' "$CREATE"
+	grep -qF 'Auto mode is reserved for a direct user invocation, the two parent delegations with `--require-generated-description`, and the verified Conductor handoff in Step 0.' "$CREATE"
 	grep -qF 'Auto mode is reserved for a direct user invocation and for that `trackbed:pr:rebase` delegation.' "$FIX_CI"
 
 	grep -qF 'Every other invocation without `--force-push` runs as `--manual`, whether or not it passes that flag, including one where the model picks this skill for a request that does not name it.' "$REBASE"

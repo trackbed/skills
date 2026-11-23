@@ -64,6 +64,8 @@ The Decision above counted a request "in the session" that names the skill as a 
 
 Keeping session-wide consent was rejected because a by-name request early in a session would keep authorizing unattended history rewrites and force-pushes for the rest of it, long after the request it answered was done.
 
+The [proposed Showtime decision](2026-11-22-conductor-showtime.md) describes a separate Conductor relay for `trackbed:pr:create --showtime`. The receiving skill reads the Conductor transcript to verify the relay and its current user invocation before it enables auto mode. The relay holds only while that decision is accepted.
+
 All five skills carry this rule as one synced paragraph that the skill-contract linter keeps identical. Like the rest of the model-invocation contracts, it is advisory: focused tests pin the wording, but nothing enforces it at run time.
 
 ## Amendment (2026-11-12)

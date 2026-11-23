@@ -14,7 +14,7 @@ Orchestrate the creation of a clean, well-documented PR by validating git state,
 
 - Invoke automatically only as a delegated child of `trackbed:linear:issue-to-pr` or `trackbed:code:plan-to-pr`, with the caller's auto-mode authorization and its required generated-description flags (`--linear-issue` where supplied, `--require-generated-description`, and any caller-owned history-rewrite guard).
 - No other parent workflow is authorized by this model-invocation exception. Model invocation changes routing only; preserve every branch, backup, remote-absence or lease, description, self-assignment, and Pull Request proof, and never publish outside the current caller-prepared work.
-- Auto mode is reserved for a direct user invocation and for those two parent delegations, which always pass `--require-generated-description`. Every other invocation runs as `--manual`, whether or not it passes that flag, including one where the model picks this skill for a request that does not name it.
+- Auto mode is reserved for a direct user invocation, the two parent delegations with `--require-generated-description`, and the verified Conductor handoff in Step 0. Every other invocation runs as `--manual`, whether or not it passes that flag, including one where the model picks this skill for a request that does not name it.
 - Synced direct-invocation contract (keep aligned across auto-default shipping skills): A direct user invocation is the user's current message asking for this skill, and it covers only the request that message makes. A saved prompt the host sends as that message, such as a host's PR-creation instructions, counts the same way. A slash command or `$` mention at the start of the message invokes this skill directly. The skill's name later in the message, written as its own word, permits a run for that message only, and only when the wording asks for one. A mention that only discusses the skill permits no run, and a request in an earlier message never authorizes a later run. A request that reaches this skill through another agent, including a subagent that preloads it or a Conductor message that carries a `senderSessionId` because another chat sent it, is not a direct request, even when it starts with a slash command. Only the guarded parent delegations and verified handoffs this skill names are excepted, and each keeps only the authority this skill gives it.
 
 The subprocess helpers use `${CLAUDE_PLUGIN_ROOT}/scripts/lib/review_process.py` for bounded execution and noninteractive environments; each caller retains its deadline and error contract.
@@ -83,7 +83,7 @@ The fresh-remote and remote-append paths invoke Steps 6 and 7 via the Skill tool
 
 ## Step 0: Parse Arguments
 
-Parse `$ARGUMENTS` for optional flags before starting:
+Parse `$ARGUMENTS` before starting. Accept `--showtime` only as the sole argument to a verified Conductor handoff. Follow `references/showtime-handoff.md` before setting auto mode. Otherwise parse the optional flags below:
 
 - `--manual` -> set `AUTO_MODE=false` and remove the flag from the remaining arguments. Auto mode authorizes the nested unstacked rewrite but does not synthesize the separate stack-wide authorization capability.
 - `--draft` -> set `DRAFT_MODE=true` and remove the flag from the remaining arguments.
