@@ -12,6 +12,55 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 
 - Remove the Codex converter aliases `--codexHome`, `--agentsHome`, and `--nonInteractive`. Use `--codex-home`, `--agents-home`, and `--non-interactive`.
 
+## [1.2.0] - 2026-11-22
+
+### Added
+
+- Add --mine author view of your open PRs (#1279)
+- Add a bug-fix design retrospective skill (#1277)
+- Add readiness and Conductor review workspaces (#1267)
+- Run only the test suites a change affects (#1258)
+- Show deterministic risk in descriptions (#1265)
+- Flag deleted test files as a risk signal (#1266)
+- Create breakdown issues without per-draft approval (#1242)
+- Upload change documents as PR artifacts (#1240)
+- Ask interview rounds on a browser page (#1239)
+- Add --all to grade the full backlog (#1238)
+- Keep ADR-drift findings and retire plans fixed elsewhere (#1237)
+- Start and follow local Conductor workspaces (#1236)
+- Apply fixes and show each change before and after (#1235)
+- Update skills for current Claude and GPT models (#1234)
+
+### Changed
+
+- Narrow the linter's public surface (#1278)
+- Document the issue-reservation lock protocol (#1275)
+- Link source files to their decisions (#1271)
+- Consolidate formatter attempts and setup reports (#1274)
+- Remove unused exports and checks (#1268)
+- Map which scripts ship and how to add one (#1261)
+- Share runtime helpers across hooks and skill usage (#1264)
+- Share transcript parsing and discovery (#1253)
+- Type the registry and generator calls (#1256)
+- Share git and gh helpers across review scripts (#1260)
+- Centralize branch role resolution (#1254)
+- Centralize commit parser contracts (#1252)
+- Centralize failed release rollback (#1245)
+- Extract Makefile coverage gates into Python (#1249)
+- Stream local snapshots (#1247)
+- **BREAKING:** Remove sync-release, to-markdown, and update-agents-md (#1241)
+
+### Fixed
+
+- **BREAKING:** Simplify legacy install cleanup (#1273)
+- Stop browser tabs from erasing each other's choices (#1263)
+- Keep stale-lock recovery from deleting a live lock (#1262)
+- Harden generated pages with shared HTML helpers (#1255)
+- Refuse publish when prepare did not succeed (#1251)
+- Clarify agent instructions and handle omitted hook mode (#1243)
+- Isolate Bats fixtures from global Git signing (#1246)
+- Make review ledger writes crash-safe (#1248)
+
 ## [1.1.1] - 2026-11-18
 
 ### Added
@@ -1393,6 +1442,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 
 - Preserve skill resources in conversion (#222)
 
+[1.2.0]: https://github.com/trackbed/skills/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/trackbed/skills/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/trackbed/skills/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/trackbed/skills/compare/v1.0.0...v1.0.1
