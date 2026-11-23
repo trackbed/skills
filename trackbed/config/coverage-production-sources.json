@@ -683,6 +683,14 @@
       "skills": ["trackbed/skills/conductor:showtime/SKILL.md"]
     },
     {
+      "kind": "guidance",
+      "suite": "trackbed/tests/conductor-showtime-guidance.bats",
+      "skills": [
+        "trackbed/skills/conductor:showtime/SKILL.md",
+        "trackbed/skills/pr:create/SKILL.md"
+      ]
+    },
+    {
       "kind": "executable",
       "suite": "trackbed/tests/python/test_pr_create_preflight.py",
       "skills": ["trackbed/skills/pr:create/SKILL.md"]

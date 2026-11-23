@@ -1,0 +1,15 @@
+sources:
+  - id: github-synchronous-pull-merge
+    url: https://docs.github.com/en/rest/pulls/pulls#merge-a-pull-request
+    title: "GitHub REST API for merging a Pull Request"
+    rationale: "The synchronous endpoint accepts an expected head SHA and distinguishes a completed merge from a refused request. It does not support merge queues."
+    usage: inspiration
+    last_reviewed_at: 2026-11-23
+    baseline_hash: ""
+  - id: conductor-archive-settings
+    url: https://www.conductor.build/docs/reference/settings
+    title: "Conductor settings"
+    rationale: "Archiving applies Conductor's branch retention setting."
+    usage: inspiration
+    last_reviewed_at: 2026-11-23
+    baseline_hash: ""

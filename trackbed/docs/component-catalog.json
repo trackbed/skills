@@ -98,6 +98,11 @@
       "path": "trackbed/skills/code:work-from-plan/SKILL.md"
     },
     {
+      "name": "trackbed:conductor:showtime",
+      "invocation": "User",
+      "path": "trackbed/skills/conductor:showtime/SKILL.md"
+    },
+    {
       "name": "trackbed:debug:find-sibling-bugs",
       "invocation": "User, Auto",
       "path": "trackbed/skills/debug:find-sibling-bugs/SKILL.md"

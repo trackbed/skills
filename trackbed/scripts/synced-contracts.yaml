@@ -1800,6 +1800,7 @@
       "trackbed:code:refactor-opportunities": "Find refactoring candidates, tech debt, and implicit state machines in a repo, PR, path, or feature, or before a change (`--for`); `--ranked` ranks weaknesses.",
       "trackbed:code:refactor-pass": "Simplify recent changes and clean up AI slop slice by slice without changing behavior; `--rewrite` redoes mediocre recent work properly.",
       "trackbed:code:work-from-plan": "Execute one standalone implementation plan, such as a `PR_PLAN_*.md` file or a pasted checklist, as bounded work on the current branch.",
+      "trackbed:conductor:showtime": "In Conductor, move every workspace of a repository toward a merged PR: nudge idle chats, merge PRs that pass the gate, archive, and sort the sidebar.",
       "trackbed:debug:find-sibling-bugs": "Use a bug-fix branch as a worked example and search the codebase for other places with the same flaw.",
       "trackbed:debug:investigate": "Investigate a bug step by step: reproduce it, isolate it, trace the root cause, and fix it.",
       "trackbed:debug:triage-to-issue": "(experimental) Turn a bug into an implementation-ready Linear or SIW issue with root-cause evidence and a red-green TDD fix plan.",
