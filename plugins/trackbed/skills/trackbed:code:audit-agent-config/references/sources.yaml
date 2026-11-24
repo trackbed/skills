@@ -1,0 +1,25 @@
+sources:
+  - id: aihero-codebases-ai-agents-love
+    url: https://www.aihero.dev/how-to-make-codebases-ai-agents-love
+    title: "AI Hero - How To Make Codebases AI Agents Love"
+    rationale: "The structural-compensation check, which prefers an enforcing tool or a refactor over always-on prose that steers agents around the code's structure, follows this article's argument that the codebase shapes agent output more than its instruction files."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    fetch_mode: curl-html
+    baseline_hash: "sha256:5cef0c99088b7d110dcb3c211c10d00d6d8dd7bdd03add3d6b9a2249fad3f893"
+  - id: anthropic-prompting-claude-fable-5-2
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-2.md
+    title: "Claude Docs - Prompting Claude Fable 5.2"
+    rationale: "The model-stale defect class, which flags thinking instructions, token budgets, standing delegation instructions, hard prose caps, and blanket stop or approval rules, follows this guide's sections on prompts written for earlier models and on keeping caution from piling up."
+    usage: inspiration
+    last_reviewed_at: 2026-11-19
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:c20db12661c1cea8594aaf29a20dc2ad460437200f6ffbbbf8d3086b9c724c5d"
+  - id: anthropic-prompting-claude-opus-5-5
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5.md
+    title: "Claude Docs - Prompting Claude Opus 5.5"
+    rationale: "The model-stale class's handling of requests to write out reasoning, with its exception for a short explanation of a result, follows this guide's advice on prompts written for thinking disabled and on reasoning-extraction refusals."
+    usage: inspiration
+    last_reviewed_at: 2026-11-19
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:6171e5c0ada4178cf93c40470f7371df9e7380e8b6514b9fb34e183c914c784a"

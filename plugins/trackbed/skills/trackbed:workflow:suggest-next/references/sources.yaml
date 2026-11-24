@@ -1,0 +1,9 @@
+sources:
+  - id: egm-ask-design
+    url: https://github.com/google/elephant-goldfish-model/blob/394aa38db6ceb641d4e37adc552e0a56535aa093/docs/designs/ask.md
+    title: "google/elephant-goldfish-model - EGM Ask design (draft)"
+    rationale: "A read-only helper that reads installed skill descriptions at run time, infers the workflow stage from artifact names without reading their contents, treats matched files as hints rather than proof, replies with at most three commands in the host's command form, and leaves another skill's pending prompt alone is informed by this draft design from pull request #218; reviewed at upstream commit 394aa38db6ceb641d4e37adc552e0a56535aa093."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "394aa38db6ceb641d4e37adc552e0a56535aa093"
+    baseline_hash: "sha256:3f328daedb1fe8a06244e0f2f0dcce7962cce7e2d29761211cc508e8f8825e0f"

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 680" width="1200" height="680" font-family="Helvetica, Arial, sans-serif">
+  <title>Synthetic capture: studio calendar with two bookings in one slot</title>
+  <rect width="1200" height="680" fill="#f7f6f2"/>
+  <rect width="1200" height="64" fill="#ffffff"/>
+  <rect y="64" width="1200" height="1" fill="#d9d6cc"/>
+  <text x="32" y="40" font-size="20" font-weight="700" fill="#1f2a2e">Lanternworks</text>
+  <text x="188" y="40" font-size="14" fill="#5b6468">Studio B · Saturday 14 March</text>
+  <rect x="1040" y="18" width="128" height="30" rx="6" fill="#0b6259"/>
+  <text x="1104" y="38" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">New booking</text>
+  <g font-size="13" fill="#5b6468">
+    <text x="32" y="130">09:00</text><text x="32" y="230">10:00</text><text x="32" y="330">11:00</text>
+    <text x="32" y="430">12:00</text><text x="32" y="530">13:00</text><text x="32" y="630">14:00</text>
+  </g>
+  <g stroke="#d9d6cc" stroke-width="1">
+    <line x1="96" y1="110" x2="1168" y2="110"/><line x1="96" y1="210" x2="1168" y2="210"/>
+    <line x1="96" y1="310" x2="1168" y2="310"/><line x1="96" y1="410" x2="1168" y2="410"/>
+    <line x1="96" y1="510" x2="1168" y2="510"/><line x1="96" y1="610" x2="1168" y2="610"/>
+  </g>
+  <rect x="104" y="118" width="520" height="84" rx="6" fill="#dbe9e6" stroke="#0b6259"/>
+  <text x="120" y="148" font-size="15" font-weight="700" fill="#1f2a2e">Wheel throwing · A. Okafor</text>
+  <text x="120" y="172" font-size="13" fill="#3d4a4e">09:00 – 10:00 · confirmed</text>
+  <rect x="104" y="218" width="520" height="184" rx="6" fill="#dbe9e6" stroke="#0b6259"/>
+  <text x="120" y="248" font-size="15" font-weight="700" fill="#1f2a2e">Glazing session · M. Lindqvist</text>
+  <text x="120" y="272" font-size="13" fill="#3d4a4e">10:00 – 12:00 · confirmed 09:41:07</text>
+  <rect x="640" y="218" width="520" height="184" rx="6" fill="#fbe3df" stroke="#a8261d" stroke-width="2"/>
+  <text x="656" y="248" font-size="15" font-weight="700" fill="#1f2a2e">Glazing session · R. Castellanos</text>
+  <text x="656" y="272" font-size="13" fill="#3d4a4e">10:00 – 12:00 · confirmed 09:41:09</text>
+  <rect x="656" y="292" width="212" height="26" rx="4" fill="#a8261d"/>
+  <text x="762" y="310" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">Same studio, same time</text>
+  <rect x="104" y="518" width="520" height="84" rx="6" fill="#ecebe5" stroke="#b9b5a8"/>
+  <text x="120" y="548" font-size="15" font-weight="700" fill="#1f2a2e">Kiln loading · staff</text>
+  <text x="120" y="572" font-size="13" fill="#3d4a4e">13:00 – 14:00</text>
+</svg>

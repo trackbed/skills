@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agent-native audit · AGENT_NATIVE_AUDIT.md</title>
+    <!--
+      Authoring template for the --visual report style, shape "assessment": a scored
+      or ranked audit whose reader asks how the subject scores, where it is weakest,
+      and what would move the score. The contract is in
+      shared/visual/references/visual-report.md; this file shows it applied to a
+      small audit. Replace every value: nothing here is boilerplate to keep.
+
+      One trackbed-followup per command the reader can paste the triage prompt into.
+    -->
+    <meta name="trackbed-followup" content="/trackbed:code:breakdown-findings" />
+    <!-- Leave both runtime elements empty. scripts/visual-report.py fills them. -->
+    <style data-trackbed-runtime></style>
+  </head>
+  <body>
+    <!-- The facet listed first is what was measured (a dimension, a lens, a phase), so the
+         reader can narrow to one score. Severity comes second. -->
+    <main
+      data-report
+      data-shape="assessment"
+      data-noun="finding findings"
+      data-producer="trackbed:code:agent-readiness"
+      data-source="AGENT_NATIVE_AUDIT.md"
+      data-generated="2026-01-15T14:02:00+0100"
+      data-commit="1a2b3c4d5e6f"
+      data-root="/Users/example/project"
+      data-facets="dimension severity effort"
+    >
+      <!-- The overall standing, the weakest part, and the first move. -->
+      <header data-report-header>
+        <h1>Agent-native audit</h1>
+        <p>
+          The codebase scores 3.0 of 5 for agent readiness. Types and documentation are strong;
+          <a href="#feedback-loops">feedback loops</a> hold it back. The quickest gain is
+          <a href="#entry-AN-001">one command that runs every check</a>.
+        </p>
+      </header>
+
+      <!-- The scorecard is the summary of an assessment, so it comes before anything else:
+           one row per thing measured, weakest first, each linked to its section. -->
+      <table data-scorecard>
+        <thead>
+          <tr>
+            <th>Dimension</th>
+            <th>Score</th>
+            <th>What the score rests on</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="#feedback-loops">Feedback loops</a></td>
+            <td><meter min="0" max="5" value="2" data-tone="bad">2 of 5</meter> 2 / 5</td>
+            <td>No single command runs the checks, and the suite takes eleven minutes.</td>
+          </tr>
+          <tr>
+            <td><a href="#traversable">Traversable</a></td>
+            <td><meter min="0" max="5" value="3" data-tone="warn">3 of 5</meter> 3 / 5</td>
+            <td>Feature folders are clear, but two barrel files hide where code lives.</td>
+          </tr>
+          <tr>
+            <td>Fully typed</td>
+            <td><meter min="0" max="5" value="4">4 of 5</meter> 4 / 5</td>
+            <td>Strict mode is on; the legacy adapter is the one untyped area.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <details class="tr-legend">
+        <summary>How to read this audit</summary>
+        <dl class="tr-fields">
+          <dt>Score</dt>
+          <dd>1 to 5 for each dimension: 5 means an agent can work there unaided, 1 means it works blind.</dd>
+          <dt>Important</dt>
+          <dd>Lowers a score by itself. Worth fixing before the next large change.</dd>
+          <dt>Effort</dt>
+          <dd>Quick win is under an hour; moderate is a day; significant is a week or more.</dd>
+        </dl>
+      </details>
+
+      <!-- One section per thing measured that has findings, weakest first. Open each with
+           why it scored as it did, then the findings behind the score. -->
+      <section data-section id="feedback-loops">
+        <h2>Feedback loops: 2 of 5</h2>
+        <p>An agent cannot tell quickly whether a change broke something, which is why this dimension scores lowest.</p>
+        <!-- The report's longer evidence for the score, one click away. -->
+        <details>
+          <summary>What the score rests on</summary>
+          <ul>
+            <li>Three separately named check scripts, and no script that runs them all.</li>
+            <li>The suite takes eleven minutes; no faster subset is documented.</li>
+          </ul>
+        </details>
+        <article
+          data-entry
+          data-id="AN-001"
+          data-dimension="feedback-loops"
+          data-severity="high"
+          data-severity-label="Important"
+          data-effort="quick-win"
+        >
+          <h3>No single command runs every check</h3>
+          <p data-where><code data-loc>package.json:8-21</code></p>
+          <p>
+            Types, lint, and the suite are three scripts with different names, so an agent runs one and reports
+            success while the other two fail.
+          </p>
+          <h4>Evidence</h4>
+          <pre><code>"typecheck": "tsc --noEmit",
+"lint:all": "eslint .",
+"unit": "vitest run"</code></pre>
+          <h4>Suggested fix</h4>
+          <div data-copy="suggested fix">
+            <p>Add a <code>verify</code> script that runs all three, and name it in <code data-loc>AGENTS.md</code>.</p>
+          </div>
+          <!-- What fixing it would do for the score belongs with the quiet details. -->
+          <dl class="tr-meta">
+            <div>
+              <dt>Would raise</dt>
+              <dd>feedback loops from 2 to 3</dd>
+            </div>
+            <div>
+              <dt>Confidence</dt>
+              <dd>high</dd>
+            </div>
+          </dl>
+        </article>
+      </section>
+
+      <section data-section id="traversable">
+        <h2>Traversable: 3 of 5</h2>
+        <p>Most code is easy to find; two barrel files are the exception.</p>
+        <article data-entry data-id="AN-002" data-dimension="traversable" data-severity="suggestion" data-effort="moderate">
+          <h3>Barrel files hide where two modules live</h3>
+          <p data-where><code data-loc>src/lib/index.ts</code> and <code data-loc>src/api/index.ts</code></p>
+          <p>Following an import lands on a re-export, so finding the real file takes a second search.</p>
+        </article>
+      </section>
+
+      <!-- The order the report recommends, kept open: it answers "what would move the score". -->
+      <section data-section id="first-moves" data-triage="off">
+        <h2>What to do first</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Step</th>
+              <th>Finding</th>
+              <th>Effort</th>
+              <th>Effect on the score</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td><a href="#entry-AN-001">One command for every check</a></td>
+              <td>Quick win</td>
+              <td>Feedback loops 2 to 3</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td><a href="#entry-AN-002">Remove the two barrel files</a></td>
+              <td>Moderate</td>
+              <td>Traversable 3 to 4</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Reference material comes last, folded. -->
+      <section data-section id="about" data-triage="off" data-collapsed>
+        <h2>About this audit</h2>
+        <h4>What scored well</h4>
+        <p>Fully typed (4 of 5) has no findings: strict mode is on and only the legacy adapter is untyped.</p>
+        <h4>Scope</h4>
+        <p>The whole repository at the commit above, with a clean working tree.</p>
+      </section>
+    </main>
+    <script data-trackbed-runtime></script>
+  </body>
+</html>

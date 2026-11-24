@@ -1,0 +1,25 @@
+sources:
+  - id: conductor-review-and-merge
+    url: https://www.conductor.build/docs/guides/review-and-merge
+    title: "Conductor Docs - Review and merge a workspace"
+    rationale: "Conductor's local diff-comment and Checks workflow informs the optional projection of canonical review findings into workspace comments, and its merge-readiness check informs marking judgment-call comments as optional."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    fetch_mode: curl-html
+    baseline_hash: "sha256:0300d252efa1c16119200bcd472369e066f6344ff12874e8bf5224000b9616ef"
+  - id: compound-code-review-deleted-files
+    url: https://github.com/EveryInc/compound-engineering-plugin/blob/a00d47c57fede04ab9ff04d405fa3846b9561c90/skills/ce-code-review/references/diff-scope.md
+    title: "EveryInc compound-engineering-plugin - ce-code-review diff scope (PR #1888)"
+    rationale: "Showing whole-file deletions to the finder as headers only and reading a deleted body from the base only when a finding needs it is informed by this source."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "a00d47c57fede04ab9ff04d405fa3846b9561c90"
+    baseline_hash: ""
+  - id: anthropic-claude-code-subagents
+    url: https://code.claude.com/docs/en/sub-agents.md
+    title: "Claude Code Docs - Create custom subagents"
+    rationale: "The shared review model policy's rule that a stepped-down subagent does not inherit the session's effort level, so the launch passes it when known and otherwise reports the difference, follows this page's documented subagent effort field and parameter."
+    usage: inspiration
+    last_reviewed_at: 2026-11-19
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:1190caa9852cc0dd6d1bb87b45da5bd71950280c2caa0953aa0f7b3a40bccdad"

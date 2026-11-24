@@ -1,0 +1,1482 @@
+/*
+ * Interview round styles.
+ * scripts/interview-ui.py writes this file into every round page, after the
+ * shared palette in shared/visual/assets/report-tokens.css. Use those tokens
+ * instead of literal colors, so both color schemes work.
+ *
+ * The page is built to be answered: one question at a time down the page, each
+ * with why it matters, the control that fits it, and the interviewer's
+ * recommendation set apart from what the person enters. Nothing is selected
+ * until the person selects it.
+ */
+
+:root {
+  --radius: 8px;
+  --shadow: 0 1px 2px light-dark(rgba(20, 24, 28, 0.08), rgba(0, 0, 0, 0.4));
+  --measure: 68ch;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* A class that sets display must not undo the hidden attribute. */
+[hidden] {
+  display: none !important;
+}
+
+html {
+  scroll-padding-top: 84px;
+  scrollbar-gutter: stable;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  overflow-wrap: break-word;
+  -webkit-text-size-adjust: 100%;
+}
+
+h1,
+h2,
+h3,
+p,
+ol,
+ul,
+dl,
+dd,
+figure,
+blockquote,
+fieldset {
+  margin: 0;
+}
+
+ol,
+ul {
+  padding: 0;
+  list-style: none;
+}
+
+fieldset {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+h1,
+h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+
+h2 {
+  font-size: 1.35rem;
+  line-height: 1.3;
+}
+
+h3 {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+code {
+  padding: 0.08em 0.32em;
+  border-radius: 4px;
+  background: var(--surface2);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+textarea,
+input[type="number"] {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border-bright);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+textarea {
+  display: block;
+  min-height: 3.2rem;
+  resize: vertical;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ti-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.ti-skip {
+  position: absolute;
+  top: -4rem;
+  left: 1rem;
+  z-index: 30;
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.ti-skip:focus {
+  top: 0.6rem;
+}
+
+/* ---------- frame ---------- */
+
+.ti-masthead {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 1.5rem;
+  padding: 0.7rem clamp(1rem, 3vw, 2rem);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.ti-brand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.8rem;
+}
+
+.ti-brand strong {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+}
+
+.ti-brand span {
+  color: var(--text-dim);
+  font-size: 0.88rem;
+}
+
+.ti-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 17.5rem) minmax(0, 1fr);
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+  max-width: 74rem;
+  margin: 0 auto;
+  padding: clamp(1.25rem, 3vw, 2.25rem) clamp(1rem, 3vw, 2rem) 5rem;
+}
+
+.ti-side {
+  position: sticky;
+  top: 4.6rem;
+  display: grid;
+  gap: 1rem;
+  align-self: start;
+  max-height: calc(100vh - 5.6rem);
+  overflow-y: auto;
+}
+
+.ti-main {
+  min-width: 0;
+}
+
+.ti-main:focus {
+  outline: none;
+}
+
+.ti-panel {
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.ti-panel h2 {
+  margin-bottom: 0.7rem;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.ti-help,
+.ti-count,
+.ti-optional {
+  color: var(--text-dim);
+  font-size: 0.88rem;
+}
+
+.ti-panel .ti-help {
+  margin-top: 0.7rem;
+}
+
+/* ---------- progress ---------- */
+
+.ti-progress {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.ti-meter {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.2rem 0.6rem;
+  font-size: 0.92rem;
+}
+
+.ti-entry-value {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ti-track {
+  position: relative;
+  grid-column: 1 / -1;
+  height: 0.4rem;
+  border-radius: 99px;
+  background: var(--surface2);
+}
+
+.ti-fill {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--blue);
+}
+
+.ti-meter[data-met] .ti-fill {
+  background: var(--green);
+}
+
+.ti-target {
+  position: absolute;
+  top: -0.2rem;
+  bottom: -0.2rem;
+  width: 2px;
+  background: var(--text-dim);
+}
+
+.ti-entry-note {
+  grid-column: 1 / -1;
+  color: var(--text-dim);
+  font-size: 0.82rem;
+}
+
+.ti-node {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  gap: 0.15rem 0.5rem;
+  padding-left: calc(var(--depth, 0) * 0.9rem);
+  font-size: 0.92rem;
+}
+
+.ti-node::before {
+  content: "";
+  width: 0.55rem;
+  height: 0.55rem;
+  border: 2px solid var(--text-dim);
+  border-radius: 50%;
+}
+
+.ti-node[data-state="resolved"]::before {
+  border-color: var(--green);
+  background: var(--green);
+}
+
+.ti-node[data-state="active"]::before {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.ti-node[data-state="active"] .ti-entry-label {
+  font-weight: 600;
+}
+
+.ti-node .ti-entry-note {
+  grid-column: 2 / -1;
+}
+
+/* ---------- outline ---------- */
+
+.ti-outline {
+  display: grid;
+  gap: 0.15rem;
+  counter-reset: question;
+}
+
+.ti-outline a {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 0.55rem;
+  padding: 0.4rem 0.45rem;
+  border-radius: 6px;
+  color: inherit;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  text-decoration: none;
+  counter-increment: question;
+}
+
+.ti-outline a::before {
+  content: counter(question);
+  grid-row: 1 / 3;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.ti-outline a:hover {
+  background: var(--surface2);
+}
+
+.ti-outline-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.ti-outline-state {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.ti-outline-state[data-status="answered"] {
+  color: var(--green);
+}
+
+.ti-outline-state[data-status="unsure"] {
+  color: var(--orange);
+}
+
+/* ---------- the round ---------- */
+
+.ti-head {
+  max-width: var(--measure);
+  margin-bottom: 1.75rem;
+}
+
+.ti-kicker {
+  margin-bottom: 0.35rem;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ti-synthesis {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1.1rem;
+  padding: 0.9rem 1.1rem;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--accent-dim);
+}
+
+.ti-synthesis h2 {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.ti-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  margin-bottom: 1.25rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--orange);
+  border-radius: var(--radius);
+  background: var(--orange-dim);
+}
+
+.ti-question,
+.ti-send {
+  margin-bottom: 1.25rem;
+  padding: clamp(1.1rem, 2.5vw, 1.6rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.ti-question {
+  border-left: 4px solid var(--border-bright);
+}
+
+.ti-question[data-status="answered"] {
+  border-left-color: var(--green);
+}
+
+.ti-question[data-status="unsure"] {
+  border-left-color: var(--orange);
+}
+
+.ti-question[data-status="unsure"] .ti-control {
+  opacity: 0.55;
+}
+
+.ti-question-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.7rem;
+  margin-bottom: 0.55rem;
+  font-size: 0.82rem;
+}
+
+.ti-number {
+  color: var(--text-dim);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ti-chip,
+.ti-badge {
+  padding: 0.1rem 0.55rem;
+  border-radius: 99px;
+  background: var(--blue-dim);
+  color: var(--blue);
+  font-weight: 600;
+}
+
+.ti-state {
+  margin-left: auto;
+  color: var(--text-dim);
+}
+
+.ti-question[data-status="answered"] .ti-state {
+  color: var(--green);
+  font-weight: 600;
+}
+
+.ti-question[data-status="unsure"] .ti-state {
+  color: var(--orange);
+  font-weight: 600;
+}
+
+.ti-why {
+  max-width: var(--measure);
+  margin-top: 0.6rem;
+  color: var(--text-dim);
+}
+
+.ti-why strong {
+  color: var(--text);
+}
+
+.ti-control {
+  margin-top: 1.1rem;
+}
+
+.ti-control > .ti-help {
+  margin-bottom: 0.6rem;
+}
+
+.ti-control > fieldset + .ti-help {
+  margin: 0.6rem 0 0;
+}
+
+/* ---------- figures ---------- */
+
+.ti-figure {
+  margin-top: 1rem;
+}
+
+.ti-figure figcaption {
+  margin-top: 0.4rem;
+  color: var(--text-dim);
+  font-size: 0.86rem;
+}
+
+.ti-figure-chart,
+.ti-figure-screenshot {
+  padding: clamp(0.8rem, 2vw, 1.3rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.ti-evidence-title {
+  margin-bottom: 0.7rem;
+  font-size: 1.1rem;
+}
+.ti-source,
+.ti-chart-unit,
+.ti-chart-ticks,
+.ti-chart-legend {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+.ti-source {
+  margin-top: 0.4rem;
+}
+.ti-chart {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+.ti-chart text {
+  fill: var(--text-dim);
+  font: 15px var(--font-body);
+}
+.ti-gridline {
+  stroke: var(--border-bright);
+}
+.ti-series-0 {
+  --line-color: var(--blue);
+}
+.ti-series-1 {
+  --line-color: var(--orange);
+  stroke-dasharray: 7 3;
+}
+.ti-series-2 {
+  --line-color: var(--green);
+  stroke-dasharray: 2 3;
+}
+.ti-series-3 {
+  --line-color: var(--text);
+  stroke-dasharray: 8 3 2 3;
+}
+.ti-chart polyline,
+.ti-chart-legend path {
+  fill: none;
+  stroke: var(--line-color);
+  stroke-width: 2.5;
+}
+.ti-chart circle {
+  fill: var(--line-color);
+}
+.ti-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1rem;
+  margin-bottom: 0.75rem;
+}
+.ti-chart-legend svg {
+  width: 1.5rem;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+.ti-chart-ticks {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 3% 0.75rem 14%;
+}
+.ti-figure-chart summary {
+  cursor: pointer;
+  color: var(--accent);
+}
+.ti-inspect-point {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.65rem 0.8rem;
+  margin-bottom: 0.5rem;
+  background: var(--surface-elevated);
+  border-radius: 6px;
+  font-size: 0.86rem;
+}
+.no-js .ti-inspect-point {
+  display: none;
+}
+.ti-inspect-point label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.8rem;
+}
+.ti-inspect-point input {
+  min-width: 7rem;
+  flex: 1;
+  accent-color: var(--accent);
+}
+.ti-inspect-point output {
+  font-variant-numeric: tabular-nums;
+}
+.ti-chart .ti-point-selected {
+  r: 5px;
+  stroke: var(--text);
+  stroke-width: 1.5;
+  stroke-dasharray: none;
+}
+.ti-enlarge {
+  display: block;
+  width: 100%;
+  padding: 0;
+  text-align: start;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  cursor: zoom-in;
+}
+.ti-enlarge-label {
+  display: block;
+  font: 0.85rem var(--font-body);
+  margin-top: 0.5rem;
+}
+.ti-capture {
+  display: block;
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+}
+.ti-capture img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.ti-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: #172b42;
+  color: white;
+  font: bold 0.85rem var(--font-body);
+  box-shadow: 0 1px 4px #0009;
+}
+.ti-callouts {
+  list-style: decimal;
+  padding-left: 1.5rem;
+  margin-top: 0.65rem;
+}
+.ti-callouts li::marker {
+  font-weight: bold;
+}
+#ti-inspect {
+  max-width: 95vw;
+  max-height: 92vh;
+  padding: 0;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius);
+}
+#ti-inspect::backdrop {
+  background: rgb(0 0 0 / 0.7);
+}
+#ti-inspect header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 1rem;
+}
+.ti-inspect-scroll {
+  max-height: 74vh;
+  overflow: auto;
+}
+.ti-inspect-scroll .ti-capture {
+  width: max-content;
+  max-width: none;
+}
+.ti-inspect-scroll img {
+  max-width: none;
+}
+.ti-inspect-scroll .ti-callouts {
+  padding: 0.5rem 1rem 0.75rem 2.5rem;
+}
+
+.ti-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.6rem;
+  counter-reset: step;
+}
+
+.ti-steps li {
+  position: relative;
+  display: flex;
+  gap: 0.45rem;
+  align-items: baseline;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--border-bright);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  font-size: 0.92rem;
+  counter-increment: step;
+}
+
+.ti-steps li::before {
+  content: counter(step);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.ti-steps li + li::after {
+  content: "\2192";
+  position: absolute;
+  left: -1.25rem;
+  color: var(--text-dim);
+}
+
+.ti-sketch {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.ti-bars {
+  display: grid;
+  grid-template-columns: minmax(0, min(14rem, 40%)) minmax(0, 1fr) fit-content(40%);
+  gap: 0.4rem 0.75rem;
+  font-size: 0.92rem;
+}
+
+.ti-bars > div {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+}
+
+.ti-bars dd {
+  display: grid;
+  grid-column: 2 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.ti-bars dd > :last-child {
+  overflow-wrap: anywhere;
+}
+
+.ti-bar {
+  display: block;
+  height: 0.7rem;
+  border-radius: 3px;
+  background: var(--blue);
+}
+
+.ti-code {
+  margin: 0;
+  padding: 0.8rem 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface2);
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.ti-code code {
+  padding: 0;
+  background: none;
+  font-size: inherit;
+}
+
+.ti-table-wrap,
+.ti-matrix-wrap {
+  overflow-x: auto;
+}
+
+.ti-table,
+.ti-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.ti-table th,
+.ti-table td {
+  padding: 0.5rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.ti-table thead th {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ---------- choice ---------- */
+
+.ti-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15.5rem, 1fr));
+  gap: 0.75rem;
+}
+
+.ti-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem;
+  border: 1.5px solid var(--border-bright);
+  border-radius: var(--radius);
+  background: var(--surface-elevated);
+}
+
+.ti-option:hover {
+  border-color: var(--accent);
+}
+
+.ti-option:has(> input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.ti-option > input {
+  position: absolute;
+  opacity: 0;
+}
+
+.ti-option > input:focus-visible + label {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.ti-option > label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.7rem;
+  cursor: pointer;
+}
+
+/* The whole card selects the option, not only its heading. */
+.ti-option > label::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.ti-letter {
+  display: grid;
+  width: 1.7rem;
+  height: 1.7rem;
+  place-items: center;
+  border: 1.5px solid var(--border-bright);
+  border-radius: 50%;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.ti-option > input:checked + label .ti-letter {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.ti-option-text {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.ti-option-text > span {
+  color: var(--text-dim);
+  font-size: 0.93rem;
+}
+
+.ti-badge {
+  margin-left: 0.5rem;
+  background: var(--green-dim);
+  color: var(--green);
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+
+.ti-tradeoffs {
+  display: grid;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+}
+
+.ti-tradeoffs ul {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 0.2rem;
+}
+
+.ti-tradeoffs li {
+  position: relative;
+  padding-left: 1.1rem;
+}
+
+.ti-tradeoffs li::before {
+  position: absolute;
+  left: 0;
+  font-weight: 700;
+}
+
+.ti-gives li::before {
+  content: "+";
+  color: var(--green);
+}
+
+.ti-costs li::before {
+  content: "\2212";
+  color: var(--red);
+}
+
+.ti-option .ti-figure {
+  margin-top: auto;
+}
+
+.ti-option-other {
+  grid-column: 1 / -1;
+  border-style: dashed;
+}
+
+/* Fields inside a card sit above the layer that makes the card clickable. */
+.ti-own,
+.ti-table-wrap,
+.ti-code {
+  position: relative;
+  z-index: 1;
+}
+
+.ti-own {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.8rem;
+}
+
+.ti-option .ti-own {
+  margin-top: 0;
+}
+
+.ti-own > label {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* ---------- rank ---------- */
+
+.ti-rank {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 0.8rem;
+}
+
+.ti-rank li,
+.ti-allocate li {
+  display: grid;
+  align-items: center;
+  gap: 0.4rem 0.9rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--border-bright);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+}
+
+.ti-rank li {
+  grid-template-columns: auto 1fr auto;
+}
+
+.ti-place {
+  display: grid;
+  width: 1.7rem;
+  height: 1.7rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.ti-item-text,
+.ti-allocate label {
+  display: grid;
+  gap: 0.1rem;
+}
+
+/* A table cell keeps its own display, so its two lines are blocks inside it. */
+.ti-matrix th[scope="row"] strong,
+.ti-matrix th[scope="row"] span {
+  display: block;
+}
+
+.ti-item-text strong,
+.ti-allocate label strong,
+.ti-matrix th[scope="row"] strong {
+  font-weight: 600;
+}
+
+.ti-item-text span,
+.ti-allocate label span,
+.ti-matrix th[scope="row"] span {
+  color: var(--text-dim);
+  font-size: 0.88rem;
+  font-weight: 400;
+}
+
+.ti-moves,
+.ti-amount {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.ti-icon {
+  display: grid;
+  width: 2.1rem;
+  height: 2.1rem;
+  place-items: center;
+  border: 1px solid var(--border-bright);
+  border-radius: 6px;
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.ti-icon:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.ti-icon:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+/* ---------- scale ---------- */
+
+.ti-scale {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 0.6rem 1.1rem;
+  align-items: center;
+}
+
+.ti-pole {
+  color: var(--text-dim);
+  font-size: 0.93rem;
+  text-align: right;
+}
+
+.ti-pole-high {
+  text-align: left;
+}
+
+.ti-stops {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.ti-stop {
+  position: relative;
+}
+
+.ti-stop input {
+  position: absolute;
+  opacity: 0;
+}
+
+.ti-stop label {
+  display: grid;
+  width: 2.7rem;
+  height: 2.7rem;
+  place-items: center;
+  border: 1.5px solid var(--border-bright);
+  border-radius: 50%;
+  background: var(--surface-elevated);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.ti-stop label:hover {
+  border-color: var(--accent);
+}
+
+.ti-stop input:checked + label {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.ti-stop input:focus-visible + label {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.ti-stop-recommended::after {
+  content: "";
+  position: absolute;
+  bottom: -0.55rem;
+  left: 50%;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--green);
+  transform: translateX(-50%);
+}
+
+/* ---------- allocate ---------- */
+
+.ti-left {
+  margin-bottom: 0.6rem;
+  font-weight: 600;
+}
+
+.ti-allocate {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 0.6rem;
+}
+
+.ti-allocate li {
+  grid-template-columns: 1fr auto;
+}
+
+.ti-amount input {
+  width: 4.6rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.ti-share {
+  grid-column: 1 / -1;
+  height: 0.35rem;
+  border-radius: 99px;
+  background: var(--surface2);
+}
+
+.ti-share span {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--accent);
+  transition: width 0.15s ease;
+}
+
+/* ---------- matrix ---------- */
+
+.ti-matrix th,
+.ti-matrix td {
+  padding: 0.55rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.ti-matrix thead th {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.ti-matrix th[scope="row"] {
+  text-align: left;
+}
+
+.ti-matrix td {
+  text-align: center;
+}
+
+.ti-matrix td input {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.ti-matrix td label {
+  display: none;
+}
+
+/* ---------- confirm ---------- */
+
+.ti-statement {
+  padding: 0.8rem 1rem;
+  border-left: 3px solid var(--blue);
+  border-radius: 0 6px 6px 0;
+  background: var(--blue-dim);
+}
+
+.ti-statement footer {
+  margin-top: 0.4rem;
+  color: var(--text-dim);
+  font-size: 0.86rem;
+}
+
+.ti-verdict {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}
+
+.ti-pill {
+  position: relative;
+}
+
+.ti-pill input {
+  position: absolute;
+  opacity: 0;
+}
+
+.ti-pill label,
+.ti-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1.1rem;
+  border: 1.5px solid var(--border-bright);
+  border-radius: 99px;
+  background: var(--surface-elevated);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.ti-pill label:hover,
+.ti-button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.ti-pill input:checked + label {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.ti-pill input:focus-visible + label {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* ---------- recommendation and the rest of a question ---------- */
+
+.ti-recommendation {
+  display: grid;
+  gap: 0.25rem;
+  max-width: var(--measure);
+  margin-top: 1.1rem;
+  padding: 0.75rem 1rem;
+  border: 1px dashed var(--green);
+  border-radius: 6px;
+  background: var(--green-dim);
+}
+
+.ti-recommendation h3 {
+  color: var(--green);
+}
+
+.ti-question-foot {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1.1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.93rem;
+}
+
+.ti-check {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  width: fit-content;
+  cursor: pointer;
+}
+
+.ti-check input {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: none;
+  accent-color: var(--accent);
+}
+
+.ti-note summary {
+  width: fit-content;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.ti-note textarea {
+  margin-top: 0.45rem;
+}
+
+/* ---------- sending ---------- */
+
+.ti-send {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.ti-send > label:not(.ti-check) {
+  font-weight: 600;
+}
+
+.ti-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.ti-button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.ti-primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.ti-after {
+  display: grid;
+  gap: 0.8rem;
+  max-width: var(--measure);
+  padding: clamp(1.5rem, 5vw, 4rem) 0;
+}
+
+.ti-after h1:focus {
+  outline: none;
+}
+
+.ti-toast {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 40;
+  max-width: 24rem;
+  padding: 0.7rem 1rem;
+  border-radius: var(--radius);
+  background: var(--text);
+  color: var(--bg);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* ---------- small screens ---------- */
+
+@media (max-width: 60rem) {
+  .ti-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ti-side {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media (max-width: 40rem) {
+  .ti-scale {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ti-pole {
+    text-align: left;
+  }
+
+  .ti-pole-high {
+    text-align: right;
+  }
+
+  .ti-stops {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: space-between;
+  }
+
+  .ti-stop {
+    flex: 0 1 2.4rem;
+    min-width: 0;
+  }
+
+  .ti-stop label {
+    width: 100%;
+    height: 2.4rem;
+  }
+
+  /* Each row of the matrix becomes its own block, with the column names beside the buttons. */
+  .ti-matrix thead {
+    display: none;
+  }
+
+  .ti-matrix tr,
+  .ti-matrix th[scope="row"] {
+    display: block;
+  }
+
+  .ti-matrix th[scope="row"] {
+    border-bottom: 0;
+    padding-bottom: 0.2rem;
+  }
+
+  .ti-matrix tr {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ti-matrix td {
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+    border-bottom: 0;
+  }
+
+  .ti-matrix td label {
+    display: inline;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+@media print {
+  .ti-masthead,
+  .ti-side,
+  .ti-send,
+  .ti-toast {
+    display: none;
+  }
+}

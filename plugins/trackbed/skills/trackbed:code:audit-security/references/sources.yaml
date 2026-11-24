@@ -1,0 +1,43 @@
+sources:
+  - id: pstack-cso
+    url: https://raw.githubusercontent.com/no-session/pstack/9a24d1408a10a5d0df624ffc128230424e405b82/cso/SKILL.md
+    title: "no-session/pstack - CSO security audit"
+    rationale: "The infrastructure-first attack-surface census, whole-repository category breadth, evidence filtering, and remediation-oriented report influenced this audit; the local secret-safety, coverage, verification, routing, and output contracts are original."
+    usage: inspiration
+    last_reviewed_at: 2026-08-21
+    baseline_commit: "9a24d1408a10a5d0df624ffc128230424e405b82"
+    baseline_hash: "sha256:d960820f3dc2b30966d8063d3293814b702f904ca453e762fc571a154bca94b3"
+  - id: owasp-threat-modeling
+    url: https://raw.githubusercontent.com/OWASP/CheatSheetSeries/master/cheatsheets/Threat_Modeling_Cheat_Sheet.md
+    title: "OWASP Threat Modeling Cheat Sheet"
+    rationale: "The model-first workflow, trust-boundary and data-flow inventory, threat identification, ranking, and review stages inform the audit sequence. Its limits on risk transfer inform the rule that a provider, vendor, or contract counts as a control only when repository configuration shows it enabled, and its review-and-validation stage informs each finding's closure check."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "a13983001cb3ed79af5c52b9558db39a1cae8b0a"
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:5102d1557d58fdc184e1cb07dbd796f063e8899318e7d83de5b6242cebf74233"
+  - id: owasp-attack-surface-analysis
+    url: https://raw.githubusercontent.com/OWASP/CheatSheetSeries/master/cheatsheets/Attack_Surface_Analysis_Cheat_Sheet.md
+    title: "OWASP Attack Surface Analysis Cheat Sheet"
+    rationale: "The requirement to enumerate entry points, data, privileged operations, and changing attack surfaces informs the repository-wide inventory."
+    usage: inspiration
+    last_reviewed_at: 2026-11-09
+    baseline_commit: "a13983001cb3ed79af5c52b9558db39a1cae8b0a"
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:239f4e4b29db5f8f03632e0ca70d61f1e44bce7dc4e0dbfee32eb0160b47f81b"
+  - id: microsoft-stride
+    url: https://raw.githubusercontent.com/MicrosoftDocs/azure-docs/refs/heads/main/articles/security/develop/threat-modeling-tool-threats.md
+    title: "Microsoft Threat Modeling Tool - STRIDE threats"
+    rationale: "The six STRIDE threat categories provide consistent prompts for evaluating every observed trust boundary."
+    usage: inspiration
+    last_reviewed_at: 2026-08-21
+    baseline_commit: "af93316162b0bf50544a925a7346bdd66ff9c79b"
+    baseline_hash: "sha256:ce4d5cfab02daa66c18e88522d7d97d3a3fd815fceb9bda766d43400fa430087"
+  - id: owasp-csrf-testing
+    url: https://raw.githubusercontent.com/OWASP/wstg/master/document/4-Web_Application_Security_Testing/06-Session_Management/05-Cross_Site_Request_Forgery.md
+    title: "OWASP Web Security Testing Guide - Testing for Cross Site Request Forgery"
+    rationale: "The browser-ambient credential model, including cookies and HTTP authentication, informs the trust-boundary requirement to assess CSRF beyond cookie-authenticated state changes and the rule that SameSite never counts as an observed control for an HTTP-authenticated candidate. Its SameSite considerations, including checking the cookie's actual Set-Cookie header, inform the unset and Lax rules and recording a cookie issued outside the repository as unknown, and its point that CSRF reaches intranet servers behind a firewall informs the internal-only placement rule."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "b2d226e9b53b56814919fbef90392aa48198711c"
+    baseline_hash: "sha256:1ac48d5cee3da8fbc9dd014c40e2788ac619090024daea09364ab877e45a1d79"

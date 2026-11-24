@@ -1,0 +1,17 @@
+sources:
+  - id: compound-engineering-ce-compound
+    url: https://github.com/EveryInc/compound-engineering-plugin/tree/main/skills/ce-compound
+    title: "EveryInc compound-engineering-plugin - ce-compound"
+    rationale: "The solved-problem knowledge capture flow, solution-note shape, failed-approaches emphasis, and reuse guidance are adapted from ce-compound, as are holding a lesson in its cheapest durable form (a check before a note) and reusing the store's own frontmatter vocabulary. Routing domain terms to trackbed:docs:ubiquitous-language instead of writing the glossary here is a local choice."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "7dc50943bbf959dbe6a93a175e41e5fff8395e00"
+    baseline_hash: "sha256:de6067c49df77ce69c50cc71f7600e7a6e49f98f6a3af8d197b08181dbb339b6"
+  - id: compound-engineering-ce-compound-refresh
+    url: https://github.com/EveryInc/compound-engineering-plugin/tree/main/skills/ce-compound/references/refresh
+    title: "EveryInc compound-engineering-plugin - ce-compound refresh workflow"
+    rationale: "The `--refresh` mode's stale-learning refresh workflow, keep/update/consolidate/delete classifications, evidence-first audit, and inbound-reference check before a delete are adapted from the refresh workflow, which now lives inside ce-compound. The confirmation gate before deleting or consolidating notes is a local choice."
+    usage: inspiration
+    last_reviewed_at: 2026-11-06
+    baseline_commit: "7dc50943bbf959dbe6a93a175e41e5fff8395e00"
+    baseline_hash: "sha256:24424b89c8c444134d69fee7ecd3721cc06f3ee8def66846b8982727a61f8b40"

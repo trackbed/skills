@@ -1,0 +1,41 @@
+sources:
+  - id: pocock-agentic-coding-mistakes
+    url: https://x.com/mattpocockuk/status/2109973273924579720
+    title: "Matt Pocock X post on agentic coding mistakes"
+    rationale: "The eighteen mistakes that references/mistakes.md checks for are adapted from this post's list, rewritten in original wording with local evidence signals, thresholds, and changes."
+    usage: inspiration
+    last_reviewed_at: 2026-10-29
+    fetch_mode: availability
+    baseline_hash: "sha256:b125c62b5b12be7ea4dd9b52e6c45a33069ece767ad76c439e66c7ee9d9dad3e"
+  - id: aihero-ai-coding-dictionary
+    url: https://www.aicodingdictionary.com/
+    title: "AI Hero - The AI Coding Dictionary"
+    rationale: "The rubric's readings of effort, skills, automated checks, automated and human review, prototyping, vibe coding, and unattended work follow this glossary, which the post links for its terms."
+    usage: inspiration
+    last_reviewed_at: 2026-10-29
+    fetch_mode: curl-html
+    baseline_hash: "sha256:e0c192ee3b3004416414bd1b7fac95f5b17f3d551bd4ca0b55f2ec27944e32e3"
+  - id: anthropic-prompting-claude-fable-5-2
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-2.md
+    title: "Claude Docs - Prompting Claude Fable 5.2"
+    rationale: "The effort entry's comparison against the model's documented default level follows this guide's effort calibration advice."
+    usage: inspiration
+    last_reviewed_at: 2026-11-19
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:c20db12661c1cea8594aaf29a20dc2ad460437200f6ffbbbf8d3086b9c724c5d"
+  - id: anthropic-prompting-claude-opus-5-5
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5.md
+    title: "Claude Docs - Prompting Claude Opus 5.5"
+    rationale: "The effort entry's point that a level suited to one model can be too high for the next follows this guide's note that effort level names do not mean the same amount of thinking across models."
+    usage: inspiration
+    last_reviewed_at: 2026-11-19
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:6171e5c0ada4178cf93c40470f7371df9e7380e8b6514b9fb34e183c914c784a"
+  - id: openai-using-gpt-6-2
+    url: https://developers.openai.com/api/docs/guides/latest-model.md
+    title: "OpenAI API Docs - Using GPT-6.2"
+    rationale: "The effort entry's comparison against the model's documented default level follows this guide's recommended starting reasoning effort."
+    usage: inspiration
+    last_reviewed_at: 2026-11-19
+    fetch_mode: curl-markdown
+    baseline_hash: "sha256:6cae4cd655aaab31cea56ded3d174545368b31c4603a171676777aff57e3d463"

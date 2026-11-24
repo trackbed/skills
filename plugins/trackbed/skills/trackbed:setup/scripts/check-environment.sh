@@ -1,0 +1,843 @@
+#!/usr/bin/env bash
+# Environment health checker for trackbed:setup.
+#
+# Original code informed by ideas from EveryInc/compound-engineering-plugin's
+# ce-setup skill; see ../references/sources.yaml.
+#
+# This local implementation is read-only. It reports tool availability and
+# repository context without installing packages, editing config, or fetching.
+set -euo pipefail
+
+# Resolve the plugin root from this script's own location
+# (<plugin-root>/skills/setup/scripts/check-environment.sh), so
+# plugin-shipped files are found regardless of the caller's working directory.
+# Uses parameter expansion instead of dirname so it works under minimal PATHs.
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+case "$SCRIPT_PATH" in
+  */*) SCRIPT_DIR="$(cd "${SCRIPT_PATH%/*}" && pwd)" ;;
+  *) SCRIPT_DIR="$(pwd)" ;;
+esac
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+
+source "$PLUGIN_ROOT/scripts/lib/trackbed-paths.sh"
+
+OUTPUT_FORMAT="text"
+
+# Avoid here-documents and here-strings in this script: bash before 5.1 backs
+# them with a temp file, which a sandbox that blocks writes refuses.
+usage() {
+  printf '%s\n' \
+    'Usage: check-environment.sh [--json] [--help]' \
+    '' \
+    'Runs a read-only health check for common trackbed workflow dependencies.' \
+    '' \
+    'Options:' \
+    '  --json   Print machine-readable JSON' \
+    '  --help   Show this help'
+}
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --json)
+      OUTPUT_FORMAT="json"
+      ;;
+    --help | -h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+  shift
+done
+
+json_escape() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
+version_at_least() {
+  local actual="$1"
+  local minimum="$2"
+  local actual_major
+  local actual_minor
+  local minimum_major
+  local minimum_minor
+
+  if [[ "$actual" =~ ([0-9]+)(\.([0-9]+))? ]]; then
+    actual_major=$((10#${BASH_REMATCH[1]}))
+    actual_minor=$((10#${BASH_REMATCH[3]:-0}))
+  else
+    return 2
+  fi
+
+  if [[ "$minimum" =~ ^([0-9]+)(\.([0-9]+))?$ ]]; then
+    minimum_major=$((10#${BASH_REMATCH[1]}))
+    minimum_minor=$((10#${BASH_REMATCH[3]:-0}))
+  else
+    return 2
+  fi
+
+  [ "$actual_major" -gt "$minimum_major" ] \
+    || { [ "$actual_major" -eq "$minimum_major" ] && [ "$actual_minor" -ge "$minimum_minor" ]; }
+}
+
+tool_status() {
+  local name="$1"
+  local install="$2"
+  local version_cmd="${3:-}"
+  local minimum_version="${4:-}"
+  local version_probe_cmd="${5:-}"
+  local status="missing"
+  local path=""
+  local version=""
+  local probed_version=""
+  local comparison_status=0
+
+  if path=$(command -v "$name" 2> /dev/null); then
+    status="ok"
+    if [ -n "$version_cmd" ]; then
+      version=$(sh -c "$version_cmd" 2> /dev/null | head -1 || true)
+    else
+      version=$("$name" --version 2> /dev/null | head -1 || true)
+    fi
+    if [ -n "$minimum_version" ]; then
+      if [ -z "$version_probe_cmd" ] || ! probed_version=$(sh -c "$version_probe_cmd" 2> /dev/null); then
+        status="error"
+      elif version_at_least "$probed_version" "$minimum_version"; then
+        status="ok"
+      else
+        comparison_status=$?
+        if [ "$comparison_status" -eq 1 ]; then
+          status="outdated"
+        else
+          status="error"
+        fi
+      fi
+    fi
+  fi
+
+  "$render_tool" "$name" "$status" "$path" "$version" "$install"
+}
+
+json_tool() {
+  local name="$1" status="$2" path="$3" version="$4" install="$5"
+
+  printf '{"name":"%s","status":"%s","path":"%s","version":"%s","install":"%s"}' \
+    "$(json_escape "$name")" \
+    "$status" \
+    "$(json_escape "$path")" \
+    "$(json_escape "$version")" \
+    "$(json_escape "$install")"
+}
+
+text_tool() {
+  local name="$1" status="$2" path="$3" version="$4" install="$5"
+
+  if [ "$status" = "ok" ]; then
+    if [ -n "$version" ]; then
+      printf '[ok]      %-14s %s (%s)\n' "$name" "$path" "$version"
+    else
+      printf '[ok]      %-14s %s\n' "$name" "$path"
+    fi
+  elif [ "$status" = "outdated" ]; then
+    printf '[outdated] %-14s %s (%s); upgrade: %s\n' "$name" "$path" "$version" "$install"
+  elif [ "$status" = "error" ]; then
+    printf '[error]    %-14s %s (%s); runtime probe failed; repair: %s\n' "$name" "$path" "$version" "$install"
+  else
+    printf '[missing] %-14s install: %s\n' "$name" "$install"
+  fi
+}
+
+json_context() {
+  printf '{"key":"%s","value":"%s"}' "$(json_escape "$1")" "$(json_escape "$3")"
+}
+
+text_context() {
+  printf '%-24s %s\n' "$2:" "$3"
+}
+
+detect_repo_root() {
+  git rev-parse --show-toplevel 2> /dev/null || true
+}
+
+detect_branch() {
+  git symbolic-ref --quiet --short HEAD 2> /dev/null || echo "detached-or-not-a-git-repo"
+}
+
+detect_git_state() {
+  if ! git rev-parse --git-dir > /dev/null 2>&1; then
+    echo "not-a-git-repo"
+    return
+  fi
+  if git diff --quiet && git diff --cached --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
+    echo "clean"
+  else
+    echo "dirty"
+  fi
+}
+
+detect_file() {
+  local path="$1"
+  if [ -e "$path" ]; then
+    echo "present"
+  else
+    echo "missing"
+  fi
+}
+
+# Conductor 0.95 moved repository settings into the app and imported existing
+# files, so a remaining file is a legacy copy, not the live configuration.
+detect_legacy_conductor_settings() {
+  if [ -e ".conductor/settings.toml" ]; then
+    echo "present (legacy; Conductor 0.95 and later keep repository settings in the app)"
+  else
+    echo "missing"
+  fi
+}
+
+detect_conductor() {
+  if [ -n "${CONDUCTOR_WORKSPACE_PATH:-}" ]; then
+    echo "yes (${CONDUCTOR_WORKSPACE_PATH})"
+    return
+  fi
+  case "$(pwd)" in
+    */conductor/workspaces/*)
+      echo "likely (path contains /conductor/workspaces/)"
+      ;;
+    *)
+      echo "not detected"
+      ;;
+  esac
+}
+
+detect_conductor_mode() {
+  case "${CONDUCTOR_IS_LOCAL:-}" in
+    1)
+      echo "local"
+      ;;
+    0)
+      echo "cloud"
+      ;;
+    "")
+      if [ -n "${CONDUCTOR_WORKSPACE_PATH:-}" ]; then
+        echo "unknown (CONDUCTOR_IS_LOCAL unset)"
+        return
+      fi
+      case "$(pwd)" in
+        */conductor/workspaces/*)
+          echo "unknown (CONDUCTOR_IS_LOCAL unset)"
+          ;;
+        *)
+          echo "not detected"
+          ;;
+      esac
+      ;;
+    *)
+      echo "unknown (CONDUCTOR_IS_LOCAL must be 0 or 1)"
+      ;;
+  esac
+}
+
+detect_env_or_not_set() {
+  local variable_name="$1"
+  local value="${!variable_name:-}"
+
+  if [ -n "$value" ]; then
+    printf '%s\n' "$value"
+  else
+    echo "not set"
+  fi
+}
+
+detect_conductor_port_range() {
+  case "${CONDUCTOR_PORT:-}" in
+    "")
+      echo "not set"
+      ;;
+    *[!0-9]*)
+      echo "invalid (CONDUCTOR_PORT must be an integer)"
+      ;;
+    *)
+      echo "${CONDUCTOR_PORT}-$((10#${CONDUCTOR_PORT} + 9))"
+      ;;
+  esac
+}
+
+detect_context_ignored() {
+  local root
+  local rule
+  local status=0
+
+  root="$(detect_repo_root)"
+  if [ -z "$root" ]; then
+    echo "not-a-git-repo"
+    return
+  fi
+  # The trailing slash lets a directory-only rule match before .context/ exists.
+  rule="$(git -C "$root" check-ignore -v -- .context/ 2> /dev/null)" || status=$?
+  if [ "$status" -eq 0 ]; then
+    rule="${rule%%$'\t'*}"
+    echo "yes${rule:+ ($rule)}"
+  elif [ "$status" -eq 1 ]; then
+    echo "no"
+  else
+    echo "unknown (git check-ignore failed)"
+  fi
+}
+
+codex_home_dir() {
+  if [ -n "${CODEX_HOME:-}" ]; then
+    printf '%s\n' "$CODEX_HOME"
+  elif [ -n "${HOME:-}" ]; then
+    printf '%s\n' "$HOME/.codex"
+  fi
+}
+
+cached_versions() {
+  local version_dir
+  local versions=""
+
+  for version_dir in "$1"/*; do
+    [ -d "$version_dir" ] || continue
+    versions="${versions:+$versions, }${version_dir##*/}"
+  done
+  printf '%s' "$versions"
+}
+
+# Prefer a populated current cache; retain discovery of pre-1.0.0 installs.
+plugin_cache_dir() {
+  local cache_root="$1"
+  local plugin_name
+  for plugin_name in trackbed kramme-cc-workflow; do
+    if [ -n "$(cached_versions "$cache_root/$plugin_name/$plugin_name")" ]; then
+      printf '%s\n' "$cache_root/$plugin_name/$plugin_name"
+      return
+    fi
+  done
+  printf '%s\n' "$cache_root/trackbed/trackbed"
+}
+
+# Cache presence only: deliberately do not read Codex config.toml.
+detect_codex_plugin() {
+  local codex_home
+  local versions
+
+  codex_home="$(codex_home_dir)"
+  if [ -z "$codex_home" ]; then
+    echo "not checked (HOME and CODEX_HOME unset)"
+    return
+  fi
+  versions="$(cached_versions "$(plugin_cache_dir "$codex_home/plugins/cache")")"
+  if [ -n "$versions" ]; then
+    echo "installed (cached $versions)"
+  else
+    echo "not installed"
+  fi
+}
+
+# Prints the Claude Code plugins root; fails when no host directory is set.
+claude_plugins_root() {
+  local root
+
+  if [ -n "${CLAUDE_CODE_PLUGIN_CACHE_DIR:-}" ]; then
+    root="$CLAUDE_CODE_PLUGIN_CACHE_DIR"
+  elif [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
+    root="$CLAUDE_CONFIG_DIR/plugins"
+  elif [ -n "${HOME:-}" ]; then
+    root="$HOME/.claude/plugins"
+  else
+    return 1
+  fi
+  printf '%s\n' "${root%/}"
+}
+
+detect_claude_plugin_cache() {
+  local plugins_root
+  local cache_dir
+  local version_dir
+  local versions
+  local installed_paths=""
+  local installed_path
+  local registered=""
+
+  if ! plugins_root="$(claude_plugins_root)"; then
+    echo "not checked (HOME, CLAUDE_CONFIG_DIR, and CLAUDE_CODE_PLUGIN_CACHE_DIR unset)"
+    return
+  fi
+  cache_dir="$(plugin_cache_dir "$plugins_root/cache")"
+  versions="$(cached_versions "$cache_dir")"
+  if [ -z "$versions" ]; then
+    echo "none"
+    return
+  fi
+  # Registrations may belong to different scopes or projects. They do not
+  # identify the copy loaded in the current session.
+  if [ -r "$plugins_root/installed_plugins.json" ] && command -v jq > /dev/null 2>&1; then
+    installed_paths="$(jq -er --arg key "${cache_dir##*/}@${cache_dir##*/}" '.plugins[$key][]? | .installPath | strings' \
+      "$plugins_root/installed_plugins.json" 2> /dev/null)" || installed_paths=""
+  fi
+  for version_dir in "$cache_dir"/*; do
+    [ -d "$version_dir" ] || continue
+    while IFS= read -r installed_path; do
+      if [ "$installed_path" = "$version_dir" ]; then
+        registered="${registered:+$registered, }${version_dir##*/}"
+        break
+      fi
+    done < <(printf '%s\n' "$installed_paths")
+  done
+  printf '%s%s\n' "$versions" "${registered:+ (registered $registered)}"
+}
+
+# Resolve the file-based managed settings location for the current host.
+claude_managed_settings_file() {
+  case "$(uname -s 2> /dev/null || true)" in
+    Darwin)
+      printf '%s\n' "/Library/Application Support/ClaudeCode/managed-settings.json"
+      ;;
+    Linux*)
+      printf '%s\n' "/etc/claude-code/managed-settings.json"
+      ;;
+    MINGW* | MSYS* | CYGWIN*)
+      if [ -n "${PROGRAMFILES:-}" ]; then
+        printf '%s\n' "${PROGRAMFILES%/}/ClaudeCode/managed-settings.json"
+      fi
+      ;;
+  esac
+}
+
+claude_user_settings_file() {
+  if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
+    printf '%s\n' "${CLAUDE_CONFIG_DIR%/}/settings.json"
+  elif [ -n "${HOME:-}" ]; then
+    printf '%s\n' "$HOME/.claude/settings.json"
+  fi
+}
+
+# Local settings use the main checkout on Unix when it is owned by this user.
+# Shared settings always use the session directory. Also read the legacy local
+# file in that directory, below the root local file in precedence.
+claude_project_settings_files() {
+  local session_dir="${CLAUDE_PROJECT_DIR:-$PWD}"
+  local home_dir="${HOME:-}"
+  local root=""
+  local line
+  local entry
+  local worktrees
+
+  session_dir="$(cd -- "$session_dir" 2> /dev/null && pwd -P)" || return 1
+  if [ -d "$home_dir" ]; then
+    home_dir="$(cd -- "$home_dir" && pwd -P)" || return 1
+  fi
+  case "$(uname -s 2> /dev/null || true)" in
+    MINGW* | MSYS* | CYGWIN*) ;;
+    *)
+      worktrees="$(git -C "$session_dir" worktree list --porcelain 2> /dev/null || true)"
+      while IFS= read -r line; do
+        case "$line" in
+          'worktree '*)
+            root="${line#worktree }"
+            break
+            ;;
+        esac
+      done < <(printf '%s\n' "$worktrees")
+      # A bare repository, a home-directory repository, or an unowned root
+      # does not relocate the local settings file.
+      if [ -n "$root" ]; then
+        root="$(cd -- "$root" 2> /dev/null && pwd -P)" || return 1
+      fi
+      if [ -z "$root" ] || [ ! -e "$root/.git" ] || [ "$root" = "$home_dir" ]; then
+        root=""
+      else
+        for entry in "$root" "$root/.git" "$root/.claude"; do
+          if [ -e "$entry" ] && [ ! -O "$entry" ]; then
+            root=""
+            break
+          fi
+        done
+      fi
+      ;;
+  esac
+  if [ -n "$root" ] && [ "$root" != "$session_dir" ]; then
+    printf '%s\n' "$root/.claude/settings.local.json"
+  fi
+  printf '%s\n' "$session_dir/.claude/settings.local.json"
+  printf '%s\n' "$session_dir/.claude/settings.json"
+}
+
+# Prints true, false, absent (no entry), or inherit (entry without autoUpdate).
+# A higher-precedence entry replaces the whole entry from lower settings files.
+# Malformed settings return non-zero so the caller can report an unknown status.
+claude_auto_update_setting() {
+  jq -er '
+    if type != "object" then error("settings root is not an object") else . end
+    | (if has("extraKnownMarketplaces") then .extraKnownMarketplaces
+       else .additionalMarketplaces end) as $marketplaces
+    | if $marketplaces == null then "absent"
+      elif ($marketplaces | type) != "object" then error("marketplaces is not an object")
+      elif ($marketplaces | has("trackbed") | not) then "absent"
+      else $marketplaces["trackbed"]
+        | if type != "object" then error("marketplace entry is not an object")
+          elif has("autoUpdate") | not then "inherit"
+          elif (.autoUpdate | type) != "boolean" then error("autoUpdate is not boolean")
+          else .autoUpdate | tostring
+          end
+      end
+  ' "$1" 2> /dev/null
+}
+
+# Prints helper, marketplaces, or none for the managed settings file. A policy
+# helper replaces every other managed source, and managed marketplace allow or
+# block lists also gate auto-update, so the file alone cannot answer either way.
+claude_managed_policy() {
+  jq -er '
+    if type != "object" then error("settings root is not an object")
+    elif has("policyHelper") then "helper"
+    elif has("strictKnownMarketplaces") or has("allowedMarketplaces")
+      or has("blockedMarketplaces") then "marketplaces"
+    else "none"
+    end
+  ' "$1" 2> /dev/null
+}
+
+# Local-file /plugin auto-update policy. Session-only settings, remote managed
+# policy, OS policy, and workspace trust cannot be inferred by this shell probe.
+detect_claude_auto_update() {
+  local plugins_root
+  local file
+  local settings_file
+  local setting
+  local dropin
+  local project_settings
+  local value
+  local managed_policy
+
+  if ! plugins_root="$(claude_plugins_root)"; then
+    echo "not checked (HOME, CLAUDE_CONFIG_DIR, and CLAUDE_CODE_PLUGIN_CACHE_DIR unset)"
+    return
+  fi
+  if ! command -v jq > /dev/null 2>&1; then
+    echo "unknown (jq unavailable)"
+    return
+  fi
+
+  settings_file="$(claude_managed_settings_file)"
+  if [ -n "$settings_file" ]; then
+    if [ -d "${settings_file%/*}/managed-settings.d" ] \
+      && { [ ! -r "${settings_file%/*}/managed-settings.d" ] || [ ! -x "${settings_file%/*}/managed-settings.d" ]; }; then
+      echo "unknown (managed settings fragments unreadable; check /plugin)"
+      return
+    fi
+    for dropin in "${settings_file%/*}/managed-settings.d"/*.json; do
+      [ -e "$dropin" ] || continue
+      echo "unknown (managed settings fragments; check /plugin)"
+      return
+    done
+    if [ -f "$settings_file" ] && [ -s "$settings_file" ]; then
+      if ! managed_policy="$(claude_managed_policy "$settings_file")"; then
+        echo "unknown (unreadable: $settings_file)"
+        return
+      fi
+      case "$managed_policy" in
+        helper)
+          echo "unknown (managed policy helper; check /plugin)"
+          return
+          ;;
+        marketplaces)
+          echo "unknown (managed marketplace allow or block list; check /plugin)"
+          return
+          ;;
+      esac
+    fi
+  fi
+
+  if ! project_settings="$(claude_project_settings_files)"; then
+    echo "unknown (session settings directory unavailable; check /plugin)"
+    return
+  fi
+  while IFS= read -r settings_file; do
+    [ -n "$settings_file" ] || continue
+    [ -f "$settings_file" ] || continue
+    # Claude Code reads an empty settings file as an empty object.
+    [ -s "$settings_file" ] || continue
+    if ! setting="$(claude_auto_update_setting "$settings_file")"; then
+      echo "unknown (unreadable: $settings_file)"
+      return
+    fi
+    case "$setting" in
+      true)
+        echo "on (local files; confirm session policy in /plugin)"
+        return
+        ;;
+      false)
+        echo "off (local files; confirm session policy in /plugin)"
+        return
+        ;;
+      inherit) break ;;
+    esac
+  done < <(
+    claude_managed_settings_file
+    printf '%s\n' "$project_settings"
+    claude_user_settings_file
+  )
+
+  file="$plugins_root/known_marketplaces.json"
+  if [ ! -f "$file" ]; then
+    echo "not registered"
+    return
+  fi
+  if ! value="$(jq -er 'if has("trackbed") then (.["trackbed"].autoUpdate == true | tostring) else "absent" end' "$file" 2> /dev/null)"; then
+    echo "unknown (unreadable: $file)"
+    return
+  fi
+  case "$value" in
+    true) echo "on (local files; confirm session policy in /plugin)" ;;
+    false) echo "off (local files; confirm session policy in /plugin)" ;;
+    *) echo "not registered" ;;
+  esac
+}
+
+# Prints the manifest version of the plugin copy running this checker, if any.
+plugin_copy_version() {
+  local manifest
+  local line
+  local version_pattern='"version"[[:space:]]*:[[:space:]]*"([^"]+)"'
+
+  for manifest in "$PLUGIN_ROOT/.claude-plugin/plugin.json" "$PLUGIN_ROOT/.codex-plugin/plugin.json"; do
+    [ -f "$manifest" ] && [ -r "$manifest" ] || continue
+    while IFS= read -r line || [ -n "$line" ]; do
+      if [[ "$line" =~ $version_pattern ]]; then
+        printf '%s\n' "${BASH_REMATCH[1]}"
+        return 0
+      fi
+    done < "$manifest"
+  done
+  return 0
+}
+
+detect_plugin_copy() {
+  local version
+
+  version="$(plugin_copy_version)"
+  printf '%s (%s)\n' "$PLUGIN_ROOT" "${version:-version unknown}"
+}
+
+# Resolves the update-check hook's state file the way the hook does,
+# including the KRAMME_ override name and kramme-cc-workflow/ directory that
+# releases before 1.0.0 used.
+update_check_state_file() {
+  resolve_trackbed_path "TRACKBED_UPDATE_CHECK_FILE" "XDG_STATE_HOME" ".local/state" "update-check.json"
+}
+
+# Reports the newest release the update-check hook last saw. The checker itself
+# never fetches anything.
+detect_plugin_update() {
+  local state_file
+  local summary
+
+  if ! state_file="$(update_check_state_file)"; then
+    echo "not checked (HOME, XDG_STATE_HOME, and TRACKBED_UPDATE_CHECK_FILE unset)"
+    return
+  fi
+  if [ ! -f "$state_file" ]; then
+    echo "not checked yet"
+    return
+  fi
+  if ! command -v jq > /dev/null 2>&1; then
+    echo "unknown (jq unavailable)"
+    return
+  fi
+  if ! summary="$(jq -er --arg installed "$(plugin_copy_version)" '
+    def release: test("^[0-9]+\\.[0-9]+\\.[0-9]+$");
+    def parts: split(".") | map(tonumber);
+    (.latestVersion // "") as $latest
+    | if ($latest | type) != "string" or ($latest | release | not) then
+        "not checked yet"
+      else
+        (if ($installed | release | not) then "latest release \($latest)"
+         elif ($latest | parts) > ($installed | parts) then "\($latest) available"
+         else "up to date (\($installed))"
+         end)
+        + (if (.checkedAt | type) == "number" and .checkedAt > 0
+           then ", last checked \(.checkedAt | todate | .[0:10])"
+           else ""
+           end)
+      end
+  ' "$state_file" 2> /dev/null)"; then
+    echo "unknown (unreadable: $state_file)"
+    return
+  fi
+  printf '%s\n' "$summary"
+}
+
+# Records from converter releases that copied skills into the Codex home.
+detect_codex_legacy_records() {
+  local home
+  local found=""
+
+  home="$(codex_home_dir)"
+  if [ -z "$home" ]; then
+    echo "not checked (HOME and CODEX_HOME unset)"
+    return
+  fi
+  if [ -e "$home/.kramme-install-state.json" ]; then
+    found=".kramme-install-state.json"
+  fi
+  if [ -d "$home/.kramme-install-manifests" ]; then
+    found="${found:+$found, }.kramme-install-manifests/"
+  fi
+  if [ -n "$found" ]; then
+    echo "present ($found in $home)"
+  else
+    echo "none"
+  fi
+}
+
+# The tool-map block older converter releases wrote into the Codex AGENTS.md,
+# delimited by the same markers the converter's legacy cleanup looks for.
+detect_codex_tool_map() {
+  local home
+  local file
+  local line
+  local state="absent"
+  local start_marker="<!-- BEGIN KRAMME CODEX TOOL MAP -->"
+  local end_marker="<!-- END KRAMME CODEX TOOL MAP -->"
+
+  home="$(codex_home_dir)"
+  if [ -z "$home" ]; then
+    echo "not checked (HOME and CODEX_HOME unset)"
+    return
+  fi
+  file="$home/AGENTS.md"
+  if [ ! -e "$file" ]; then
+    echo "absent"
+    return
+  fi
+  if [ ! -r "$file" ]; then
+    echo "unknown (unreadable: $file)"
+    return
+  fi
+  while IFS= read -r line || [ -n "$line" ]; do
+    if [ "$state" = "absent" ]; then
+      case "$line" in
+        *"$start_marker"*)
+          state="incomplete"
+          line="${line#*"$start_marker"}"
+          ;;
+        *)
+          continue
+          ;;
+      esac
+    fi
+    case "$line" in
+      *"$end_marker"*)
+        state="present"
+        break
+        ;;
+    esac
+  done < "$file"
+  if [ "$state" = "present" ]; then
+    echo "present ($file)"
+  elif [ "$state" = "incomplete" ]; then
+    echo "incomplete: start marker without end ($file)"
+  else
+    echo "absent"
+  fi
+}
+
+json_connector() {
+  printf '{"name":"%s","status":"manual-check","hint":"%s"}' "$(json_escape "$1")" "$(json_escape "$2")"
+}
+
+text_connector() {
+  printf '[manual-check] %-14s %s\n' "$1" "$2"
+}
+
+json_section() {
+  printf '%s"%s":[' "$section_separator" "$1"
+  section_separator='],'
+  row_separator=""
+}
+
+text_section() {
+  printf '\n%s\n' "$2"
+}
+
+report_row() {
+  printf '%s' "$row_separator"
+  "$@"
+  row_separator="$next_row_separator"
+}
+
+section_separator=""
+row_separator=""
+next_row_separator=""
+if [ "$OUTPUT_FORMAT" = "json" ]; then
+  render_section=json_section
+  render_tool=json_tool
+  render_connector=json_connector
+  render_context=json_context
+  next_row_separator=","
+  printf '{'
+else
+  render_section=text_section
+  render_tool=text_tool
+  render_connector=text_connector
+  render_context=text_context
+  printf 'trackbed setup health check\n'
+fi
+
+"$render_section" required Required
+report_row tool_status "bash" "Install Bash (Git Bash on Windows)" "bash --version"
+report_row tool_status "git" "Install Xcode Command Line Tools or git" "git --version"
+report_row tool_status "jq" "brew install jq (macOS) or apt install jq (Linux)" "jq --version"
+report_row tool_status "python3" "Install Python 3.10+" "python3 --version" "3.10" "python3 -c 'import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")'"
+report_row tool_status "node" "Install Node.js 18+" "node --version" "18" "node -p 'process.versions.node'"
+
+"$render_section" recommended Recommended
+report_row tool_status "gh" "brew install gh (macOS) or apt install gh (Linux)" "gh --version"
+report_row tool_status "npm" "bundled with Node.js" "npm --version"
+
+"$render_section" optional Optional
+report_row tool_status "bun" "brew install oven-sh/bun/bun" "bun --version"
+report_row tool_status "rtk" "install rtk if this workspace requires it" "rtk --version"
+report_row tool_status "bats" "brew install bats-core (macOS) or apt install bats (Linux)" "bats --version"
+report_row tool_status "trash" "brew install trash (macOS) or apt install trash-cli (Linux)" "trash --version"
+report_row tool_status "surf" "install surf-cli if using visual diagram image generation" "surf --version"
+report_row tool_status "codex" "npm install -g @openai/codex" "codex --version"
+
+"$render_section" integrations Integrations
+report_row "$render_connector" "Linear" "Connector authentication is not reliably inspectable from shell."
+report_row "$render_connector" "Figma" "Connector authentication is not reliably inspectable from shell."
+report_row "$render_connector" "Conductor MCP" "MCP tool availability is not inspectable from shell; check for mcp__conductor__* tools in the host, such as CreateWorkspace and CreateSession for starting local workspaces and chats."
+
+"$render_section" context Context
+report_row "$render_context" "repoRoot" "Repo root" "$(detect_repo_root)"
+report_row "$render_context" "branch" "Branch" "$(detect_branch)"
+report_row "$render_context" "gitState" "Git state" "$(detect_git_state)"
+report_row "$render_context" "conductor" "Conductor" "$(detect_conductor)"
+report_row "$render_context" "conductorMode" "Conductor mode" "$(detect_conductor_mode)"
+report_row "$render_context" "conductorWorkspaceName" "Workspace name" "$(detect_env_or_not_set CONDUCTOR_WORKSPACE_NAME)"
+report_row "$render_context" "conductorWorkspacePath" "Workspace path" "$(detect_env_or_not_set CONDUCTOR_WORKSPACE_PATH)"
+report_row "$render_context" "conductorRootPath" "Root path" "$(detect_env_or_not_set CONDUCTOR_ROOT_PATH)"
+report_row "$render_context" "conductorDefaultBranch" "Default branch" "$(detect_env_or_not_set CONDUCTOR_DEFAULT_BRANCH)"
+report_row "$render_context" "conductorPortRange" "Port range" "$(detect_conductor_port_range)"
+report_row "$render_context" ".context" ".context" "$(detect_file ".context")"
+report_row "$render_context" "contextIgnored" ".context ignored" "$(detect_context_ignored)"
+report_row "$render_context" ".conductor/settings.toml" ".conductor/settings.toml" "$(detect_legacy_conductor_settings)"
+report_row "$render_context" "conductor.json" "conductor.json" "$(detect_file "conductor.json")"
+report_row "$render_context" ".worktreeinclude" ".worktreeinclude" "$(detect_file ".worktreeinclude")"
+report_row "$render_context" "hookConfig" "Hook config" "$(detect_file "${PLUGIN_ROOT}/hooks/hooks.json")"
+report_row "$render_context" "codexLegacyRecords" "Codex legacy records" "$(detect_codex_legacy_records)"
+report_row "$render_context" "codexToolMapBlock" "Codex tool map block" "$(detect_codex_tool_map)"
+report_row "$render_context" "codexPlugin" "Codex plugin" "$(detect_codex_plugin)"
+report_row "$render_context" "claudePluginCache" "Claude plugin cache" "$(detect_claude_plugin_cache)"
+report_row "$render_context" "claudeAutoUpdate" "Claude auto-update" "$(detect_claude_auto_update)"
+report_row "$render_context" "pluginCopy" "Plugin copy" "$(detect_plugin_copy)"
+report_row "$render_context" "pluginUpdate" "Plugin update" "$(detect_plugin_update)"
+
+if [ "$OUTPUT_FORMAT" = "json" ]; then
+  printf ']}\n'
+fi
