@@ -181,7 +181,7 @@ const HOST_READS_AUTO =
  *   refersTo: Skill[],
  *   referredBy: Skill[],
  *   agents: Agent[],
- *   usage: {lead: string, sections: string} | null
+ *   usage: {lead: string, firstCommand: string, sections: string} | null
  * }} related
  * @returns {Page}
  */
@@ -197,17 +197,20 @@ export function skillPage(skill, related) {
     usage,
   } = related;
   const hosts = skill.hosts.map((host) => HOST_LABELS[host] ?? host).join(", ");
-  const command = [`/${skill.name}`, skill.argumentHint]
-    .filter(Boolean)
-    .join(" ");
-  const codex =
-    skill.userInvocable && skill.hosts.includes("codex")
-      ? ` (\`$${skill.name}\` in Codex)`
-      : "";
+  const prefix = skill.hosts.includes("claude-code") ? "/" : "$";
+  const examples = usage
+    ? skill.hosts.map((host) => {
+        const command =
+          host === "codex"
+            ? `$${usage.firstCommand.slice(1)}`
+            : usage.firstCommand;
+        return `\`\`\`${HOST_COMMAND_LANGUAGE} title="${HOST_LABELS[host] ?? host}"\n${command}\n\`\`\``;
+      })
+    : [];
 
   const facts = [
     `**Invocation:** [${skill.invocation}](${pageUrl(SKILLS_PAGE)})`,
-    `**Hosts:** ${hosts}${codex}`,
+    usage ? null : `**Hosts:** ${hosts}`,
     category
       ? `**Category:** [${category.title}](${pageUrl(SKILLS_PAGE, category.anchor)})`
       : null,
@@ -215,13 +218,17 @@ export function skillPage(skill, related) {
   ].filter((fact) => fact !== null);
 
   const body = [
-    skill.summary,
-    usage?.lead,
-    skill.userInvocable
-      ? `\`\`\`${HOST_COMMAND_LANGUAGE}\n${command}\n\`\`\``
-      : null,
+    usage?.lead || skill.summary,
+    ...examples,
     bulletList(facts),
     usage?.sections,
+    usage && skill.argumentHint
+      ? [
+          "<details>\n<summary>Full command syntax</summary>",
+          `\`\`\`${HOST_COMMAND_LANGUAGE}\n${prefix}${skill.name} ${skill.argumentHint}\n\`\`\``,
+          "</details>",
+        ].join("\n\n")
+      : null,
     section("Guides", guideList(guides)),
     section(
       "Related",

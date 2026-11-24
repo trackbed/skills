@@ -51,6 +51,8 @@ When to use it, what it does, and what it changes.
 ## What you get
 ```
 
+Put a typical invocation first in `Examples`. The site displays that command above the options, with a copyable version for each supported host. Use the opening paragraph to say what someone gets from that invocation and what it can change.
+
 The sync checks each guide against its skill, and fails when:
 
 - a user-invocable skill has no guide, or a guide matches no such skill;
