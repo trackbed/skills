@@ -1,5 +1,7 @@
 #!/usr/bin/env bats
 
+load 'test_helper/common'
+
 setup() {
   cd "$BATS_TEST_DIRNAME/.."
   SKILL="skills/pr:shape-up/SKILL.md"
@@ -8,7 +10,7 @@ setup() {
   FIX_CI="skills/pr:fix-ci/SKILL.md"
   REPLY="skills/pr:github-review-reply/SKILL.md"
   ADR="docs/decisions/2026-08-29-model-invocable-orchestration-children.md"
-  BRANCH_PASS='$trackbed:pr:fix-ci --rebase --no-consolidate'
+  BRANCH_PASS='$trackbed:pr:fix-ci --rebase --shape-up --no-consolidate'
   LATER_BRANCH_PASS='$trackbed:pr:fix-ci --no-rebase --no-consolidate'
   REPLY_PASS='$trackbed:pr:github-review-reply --post --resolve --bot-only --no-implement --inline'
 }
@@ -30,16 +32,16 @@ setup() {
 }
 
 @test "shape-up hands work to exactly two skills with pinned arguments" {
-  grep -qF "When \`ROUND\` is 1, invoke \`$BRANCH_PASS\` through the platform skill mechanism, with exactly those two flags." "$SKILL"
+  grep -qF "When \`ROUND\` is 1, invoke \`$BRANCH_PASS\` through the platform skill mechanism, with exactly those three flags." "$SKILL"
   grep -qF "In every later round, invoke \`$LATER_BRANCH_PASS\` instead, with exactly those two flags." "$SKILL"
   grep -qF "invoke \`$REPLY_PASS\` through the platform skill mechanism, with exactly those flags and no Pull Request URL or instructions." "$SKILL"
 
   run python3 - "$SKILL" <<'PY'
 import re, sys
 text = open(sys.argv[1], encoding="utf-8").read()
-handoffs = re.findall(r"`(\$trackbed:[^`]+)`", text)
+handoffs = re.findall(r"`(\$trackbed:[^ `]+ --[^`]+)`", text)
 assert handoffs == [
-    "$trackbed:pr:fix-ci --rebase --no-consolidate",
+    "$trackbed:pr:fix-ci --rebase --shape-up --no-consolidate",
     "$trackbed:pr:fix-ci --no-rebase --no-consolidate",
     "$trackbed:pr:github-review-reply --post --resolve --bot-only --no-implement --inline",
 ], handoffs
@@ -109,7 +111,7 @@ PY
 @test "fix-ci accepts the shape-up branch pass and nothing wider" {
   grep -qE '^description: .*trackbed:pr:rebase, or trackbed:pr:shape-up\."$' "$FIX_CI"
   grep -qF '`trackbed:pr:rebase`, or `trackbed:pr:shape-up`, with the parent'"'"'s exact bounded flags' "$FIX_CI"
-  grep -qF 'exactly `--rebase --no-consolidate` for shape-up'"'"'s first branch pass and exactly `--no-rebase --no-consolidate` for each later one' "$FIX_CI"
+  grep -qF 'exactly `--rebase --shape-up --no-consolidate` for shape-up'"'"'s first branch pass and exactly `--no-rebase --no-consolidate` for each later one' "$FIX_CI"
   grep -qF 'Only `trackbed:pr:shape-up` and `trackbed:linear:issue-to-pr` pass `--rebase` as a parent' "$FIX_CI"
   grep -qF 'if `--no-consolidate` is present, set `NO_CONSOLIDATE=true` and `AUTO_MODE=false`' "$FIX_CI"
   grep -qF 'When `PLAN_SCOPE_ACTIVE=false` and `REBASE_MODE=true`, the user already chose' "$FIX_CI"
@@ -143,7 +145,7 @@ PY
 @test "the shape-up delegations are recorded and documented" {
   grep -qE '^- Amended: .*2026-11-10(,|$)' "$ADR"
   grep -qF '### Pull Request shape-up delegations' "$ADR"
-  grep -qF 'which passes exactly `--rebase --no-consolidate` in its first round and exactly `--no-rebase --no-consolidate` in each later round' "$ADR"
+  grep -qF 'which passes exactly `--rebase --shape-up --no-consolidate` in its first round and exactly `--no-rebase --no-consolidate` in each later round' "$ADR"
   grep -qF 'so a run rebases at most once' "$ADR"
   grep -qF 'Only the first round may rebase' docs/shipping.md
   grep -qF 'which passes exactly `--post --resolve --bot-only --no-implement --inline`' "$ADR"
@@ -152,4 +154,58 @@ PY
   grep -qF '## Shaping Up an Open Pull Request' docs/shipping.md
   grep -qF 'decisions/2026-08-29-model-invocable-orchestration-children.md#pull-request-shape-up-delegations' docs/shipping.md
   grep -qF '| `/trackbed:pr:shape-up` | User | — |' ../README.md
+}
+
+@test "shape-up rebases in auto mode through a named fix-ci flag" {
+  local rebase="skills/pr:rebase/SKILL.md"
+  local adr="docs/decisions/2026-11-24-shape-up-unattended-rebase.md"
+
+  assert_required_text "$SKILL" 'The one exception is the rebase, which runs in auto mode (Step 3)'
+  assert_required_text "$SKILL" 'keep it for Step 6, together with its `Rebase concerns:` line when the pass rebased.'
+  assert_required_text "$SKILL" 'each red flag the rebase bypassed, from its `Rebase concerns:` line'
+
+  assert_required_text "$FIX_CI" 'Only `trackbed:pr:shape-up` passes `--shape-up`'
+  assert_required_text "$FIX_CI" 'if `--shape-up` is present, set `SHAPE_UP_REBASE=true`, and reject it without `--rebase`'
+  assert_required_text "$FIX_CI" 'Reject `--shape-up` unless this is the same-session delegation from the authorized first branch pass'
+  assert_required_text "$FIX_CI" 'When `SHAPE_UP_REBASE=true`, invoke `$trackbed:pr:rebase --shape-up --base <BASE>` instead'
+  assert_required_text "$FIX_CI" 'After a `--shape-up` rebase, also return `Rebase concerns: `'
+
+  assert_required_text "$rebase" 'Auto mode is reserved for a direct user invocation and for that `trackbed:pr:shape-up` delegation, which passes `--shape-up`.'
+  assert_required_text "$rebase" 'Reject the flag if authorization is missing. Then set `AUTO_MODE=true`'
+  assert_required_text "$rebase" 'Reject `--shape-up` when `--manual`, `--force-push`, or `--all-open` accompanies it.'
+  assert_required_text "$rebase" 'so does a `--shape-up` run it delegates.'
+
+  assert_required_text "$adr" '- Status: ACCEPTED'
+  assert_required_text docs/decisions/README.md '2026-11-24-shape-up-unattended-rebase.md'
+}
+
+@test "rebase regenerates conflicted generated files in every mode" {
+  local rebase="skills/pr:rebase/SKILL.md"
+  local route="skills/pr:rebase/references/regenerate-generated.md"
+
+  assert_required_text "$rebase" 'In every round and every mode, read `references/regenerate-generated.md`'
+  assert_required_text "$rebase" 'a file it regenerates is resolved and does not raise the generated-artifact red flag'
+  assert_required_text "$rebase" 'a file the regenerate route regenerated raises none'
+  assert_required_text "$rebase" 'regenerate route, round cap, and red flags as Step 3'
+
+  assert_required_text "$route" 'Migration files are never generated files for this route'
+  assert_required_text "$route" 'Never run a command that watches, serves, deploys, publishes, or pushes'
+  assert_required_text "$route" 'Export the stage-0 entries from the current index and the stage-2 versions'
+  assert_required_text "$route" 'Running the same commands again preserves the scratch paths, contents, and modes.'
+  assert_required_text "$route" 'discard scratch and leave the original conflicts in place'
+  assert_required_text "$route" 'the route does not apply: only conflicted files may be edited there'
+  assert_required_text "$route" 'A `--force-push` run therefore still needs a passing verification run'
+}
+
+@test "regeneration protects intentional lockfile changes and local files" {
+  local route="skills/pr:rebase/references/regenerate-generated.md"
+
+  assert_required_text "$route" 'If the commit changed the lockfile without changing an owning dependency input, use the normal conflict rules.'
+  assert_required_text "$route" 'Accept a regenerated lockfile only when those changes are accounted for in its resolved entries.'
+  assert_required_text "$route" 'No output changes a conflict excluded from this regeneration attempt or a lockfile outside the validated lockfile set.'
+  assert_required_text "$route" 'use the directory of the owning manifest and lockfile'
+  assert_required_text "$route" 'Each expected output was recreated'
+  assert_required_text "$route" 'Create a private scratch directory outside the worktree'
+  assert_required_text "$route" 'Do not use the live worktree or index for generation, copy its untracked or ignored files, or link back to it.'
+  assert_required_text "$route" 'verify that no output would replace an existing untracked or ignored path'
 }

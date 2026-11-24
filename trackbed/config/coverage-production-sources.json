@@ -405,7 +405,8 @@
       "skills": [
         "trackbed/skills/pr:shape-up/SKILL.md",
         "trackbed/skills/pr:fix-ci/SKILL.md",
-        "trackbed/skills/pr:github-review-reply/SKILL.md"
+        "trackbed/skills/pr:github-review-reply/SKILL.md",
+        "trackbed/skills/pr:rebase/SKILL.md"
       ]
     },
     {
@@ -687,7 +688,8 @@
       "suite": "trackbed/tests/conductor-showtime-guidance.bats",
       "skills": [
         "trackbed/skills/conductor:showtime/SKILL.md",
-        "trackbed/skills/pr:create/SKILL.md"
+        "trackbed/skills/pr:create/SKILL.md",
+        "trackbed/skills/pr:shape-up/SKILL.md"
       ]
     },
     {

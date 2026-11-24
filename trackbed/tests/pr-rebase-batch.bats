@@ -530,7 +530,7 @@ run_apply() {
 }
 
 @test "skill routes --all-open to the direct-user-only batch reference" {
-	grep -F 'argument-hint: "[--manual] [--force-push] [--fix-ci] [--base <branch>] [--all-open]"' "$REBASE_SKILL"
+	grep -F 'argument-hint: "[--manual] [--force-push] [--shape-up] [--fix-ci] [--base <branch>] [--all-open]"' "$REBASE_SKILL"
 	grep -F 'A model caller never passes `--all-open`; batch mode is direct-user-only.' "$REBASE_SKILL"
 	grep -F 'Stop with a usage error when `--fix-ci` or `--base` accompanies it.' "$REBASE_SKILL"
 	grep -F 'read `references/batch-mode.md` and follow it instead of Steps 1-7' "$REBASE_SKILL"

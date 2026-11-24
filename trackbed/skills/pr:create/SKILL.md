@@ -83,7 +83,7 @@ The fresh-remote and remote-append paths invoke Steps 6 and 7 via the Skill tool
 
 ## Step 0: Parse Arguments
 
-Parse `$ARGUMENTS` before starting. Accept `--showtime` only as the sole argument to a verified Conductor handoff. Follow `references/showtime-handoff.md` before setting auto mode. Otherwise parse the optional flags below:
+Parse `$ARGUMENTS` before starting. Accept `--showtime` only as the sole argument to a verified Conductor handoff. Follow `references/showtime-handoff.md` and `${CLAUDE_PLUGIN_ROOT}/shared/git/references/showtime-handoff.md` before setting auto mode. Otherwise parse the optional flags below:
 
 - `--manual` -> set `AUTO_MODE=false` and remove the flag from the remaining arguments. Auto mode authorizes the nested unstacked rewrite but does not synthesize the separate stack-wide authorization capability.
 - `--draft` -> set `DRAFT_MODE=true` and remove the flag from the remaining arguments.
