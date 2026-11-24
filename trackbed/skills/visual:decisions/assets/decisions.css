@@ -1862,6 +1862,7 @@ tr[data-muted] .td-bar-value {
   }
 
   .td-brand span,
+  .td-masthead [data-copy-page],
   .td-masthead [data-print] {
     display: none;
   }

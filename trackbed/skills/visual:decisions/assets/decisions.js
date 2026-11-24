@@ -7,7 +7,8 @@
  * The page it runs in holds items a person has to decide on. The builder writes
  * all of the content; this script only keeps the reader's record: one choice,
  * a status, and notes per item. It saves that record in this browser, writes
- * it into a downloaded copy of the page, and exports and imports it as JSON.
+ * it into a copy of the page the reader downloads or copies to the clipboard,
+ * and exports and imports it as JSON.
  * It stays inside the page: the Content-Security-Policy the builder writes lets
  * nothing load or leave, and this script changes nothing but that record.
  *
@@ -1079,10 +1080,11 @@
       window.setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
 
-    function saveCopy() {
+    /** This whole page as a file, holding the current choices. */
+    function pageWithChoices() {
       persist();
       const root = document.documentElement.cloneNode(true);
-      if (!(root instanceof HTMLElement)) return;
+      if (!(root instanceof HTMLElement)) return undefined;
       // The copy opens the way a new document does; only the choices differ.
       need(root, "#trackbed-decisions-state", HTMLScriptElement).textContent =
         safeJson(buildPayload(catalog, records, new Date().toISOString()));
@@ -1094,8 +1096,14 @@
       need(root, "[data-zoom-image]", HTMLImageElement).removeAttribute("src");
       need(root, "[data-toast]", HTMLElement).hidden = true;
       need(root, "[data-message]", HTMLElement).textContent = "";
+      return `<!doctype html>\n${root.outerHTML}\n`;
+    }
+
+    function saveCopy() {
+      const page = pageWithChoices();
+      if (page === undefined) return;
       download(
-        `<!doctype html>\n${root.outerHTML}\n`,
+        page,
         "text/html;charset=utf-8",
         `${catalog.documentId}-with-choices.html`,
       );
@@ -1106,6 +1114,26 @@
     }
     for (const button of all(document, "[data-save-copy]", HTMLButtonElement))
       button.addEventListener("click", saveCopy);
+
+    async function copyPage() {
+      const page = pageWithChoices();
+      if (page === undefined) return;
+      try {
+        await navigator.clipboard.writeText(page);
+      } catch {
+        announce(
+          "This browser did not allow copying to the clipboard. Use Save a copy or Export choices instead.",
+          true,
+        );
+        return;
+      }
+      unsaved = false;
+      announce(
+        "Copied this document with your choices and notes inside it. Paste it to the agent, or into a file to keep it.",
+      );
+    }
+    for (const button of all(document, "[data-copy-page]", HTMLButtonElement))
+      button.addEventListener("click", copyPage);
 
     need(document, "[data-export]", HTMLButtonElement).addEventListener(
       "click",

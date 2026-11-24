@@ -87,7 +87,8 @@ def render_overview(document: Document, items: list[Item], by_id: dict[str, Item
         "The recommendation is advice; nothing is selected for you.</p>"
         "<p>The page saves your choices in this browser as you go, says when it has, and warns you when it cannot. "
         "<strong>Save a copy</strong> downloads this whole "
-        "document with your choices inside it, and <strong>Export choices</strong> gives you a small file to hand "
+        "document with your choices inside it, <strong>Copy to clipboard</strong> copies that same document so you can "
+        "paste it, and <strong>Export choices</strong> gives you a small file to hand "
         "back to the agent. Nothing is sent anywhere, and recording a choice changes nothing else.</p>"
         f'<p class="td-actions"><a class="td-button td-primary" href="{item_href(first)}" data-route>Start the walkthrough</a>'
         f'<a class="td-button" href="#items" data-route>Browse all {total}</a>'
@@ -187,13 +188,15 @@ def render_choices(document: Document, items: list[Item]) -> str:
         '<p class="td-review-count" data-review-count hidden></p>'
         '<section class="td-tools" aria-label="Keep and move your choices"><h2>Keep your choices</h2>'
         '<p class="td-save" data-save-status role="status"></p>'
-        "<p>The line above says whether this browser has your choices. To keep them anywhere else, save a copy or export them. "
+        "<p>The line above says whether this browser has your choices. To keep them anywhere else, save a copy, copy the document to the clipboard, or export them. "
         "Nothing is sent anywhere.</p>"
         '<p class="td-actions"><button type="button" class="td-button td-primary" data-save-copy>Save a copy</button>'
+        '<button type="button" class="td-button" data-copy-page>Copy to clipboard</button>'
         '<button type="button" class="td-button" data-export>Export choices (JSON)</button>'
         '<button type="button" class="td-button" data-import>Import choices</button>'
         '<input type="file" data-import-file accept=".json,.html,application/json,text/html" hidden></p>'
         '<dl class="td-tool-help"><div><dt>Save a copy</dt><dd>Downloads this whole document with your choices and notes inside it.</dd></div>'
+        "<div><dt>Copy to clipboard</dt><dd>Copies that same document, choices and notes included, to paste to the agent.</dd></div>"
         "<div><dt>Export choices</dt><dd>Downloads a small file of your choices to hand to the agent or to import later.</dd></div>"
         "<div><dt>Import choices</dt><dd>Restores choices from an export or a saved copy of this document.</dd></div></dl>"
         '<p class="td-message" data-message role="status"></p></section>'
@@ -253,7 +256,7 @@ def render_about(document: Document) -> str:
         f'<div class="td-about">{sections}{sources}'
         "<section><h2>How your choices are kept</h2>"
         "<p>Choices and notes are saved in this browser under this document's id, when the browser allows it, "
-        "and inside any copy you save. "
+        "and inside any copy you save or copy to the clipboard. "
         "The page has no network access. When this document is rebuilt, a choice stays attached to its item only while "
         "the item and its options are unchanged; a choice made on an earlier version comes back marked for review.</p>"
         '<dl class="td-facts">'
@@ -323,6 +326,7 @@ def render_page(model: Model, seed: dict[str, Any], css: str, script: str) -> st
         f"<strong>{inline(document.title)}</strong><span>Decision document</span></a>"
         '<p class="td-actions"><a class="td-button" href="#choices" data-route>Your choices <span data-progress-short></span></a>'
         '<button type="button" class="td-button td-primary" data-save-copy>Save a copy</button>'
+        '<button type="button" class="td-button" data-copy-page>Copy to clipboard</button>'
         '<button type="button" class="td-button" data-print>Print</button></p></header>\n'
         f'<div class="td-layout">{render_sidebar(document, model.items)}\n'
         f'<main class="td-main" id="main" tabindex="-1">\n'
