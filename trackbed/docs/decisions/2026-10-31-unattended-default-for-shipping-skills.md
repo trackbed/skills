@@ -81,3 +81,7 @@ All five skills carry this rule as one synced paragraph that the skill-contract 
 Keeping unrelated drift without asking still honors the `--ship` promise, because the pushed head is not rewritten. A rebase changes the tree, so the shared shipping contract's validation-only review and final-tree verification run afterwards, as they already did when the user answered "rebase".
 
 Two alternatives were rejected. Defaulting to a rebase would force-push an open Pull Request without the user's permission. Defaulting to a skip whenever drift exists would hide a base movement that can break the Pull Request.
+
+## Amendment (2026-11-24)
+
+[Shape-up now rebases in auto mode](2026-11-24-shape-up-unattended-rebase.md). `trackbed:pr:shape-up` is user-only, and its first branch pass runs `trackbed:pr:fix-ci --rebase --shape-up`, which invokes `trackbed:pr:rebase --shape-up`. That makes it the one model-initiated call that gets the rebase skill's auto mode. `--auto` stays out of both interfaces; `--shape-up` names the delegation that grants the mode and cannot be combined with `--manual` or `--force-push`. Every other model caller still passes `--force-push`.

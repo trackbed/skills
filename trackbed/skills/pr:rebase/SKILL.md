@@ -1,7 +1,7 @@
 ---
 name: pr:rebase
-description: "Rebase onto the PR target and force-push with a pinned lease; cascades gh-stack stacks. Use when asked or when trackbed:pr:fix-ci delegates with --force-push."
-argument-hint: "[--manual] [--force-push] [--fix-ci] [--base <branch>] [--all-open]"
+description: "Rebase onto the PR target and force-push with a pinned lease; regenerates conflicted generated files and cascades gh-stack stacks. Use when asked or when trackbed:pr:fix-ci delegates with --force-push or --shape-up."
+argument-hint: "[--manual] [--force-push] [--shape-up] [--fix-ci] [--base <branch>] [--all-open]"
 disable-model-invocation: false
 user-invocable: true
 ---
@@ -12,9 +12,9 @@ Rebase the current branch onto the latest base branch and force push.
 
 ### Model Invocation Contract
 
-- Invoke automatically only as a delegated child of `trackbed:pr:fix-ci`, with the exact `--force-push` argument selected by that parent. Never omit `--force-push`, and do not add `--fix-ci` or an invented `--base` override.
+- Invoke automatically only as a delegated child of `trackbed:pr:fix-ci`, with the exact `--force-push` argument selected by that parent, or with `--shape-up` only when that `trackbed:pr:fix-ci` run received `--rebase --shape-up` from `trackbed:pr:shape-up`. Never omit `--force-push` otherwise, never choose `--shape-up` on your own initiative, and do not add `--fix-ci` or an invented `--base` override.
 - No other parent workflow is authorized by this model-invocation exception. Model invocation changes routing only; retain every branch, stack, conflict, red-flag, verification, lease, and publication gate, and never push outside the validated current branch or its resolved local stack. A model caller never passes `--all-open`; batch mode is direct-user-only.
-- Auto mode is reserved for a direct user invocation. Every other invocation without `--force-push` runs as `--manual`, whether or not it passes that flag, including one where the model picks this skill for a request that does not name it.
+- Auto mode is reserved for a direct user invocation and for that `trackbed:pr:shape-up` delegation, which passes `--shape-up`. Every other invocation without `--force-push` runs as `--manual`, whether or not it passes that flag, including one where the model picks this skill for a request that does not name it.
 - Synced direct-invocation contract (keep aligned across auto-default shipping skills): A direct user invocation is the user's current message asking for this skill, and it covers only the request that message makes. A saved prompt the host sends as that message, such as a host's PR-creation instructions, counts the same way. A slash command or `$` mention at the start of the message invokes this skill directly. The skill's name later in the message, written as its own word, permits a run for that message only, and only when the wording asks for one. A mention that only discusses the skill permits no run, and a request in an earlier message never authorizes a later run. A request that reaches this skill through another agent, including a subagent that preloads it or a Conductor message that carries a `senderSessionId` because another chat sent it, is not a direct request, even when it starts with a slash command. Only the guarded parent delegations and verified handoffs this skill names are excepted, and each keeps only the authority this skill gives it.
 
 Before any stack rewrite or restack, read `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-rewrite-safety.md` and use `${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py` to capture original leases before fetching or editing history. Resolve `STACK_REMOTE` under that contract. After the existing other-workspace confirmation, run its preparation step before rewriting. Keep the snapshot through validation and any separate publication confirmation; publish only through its frozen atomic command. Never refresh leases during this operation.
@@ -30,6 +30,7 @@ Auto mode is the default. It is a dangerous unattended mode: continue through ri
 **Flags:**
 
 - `--manual` - Turn off auto mode and keep every conflict, red-flag, verification, and force-push confirmation gate.
+- `--shape-up` - Auto mode for the `trackbed:pr:shape-up` delegation the contract above names, which reaches this skill through `trackbed:pr:fix-ci`. Cannot be combined with `--manual`, `--force-push`, or `--all-open`.
 - `--force-push` - Safe unattended push mode. Turn off auto mode, skip only the final force-push confirmation, and push immediately with `--force-with-lease` after a successful rebase, while keeping all conflict, red-flag, and verification gates.
 - `--fix-ci` - After a successful rebase push, delegate to `trackbed:pr:fix-ci` to watch CI, address failures and review feedback, push fixes, and repeat until the Pull Request is green. This does not bypass any rebase push gate.
 - `--base <branch>` - Override auto-detected base branch (e.g., `--base develop`)
@@ -60,6 +61,8 @@ Synced Conductor workspace boundary contract (keep aligned across git-mutating w
 ### Step 0: Parse Arguments
 
 Initialize `AUTO_MODE=true`. If `$ARGUMENTS` contains `--manual`, set `AUTO_MODE=false` and remove the flag from remaining arguments. If `$ARGUMENTS` contains `--force-push`, set `FORCE_PUSH_MODE=true` and `AUTO_MODE=false` and remove the flag from remaining arguments. If `$ARGUMENTS` contains `--fix-ci`, set `FIX_CI_MODE=true` and remove the flag from remaining arguments. If `--base <branch>` is present, set `BASE_BRANCH_OVERRIDE=<branch>` and remove the flag and value from remaining arguments.
+
+If `$ARGUMENTS` contains `--shape-up`, first require the same-session delegation from the authorized `trackbed:pr:fix-ci` shape-up pass described above. Reject the flag if authorization is missing. Then set `AUTO_MODE=true` and remove the flag from remaining arguments. Reject `--shape-up` when `--manual`, `--force-push`, or `--all-open` accompanies it.
 
 Ignore a leftover `--auto`: auto mode is already the default. It does not outrank `--manual` or `--force-push`. If both `--manual` and `--force-push` are present, stop with a usage error: `--manual` keeps the confirmation that `--force-push` skips.
 
@@ -137,11 +140,11 @@ Any resolver failure is an operational failure, not evidence that the branch is 
 
 When `IN_STACK=true`, first read `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-rewrite-safety.md` and run its complete preflight before any stash or rewrite, in every mode including auto mode. Stop on divergence with the integrate-first message; behind-only branches are allowed. Pass the resolved `STACK_REMOTE` to the subsequent stack rebase and push with `--remote "$STACK_REMOTE"`.
 
-Then read `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-operations.md` for the gh-stack exit codes and the rules for other worktrees, and run its other-workspace preflight with `${CLAUDE_PLUGIN_ROOT}/scripts/list-stack-worktrees.sh` before any stash or rewrite. Its confirmation applies in every mode, including auto mode. A `--force-push` run delegated by `trackbed:pr:fix-ci` is non-interactive, so it stops and reports when the preflight lists another workspace.
+Then read `${CLAUDE_PLUGIN_ROOT}/shared/git/references/stack-operations.md` for the gh-stack exit codes and the rules for other worktrees, and run its other-workspace preflight with `${CLAUDE_PLUGIN_ROOT}/scripts/list-stack-worktrees.sh` before any stash or rewrite. Its confirmation applies in every mode, including auto mode. A `--force-push` run delegated by `trackbed:pr:fix-ci` is non-interactive, so it stops and reports when the preflight lists another workspace; so does a `--shape-up` run it delegates.
 
 When `IN_STACK=true`, swap the git commands but keep every gate:
 
-- **Steps 2–3 replacement:** run `gh stack rebase` instead of `git rebase --autostash origin/<base-branch>`. It fetches, fast-forwards the trunk, and cascade-rebases every stack branch onto its updated parent. It has no autostash — if the working tree is dirty, `git stash` first and `git stash pop` after. On conflict (exit code 3), resolve each conflicted file in the worktree gh-stack names, under the shared reference's **Conflicts** rules and the same rules, round cap, and red flags as Step 3, then `gh stack rebase --continue`; abort with `gh stack rebase --abort` (restores all branches). Continue or abort only a rebase this session started, and pass `--accept-base-change` only under the shared reference's **Paused rebases** and **Base changes** rules, in every mode including auto mode.
+- **Steps 2–3 replacement:** run `gh stack rebase` instead of `git rebase --autostash origin/<base-branch>`. It fetches, fast-forwards the trunk, and cascade-rebases every stack branch onto its updated parent. It has no autostash — if the working tree is dirty, `git stash` first and `git stash pop` after. On conflict (exit code 3), resolve each conflicted file in the worktree gh-stack names, under the shared reference's **Conflicts** rules and the same rules, regenerate route, round cap, and red flags as Step 3, then `gh stack rebase --continue`; abort with `gh stack rebase --abort` (restores all branches). Continue or abort only a rebase this session started, and pass `--accept-base-change` only under the shared reference's **Paused rebases** and **Base changes** rules, in every mode including auto mode.
 - **Stop on every other gh-stack failure:** this stack path continues after a nonzero exit in exactly three cases: exit 3 from `gh stack rebase` or its `--continue` follows the conflict route above, a `rerun with --accept-base-change` message follows **Base changes**, and a failed trunk read is reported as unknown under **Base changes**. Every other nonzero exit from `gh stack rebase`, `--continue`, `--abort`, `push`, or `view` stops the run, including 7 (a rebase is paused, possibly in another workspace), 8 (another gh-stack command holds the lock), and 4 (a GitHub lookup failed). This skill does not retry them, even where the shared table allows a retry. Restore any stash this run created when no rebase is left paused, or name it in the report when one is. Then report the command, its exit code, the table's meaning, and gh-stack's message. Never fall back to `git rebase` or a single-branch push for a stack branch, because that leaves every branch above it on the old history.
 - **Step 5 replacement:** the validated push procedure becomes `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/git-rewrite/stack-publication.py" publish --state "$STACK_PUBLICATION_STATE"` — it pushes all stack branches with `--force-with-lease --atomic`. Atomicity covers Git refs, not PR/API updates. All Step 5 gates and modes apply unchanged.
 - **Step 7 addition:** report every branch the rebase touched, not just the current one (`gh stack view --json` shows the updated heads and PR states), every other workspace it changed, and any change of trunk.
@@ -194,7 +197,7 @@ git rebase --autostash origin/<base-branch>
 
    The 10-round cap exists because each round reapplies a single commit; beyond that, conflicts almost always indicate semantic drift the auto-resolver can't handle safely. In `--manual` and `--force-push` modes, escalate to the user instead of guessing further. In auto mode, keep resolving until either the rebase completes or Git reaches a conflict the model cannot mechanically resolve.
 
-   Track all conflicts and resolutions for the summary and set `CONFLICTS_AUTO_RESOLVED=true` once any conflict marker is resolved by the model. Before resolving each file, check the red flags that make auto-resolution unsafe: the file is a migration file or generated artifact, the conflicting logic is not fully understood, or the only available resolution deletes a block instead of merging both sides' semantics. In `--manual` and `--force-push` modes, abort instead of resolving when a red flag applies. In auto mode, record that the red flag was bypassed and continue; every red flag bypassed in auto mode is reported in the end-of-run summary under **POTENTIAL CONCERNS**.
+   Track all conflicts and resolutions for the summary and set `CONFLICTS_AUTO_RESOLVED=true` once any conflict marker is resolved by the model. In every round and every mode, read `references/regenerate-generated.md` and settle each conflicted generated file, such as generated code or a lockfile, through its regenerate route once the round's other files are resolved: a file it regenerates is resolved and does not raise the generated-artifact red flag. Before resolving any other file, check the red flags that make auto-resolution unsafe: the file is a migration file or generated artifact, the conflicting logic is not fully understood, or the only available resolution deletes a block instead of merging both sides' semantics. In `--manual` and `--force-push` modes, abort instead of resolving when a red flag applies. In auto mode, record that the red flag was bypassed and continue; every red flag bypassed in auto mode is reported in the end-of-run summary under **POTENTIAL CONCERNS**.
 
    For each round:
 
@@ -204,12 +207,14 @@ git rebase --autostash origin/<base-branch>
    git diff --name-only --diff-filter=U
    ```
 
-   b. For each conflicting file:
+   b. For each conflicting file that is not a generated file under `references/regenerate-generated.md`:
    - Read the file content
    - Resolve conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`) by analyzing both versions and choosing the best resolution
    - **Record the conflict and resolution** (file path, what conflicted, how it was resolved)
    - Write the resolved content back
    - Stage the file: `git add <file>`
+
+   Then run that reference's route for the round's generated files. Resolve one it could not regenerate like any other file, under the red-flag rules above.
 
    c. Continue the rebase (`GIT_EDITOR=true` prevents `git rebase --continue` from opening an editor on commit-message prompts):
 
@@ -249,7 +254,7 @@ Otherwise, present a summary of what was auto-resolved. In `--manual` and `--for
 >
 > - **File:** `<file path>`
 > - **Conflict:** Brief description of what conflicted (e.g., "Both branches modified the `calculateTotal` function")
-> - **Resolution:** How it was resolved (e.g., "Combined changes: kept the new parameter from base branch and the validation logic from feature branch")
+> - **Resolution:** How it was resolved (e.g., "Combined changes: kept the new parameter from base branch and the validation logic from feature branch", or "regenerated with `<command>`")
 
 ### Step 5: Force Push
 
@@ -275,7 +280,7 @@ git push --no-follow-tags --force-with-lease="refs/heads/${CURRENT_BRANCH}:$PRE_
 
 If `AUTO_MODE=true`, use the validated push procedure immediately after the rebase completes. Do this even if conflicts were auto-resolved, red flags were bypassed, or verification is unavailable/failing. Report the conflicts, bypassed red flags, and verification status after the push attempt. After this push attempt, skip the remaining confirmation gates and proceed to Step 6.
 
-Before any `FORCE_PUSH_MODE=true` push, re-check the Step 3 red flags. If any red flag applies, stop instead of pushing automatically and report `MISSING REQUIREMENT: --force-push cannot bypass red-flag review; rerun with --manual after addressing the concern.` This applies even when the rebase completed without conflicts.
+Before any `FORCE_PUSH_MODE=true` push, re-check the Step 3 red flags; a file the regenerate route regenerated raises none. If any red flag applies, stop instead of pushing automatically and report `MISSING REQUIREMENT: --force-push cannot bypass red-flag review; rerun with --manual after addressing the concern.` This applies even when the rebase completed without conflicts.
 
 If `FORCE_PUSH_MODE=true` and `CONFLICTS_AUTO_RESOLVED` is not true, skip the confirmation prompt, use the validated push procedure immediately, then proceed to Step 6.
 

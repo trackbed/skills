@@ -75,7 +75,7 @@ Never answer a chat whose state is `waiting_for_user`: it waits on a dialog or a
 
 ## Step 5: Send the Commands
 
-Skip this step under `--dry-run`. For each workspace whose `move.kind` is `send` and whose Step 4 result is `none`, follow "Send a Message" in `references/conductor.md` with `move.session_id`, `move.message_id`, and `move.message`. The helper includes `--showtime` on the creation command so the receiving skill can verify the handoff. Shape-up uses the existing bare command.
+Skip this step under `--dry-run`. For each workspace whose `move.kind` is `send` and whose Step 4 result is `none`, follow "Send a Message" in `references/conductor.md` with `move.session_id`, `move.message_id`, and `move.message`. The receiving skill verifies the handoff using Conductor's sender metadata and the exact command. Creation includes `--showtime`. Shape-up uses its bare command.
 
 Do not wait for the chats. A later pass sees what they did. After two delivered commands for the same problem the helper plans no third: the workspace moves to "Nudged twice, still stuck" and is reported.
 

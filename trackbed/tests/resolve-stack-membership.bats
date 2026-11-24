@@ -776,7 +776,7 @@ run_documented_stack_checkout() {
 	local manual_delegate_line
 	local auto_delegate_line
 
-	grep -F 'argument-hint: "[--manual] [--force-push] [--fix-ci] [--base <branch>] [--all-open]"' "$rebase_skill"
+	grep -F 'argument-hint: "[--manual] [--force-push] [--shape-up] [--fix-ci] [--base <branch>] [--all-open]"' "$rebase_skill"
 	grep -F 'set `FIX_CI_MODE=true`' "$rebase_skill"
 	grep -F 'Set it to true only after the applicable validated push command returns success.' "$rebase_skill"
 
@@ -805,8 +805,8 @@ run_documented_stack_checkout() {
 	local rebase_skill="$REPO_ROOT/skills/pr:rebase/SKILL.md"
 
 	grep -qF 'disable-model-invocation: false' "$rebase_skill"
-	grep -F 'Invoke automatically only as a delegated child of `trackbed:pr:fix-ci`, with the exact `--force-push` argument selected by that parent.' "$rebase_skill"
-	grep -F 'Never omit `--force-push`, and do not add `--fix-ci` or an invented `--base` override.' "$rebase_skill"
+	grep -F 'Invoke automatically only as a delegated child of `trackbed:pr:fix-ci`, with the exact `--force-push` argument selected by that parent, or with `--shape-up` only when that `trackbed:pr:fix-ci` run received `--rebase --shape-up` from `trackbed:pr:shape-up`.' "$rebase_skill"
+	grep -F 'Never omit `--force-push` otherwise, never choose `--shape-up` on your own initiative, and do not add `--fix-ci` or an invented `--base` override.' "$rebase_skill"
 	grep -F 'No other parent workflow is authorized by this model-invocation exception.' "$rebase_skill"
 }
 

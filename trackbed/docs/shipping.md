@@ -139,7 +139,8 @@ These five skills run in auto mode when you type them. Pass `--manual` to keep t
 | `/trackbed:pr:generate-description` | Skips its prompts and updates an open Pull Request directly | Asks its clarifying questions and prints the result for copy-paste |
 | `/trackbed:pr:rebase` | Continues past red flags and force-pushes with a lease, without verification | Keeps every conflict, red-flag, verification, and confirmation gate |
 
-- `/trackbed:pr:rebase --force-push` is the safe unattended option: it skips only the final confirmation and keeps every other gate. Both skills that delegate a rebase use it.
+- `/trackbed:pr:rebase --force-push` is the safe unattended option: it skips only the final confirmation and keeps every other gate. The skills that delegate a rebase use it, except `/trackbed:pr:shape-up`, whose rebase runs in auto mode.
+- During conflict resolution, rebase tries the owning generator in a scratch copy of the staged inputs. It imports verified outputs and checks that lockfile resolutions preserve the branch's intended changes. Conflicts that cannot be regenerated safely follow the usual red-flag rules.
 - `/trackbed:pr:fix-ci --no-consolidate` also turns off auto mode, so `--ship` never rebases an open Pull Request without your `--rebase` flag or your answer; `--manual` asks every time.
 - `--check`, `--all-open`, and `--scope-plan` keep their own gates.
 - The default covers only the message being answered: a slash command or `$` mention at its start, or the skill's name later in it when your wording asks for a run. A saved prompt your host sends as your message counts too. The parent delegations each skill names keep the gates their own flags select.
@@ -205,12 +206,13 @@ Review archives stay local during automatic collection. A direct `/trackbed:pr:c
 
 | Need | What starts it | What handles it |
 | --- | --- | --- |
-| Rebase | The branch is behind the Pull Request's target branch | The first `trackbed:pr:fix-ci --rebase --no-consolidate` pass, which rebases through `trackbed:pr:rebase --force-push` |
-| Green CI | A check that was not skipped failed, was cancelled, or is still running | The `trackbed:pr:fix-ci` pass, which fixes and pushes until the checks are green; later rounds pass `--no-rebase` instead of `--rebase` |
+| Rebase | The branch is behind the Pull Request's target branch | The first `trackbed:pr:fix-ci --rebase --shape-up --no-consolidate` pass, which rebases through `trackbed:pr:rebase --shape-up` in auto mode |
+| Green CI | A check that was not skipped failed, was cancelled, or is still running | The `trackbed:pr:fix-ci` pass, which fixes and pushes until the checks are green; later rounds pass `--no-rebase` instead of `--rebase --shape-up` |
 | AI review comments | An unresolved inline thread from a bot or app reviewer, such as CodeRabbit or Copilot, that you have not answered | The `trackbed:pr:fix-ci` pass makes the valid code changes, then `trackbed:pr:github-review-reply --bot-only` posts replies and resolves the threads they settle |
 
 - The skill takes no arguments and never edits, commits, pushes, or posts by itself. The two delegated skills keep every gate they have when you run them directly, and their questions and blockers reach you unchanged.
-- The rebase keeps its conflict, red-flag, verification, and lease gates. The pass's `[FIX PIPELINE]` commits stay as they are; run `/trackbed:pr:fix-ci` afterwards to consolidate them.
+- A direct request or a verified Conductor Showtime handoff authorizes the unattended rebase. Shape-Up checks the sender of a relayed command before delegating.
+- The rebase tries to regenerate eligible files, resolves other conflicts it can, and pushes with a lease without waiting for verification. The CI pass runs on the new head. "Left for you" lists every red flag the rebase bypassed. The pass keeps its `[FIX PIPELINE]` commits separate.
 - It never answers a person. The `trackbed:pr:fix-ci` pass still validates all review feedback, so it may fix a valid request from a person; reply to people with `/trackbed:pr:github-review-reply`.
 - Feedback an AI reviewer left only in a review summary or a Pull Request comment does not start a run by itself. When the reply pass runs, it covers those too.
 - Your checkout must match the Pull Request head. Push or pull first when it does not.

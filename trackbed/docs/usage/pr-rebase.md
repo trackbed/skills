@@ -1,6 +1,6 @@
 # pr:rebase
 
-Use it when your branch has fallen behind the branch its Pull Request targets. It rebases the current branch onto the latest base and force-pushes it with a lease; a branch in a gh-stack stack is rebased and pushed together with the rest of its stack. Typed as a command it runs unattended: it resolves conflicts itself, including risky ones, and pushes without verification or confirmation. Pass `--force-push` or `--manual` to keep those checks, and use `trackbed:pr:shape-up` to also fix CI and answer AI reviewers.
+Use it when your branch has fallen behind the branch its Pull Request targets. It rebases the current branch onto the latest base and force-pushes it with a lease. A gh-stack branch is rebased and pushed together with the rest of its stack. Typed as a command it runs unattended, resolves conflicts it can, and pushes without verification or confirmation. For generated conflicts it runs the owning generator in a scratch copy when it can verify the outputs and preserve any intended lockfile changes. Pass `--force-push` or `--manual` to keep the conflict and verification gates, or use `trackbed:pr:shape-up` to also fix CI and answer AI reviewers.
 
 ## Before you run it
 
@@ -13,7 +13,8 @@ Use it when your branch has fallen behind the branch its Pull Request targets. I
 | Option | Effect |
 | --- | --- |
 | `--manual` | Turn off unattended mode. The run stops on a risky conflict (a migration or generated file, logic it does not fully understand, or a resolution that only deletes a block) and asks before the force-push. Cannot be combined with `--force-push`. |
-| `--force-push` | Skip only the final confirmation. The run still stops on a risky conflict, and after it resolves a conflict it pushes only when the project's checks pass; otherwise it asks you. Skills that delegate a rebase, such as `trackbed:pr:fix-ci`, use this mode. |
+| `--shape-up` | Internal flag for the authorized rebase that `trackbed:pr:shape-up` starts through `trackbed:pr:fix-ci`. A direct invocation already runs unattended by default. |
+| `--force-push` | Skip only the final confirmation. The run still stops on a risky conflict, and after it resolves a conflict it pushes only when the project's checks pass; otherwise it asks you. Skills that delegate a rebase, such as `trackbed:pr:fix-ci`, use this mode, except under `trackbed:pr:shape-up`. |
 | `--fix-ci` | After a successful push, hand over to `trackbed:pr:fix-ci`, which watches CI and pushes fixes until the Pull Request is green. Cannot be combined with `--all-open`. |
 | `--base <branch>` | Rebase onto `<branch>` instead of the detected base branch. Cannot be combined with `--all-open`. |
 | `--all-open` | Rebase every open Pull Request of yours whose branch is checked out in a clean local worktree and is behind its base, after one confirmation. It never resolves conflicts: a conflicting branch is left unchanged. |
@@ -37,7 +38,7 @@ Use it when your branch has fallen behind the branch its Pull Request targets. I
 ## What you get
 
 - The branch rebased onto the latest base and force-pushed, with a lease pinned to the remote commit seen before the rebase. Nothing is rebased or pushed when the branch already contains the base.
-- A summary of each conflict it resolved and how, the commit log against the base, and a `POTENTIAL CONCERNS` list of every risky conflict an unattended run continued past.
+- A summary of each conflict it resolved and how, including each generated file it regenerated and the command it ran, the commit log against the base, and a `POTENTIAL CONCERNS` list of every risky conflict an unattended run continued past.
 - When a conflict cannot be resolved, the rebase is aborted and the branch is restored.
 - With `--fix-ci`, whether CI reached green. With `--all-open`, a plan table before the confirmation and a result table for each Pull Request after it.
 

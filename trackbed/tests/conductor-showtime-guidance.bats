@@ -37,7 +37,8 @@ setup() {
 
 @test "showtime sends only the four messages its helper prints" {
   assert_required_text "$SKILL" 'Send a chat only a message the helper printed, copied exactly. Never compose, edit, or append to one.'
-  assert_required_text "$SKILL" 'includes `--showtime` on the creation command so the receiving skill can verify the handoff'
+  assert_required_text "$SKILL" 'The receiving skill verifies the handoff using Conductor'"'"'s sender metadata and the exact command.'
+  assert_required_text "$SKILL" 'Creation includes `--showtime`. Shape-up uses its bare command.'
   assert_required_text "$RULES" '"create": {"claude": "/trackbed:pr-create --showtime", "codex": "$trackbed:pr:create --showtime"},'
   assert_required_text "$RULES" '"shape-up": {"claude": "/trackbed:pr-shape-up", "codex": "$trackbed:pr:shape-up"},'
   assert_text_count "$RULES" '/trackbed:' 2
@@ -149,13 +150,27 @@ setup() {
 
 @test "pr creation checks the Showtime relay before enabling auto mode" {
   assert_required_text "skills/pr:create/SKILL.md" 'only as the sole argument to a verified Conductor handoff'
-  handoff="skills/pr:create/references/showtime-handoff.md"
-  assert_required_text "$handoff" 'Require the exact current command, `/trackbed:pr-create --showtime` in Claude Code or `$trackbed:pr:create --showtime` in Codex, and a `senderSessionId` from Conductor.'
-  assert_required_text "$handoff" 'includes that sender in another workspace'
+  assert_required_text "skills/pr:create/SKILL.md" '${CLAUDE_PLUGIN_ROOT}/shared/git/references/showtime-handoff.md'
+  local create_handoff="skills/pr:create/references/showtime-handoff.md"
+  assert_required_text "$create_handoff" 'Require the exact current command, `/trackbed:pr-create --showtime` in Claude Code or `$trackbed:pr:create --showtime` in Codex, and a `senderSessionId` from Conductor.'
+  assert_required_text "$create_handoff" 'The handoff supplies no additional rewrite, stacking, or scope flags.'
+  assert_required_text "$create_handoff" 'Stop before any write'
+}
+
+@test "Showtime receivers share the sender provenance check" {
+  local handoff="shared/git/references/showtime-handoff.md"
+  local shape_up="skills/pr:shape-up/SKILL.md"
+
+  assert_required_text "$handoff" 'Require the exact expected command and a `senderSessionId` supplied by Conductor.'
+  assert_required_text "$handoff" 'Require the sender session to belong to that repository and a different workspace.'
   assert_required_text "$handoff" 'with no `--dry-run`'
   assert_required_text "$handoff" 'Skip each one that neither starts with a slash command or `$` mention nor carries a `senderSessionId`'
   assert_required_text "$handoff" 'Require the parent'"'"'s invoking message to precede the relayed command.'
   assert_required_text "$handoff" 'report why the handoff could not be verified and stop'
-  assert_required_text "$handoff" 'The handoff supplies no additional rewrite, stacking, or scope flags.'
-  assert_required_text "$handoff" 'Stop before any write'
+
+  assert_required_text "$shape_up" '${CLAUDE_PLUGIN_ROOT}/shared/git/references/showtime-handoff.md'
+  assert_required_text "$shape_up" 'exact bare command `/trackbed:pr-shape-up` in Claude Code or `$trackbed:pr:shape-up` in Codex'
+  assert_required_text "$shape_up" 'If a relay cannot be verified or the request'"'"'s origin is ambiguous, stop before delegating.'
+  assert_required_text "$shape_up" 'Require the authorization established in **Boundaries** before delegating.'
+  assert_text_order "$shape_up" 'If a relay cannot be verified or the request'"'"'s origin is ambiguous, stop before delegating.' 'invoke `$trackbed:pr:fix-ci --rebase --shape-up --no-consolidate`'
 }

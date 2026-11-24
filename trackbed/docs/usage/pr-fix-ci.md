@@ -16,6 +16,7 @@ Use it on a branch whose open Pull Request has failing checks or review feedback
 | `--no-consolidate` | Leave the `[FIX PIPELINE]` commits as they are after CI passes, and ask before rebasing a branch that is behind its base. |
 | `--rebase` | When the branch is behind its base, rebase and force-push through `trackbed:pr:rebase` before fixing CI, without asking. |
 | `--no-rebase` | When the branch is behind its base, fix CI on the current base without asking and never rebase in this run. |
+| `--shape-up` | Internal flag for the authorized first pass of `trackbed:pr:shape-up`. The rebase runs unattended and reports each red flag it bypasses. |
 | `--scope-plan <archived-plan>` | Keep every fix inside the files that an archived plan from `trackbed:code:plan-to-pr` lists as in scope, and stop when a fix needs another file. Requires `--no-consolidate` and excludes `--fixup`, `--rebase`, and `--no-rebase`. Set by that skill when it delegates; you rarely need it. |
 
 ## Examples

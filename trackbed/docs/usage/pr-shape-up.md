@@ -7,6 +7,7 @@ Use it when the current branch has an open Pull Request that you want ready to m
 - The current branch has an open Pull Request.
 - Your checkout matches the Pull Request branch on GitHub: push your local commits, and pull any pushed from elsewhere, such as a merge from GitHub's **Update branch** button. If the branch was force-pushed, for example by **Update with rebase**, reset to it instead of pulling. The Pull Request may be behind its target branch; the skill rebases it.
 - `gh` is installed and authenticated, and `python3` is available.
+- Invoke Shape-Up directly or start it through Conductor Showtime. A relayed command must come from a verified Showtime run.
 
 ## Examples
 
@@ -20,9 +21,9 @@ Use it when the current branch has an open Pull Request that you want ready to m
 
 ## What you get
 
-- Only the work the Pull Request needs, in at most three rounds: a rebase, in the first round only, fixes pushed as `[FIX PIPELINE]` commits, and replies to AI reviewers, with the threads those replies settle resolved.
+- Only the work the Pull Request needs, in at most three rounds: an unattended rebase, in the first round only, fixes pushed as `[FIX PIPELINE]` commits, and replies to AI reviewers, with the threads those replies settle resolved.
 - A closing report that says `PR shape: in shape` or `needs attention`, followed by the state of the rebase, CI, and AI review comments and the number of rounds.
-- A "Left for you" list when something remains: blockers, threads it left open and why, and the number of open threads from people.
+- A "Left for you" list when something remains: blockers, risky conflicts the rebase resolved that you should check, threads it left open and why, and the number of open threads from people.
 - A Pull Request that is already in shape gets the report and nothing else.
 
 The CI pass checks all review feedback on the Pull Request, so it may also fix a valid request from a person. The [shipping guide](../shipping.md#shaping-up-an-open-pull-request) describes each pass.
