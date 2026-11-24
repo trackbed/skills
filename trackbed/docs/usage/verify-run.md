@@ -35,8 +35,9 @@ Use it before you call work done, push, or open a Pull Request, to run the proje
 
 ## What you get
 
-- A result per check: `PASS`, `FAIL`, or `SKIPPED`. Failed checks quote their errors with file paths and line numbers.
+- A first-line verdict naming any failed checks and the first error to investigate. When a required check was skipped, the verdict says what remains unverified.
 - A `Verification Summary` with the tier, the ID of the working tree it covers, and the base it compared against.
+- A result per check: `PASS`, `FAIL`, or `SKIPPED`. Failed checks quote their errors with file paths and line numbers.
 - `REUSED` instead of a new run when a passing run from this session already covers the same working tree, base, and tier.
 - A saved copy of the discovered commands under `.context/verify-run/`, when Git ignores that folder, so later runs start faster.
 

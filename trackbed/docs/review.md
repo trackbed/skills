@@ -303,7 +303,7 @@ Pass `--no-clarity-check` to skip it.
 Interrupted reviews resume. After a session-limit reset or restart, ask to continue, or re-run `/trackbed:pr:code-review` on the same unchanged tree or `/trackbed:pr:github-review` on the same PR head with the same review arguments within 24 hours.
 
 - Code review reuses every reviewer that finished and relaunches only the ones that did not; a failed reviewer still needs a fresh run.
-- GitHub review reruns only the delegated passes, steps, and clarity-check stages that did not finish, saving them under `.context/pr-github-review/`, which must be git-ignored.
+- GitHub review reuses saved review passes, drafts, and completed clarity-check stages from `.context/pr-github-review/`, which must be git-ignored. It reads the current GitHub conversation again when the run includes it.
 - Team Mode and `--loop` reruns always start fresh.
 
 Interrupted audits resume too. After a session-limit reset, re-run `/trackbed:code:refactor-opportunities` (with or without `--ranked`), `/trackbed:code:agent-readiness`, or `/trackbed:code:outside-view` with the same arguments on unchanged files within 24 hours. Finished agents' results are reused from `.context/`, and only unfinished agents launch again. Resume needs `.context/` to be git-ignored.

@@ -21,11 +21,11 @@ Use it after you install the plugin, when a skill fails because a tool may be mi
 
 ## What you get
 
+- The first line tells you whether the environment is `Ready`, `Ready with optional gaps`, or `Blocked`, and why. If blocked, it names the required tool to fix first.
 - A report in four groups. `Required` covers Bash, Git, `jq`, Python 3.10+, and Node.js 18+. `Recommended` covers tools for common Pull Request, verification, and conversion workflows, such as `gh`. `Optional` covers tools that only some skills need. `Context` covers the repository, the Conductor workspace, the cached plugin versions, the auto-update setting, and whether a newer release has been recorded.
 - An install command for each missing tool, as a suggestion. The skill does not run it.
 - `manual-check` for integrations it cannot inspect from the shell, such as the Linear and Figma connectors.
-- A closing status: `Ready`, `Ready with optional gaps`, or `Blocked` when a required tool is missing, too old, or not working.
-- Cleanup notes after the status, such as a `.context/` folder that Git does not ignore, leftovers from earlier Codex installs, or an available plugin update with the commands to install it. The skill does not act on them.
+- Cleanup notes after the tool results, such as a `.context/` folder that Git does not ignore, leftovers from earlier Codex installs, or an available plugin update with the commands to install it. The skill does not act on them.
 
 Cache discovery checks the populated `trackbed/trackbed` namespace first, then the supported `kramme-cc-workflow/kramme-cc-workflow` namespace. An empty current namespace does not hide a populated legacy cache. Claude registrations are matched against the selected namespace; a cached or registered version does not establish which version is active in the session.
 

@@ -266,7 +266,7 @@ export function buildSite(repoRoot, { sourceRef = DEFAULT_BRANCH } = {}) {
     }
     const part = (text) =>
       text && render(text, { sourceFile, slug: skill.slug }).text.trim();
-    return { lead: part(usage.lead), sections: part(usage.sections) };
+    return { ...usage, lead: part(usage.lead), sections: part(usage.sections) };
   };
 
   for (const skill of skills) {

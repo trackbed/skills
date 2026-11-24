@@ -195,11 +195,34 @@ Use parallel execution where possible for faster feedback:
 
 ## Output Format
 
-After running all checks, provide:
+Lead with the verdict for the selected tier. Name the failed checks and the first error to investigate, including its location when known. For example, “Linting and unit tests failed. Start with the unused variable in `src/components/Button.tsx:15`.” If required coverage is missing, say which check remains unverified. For a reused pass, lead with `REUSED` and identify the passing tier.
 
-Include each check's command, working directory, scope, exit status, tree ID, and resolved `BASE_REF`/`MERGE_BASE` so callers can verify reuse or retry it. Recapture the tree ID after the checks; if content changed during execution, do not label the run green or reusable until the affected checks cover the resulting tree.
+Recapture the tree ID after the checks; if content changed during execution, do not label the run green or reusable until the affected checks cover the resulting tree.
 
-### 1. Individual Step Results with Errors
+### Summary
+
+```
+Verification Summary:
+- Formatting: PASS
+- Linting: FAIL (2 errors)
+- Type Checking: PASS
+- Build: PASS
+- Unit Tests: FAIL (1 error)
+- Component Tests: SKIPPED
+- Integration Tests: PASS
+- E2E Tests: SKIPPED
+
+Issues Found: 2 steps failed
+Tier: full
+Verified tree: <TREE_ID> (merge-base <MERGE_BASE>)
+Base ref: <BASE_REF> (commit <resolved BASE_REF commit OID>)
+```
+
+Callers compare `Verified tree` against a fresh `worktree-tree-id.sh` result to decide whether this run still covers the current content.
+
+### Check Details
+
+Include each check's command, working directory, scope, exit status, tree ID, and resolved `BASE_REF`/`MERGE_BASE` so callers can verify reuse or retry it.
 
 ```
 ## Formatting
@@ -239,27 +262,6 @@ Status: PASS
 ## E2E Tests
 Status: SKIPPED (not running E2E for this verification)
 ```
-
-### 2. Summary
-
-```
-Verification Summary:
-- Formatting: PASS
-- Linting: FAIL (2 errors)
-- Type Checking: PASS
-- Build: PASS
-- Unit Tests: FAIL (1 error)
-- Component Tests: SKIPPED
-- Integration Tests: PASS
-- E2E Tests: SKIPPED
-
-Issues Found: 2 steps failed - see errors above for details
-Tier: full
-Verified tree: <TREE_ID> (merge-base <MERGE_BASE>)
-Base ref: <BASE_REF> (commit <resolved BASE_REF commit OID>)
-```
-
-Callers compare `Verified tree` against a fresh `worktree-tree-id.sh` result to decide whether this run still covers the current content.
 
 ## Evidence Before Claims
 

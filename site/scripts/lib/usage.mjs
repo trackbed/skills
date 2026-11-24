@@ -59,7 +59,7 @@ function codeBlocks(nodes) {
  * flags. A flag added to or removed from the skill fails here until the guide
  * says so too.
  *
- * Returns `{ lead, sections }` as source text; errors do not name the file.
+ * The first validated example also supplies the command at the top of the page.
  */
 export function readUsage(text, skill) {
   const tree = parseMarkdown(text);
@@ -152,6 +152,7 @@ export function readUsage(text, skill) {
   const leadEnd = found[0].start;
   return {
     lead: text.slice(title.position.end.offset, leadEnd).trim(),
+    firstCommand: commands[0],
     sections: text.slice(leadEnd).trim(),
   };
 }
