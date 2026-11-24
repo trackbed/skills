@@ -49,11 +49,11 @@ Run a non-mutating environment check and report what is ready, missing, or only 
 
 6. For integrations that are not reliably inspectable from the shell, report them as `manual-check` instead of inventing a status. This includes authenticated app connectors such as Linear and Figma, plus Conductor MCP tool availability, unless their local configuration is directly visible.
 
-7. End with a short readiness summary:
+7. Open the human-readable reply with the readiness status and its reason. If blocked, name the first required tool to fix. Follow with the grouped results and guidance. For `--json` and `--help`, return the requested output directly.
    - `Ready`: required tools are present.
    - `Ready with optional gaps`: required tools are present, but recommended or optional tools are missing.
    - `Blocked`: at least one required tool is missing, below its documented minimum version, or unable to complete its runtime probe.
-   - List any step 5 findings after the status as cleanup notes. They never change the status.
+   - List any step 5 findings after the tool results as cleanup notes. They never change the status.
 
 ## Safety Rules
 
