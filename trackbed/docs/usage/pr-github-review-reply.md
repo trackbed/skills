@@ -54,7 +54,7 @@ Use it on your own Pull Request to work through what reviewers, bots, and apps w
 
 ## What you get
 
-- `GITHUB_REVIEW_REPLY_PLAN.md` in the project root: one entry per comment with its classification, the evidence checked, and the draft reply.
+- `GITHUB_REVIEW_REPLY_PLAN.md` in the project root, or in `.context/` in a Conductor workspace: one entry per comment with its classification, the evidence checked, and the draft reply.
 - With `--implement`, the code changes in your working tree, uncommitted. A reply that says a fix was made is held until you commit and push the fix; then run again with the same flags.
 - With `--auto`, the same changes in one new commit pushed to the Pull Request branch, so their replies post in the same run. If it cannot push, it says why, and the replies are held as with `--implement`.
 - With `--post` and `--resolve`, replies posted and threads resolved on GitHub, one at a time, after it shows you what it will do. The posted reply bodies are kept under `.context/github-review-replies/`.

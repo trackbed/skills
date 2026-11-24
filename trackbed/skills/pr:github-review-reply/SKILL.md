@@ -38,8 +38,8 @@ Parse `$ARGUMENTS` before fetching data.
 - `--resolve` - after posting, resolve inline threads that are fully addressed. It also keeps threads the PR author already answered but never resolved (`Thread state: answered-unresolved`), which it resolves only after explicit confirmation, with or without `--post`.
 - `--implement` - implement code-change items before drafting replies.
 - `--no-implement` - skip implementation and produce a reply plan only.
-- `--inline` - reply in chat only; do not write `GITHUB_REVIEW_REPLY_PLAN.md`.
-- `--visual` - also write `GITHUB_REVIEW_REPLY_PLAN.html`, an interactive page of the finished plan file (Step 7).
+- `--inline` - reply in chat only; do not write the plan file.
+- `--visual` - also write `GITHUB_REVIEW_REPLY_PLAN.html` beside the plan file, an interactive page of the finished plan (Step 7).
 - `--humanize` - run drafted reply bodies through `trackbed:text:clarify --humanize` before writing the plan. Off by default; `--auto` does not enable it.
 - `--include-bots` - include bot and app review comments. This is the default and the flag is retained for compatibility.
 - `--human-only` - exclude bot/app-only feedback. Keep mixed-origin items only for their human non-author feedback.
@@ -51,13 +51,15 @@ The remaining payload may be a PR URL, PR number, or additional instructions suc
 
 Defaults: `AUTO=false`, `IMPLEMENT=plan-only`, `POST=false`, `RESOLVE=false`, `INLINE=false`, `HUMANIZE=false`, `INCLUDE_BOTS=true`, `HUMAN_ONLY=false`, `BOT_ONLY=false`, `INCLUDE_ALL=false`.
 
+Set `PLAN_FILE` to `.context/GITHUB_REVIEW_REPLY_PLAN.md` when `CONDUCTOR_WORKSPACE_PATH` is set, so the plan sits with the workspace's other notes in Conductor, and to `GITHUB_REVIEW_REPLY_PLAN.md` otherwise. Both paths are relative to the project root. Every later mention of the plan file means `PLAN_FILE`.
+
 If `--human-only` is present, set `HUMAN_ONLY=true` and `INCLUDE_BOTS=false`. If both `--human-only` and `--include-bots` are present, stop and ask the user to choose one filter mode; bot and app comments are included by default.
 
 If `--bot-only` is present, set `BOT_ONLY=true`. If both `--bot-only` and `--human-only` are present, stop and ask the user to choose one filter mode.
 
 If `--humanize` is present, set `HUMANIZE=true`. It is independent of `--auto`, which does not enable humanization.
 
-If `--visual` is present, set `VISUAL_REPORT=true`; otherwise set `VISUAL_REPORT=false`. If both `--visual` and `--inline` are present, stop and ask the user to remove one: the visual page mirrors `GITHUB_REVIEW_REPLY_PLAN.md`, which inline mode does not write.
+If `--visual` is present, set `VISUAL_REPORT=true`; otherwise set `VISUAL_REPORT=false`. If both `--visual` and `--inline` are present, stop and ask the user to remove one: the visual page mirrors the plan file, which inline mode does not write.
 
 If `--auto` is present, set `AUTO=true`, `IMPLEMENT=implement`, `POST=true`, and `RESOLVE=true`. If both `--auto` and `--no-implement` are present, stop and ask the user to choose one mode; `--auto` owns implementation because it posts completion replies and resolves addressed threads.
 
@@ -319,7 +321,7 @@ The clarify output is input to this step, not a reply to the user. Apply it in t
 
 ## Step 7: Write the Plan
 
-Unless `--inline` is set, create or update `GITHUB_REVIEW_REPLY_PLAN.md` in the project root with this structure:
+Unless `--inline` is set, create or update `PLAN_FILE` with this structure:
 
 ```text
 # GitHub Review Reply Plan
@@ -390,7 +392,7 @@ Use this readable layout exactly: keep status in the item heading, metadata in t
 
 If `--inline` is set, return the same structure in chat and do not create the file.
 
-Treat `GITHUB_REVIEW_REPLY_PLAN.md` and the reply payload files under `.context/github-review-replies/` (Step 9) as working artifacts that should **not** be committed and can be cleaned up by `/trackbed:workflow:cleanup-artifacts`.
+Treat the plan file, its `GITHUB_REVIEW_REPLY_PLAN.html` page, and the reply payload files under `.context/github-review-replies/` (Step 9) as working artifacts that should **not** be committed and can be cleaned up by `/trackbed:workflow:cleanup-artifacts`.
 
 When `VISUAL_REPORT=true`, every run that wrote the plan, including one that stops early in Step 5, 8, or 9, ends by adding `GITHUB_REVIEW_REPLY_PLAN.html` beside it from the plan's final content: after any `Post status` updates of Steps 8-10 and before the Step 11 output. Synced visual report contract (keep aligned across report producers): only the user's own `--visual` in this invocation turns the page on, so never add the flag for a skill this one delegates to; the Markdown output is finished first and stays the record every other skill reads; then read `${CLAUDE_PLUGIN_ROOT}/shared/visual/references/visual-report.md` and follow it to hand-write one interactive HTML page beside that output, in the shape and from the template named below, finalize it with `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/visual-report.py" <page>`, and include `Visual report: <absolute path>` in the run's closing output. Shape: `plan`, from the template `${CLAUDE_PLUGIN_ROOT}/shared/visual/assets/report-plan.html`. Its reader is the Pull Request's author, approving item by item what will be replied and what will be changed before anything is posted; group the items by what happens to them. Follow-up command for the page: `/trackbed:pr:github-review-reply --implement`.
 
@@ -473,7 +475,7 @@ End with:
 - number of items still needing code changes or clarification
 - every item held because its fix is not on the PR head, with the paths to commit and push; after pushing, re-run with the same flags to post them
 - every item left unposted by a rate limit
-- path to `GITHUB_REVIEW_REPLY_PLAN.md`, unless `--inline` was used
+- path to `PLAN_FILE`, unless `--inline` was used
 
 If any items remain `needs-code-change`, include this next step:
 
