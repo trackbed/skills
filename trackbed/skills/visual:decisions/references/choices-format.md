@@ -8,9 +8,10 @@ How a reader's choices leave a decision document, and how to read them back.
 | --- | --- | --- |
 | The reader's browser | Only that browser | Saved under the document's id as the reader works. You cannot read it. |
 | A saved copy (`<document-id>-with-choices.html`) | Anyone with the file | The whole document with the choices inside it. |
+| A pasted copy | Whoever it is pasted to | The same document as a saved copy, put on the clipboard by **Copy to clipboard** and pasted into the conversation. |
 | An export (`<document-id>-choices.json`) | Anyone with the file | Only the choices, in the format below. |
 
-Never say you recovered, kept, or carried over choices you were not given as a file. If the reader has only the browser copy, ask them to press **Export choices** or **Save a copy** in the page and give you the file.
+Never say you recovered, kept, or carried over choices you were not given as a file. If the reader has only the browser copy, ask them to press **Export choices** or **Save a copy** in the page and give you the file, or to press **Copy to clipboard** and paste the result.
 
 ## Export format
 
@@ -62,11 +63,11 @@ Never say you recovered, kept, or carried over choices you were not given as a f
 | `itemFingerprint` | The version of the item the choice was made on. |
 | `needsReview` | `true` when the item changed after the choice was made. `earlier` then holds the status and choice label the reader had recorded. |
 
-In a saved copy the same object sits in `<script type="application/json" id="trackbed-decisions-state">`.
+In a saved or pasted copy the same object sits in `<script type="application/json" id="trackbed-decisions-state">`.
 
 ## Reading choices back
 
-When the user gives you an export or a saved copy:
+When the user gives you an export, a saved copy, or a pasted copy:
 
 1. Check that `format` is `trackbed-decisions`, `schemaVersion` is `1`, and `document.id` is the document you mean. Otherwise say what the file is and stop.
 2. Report what was decided: the counts, then each item with its status, choice, and notes. Quote notes as the reader wrote them.

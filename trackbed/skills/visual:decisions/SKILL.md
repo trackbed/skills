@@ -70,11 +70,11 @@ Open the page in the default browser when the user asked for it (`open` on macOS
 
 - `Decision document: <absolute path>`, and the content file's path.
 - How many items and options it holds, which visuals you made for the document, and anything from reading the source or from Step 4 the user must know. When you found the decisions yourself, also where you looked and what you considered and left out.
-- One line on keeping choices: they save in the browser as the reader works; **Save a copy** downloads the page with the choices inside, and **Export choices** downloads a JSON file to hand back.
+- One line on keeping choices: they save in the browser as the reader works; **Save a copy** downloads the page with the choices inside, **Copy to clipboard** copies that page to paste back, and **Export choices** downloads a JSON file to hand back.
 
 ## When Choices Come Back
 
-When the user gives you an export or a saved copy and asks what was decided, or asks you to act on it, read `references/choices-format.md` and follow it.
+When the user gives you an export or a saved or pasted copy and asks what was decided, or asks you to act on it, read `references/choices-format.md` and follow it.
 
 ## Verification
 

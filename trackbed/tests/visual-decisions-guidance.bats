@@ -227,6 +227,7 @@ PY
 		'Those choices belong to a different document. Nothing was changed.' \
 		'Your current choices are unchanged.' \
 		'-with-choices.html' \
+		'This browser did not allow copying to the clipboard. Use Save a copy or Export choices instead.' \
 		'-choices.json'; do
 		grep -qF -- "$phrase" "$RUNTIME" || {
 			echo "runtime lacks: $phrase"
