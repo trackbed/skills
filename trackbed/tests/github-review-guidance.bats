@@ -2019,3 +2019,24 @@ assert "usage: inspiration" in entry
 PY
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
+
+@test "github review reply writes its plan to .context in a Conductor workspace" {
+	run python3 - "$REPLY_SKILL" "$PLUGIN_ROOT/skills/workflow:cleanup-artifacts/references/disposable-artifacts.yaml" <<'PY'
+import json
+import sys
+skill = open(sys.argv[1], encoding="utf-8").read()
+registry = json.load(open(sys.argv[2], encoding="utf-8"))
+step0 = skill[skill.index("## Step 0:"):skill.index("## Step 1:")]
+assert "Set `PLAN_FILE` to `.context/GITHUB_REVIEW_REPLY_PLAN.md` when `CONDUCTOR_WORKSPACE_PATH` is set" in step0
+assert "and to `GITHUB_REVIEW_REPLY_PLAN.md` otherwise" in step0
+step7 = skill[skill.index("## Step 7:"):skill.index("## Step 8:")]
+assert "create or update `PLAN_FILE` with this structure:" in step7
+assert "in the project root with this structure" not in skill
+assert "- path to `PLAN_FILE`, unless `--inline` was used" in skill
+paths = {entry["path"]: entry for entry in registry["artifacts"]}
+for path in [".context/GITHUB_REVIEW_REPLY_PLAN.md", ".context/GITHUB_REVIEW_REPLY_PLAN.html"]:
+    assert paths[path]["producer"] == "trackbed:pr:github-review-reply", path
+    assert paths[path]["retention"] == "disposable", path
+PY
+	[ "$status" -eq 0 ] || { echo "$output"; false; }
+}

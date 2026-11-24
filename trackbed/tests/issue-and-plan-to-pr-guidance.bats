@@ -637,6 +637,12 @@
 	[ "$status" -eq 0 ] || { echo "$output"; false; }
 }
 
+@test "reconcile reads the review reply plan from .context in a Conductor workspace" {
+	load 'test_helper/common'
+	assert_required_text "$BATS_TEST_DIRNAME/../skills/code:breakdown-findings/references/reconcile-workflow.md" \
+		'`GITHUB_REVIEW_REPLY_PLAN.md` (written to `.context/GITHUB_REVIEW_REPLY_PLAN.md` instead in a Conductor workspace)'
+}
+
 @test "reconcile proposes retiring a plan that other work already fixed, only with confirmation" {
 	run bash -c '
     set -e

@@ -447,6 +447,22 @@
       "producer": "trackbed:pr:github-review-reply"
     },
     {
+      "id": "github-review-reply-plan-conductor",
+      "path": ".context/GITHUB_REVIEW_REPLY_PLAN.md",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:pr:github-review-reply"
+    },
+    {
+      "id": "github-review-reply-plan-conductor-visual",
+      "path": ".context/GITHUB_REVIEW_REPLY_PLAN.html",
+      "type": "file",
+      "category": "working-dir",
+      "retention": "disposable",
+      "producer": "trackbed:pr:github-review-reply"
+    },
+    {
       "id": "qa-report",
       "path": "QA_REPORT.md",
       "type": "file",
