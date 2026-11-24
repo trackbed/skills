@@ -185,6 +185,8 @@ Read Section 1 of `references/linear-review.md` to discover and deduplicate link
 
 Read `${CLAUDE_PLUGIN_ROOT}/shared/agents/references/resumable-fanout.md`, then read and follow `references/resume.md`. It ensures the PR head is available before computing the resume key, finds an interrupted run of this review, decides which of Steps 3–10a still run, and says where each finished step saves its result.
 
+On a new review with `CLARITY_CHECK=on`, mention with the next tool call that if the review drafts inline comments, checking them can add 30–50 minutes. Continue the review without waiting for an answer.
+
 ## Step 3: Fetch the PR Into an Isolated Worktree
 
 Skip this step when Step 2b reuses a recorded worktree or skips Steps 3–8. Otherwise fetch the PR head, confirm it is the `headRefOid` recorded in Step 2, then add a detached worktree at that commit. Nothing in the user's current checkout changes. Step 4 resolves and fetches the base ref inside the worktree so `--base main`, `--base origin/main`, and `--base refs/remotes/origin/main` all follow the shared resolver contract.
@@ -341,6 +343,8 @@ Save this step's result per `references/resume.md`.
 ## Step 10a: Check the Draft Comments With Clarity Readers
 
 Find the drafted inline comments: fresh actionable items with a `path:line` location and a `Draft comment` body, not replies to existing threads. Run the clarity check when `CLARITY_CHECK=on` and at least one is drafted. Otherwise set `CLARITY_CHECK_STATUS` to `not run — --no-clarity-check` or `not run — no inline comments drafted`, and continue to Step 11.
+
+When starting the check, tell the user how many draft comments the readers will check and why, alongside the next tool call. For example, “I drafted three inline comments. Readers will check whether the author can act on each one.” On resume, name the remaining stage.
 
 To run it, read `references/clarity-check.md` and follow it. Fresh readers who see only what the author will see paraphrase, question, and score each comment. You verify their points in the code, fix and re-anchor the comments, and a new reader confirms the result. The check adds at least three reader runs and about 30–50 minutes. It runs before Step 11 because splitting a comment changes the eligible count, and it never writes to GitHub. Save each completed stage per `references/resume.md`.
 

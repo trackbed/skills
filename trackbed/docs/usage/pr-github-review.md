@@ -1,6 +1,8 @@
 # pr:github-review
 
-Use it when someone asked you to review their Pull Request on GitHub. It fetches the Pull Request into a temporary worktree, runs the code review and, when UI files changed, the UI review, checks linked Linear issues, reads the existing conversation, and writes a report with a recommended verdict and draft comments. It writes nothing to GitHub unless you ask. For your own branch, use `trackbed:pr:code-review`; to answer reviewers on your own Pull Request, use `trackbed:pr:github-review-reply`.
+Review someone else's Pull Request and get a local report with a recommended verdict and draft comments. You choose whether to create a private draft on GitHub and whether to submit it. For your own branch, use `trackbed:pr:code-review`. To answer reviewers on your own Pull Request, use `trackbed:pr:github-review-reply`.
+
+When the review produces inline comments, checking that the author can act on them adds about 30–50 minutes. Add `--no-clarity-check` to skip that step.
 
 ## Before you run it
 
@@ -53,8 +55,12 @@ Use it when someone asked you to review their Pull Request on GitHub. It fetches
 ## What you get
 
 - `GITHUB_PR_REVIEW_OVERVIEW.md` in the project root: a recommended verdict, findings by severity, the state of the open conversation, coverage of linked Linear issues, draft comments, and a prepared review body. With `--stack`, `GITHUB_STACK_REVIEW_OVERVIEW.md` instead, and no GitHub write at all.
-- An offer to create one unsubmitted pending review that holds the draft inline comments GitHub can attach to a changed line. Only you can see it until you submit it. Its payload is kept under `.context/github-review-drafts/`, which must be ignored by Git.
+- An offer to create one private pending review with the eligible inline comments. Before accepting, you can ask for changes, such as “Drop the comment about naming and show me the revised draft.” The skill updates the local report and asks again. Only you can see the pending review until you submit it. Its payload is kept under `.context/github-review-drafts/`, which must be ignored by Git.
 - A submitted review only after you send a separate message such as `Post the prepared review to PR 482 as request changes`. It never replies to or resolves threads; it hands you the prepared text.
 - Your checked-out branch left as it is. The temporary worktree is removed unless you pass `--keep-worktree`.
+
+**To resume an interrupted single-PR review**, run the command again from the same clone with the same review options. For PR 482 with default settings, use `/trackbed:pr:github-review 482`. Leave off `--draft-review` to keep the result local. If a GitHub write had an uncertain outcome, inspect the PR first.
+
+A matching run reuses saved work within 24 hours of its start and refreshes the GitHub conversation when in scope. If review inputs changed or resume was off, the review starts over. See [Resuming Interrupted Reviews and Audits](../review.md#resuming-interrupted-reviews-and-audits).
 
 The [review guide](../review.md#reviewing-someone-elses-pull-request) covers re-reviews, the clarity check, and what the skill writes to GitHub.

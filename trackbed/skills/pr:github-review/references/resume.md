@@ -55,6 +55,8 @@ Write each result as soon as its step or reader finishes, before starting the ne
 
 ## Re-entry
 
+If the review is interrupted and you can still reply, name the PR, the steps actually saved, and what reached GitHub (local only, confirmed pending or submitted review with its link, or outcome unknown). For a local interruption, give the exact command in the user's host syntax with the resolved PR number and their review options, omitting `--draft-review` so recovery does not authorize a write. Say whether the matching run can reuse progress or must start over. If a write may have happened, direct the user to inspect the PR before any retry.
+
 1. Compute the run key and look for a run to resume as the shared contract describes. If none matches, clean up as below, create the run directory and manifest, and continue at Step 3.
 2. When one matches, print the shared contract's `Resuming run` line and reuse its roster. Linear issues and `RUN_UI` come from the roster; do not re-plan them. The current title/body hash and linked-issue IDs must already match the key.
 3. Steps 3–8, when every stage 1 and stage 2 result exists: skip them and restore the `scope` variables from the manifest. If the recorded worktree still exists and `KEEP_WORKTREE` is not `true`, set `WORKTREE_DIR` and `TMP_PARENT` from the manifest and remove it with the Step 8 block.
