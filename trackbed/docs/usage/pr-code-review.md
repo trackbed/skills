@@ -1,6 +1,6 @@
 # pr:code-review
 
-Use it before you open a Pull Request, or after a round of fixes, to get findings on the changes in your branch. Specialized review agents cover the aspects that apply, and their findings are filtered down to the ones your changes caused. It does not edit code unless you pass `--loop`. For UX, visual, and accessibility review, use `trackbed:pr:product-review`.
+Review your branch before opening a Pull Request or after a round of fixes. The default command writes findings to `REVIEW_OVERVIEW.md` and leaves your code alone. Add `--loop` to apply eligible fixes to your working tree and verify them. For UX, visual, and accessibility review, use `trackbed:pr:product-review`.
 
 ## Arguments
 

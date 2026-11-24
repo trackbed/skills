@@ -80,6 +80,8 @@ Then check your environment and try a first workflow:
 
 In Codex, start skills with `$` instead of `/`, for example `$trackbed:setup`. See [Installation & Updating](#installation--updating) for other install methods, auto-update, and [agent prompts](#install-or-upgrade-with-an-agent) that install or upgrade both hosts at once.
 
+Unsure which skill to run? Describe your task in your own words. For example, `/trackbed:workflow:suggest-next How do I review my branch without editing it?` suggests a command you can choose to run.
+
 ## Requirements
 
 The plugin needs no other plugin and no MCP server for basic use. Use a current release of [Claude Code](https://code.claude.com/docs/en/installation#system-requirements) or the Codex CLI; the plugin does not pin a minimum host version. Prefer macOS, Linux, or WSL.
@@ -351,14 +353,14 @@ More review skills cover product, convention, UX, and GitHub-reviewer flows. Whi
 | How much review the branch needs, which review commands to run, and which decisions need a human | `/trackbed:pr:triage-risk` |
 | Anything in the branch that looks strange, unusual, or unnecessary | `/trackbed:pr:gut-check` |
 | Independent review by a provider different from the active Claude Code or Codex host | `/trackbed:pr:adversarial-review` |
-| Code-quality findings on your local branch | `/trackbed:pr:code-review` |
-| Final code-review pass before commit, ship, or closeout | `/trackbed:pr:code-review --loop` |
+| Review my branch and report findings without editing the code | `/trackbed:pr:code-review` |
+| Review my branch, apply eligible fixes to the working tree, and verify them | `/trackbed:pr:code-review --loop` |
 | Convention drift and overcaution vs. established codebase practice | `/trackbed:pr:convention-review` |
 | Needless complexity and unlikely-edge-case hedging vs. what the task requires | `/trackbed:pr:overengineering-review` |
 | Product-value, flow, copy, and edge-case review, plus UX, visual, and accessibility review when UI files changed | `/trackbed:pr:product-review` |
 | Which PRs wait on your review, where each one stands, and whether it looks ready | `/trackbed:pr:review-queue` |
 | Where each of your own open PRs stands and what it needs next | `/trackbed:pr:review-queue --mine` |
-| Review someone else's GitHub PR as the assigned reviewer | `/trackbed:pr:github-review` |
+| Review someone else's PR and draft comments locally for me to approve | `/trackbed:pr:github-review` |
 | Triage and respond to review comments on your own PR | `/trackbed:pr:github-review-reply` |
 | Rebase, fix CI, and answer AI reviewer comments on your open PR in one run | `/trackbed:pr:shape-up` |
 | Move every Conductor workspace of the repository toward a merged PR, and merge the ones that are ready | `/trackbed:conductor:showtime` |
