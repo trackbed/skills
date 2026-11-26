@@ -12,6 +12,15 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 
 - Remove the Codex converter aliases `--codexHome`, `--agentsHome`, and `--nonInteractive`. Use `--codex-home`, `--agents-home`, and `--non-interactive`.
 
+## [1.2.2] - 2026-11-26
+
+### Added
+
+- Write the reply plan to .context in Conductor (#1286)
+- Let shape-up rebase unattended and regenerate generated files (#1283)
+- Put the outcome first in skill pages and reports (#1284)
+- Copy decision documents to the clipboard (#1285)
+
 ## [1.2.1] - 2026-11-23
 
 ### Added
@@ -1448,6 +1457,7 @@ This changelog is maintained from v0.38.0 onward. For earlier releases, see the 
 
 - Preserve skill resources in conversion (#222)
 
+[1.2.2]: https://github.com/trackbed/skills/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/trackbed/skills/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/trackbed/skills/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/trackbed/skills/compare/v1.1.0...v1.1.1

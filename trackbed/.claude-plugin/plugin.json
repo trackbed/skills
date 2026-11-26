@@ -1,7 +1,7 @@
 {
   "name": "trackbed",
   "description": "Tooling for the workflows that Abildtoft encounters in his daily work",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "author": {
     "name": "Abildtoft",
     "email": ""
